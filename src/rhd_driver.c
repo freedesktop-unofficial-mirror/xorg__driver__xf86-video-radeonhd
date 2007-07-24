@@ -216,7 +216,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 static const OptionInfoRec *
 RHDAvailableOptions(int chipid, int busid)
 {
-    	return RHDOptions;
+    return RHDOptions;
 }
 
 static void
@@ -344,6 +344,24 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xf86ErrorF("\n");
 
+    /* Collect all of the relevant option flags (fill in pScrn->options) */
+    xf86CollectOptions(pScrn, NULL);
+    memcpy(rhdPtr->Options, RHDOptions, sizeof(RHDOptions));
+
+    /* Process the options */
+    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
+
+    rhdPtr->noAccelSet =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_NOACCEL, FALSE);
+    rhdPtr->swCursor =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, FALSE);
+    rhdPtr->onPciBurst =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_PCI_BURST, TRUE);
+
+    /* We have none of these things yet. */
+    rhdPtr->noAccelSet = TRUE;
+    rhdPtr->swCursor = TRUE;
+
     /* detect outputs */
     /* @@@ */
 
@@ -422,19 +440,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    return FALSE;
 	}
     }
-
-    /* Collect all of the relevant option flags (fill in pScrn->options) */
-    xf86CollectOptions(pScrn, NULL);
-    memcpy(rhdPtr->Options, RHDOptions, sizeof(RHDOptions));
-
-    /* Process the options */
-    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
-
-    rhdPtr->noAccelSet =
-	xf86GetOptValBool(rhdPtr->Options, OPTION_NOACCEL,&rhdPtr->noAccel);
-    xf86GetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR,&rhdPtr->swCursor);
-    rhdPtr->onPciBurst = TRUE;
-    xf86GetOptValBool(rhdPtr->Options, OPTION_PCI_BURST,&rhdPtr->onPciBurst);
 
     /* Time to get MEM bases and FB size */
     /* @@@ get videoRam and fbSize */
