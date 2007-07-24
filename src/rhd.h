@@ -30,7 +30,7 @@
 typedef struct {
 } RHDRegs, *RHDRegPtr;
 
-typedef struct {
+typedef struct RHDRec {
     int                 RhdChipset;
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
@@ -40,11 +40,13 @@ typedef struct {
     Bool                swCursor;
     Bool                onPciBurst;
     RHDRegs             savedRegs;
+
     unsigned int        FbMapSize;
-    unsigned long       FbAddr;
-    unsigned long       MMIOAddr;
     pointer             FbBase;   /* map base of fb   */
+
+    unsigned int        MMIOMapSize;
     pointer             MMIOBase; /* map base if mmio */
+
     xf86CursorInfoPtr   CursorInfo;
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;

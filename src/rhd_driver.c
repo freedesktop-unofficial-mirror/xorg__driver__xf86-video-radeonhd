@@ -108,8 +108,10 @@ static void     rhdUnlock(ScrnInfoPtr pScrn);
 static void     rhdLock(ScrnInfoPtr pScrn);
 static void     rhdSetMode(ScrnInfoPtr pScrn);
 static Bool     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
-static Bool     rhdMapMem(ScrnInfoPtr pScrn);
-static Bool     rhdUnmapMem(ScrnInfoPtr pScrn);
+static Bool     rhdMMIOMap(ScrnInfoPtr pScrn);
+static void     rhdMMIOUnmap(ScrnInfoPtr pScrn);
+static Bool     rhdFBMap(ScrnInfoPtr pScrn);
+static void     rhdFBUnmap(ScrnInfoPtr pScrn);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 
 #define RHD_VERSION 0001
@@ -284,8 +286,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
     int bppSupport;
-    int videoRam = 0;
-    int fbSize = 0;
     int i;
 
     if (flags & PROBE_DETECT)  {
@@ -361,6 +361,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* We have none of these things yet. */
     rhdPtr->noAccelSet = TRUE;
     rhdPtr->swCursor = TRUE;
+
+    /* We need access to IO space already */
+    if (!rhdMMIOMap(pScrn)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
 
     /* detect outputs */
     /* @@@ */
@@ -441,15 +448,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	}
     }
 
-    /* Time to get MEM bases and FB size */
-    /* @@@ get videoRam and fbSize */
-    pScrn->videoRam = videoRam;
+    /* @@@ get videoRam */
+    pScrn->videoRam = 0;
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
-
-    rhdPtr->FbMapSize = fbSize * 1024;
-    rhdPtr->FbAddr = rhdPtr->PciInfo->memBase[0];
-    rhdPtr->MMIOAddr = rhdPtr->PciInfo->memBase[1];
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
@@ -473,6 +475,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    return FALSE;
 	}
     }
+
+    rhdMMIOUnmap(pScrn);
+
     return TRUE;
 }
 
@@ -493,9 +498,15 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * Whack the hardware
      */
 
-    /* FB memory and  MMIO areas */
-    if (!rhdMapMem(pScrn))
+    if (!rhdMMIOMap(pScrn)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	return FALSE;
+    }
+
+    if (!rhdFBMap(pScrn)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map FB.\n");
+	return FALSE;
+    }
 
     /* save previous mode */
     rhdSave(pScrn);
@@ -641,7 +652,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	rhdRestore(pScrn, &rhdPtr->savedRegs);
 
 	rhdLock(pScrn);
-	rhdUnmapMem(pScrn);
+	rhdFBUnmap(pScrn);
+	rhdMMIOUnmap(pScrn);
     }
 
     /* @@@ deacllocate any data structures that are rhdPtr private here */
@@ -762,51 +774,82 @@ rhdSaveScreen(ScreenPtr pScrn, int on)
 /*
  *
  */
-#define MMIO_SIZE 0x200000L /*@@@ Fix size */
 static Bool
-rhdMapMem(ScrnInfoPtr pScrn)
+rhdMMIOMap(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    int BAR;
 
+    /* There are bound to be chips which use a different BAR */
+    switch(rhdPtr->RhdChipset) {
+    default:
+	BAR = 2;
+	break;
+    }
+
+    rhdPtr->MMIOMapSize = rhdPtr->PciInfo->size[BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO,
-                      rhdPtr->PciTag, rhdPtr->MMIOAddr,
-                      MMIO_SIZE);
-    if (rhdPtr->MMIOBase == NULL)
+                      rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
+		      rhdPtr->PciInfo->size[BAR]);
+    if (!rhdPtr->MMIOBase)
         return FALSE;
 
-    rhdPtr->FbBase =
-        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER,
-                      rhdPtr->PciTag,
-                      (unsigned long)(rhdPtr->FbAddr),
-                      rhdPtr->FbMapSize);
-
-    if (rhdPtr->FbBase == NULL) {
-        xf86UnMapVidMem(pScrn->scrnIndex, (pointer)rhdPtr->MMIOBase,
-                        MMIO_SIZE);
-        rhdPtr->MMIOBase = NULL;
-        return FALSE;
-    }
     return TRUE;
 }
 
 /*
- * Unmap the framebuffer and MMIO memory.
+ *
  */
-
-static Bool
-rhdUnmapMem(ScrnInfoPtr pScrn)
+static void
+rhdMMIOUnmap(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     xf86UnMapVidMem(pScrn->scrnIndex, (pointer)rhdPtr->MMIOBase,
-                    MMIO_SIZE);
+                    rhdPtr->MMIOMapSize);
     rhdPtr->MMIOBase = 0;
+}
+
+/*
+ *
+ */
+static Bool
+rhdFBMap(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int BAR;
+
+    /* There are bound to be chips which use a different BAR */
+    switch(rhdPtr->RhdChipset) {
+    default:
+	BAR = 0;
+	break;
+    }
+
+    rhdPtr->FbMapSize = rhdPtr->PciInfo->size[BAR];
+    rhdPtr->FbBase =
+        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER,
+                      rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
+		      rhdPtr->PciInfo->size[BAR]);
+
+    if (!rhdPtr->FbBase)
+        return FALSE;
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static void
+rhdFBUnmap(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
     xf86UnMapVidMem(pScrn->scrnIndex, (pointer)rhdPtr->FbBase,
                     rhdPtr->FbMapSize);
     rhdPtr->FbBase = 0;
-
-    return TRUE;
 }
 
 static Bool
