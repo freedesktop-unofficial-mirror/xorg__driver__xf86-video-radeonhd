@@ -281,12 +281,12 @@ RHDProbe(DriverPtr drv, int flags)
 Bool
 RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
-    int i;
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
     int bppSupport;
     int videoRam = 0;
     int fbSize = 0;
+    int i;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -297,30 +297,45 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (!RHDGetRec(pScrn)) {
 	return FALSE;
     }
-# define BAILOUT \
-    { RHDFreeRec(pScrn); \
-      if (pEnt) xfree(pEnt); \
-      return FALSE;\
-    }
 
     rhdPtr = RHDPTR(pScrn);
 
     /* This driver doesn't expect more than one entity per screen */
-    if (pScrn->numEntities > 1)
-	BAILOUT;
+    if (pScrn->numEntities > 1) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
 
-    /* This is the general case */
-    for (i = 0; i<pScrn->numEntities; i++) {
+    for (i = 0; i < pScrn->numEntities; i++) {
 	pEnt = xf86GetEntityInfo(pScrn->entityList[i]);
-	if (pEnt->resources) return FALSE;
+	if (pEnt->resources) {
+	    RHDFreeRec(pScrn);
+	    xfree(pEnt);
+	    return FALSE;
+	}
+
 	rhdPtr->RhdChipset = pEnt->chipset;
-	pScrn->chipset = (char *)xf86TokenToString(RHDChipsets,
-						   pEnt->chipset);
+	pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
         rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
         rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
                                 rhdPtr->PciInfo->device,
                                 rhdPtr->PciInfo->func);
     }
+
+    /* TODO: dig out the previous code so that this here actually makes sense. */
+    if (!pEnt) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
+
+    /* if we need to store/restore VGA registers, then we will end up doing this
+       through MMIO */
+    if (xf86RegisterResources(pEnt->index, NULL, ResNone)) {
+	RHDFreeRec(pScrn);
+	xfree(pEnt);
+	return FALSE;
+    }
+    xfree(pEnt);
 
     switch(rhdPtr->RhdChipset){
         default:
@@ -337,9 +352,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     pScrn->monitor = pScrn->confScreen->monitor;
 
-    if (!xf86SetDepthBpp(pScrn, 16, 0, 0, bppSupport ))
-        BAILOUT
-    else {
+    if (!xf86SetDepthBpp(pScrn, 16, 0, 0, bppSupport )) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    } else {
 	/* Check that the returned depth is one we support */
 	switch (pScrn->depth) {
 	case 8:
@@ -351,7 +367,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Given depth (%d) is not supported by this driver\n",
 		       pScrn->depth);
-	    BAILOUT;
+	    RHDFreeRec(pScrn);
+	    return FALSE;
 	}
     }
     xf86PrintDepthBpp(pScrn);
@@ -374,22 +391,25 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rgb zeros = {0, 0, 0};
 
 	if (!xf86SetWeight(pScrn, zeros, zeros)) {
-            BAILOUT;
+	    RHDFreeRec(pScrn);
+	    return FALSE;
 	} else {
 	    /* XXX check that weight returned is supported */
 	    ;
 	}
     }
 
-    if (!xf86SetDefaultVisual(pScrn, -1))
-        BAILOUT
-    else {
+    if (!xf86SetDefaultVisual(pScrn, -1)) {
+        RHDFreeRec(pScrn);
+	return FALSE;
+    } else {
         /* We don't currently support DirectColor at > 8bpp */
         if (pScrn->depth > 8 && pScrn->defaultVisual != TrueColor) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Given default visual"
                        " (%s) is not supported at depth %d\n",
                        xf86GetVisualName(pScrn->defaultVisual), pScrn->depth);
-            BAILOUT;
+	    RHDFreeRec(pScrn);
+	    return FALSE;
         }
     }
 
@@ -397,10 +417,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	Gamma zeros = {0.0, 0.0, 0.0};
 
         /* @@@ */
-	if (!xf86SetGamma(pScrn, zeros))
-            BAILOUT;
+	if (!xf86SetGamma(pScrn, zeros)) {
+            RHDFreeRec(pScrn);
+	    return FALSE;
+	}
     }
-
 
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
@@ -421,14 +442,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
 
-
     rhdPtr->FbMapSize = fbSize * 1024;
     rhdPtr->FbAddr = rhdPtr->PciInfo->memBase[0];
     rhdPtr->MMIOAddr = rhdPtr->PciInfo->memBase[1];
-
-    /* XXX What about VGA resources in OPERATING mode? */
-    if (xf86RegisterResources(pEnt->index, NULL, ResNone))
-        BAILOUT;
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
@@ -436,20 +452,24 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);
 
-    if (xf86LoadSubModule(pScrn, "fb") == NULL)
-	BAILOUT;
+    if (xf86LoadSubModule(pScrn, "fb") == NULL) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
 
-    if (!xf86LoadSubModule(pScrn, "xaa"))
-	    BAILOUT;
+    if (!xf86LoadSubModule(pScrn, "xaa")) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
 
     if (!rhdPtr->swCursor) {
-	if (!xf86LoadSubModule(pScrn, "ramdac"))
-	    BAILOUT;
+	if (!xf86LoadSubModule(pScrn, "ramdac")) {
+	    RHDFreeRec(pScrn);
+	    return FALSE;
+	}
     }
     return TRUE;
 }
-
-#undef BAILOUT
 
 /* Mandatory */
 static Bool
