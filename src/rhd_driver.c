@@ -203,14 +203,22 @@ RHDGetRec(ScrnInfoPtr pScrn)
 
     if (pScrn->driverPrivate == NULL)
 	return FALSE;
-        return TRUE;
+    return TRUE;
 }
 
 static void
 RHDFreeRec(ScrnInfoPtr pScrn)
 {
+    RHDPtr rhdPtr;
+
     if (pScrn->driverPrivate == NULL)
 	return;
+
+    rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->Options)
+	xfree(rhdPtr->Options);
+
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -346,6 +354,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
+    rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
     memcpy(rhdPtr->Options, RHDOptions, sizeof(RHDOptions));
 
     /* Process the options */
