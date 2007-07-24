@@ -1,8 +1,7 @@
 /*
- * Copyright 2007
- *                 Luc Verhaegen <lverhagen@novell.com>
- *                 Matthias Hopf <mhopf@novell.com>
- *                 Egbert Eich   <eich@novell.com>
+ * Copyright 2007  Luc Verhaegen <lverhagen@novell.com>
+ * Copyright 2007  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007  Egbert Eich   <eich@novell.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,7 +25,7 @@
 #ifndef _RHD_H
 # define _RHD_H
 
-#include "xf86Cursor.h"
+# include "xf86Cursor.h"
 
 typedef struct {
 } RHDRegs, *RHDRegPtr;

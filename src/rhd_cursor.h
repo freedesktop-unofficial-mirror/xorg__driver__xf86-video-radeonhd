@@ -24,7 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "xf86str.h"
+# include "xf86str.h"
 
 Bool RHDCursorInit(ScreenPtr pScreen);
 void rhdShowCursor(ScrnInfoPtr);

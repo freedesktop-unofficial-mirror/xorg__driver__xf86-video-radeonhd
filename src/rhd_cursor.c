@@ -52,7 +52,7 @@ void
 rhdHideCursor(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    
+
     /* turn cursor off  */
     rhdPtr->HWCursorShown = FALSE;
 }
@@ -117,7 +117,7 @@ RHDCursorInit(ScreenPtr pScreen)
     infoPtr->ShowCursor = rhdShowCursor;
     infoPtr->UseHWCursor = rhdUseHWCursor;
     infoPtr->RealizeCursor = rhdRealizeCursor;
-    
+
     if (!xf86InitCursor(pScreen, infoPtr)) {
         xf86DestroyCursorInfoRec(infoPtr);
         return FALSE;

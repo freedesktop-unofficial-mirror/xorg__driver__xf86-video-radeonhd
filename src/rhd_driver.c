@@ -336,7 +336,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     bppSupport =  Support32bppFb;
 
     pScrn->monitor = pScrn->confScreen->monitor;
-    
+
     if (!xf86SetDepthBpp(pScrn, 16, 0, 0, bppSupport ))
         BAILOUT
     else {
