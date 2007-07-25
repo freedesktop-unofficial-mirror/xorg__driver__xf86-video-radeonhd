@@ -574,9 +574,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* init fb */
     ret = fbScreenInit(pScreen, rhdPtr->FbBase,
-			    pScrn->virtualX, pScrn->virtualY,
-			    pScrn->xDpi, pScrn->yDpi,
-			    pScrn->displayWidth, pScrn->bitsPerPixel);
+		       pScrn->virtualX, pScrn->virtualY,
+		       pScrn->xDpi, pScrn->yDpi,
+		       pScrn->displayWidth, pScrn->bitsPerPixel);
     if (!ret)
 	return FALSE;
     if (pScrn->depth > 8) {
@@ -822,13 +822,16 @@ rhdMMIOMap(ScrnInfoPtr pScrn)
 	break;
     }
 
-    rhdPtr->MMIOMapSize = rhdPtr->PciInfo->size[BAR];
+    rhdPtr->MMIOMapSize = 2 << rhdPtr->PciInfo->size[BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO,
                       rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
-		      rhdPtr->PciInfo->size[BAR]);
+		      rhdPtr->MMIOMapSize);
     if (!rhdPtr->MMIOBase)
         return FALSE;
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Mapped IO at %p (size 0x%08X)\n",
+	       rhdPtr->MMIOBase, rhdPtr->MMIOMapSize);
 
     return TRUE;
 }
@@ -862,14 +865,17 @@ rhdFBMap(ScrnInfoPtr pScrn)
 	break;
     }
 
-    rhdPtr->FbMapSize = rhdPtr->PciInfo->size[BAR];
+    rhdPtr->FbMapSize = 2 << rhdPtr->PciInfo->size[BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER,
                       rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
-		      rhdPtr->PciInfo->size[BAR]);
+		      rhdPtr->FbMapSize);
 
     if (!rhdPtr->FbBase)
         return FALSE;
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
+	       rhdPtr->FbBase, rhdPtr->FbMapSize);
 
     return TRUE;
 }
