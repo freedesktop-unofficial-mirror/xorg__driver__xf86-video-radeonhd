@@ -27,6 +27,12 @@
 
 # include "xf86Cursor.h"
 
+enum RHD_CHIPSETS {
+    RHD_UNKOWN = 0,
+    RHD_RV530,
+    RHD_CHIP_END
+};
+
 typedef struct {
 } RHDRegs, *RHDRegPtr;
 

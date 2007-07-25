@@ -136,10 +136,12 @@ _X_EXPORT DriverRec RADEONHD = {
 };
 
 static SymTabRec RHDChipsets[] = {
+    {RHD_RV530, "RV530" },
     {-1,      NULL }
 };
 
 static PciChipsets RHDPCIchipsets[] = {
+    { RHD_RV530, 0x71C2, RES_SHARED_VGA },
     { -1,	     -1,	     RES_UNDEFINED}
 };
 
@@ -295,7 +297,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
-    int bppSupport;
     int i;
 
     if (flags & PROBE_DETECT)  {
@@ -354,6 +355,31 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xf86ErrorF("\n");
 
+    /* xf86CollectOptions cluelessly depends on these and
+       will SIGSEGV otherwise */
+    pScrn->monitor = pScrn->confScreen->monitor;
+
+    if (!xf86SetDepthBpp(pScrn, 16, 0, 0, Support32bppFb)) {
+	RHDFreeRec(pScrn);
+	return FALSE;
+    } else {
+	/* Check that the returned depth is one we support */
+	switch (pScrn->depth) {
+	case 8:
+	case 15:
+	case 16:
+	case 24:
+	    break;
+	default:
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Given depth (%d) is not supported by this driver\n",
+		       pScrn->depth);
+	    RHDFreeRec(pScrn);
+	    return FALSE;
+	}
+    }
+    xf86PrintDepthBpp(pScrn);
+
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -396,32 +422,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* detect outputs */
     /* @@@ */
-
-    /* set chipset specific characteristics */
-    bppSupport =  Support32bppFb;
-
-    pScrn->monitor = pScrn->confScreen->monitor;
-
-    if (!xf86SetDepthBpp(pScrn, 16, 0, 0, bppSupport )) {
-	RHDFreeRec(pScrn);
-	return FALSE;
-    } else {
-	/* Check that the returned depth is one we support */
-	switch (pScrn->depth) {
-	case 8:
-	case 15:
-	case 16:
-	    break;
-	case 24:
-	default:
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Given depth (%d) is not supported by this driver\n",
-		       pScrn->depth);
-	    RHDFreeRec(pScrn);
-	    return FALSE;
-	}
-    }
-    xf86PrintDepthBpp(pScrn);
 
 #if 0  /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
