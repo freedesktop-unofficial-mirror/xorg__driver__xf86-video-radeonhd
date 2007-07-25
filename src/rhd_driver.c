@@ -146,13 +146,15 @@ static PciChipsets RHDPCIchipsets[] = {
 typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
-    OPTION_PCI_BURST
+    OPTION_PCI_BURST,
+    OPTION_VIDEORAM
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,	"NoAccel",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST,	 "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
+    { OPTION_VIDEORAM,  "videoram",     OPTV_INTEGER,   {0}, FALSE }, /* kill me */
     { -1,                  NULL,           OPTV_NONE,	{0}, FALSE }
 };
 
@@ -367,6 +369,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->onPciBurst =
 	xf86ReturnOptValBool(rhdPtr->Options, OPTION_PCI_BURST, TRUE);
 
+    if (!xf86GetOptValInteger(rhdPtr->Options, OPTION_VIDEORAM, &pScrn->videoRam))
+	pScrn->videoRam = 0;
+
     /* We have none of these things yet. */
     rhdPtr->noAccelSet = TRUE;
     rhdPtr->swCursor = TRUE;
@@ -377,6 +382,17 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDFreeRec(pScrn);
 	return FALSE;
     }
+
+    /* Use MC to detect how much RAM is there.
+     * For now, just use an option. */
+    if (!pScrn->videoRam) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
+	RHDFreeRec(pScrn);
+	return FALSE;
+    }
+
+    xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
+               pScrn->videoRam);
 
     /* detect outputs */
     /* @@@ */
@@ -456,11 +472,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    return FALSE;
 	}
     }
-
-    /* @@@ get videoRam */
-    pScrn->videoRam = 0;
-    xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
-               pScrn->videoRam);
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
