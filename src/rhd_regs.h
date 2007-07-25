@@ -24,5 +24,15 @@
 #ifndef _RHD_REGS_H
 # define _RHD_REGS_H
 
+#define VGA_RENDER_CONTROL      0x0300
+#define VGA_MEMORY_BASE_ADDRESS 0x0310
+#define VGA_HDP_CONTROL         0x0328
+#define D1VGA_CONTROL           0x0330
+#define D2VGA_CONTROL           0x0338
+
+/* Some handy functions that makes life so much more readable */
+unsigned int RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
+void RHDRegWrite(RHDPtr rhdPtr, CARD16 offset, CARD32 value);
+void RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask);
 
 #endif /* _RHD_REGS_H */

@@ -33,7 +33,19 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
-typedef struct {
+typedef struct RHDRegs {
+
+    /* All to do with VGA handling. */
+    Bool IsVGA;
+    CARD32 VGAFBOffset;
+    CARD8 *VGAFB;
+    int VGAFBSize; /* most cases, 256kB */
+
+    CARD32 VGA_Render_Control;
+    CARD32 VGA_HDP_Control;
+    CARD32 D1VGA_Control;
+    CARD32 D2VGA_Control;
+
 } RHDRegs, *RHDRegPtr;
 
 typedef struct RHDRec {
@@ -48,6 +60,7 @@ typedef struct RHDRec {
     RHDRegs             savedRegs;
 
     unsigned int        FbMapSize;
+    unsigned int        FbAddress; /* real address of FB */
     pointer             FbBase;   /* map base of fb   */
 
     unsigned int        MMIOMapSize;

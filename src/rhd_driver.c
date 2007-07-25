@@ -824,9 +824,8 @@ rhdMMIOMap(ScrnInfoPtr pScrn)
 
     rhdPtr->MMIOMapSize = 2 << rhdPtr->PciInfo->size[BAR];
     rhdPtr->MMIOBase =
-        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO,
-                      rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
-		      rhdPtr->MMIOMapSize);
+        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO, rhdPtr->PciTag,
+		      rhdPtr->PciInfo->memBase[BAR], rhdPtr->MMIOMapSize);
     if (!rhdPtr->MMIOBase)
         return FALSE;
 
@@ -866,10 +865,10 @@ rhdFBMap(ScrnInfoPtr pScrn)
     }
 
     rhdPtr->FbMapSize = 2 << rhdPtr->PciInfo->size[BAR];
+    rhdPtr->FbAddress = rhdPtr->PciInfo->memBase[BAR];
     rhdPtr->FbBase =
-        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER,
-                      rhdPtr->PciTag, rhdPtr->PciInfo->memBase[BAR],
-		      rhdPtr->FbMapSize);
+        xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
+		      rhdPtr->FbAddress, rhdPtr->FbMapSize);
 
     if (!rhdPtr->FbBase)
         return FALSE;
@@ -932,19 +931,98 @@ rhdSave(ScrnInfoPtr pScrn)
     RHDRegPtr save;
 
     save = &(rhdPtr->savedRegs);
-    /* @@@@ save registers we are going to touch */
+
+    save->VGA_Render_Control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
+    save->VGA_HDP_Control = RHDRegRead(rhdPtr, VGA_HDP_CONTROL);
+    save->D1VGA_Control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
+    save->D2VGA_Control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
+
+    /* Check whether anything to do with VGA is enabled,
+       if so, store things accordingly */
+    if ((save->VGA_Render_Control & 0x00030000) || /* VGA_VSTATUS_CNTL */
+	!(save->VGA_HDP_Control & 0x00000010) || /* VGA_MEMORY_DISABLE */
+	(save->D1VGA_Control & 0x00000001) || /* D1VGA_MODE_ENABLE */
+	(save->D2VGA_Control & 0x00000001)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "VGA mode detected. Saving appropriately.\n");
+
+	save->IsVGA = TRUE;
+	save->VGAFBOffset =
+	    RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbAddress;
+
+	save->VGAFBSize = 256 * 1024;
+	save->VGAFB = xcalloc(save->VGAFBSize, 1);
+	if (save->VGAFB)
+	    memcpy(save->VGAFB, ((CARD8 *) rhdPtr->FbBase) + save->VGAFBOffset,
+		   save->VGAFBSize);
+	else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "Failed to allocate space for storing the VGA framebuffer.\n");
+	    save->VGAFBSize = 0;
+	}
+    } else
+	save->IsVGA = FALSE;
+
+
 }
 
 static void
 rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    /* load registers back to the hardware */
+
+    if (restore->IsVGA) {
+	if (restore->VGAFBSize)
+	    memcpy(((CARD8 *) rhdPtr->FbBase) + restore->VGAFBOffset,
+		   restore->VGAFB, restore->VGAFBSize);
+
+	RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, restore->VGA_Render_Control);
+	RHDRegWrite(rhdPtr, VGA_HDP_CONTROL, restore->VGA_HDP_Control);
+	RHDRegWrite(rhdPtr, D1VGA_CONTROL, restore->D1VGA_Control);
+	RHDRegWrite(rhdPtr, D2VGA_CONTROL, restore->D2VGA_Control);
+    }
 }
 
 static void
 rhdSetMode(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    /* load registers back to the hardware */
+
+    /* Disable all of VGA */
+    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
+    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
+    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
+    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
+}
+
+/*
+ *
+ */
+unsigned int
+RHDRegRead(RHDPtr rhdPtr, CARD16 offset)
+{
+    return *(volatile CARD32 *)((CARD8 *) rhdPtr->MMIOBase + offset);
+}
+
+/*
+ *
+ */
+void
+RHDRegWrite(RHDPtr rhdPtr, CARD16 offset, CARD32 value)
+{
+    *(volatile CARD32 *)((CARD8 *) rhdPtr->MMIOBase + offset) = value;
+}
+
+/*
+ * This one might seem clueless, but it is an actual lifesaver.
+ */
+void
+RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask)
+{
+    CARD32 tmp;
+
+    tmp = RHDRegRead(rhdPtr, offset);
+    tmp &= ~mask;
+    tmp |= (value & mask);
+    RHDRegWrite(rhdPtr, offset, tmp);
 }
