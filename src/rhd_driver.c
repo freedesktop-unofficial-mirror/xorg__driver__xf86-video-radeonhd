@@ -476,6 +476,21 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* @@@ need this? */
     pScrn->progClock = TRUE;
 
+    /* Tell X that we support at least one mode */
+    /* WARNING: xf86CVTMode doesn't exist before 7.1 */
+    {
+	int HDisplay = 1280, VDisplay = 1024;
+	DisplayModePtr Mode = xf86CVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
+
+	pScrn->virtualX = HDisplay;
+	pScrn->virtualY = VDisplay;
+	pScrn->displayWidth = HDisplay; /* need some alignment value here */
+	pScrn->modes = Mode;
+	pScrn->currentMode = Mode;
+	Mode->next = Mode;
+	Mode->prev = Mode;
+    }
+
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);
 
