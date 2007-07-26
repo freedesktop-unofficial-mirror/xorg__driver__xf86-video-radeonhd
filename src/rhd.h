@@ -46,6 +46,34 @@ typedef struct RHDRegs {
     CARD32 D1VGA_Control;
     CARD32 D2VGA_Control;
 
+    CARD32 D1CRTC_H_Total;
+    CARD32 D1CRTC_H_Blank_Start_End;
+    CARD32 D1CRTC_H_Sync_A;
+    CARD32 D1CRTC_H_Sync_A_Cntl;
+    CARD32 D1CRTC_H_Sync_B;
+    CARD32 D1CRTC_H_Sync_B_Cntl;
+
+    CARD32 D1CRTC_V_Total;
+    CARD32 D1CRTC_V_Blank_Start_End;
+    CARD32 D1CRTC_V_Sync_A;
+    CARD32 D1CRTC_V_Sync_A_Cntl;
+    CARD32 D1CRTC_V_Sync_B;
+    CARD32 D1CRTC_V_Sync_B_Cntl;
+
+    CARD32 D1GRPH_X_End;
+    CARD32 D1GRPH_Y_End;
+    CARD32 D1GRPH_Primary_Surface_Address;
+    CARD32 D1Mode_ViewPort_Size;
+
+    /* D2GRPH */
+    CARD32 D2GRPH_Enable;
+
+    /* CRTC2 */
+    CARD32 D2CRTC_Control;
+
+    /* DACB  */
+    CARD32 DACB_Source_Select;
+
 } RHDRegs, *RHDRegPtr;
 
 typedef struct RHDRec {
