@@ -1074,7 +1074,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 /*
  *
  */
-unsigned int
+CARD32
 RHDRegRead(RHDPtr rhdPtr, CARD16 offset)
 {
     return *(volatile CARD32 *)((CARD8 *) rhdPtr->MMIOBase + offset);
