@@ -108,10 +108,10 @@ static void     rhdUnlock(ScrnInfoPtr pScrn);
 static void     rhdLock(ScrnInfoPtr pScrn);
 static void     rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
-static Bool     rhdMMIOMap(ScrnInfoPtr pScrn);
-static void     rhdMMIOUnmap(ScrnInfoPtr pScrn);
-static Bool     rhdFBMap(ScrnInfoPtr pScrn);
-static void     rhdFBUnmap(ScrnInfoPtr pScrn);
+static Bool     rhdMapMMIO(ScrnInfoPtr pScrn);
+static void     rhdUnmapMMIO(ScrnInfoPtr pScrn);
+static Bool     rhdMapFB(ScrnInfoPtr pScrn);
+static void     rhdUnmapFB(ScrnInfoPtr pScrn);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 
 #define RHD_VERSION 0001
@@ -403,7 +403,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->swCursor = TRUE;
 
     /* We need access to IO space already */
-    if (!rhdMMIOMap(pScrn)) {
+    if (!rhdMapMMIO(pScrn)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	RHDFreeRec(pScrn);
 	return FALSE;
@@ -511,7 +511,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	}
     }
 
-    rhdMMIOUnmap(pScrn);
+    rhdUnmapMMIO(pScrn);
 
     return TRUE;
 }
@@ -533,12 +533,12 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * Whack the hardware
      */
 
-    if (!rhdMMIOMap(pScrn)) {
+    if (!rhdMapMMIO(pScrn)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	return FALSE;
     }
 
-    if (!rhdFBMap(pScrn)) {
+    if (!rhdMapFB(pScrn)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map FB.\n");
 	return FALSE;
     }
@@ -687,8 +687,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	rhdRestore(pScrn, &rhdPtr->savedRegs);
 
 	rhdLock(pScrn);
-	rhdFBUnmap(pScrn);
-	rhdMMIOUnmap(pScrn);
+	rhdUnmapFB(pScrn);
+	rhdUnmapMMIO(pScrn);
     }
 
     /* @@@ deacllocate any data structures that are rhdPtr private here */
@@ -810,7 +810,7 @@ rhdSaveScreen(ScreenPtr pScrn, int on)
  *
  */
 static Bool
-rhdMMIOMap(ScrnInfoPtr pScrn)
+rhdMapMMIO(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int BAR;
@@ -839,7 +839,7 @@ rhdMMIOMap(ScrnInfoPtr pScrn)
  *
  */
 static void
-rhdMMIOUnmap(ScrnInfoPtr pScrn)
+rhdUnmapMMIO(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
@@ -852,7 +852,7 @@ rhdMMIOUnmap(ScrnInfoPtr pScrn)
  *
  */
 static Bool
-rhdFBMap(ScrnInfoPtr pScrn)
+rhdMapFB(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int BAR;
@@ -883,7 +883,7 @@ rhdFBMap(ScrnInfoPtr pScrn)
  *
  */
 static void
-rhdFBUnmap(ScrnInfoPtr pScrn)
+rhdUnmapFB(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
