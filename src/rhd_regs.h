@@ -61,10 +61,4 @@ enum {
     DACB_SOURCE_SELECT             = 0x7A04
 };
 
-
-/* Some handy functions that makes life so much more readable */
-CARD32 RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
-void RHDRegWrite(RHDPtr rhdPtr, CARD16 offset, CARD32 value);
-void RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask);
-
 #endif /* _RHD_REGS_H */
