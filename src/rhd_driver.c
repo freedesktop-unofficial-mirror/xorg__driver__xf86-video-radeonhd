@@ -298,7 +298,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
-
+    Bool ret = FALSE;
+    pointer biosHandle = NULL;
+    
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
 	return TRUE;
@@ -336,7 +338,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
                             rhdPtr->PciInfo->device,
                             rhdPtr->PciInfo->func);
-
+    rhdPtr->entityIndex = pEnt->index;
 
     /* We will disable access to VGA legacy resources emulation and
        save/restore VGA thru MMIO when necessary */
@@ -403,6 +405,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
 
+    biosHandle = RHDInitAtomBIOS(pScrn);
+    
     /* detect outputs */
     /* @@@ */
 
@@ -493,10 +497,16 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    return FALSE;
 	}
     }
-
-    rhdUnmapMMIO(pScrn);
-
     return TRUE;
+    
+ error2:
+    RHDUninitAtomBIOS(pScrn, biosHandle); 
+ error1:
+    rhdUnmapMMIO(pScrn);
+ error0:
+    RHDFreeRec(pScrn);
+
+    return FALSE;
 }
 
 /* Mandatory */

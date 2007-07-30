@@ -94,6 +94,7 @@ typedef struct RHDRec {
     int                 RhdChipset;
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
+    int			entityIndex;
     OptionInfoPtr       Options;
     RHDOpt              noAccel;
     RHDOpt              swCursor;
