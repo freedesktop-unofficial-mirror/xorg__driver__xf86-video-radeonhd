@@ -79,6 +79,7 @@
 #include "rhd_regs.h"
 #include "rhd_macros.h"
 #include "rhd_cursor.h"
+#include "rhd_atombios.h"
 
 /* ??? */
 #include "servermd.h"
@@ -355,7 +356,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	break;
     }
     xf86ErrorF("\n");
-
+    
     /* xf86CollectOptions cluelessly depends on these and
        will SIGSEGV otherwise */
     pScrn->monitor = pScrn->confScreen->monitor;
@@ -402,6 +403,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
                pScrn->videoRam);
 
     biosHandle = RHDInitAtomBIOS(pScrn);
+    {
+	/* for testing functions */
+	AtomBIOSArg arg;
+	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PLL_CLOCK, &arg);
+	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MIN_PLL_CLOCK, &arg);
+	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PIXEL_CLK, &arg);
+	RhdAtomBIOSFunc(pScrn, biosHandle, GET_REF_CLOCK, &arg);
+    }
 
     /* detect outputs */
     /* @@@ */
