@@ -266,8 +266,8 @@ rhdGetAtombiosDataTable(ScrnInfoPtr pScrn, unsigned char *base,
     return TRUE;
 }
 
-pointer
-RHDInitAtomBIOS(ScrnInfoPtr pScrn)
+static pointer
+rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     unsigned char *ptr;
@@ -341,7 +341,7 @@ RHDInitAtomBIOS(ScrnInfoPtr pScrn)
 }
 
 void
-RHDUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle)
+rhdUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle)
 {
     atomBIOSHandlePtr myhandle = (atomBIOSHandlePtr) handle;
     if (!myhandle)
@@ -357,8 +357,18 @@ RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, driverFunc func,
 {
     atomDataTablesPtr atomDataPtr;
 
+    if (func == ATOMBIOS_INIT) {
+	if (!(data->ptr = rhdInitAtomBIOS(pScrn)))
+	    return FAILED;
+	return SUCCESS;
+    }
     if (!handle)
 	return FAILED;
+    if (func <= ATOMBIOS_UNINIT) {
+	rhdUninitAtomBIOS(pScrn, handle);
+	return SUCCESS;
+    }
+
     if (func < FUNC_END) {
 	CARD8 cref, fref;
 
@@ -462,7 +472,7 @@ RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, driverFunc func,
 	}
 	switch (func) {
 	    case GET_MAX_PLL_CLOCK:
-		xf86DrvMsg(pScrn->scrnIndex,X_INFO,"MAX_PLL_CLOCK: %i\n",
+		xf86DrvMsg(pScrn->scrnIndex,X_INFO,"MAX_PLL_CLOCK: %lu\n",
 			   data->card32);
 		break;
 	    case GET_MIN_PLL_CLOCK:

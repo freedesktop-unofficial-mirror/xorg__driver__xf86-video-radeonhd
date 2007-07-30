@@ -31,6 +31,8 @@ typedef enum {
 } driverFuncResult;
 
 typedef enum {
+    ATOMBIOS_INIT,
+    ATOMBIOS_UNINIT,
     GET_MAX_PLL_CLOCK,
     GET_MIN_PLL_CLOCK,
     GET_MAX_PIXEL_CLK,

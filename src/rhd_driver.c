@@ -301,6 +301,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     EntityInfoPtr pEnt = NULL;
     pointer biosHandle = NULL;
     Bool ret = FALSE;
+    AtomBIOSArg arg;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -402,10 +403,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
 
-    biosHandle = RHDInitAtomBIOS(pScrn);
-    {
+    if (RhdAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &arg) == SUCCESS) {
+	biosHandle = arg.ptr;
 	/* for testing functions */
-	AtomBIOSArg arg;
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PLL_CLOCK, &arg);
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MIN_PLL_CLOCK, &arg);
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PIXEL_CLK, &arg);
@@ -498,7 +498,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     ret = TRUE;
 
  error2:
-    RHDUninitAtomBIOS(pScrn, biosHandle);
+    RhdAtomBIOSFunc(pScrn, biosHandle, ATOMBIOS_UNINIT, NULL);
  error1:
     rhdUnmapMMIO(pScrn);
  error0:

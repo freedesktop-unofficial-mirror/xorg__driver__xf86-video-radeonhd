@@ -128,10 +128,6 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
 
-/* rhd_atombios.c */
-pointer RHDInitAtomBIOS(ScrnInfoPtr pScrn);
-void RHDUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle);
-
 /* rhd.h */
 /* Some handy functions that makes life so much more readable */
 CARD32 RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
