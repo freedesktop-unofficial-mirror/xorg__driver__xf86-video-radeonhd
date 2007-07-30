@@ -298,9 +298,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
-    Bool ret = FALSE;
     pointer biosHandle = NULL;
-    
+    Bool ret = FALSE;
+
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
 	return TRUE;
@@ -315,18 +315,19 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* This driver doesn't expect more than one entity per screen */
     if (pScrn->numEntities > 1) {
-	RHDFreeRec(pScrn);
-	return FALSE;
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Driver doesn't support more than one entity per screen\n");
+	goto error0;
     }
 
     if (!(pEnt = xf86GetEntityInfo(pScrn->entityList[0]))) {
-	RHDFreeRec(pScrn);
-	return FALSE;
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Unable to get entity info\n");
+	goto error0;
     }
     if (pEnt->resources) {
-        RHDFreeRec(pScrn);
         xfree(pEnt);
-        return FALSE;
+	goto error0;
     }
 
     rhdPtr->RhdChipset = pEnt->chipset;
@@ -343,9 +344,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* We will disable access to VGA legacy resources emulation and
        save/restore VGA thru MMIO when necessary */
     if (xf86RegisterResources(pEnt->index, NULL, ResNone)) {
-	RHDFreeRec(pScrn);
 	xfree(pEnt);
-	return FALSE;
+	goto error0;
     }
     xfree(pEnt);
 
@@ -361,8 +361,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     pScrn->monitor = pScrn->confScreen->monitor;
 
     if (!xf86SetDepthBpp(pScrn, 16, 0, 0, Support32bppFb)) {
-	RHDFreeRec(pScrn);
-	return FALSE;
+	goto error0;
     } else {
 	/* Check that the returned depth is one we support */
 	switch (pScrn->depth) {
@@ -375,8 +374,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Given depth (%d) is not supported by this driver\n",
 		       pScrn->depth);
-	    RHDFreeRec(pScrn);
-	    return FALSE;
+	    goto error0;
 	}
     }
     xf86PrintDepthBpp(pScrn);
@@ -390,23 +388,21 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* We need access to IO space already */
     if (!rhdMapMMIO(pScrn)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
-	RHDFreeRec(pScrn);
-	return FALSE;
+	goto error0;
     }
 
     /* Use MC to detect how much RAM is there.
      * For now, just use an option. */
     if (!pScrn->videoRam) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
-	RHDFreeRec(pScrn);
-	return FALSE;
+	goto error1;
     }
 
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
 
     biosHandle = RHDInitAtomBIOS(pScrn);
-    
+
     /* detect outputs */
     /* @@@ */
 
@@ -428,8 +424,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rgb zeros = {0, 0, 0};
 
 	if (!xf86SetWeight(pScrn, zeros, zeros)) {
-	    RHDFreeRec(pScrn);
-	    return FALSE;
+	    goto error2;
 	} else {
 	    /* XXX check that weight returned is supported */
 	    ;
@@ -437,16 +432,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     if (!xf86SetDefaultVisual(pScrn, -1)) {
-        RHDFreeRec(pScrn);
-	return FALSE;
+	goto error2;
     } else {
         /* We don't currently support DirectColor at > 8bpp */
         if (pScrn->depth > 8 && pScrn->defaultVisual != TrueColor) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Given default visual"
                        " (%s) is not supported at depth %d\n",
                        xf86GetVisualName(pScrn->defaultVisual), pScrn->depth);
-	    RHDFreeRec(pScrn);
-	    return FALSE;
+	    goto error2;
         }
     }
 
@@ -455,8 +448,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
         /* @@@ */
 	if (!xf86SetGamma(pScrn, zeros)) {
-            RHDFreeRec(pScrn);
-	    return FALSE;
+	    goto error2;
 	}
     }
 
@@ -482,31 +474,29 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86SetDpi(pScrn, 0, 0);
 
     if (xf86LoadSubModule(pScrn, "fb") == NULL) {
-	RHDFreeRec(pScrn);
-	return FALSE;
+	goto error2;
     }
 
     if (!xf86LoadSubModule(pScrn, "xaa")) {
-	RHDFreeRec(pScrn);
-	return FALSE;
+	goto error2;
     }
 
     if (!rhdPtr->swCursor.val.bool) {
 	if (!xf86LoadSubModule(pScrn, "ramdac")) {
-	    RHDFreeRec(pScrn);
-	    return FALSE;
+	    goto error2;
 	}
     }
-    return TRUE;
-    
+    ret = TRUE;
+
  error2:
-    RHDUninitAtomBIOS(pScrn, biosHandle); 
+    RHDUninitAtomBIOS(pScrn, biosHandle);
  error1:
     rhdUnmapMMIO(pScrn);
  error0:
-    RHDFreeRec(pScrn);
+    if (!ret)
+	RHDFreeRec(pScrn);
 
-    return FALSE;
+    return ret;
 }
 
 /* Mandatory */

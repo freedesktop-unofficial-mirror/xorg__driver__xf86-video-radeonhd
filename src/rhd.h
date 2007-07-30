@@ -128,4 +128,8 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
 
+/* rhd_atombios.c */
+pointer RHDInitAtomBIOS(ScrnInfoPtr pScrn);
+void RHDUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle);
+
 #endif /* _RHD_H */

@@ -257,7 +257,7 @@ RHDInitAtomBIOS(ScrnInfoPtr pScrn)
 void
 RHDUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle)
 {
-    atomBIOSHandlePtr myhandle = (atomBIOSHandlePtr*) handle;
+    atomBIOSHandlePtr myhandle = (atomBIOSHandlePtr) handle;
     if (!myhandle)
 	return;
     xfree(myhandle->BIOSBase);
