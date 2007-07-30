@@ -138,11 +138,13 @@ _X_EXPORT DriverRec RADEONHD = {
 
 static SymTabRec RHDChipsets[] = {
     {RHD_RV530, "RV530" },
+    {RHD_RV515, "RV515" },
     {-1,      NULL }
 };
 
 static PciChipsets RHDPCIchipsets[] = {
     { RHD_RV530, 0x71C2, RES_SHARED_VGA },
+    { RHD_RV515, 0x7146, RES_SHARED_VGA },
     { -1,	     -1,	     RES_UNDEFINED}
 };
 

@@ -30,6 +30,7 @@
 enum RHD_CHIPSETS {
     RHD_UNKOWN = 0,
     RHD_RV530,
+    RHD_RV515,
     RHD_CHIP_END
 };
 
