@@ -6,6 +6,7 @@ radeonhd_drv_ladir = @moduledir@/drivers
 radeonhd_drv_la_SOURCES = \
          rhd_driver.c \
 	 rhd_cursor.c \
+	 rhd_helper.c \
          rhd.h \
 	 rhd_regs.h \
 	 rhd_macros.h \

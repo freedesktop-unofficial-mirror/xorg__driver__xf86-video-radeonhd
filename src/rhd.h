@@ -76,15 +76,28 @@ typedef struct RHDRegs {
 
 } RHDRegs, *RHDRegPtr;
 
+
+typedef struct _RHDopt {
+    Bool set;
+    union  {
+        Bool bool;
+        int integer;
+        unsigned long ulong;
+        double real;
+        double freq;
+        char *string;
+    } val;
+} RHDOpt, *RHDOptPtr;
+
 typedef struct RHDRec {
     int                 RhdChipset;
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
     OptionInfoPtr       Options;
-    Bool                noAccelSet;
-    Bool                noAccel;
-    Bool                swCursor;
-    Bool                onPciBurst;
+    RHDOpt              noAccel;
+    RHDOpt              swCursor;
+    RHDOpt              onPciBurst;
+
     RHDRegs             savedRegs;
 
     unsigned int        FbMapSize;
@@ -98,5 +111,19 @@ typedef struct RHDRec {
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 } RHDRec, *RHDPtr;
+
+/* rhd_helper.c */
+void RhdGetOptValBool(const OptionInfoRec *table, int token,
+                      RHDOptPtr optp, Bool def);
+void RhdGetOptValInteger(const OptionInfoRec *table, int token,
+                         RHDOptPtr optp, int def);
+void RhdGetOptValULong(const OptionInfoRec *table, int token,
+                       RHDOptPtr optp, unsigned long def);
+void RhdGetOptValReal(const OptionInfoRec *table, int token,
+                      RHDOptPtr optp, double def);
+void RhdGetOptValFreq(const OptionInfoRec *table, int token,
+                      OptFreqUnits expectedUnits, RHDOptPtr optp, double def);
+void RhdGetOptValString(const OptionInfoRec *table, int token,
+                        RHDOptPtr optp, char *def);
 
 #endif /* _RHD_H */
