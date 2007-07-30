@@ -297,7 +297,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
-    int i;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -317,30 +316,27 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	return FALSE;
     }
 
-    for (i = 0; i < pScrn->numEntities; i++) {
-	pEnt = xf86GetEntityInfo(pScrn->entityList[i]);
-	if (pEnt->resources) {
-	    RHDFreeRec(pScrn);
-	    xfree(pEnt);
-	    return FALSE;
-	}
-
-	rhdPtr->RhdChipset = pEnt->chipset;
-	pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
-        rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
-        rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
-                                rhdPtr->PciInfo->device,
-                                rhdPtr->PciInfo->func);
-    }
-
-    /* TODO: dig out the previous code so that this here actually makes sense. */
-    if (!pEnt) {
+    if (!(pEnt = xf86GetEntityInfo(pScrn->entityList[0]))) {
 	RHDFreeRec(pScrn);
 	return FALSE;
     }
+    if (pEnt->resources) {
+        RHDFreeRec(pScrn);
+        xfree(pEnt);
+        return FALSE;
+    }
 
-    /* if we need to store/restore VGA registers, then we will end up doing this
-       through MMIO */
+    rhdPtr->RhdChipset = pEnt->chipset;
+    pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
+
+    rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
+    rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
+                            rhdPtr->PciInfo->device,
+                            rhdPtr->PciInfo->func);
+
+
+    /* We will disable access to VGA legacy resources emulation and
+       save/restore VGA thru MMIO when necessary */
     if (xf86RegisterResources(pEnt->index, NULL, ResNone)) {
 	RHDFreeRec(pScrn);
 	xfree(pEnt);
