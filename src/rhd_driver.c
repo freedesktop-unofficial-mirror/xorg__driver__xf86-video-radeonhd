@@ -102,6 +102,7 @@ static void     RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
                                LOCO *colors, VisualPtr pVisual);
 
+static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(ScrnInfoPtr pScrn);
 static void     rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore);
 static void     rhdUnlock(ScrnInfoPtr pScrn);
@@ -148,7 +149,7 @@ static PciChipsets RHDPCIchipsets[] = {
 typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
-    OPTION_PCI_BURST,
+    OPTION_PCI_BURST
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -376,20 +377,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xf86PrintDepthBpp(pScrn);
 
-    /* Collect all of the relevant option flags (fill in pScrn->options) */
-    xf86CollectOptions(pScrn, NULL);
-    rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
-    memcpy(rhdPtr->Options, RHDOptions, sizeof(RHDOptions));
-
-    /* Process the options */
-    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
-
-    rhdPtr->noAccelSet =
-	xf86ReturnOptValBool(rhdPtr->Options, OPTION_NOACCEL, FALSE);
-    rhdPtr->swCursor =
-	xf86ReturnOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, FALSE);
-    rhdPtr->onPciBurst =
-	xf86ReturnOptValBool(rhdPtr->Options, OPTION_PCI_BURST, TRUE);
+    rhdProcessOptions(pScrn);
 
     /* We have none of these things yet. */
     rhdPtr->noAccelSet = TRUE;
@@ -1095,3 +1083,27 @@ RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask)
     tmp |= (value & mask);
     RHDRegWrite(rhdPtr, offset, tmp);
 }
+
+/*
+ * breakout functions
+ */
+static void
+rhdProcessOptions(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    /* Collect all of the relevant option flags (fill in pScrn->options) */
+    xf86CollectOptions(pScrn, NULL);
+    rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
+    memcpy(rhdPtr->Options, RHDOptions, sizeof(RHDOptions));
+
+    /* Process the options */
+    xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
+
+    rhdPtr->noAccelSet =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_NOACCEL, FALSE);
+    rhdPtr->swCursor =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, FALSE);
+    rhdPtr->onPciBurst =
+	xf86ReturnOptValBool(rhdPtr->Options, OPTION_PCI_BURST, TRUE);
+}
+
