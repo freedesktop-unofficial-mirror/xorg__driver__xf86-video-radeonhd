@@ -149,14 +149,12 @@ typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
     OPTION_PCI_BURST,
-    OPTION_VIDEORAM
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,	"NoAccel",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST,	 "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
-    { OPTION_VIDEORAM,  "videoram",     OPTV_INTEGER,   {0}, FALSE }, /* kill me */
     { -1,                  NULL,           OPTV_NONE,	{0}, FALSE }
 };
 
@@ -329,6 +327,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->RhdChipset = pEnt->chipset;
     pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
 
+    pScrn->videoRam = pEnt->device->videoRam;
+
     rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
     rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
                             rhdPtr->PciInfo->device,
@@ -390,9 +390,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	xf86ReturnOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, FALSE);
     rhdPtr->onPciBurst =
 	xf86ReturnOptValBool(rhdPtr->Options, OPTION_PCI_BURST, TRUE);
-
-    if (!xf86GetOptValInteger(rhdPtr->Options, OPTION_VIDEORAM, &pScrn->videoRam))
-	pScrn->videoRam = 0;
 
     /* We have none of these things yet. */
     rhdPtr->noAccelSet = TRUE;
