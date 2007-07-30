@@ -291,7 +291,7 @@ RHDProbe(DriverPtr drv, int flags)
     return foundScreen;
 }
 
-Bool
+static Bool
 RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
@@ -724,7 +724,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     rhdLock(pScrn);
 }
 
-Bool
+static Bool
 RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 {
     return rhdModeInit(xf86Screens[scrnIndex], mode);
@@ -734,7 +734,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
  * High level bit banging functions
  */
 
-void
+static void
 RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
