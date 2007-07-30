@@ -24,40 +24,43 @@
 #ifndef _RHD_REGS_H
 # define _RHD_REGS_H
 
+enum {
 /* VGA registers */
-#define VGA_RENDER_CONTROL             0x0300
-#define VGA_MEMORY_BASE_ADDRESS        0x0310
-#define VGA_HDP_CONTROL                0x0328
-#define D1VGA_CONTROL                  0x0330
-#define D2VGA_CONTROL                  0x0338
+    VGA_RENDER_CONTROL             = 0x0300,
+    VGA_MEMORY_BASE_ADDRESS        = 0x0310,
+    VGA_HDP_CONTROL                = 0x0328,
+    D1VGA_CONTROL                  = 0x0330,
+    D2VGA_CONTROL                  = 0x0338,
 
-#define D1CRTC_H_TOTAL                 0x6000
-#define D1CRTC_H_BLANK_START_END       0x6004
-#define D1CRTC_H_SYNC_A                0x6008
-#define D1CRTC_H_SYNC_A_CNTL           0x600C
-#define D1CRTC_H_SYNC_B                0x6010
-#define D1CRTC_H_SYNC_B_CNTL           0x6014
+    D1CRTC_H_TOTAL                 = 0x6000,
+    D1CRTC_H_BLANK_START_END       = 0x6004,
+    D1CRTC_H_SYNC_A                = 0x6008,
+    D1CRTC_H_SYNC_A_CNTL           = 0x600C,
+    D1CRTC_H_SYNC_B                = 0x6010,
+    D1CRTC_H_SYNC_B_CNTL           = 0x6014,
 
-#define D1CRTC_V_TOTAL                 0x6020
-#define D1CRTC_V_BLANK_START_END       0x6024
-#define D1CRTC_V_SYNC_A                0x6028
-#define D1CRTC_V_SYNC_A_CNTL           0x602C
-#define D1CRTC_V_SYNC_B                0x6030
-#define D1CRTC_V_SYNC_B_CNTL           0x6034
+    D1CRTC_V_TOTAL                 = 0x6020,
+    D1CRTC_V_BLANK_START_END       = 0x6024,
+    D1CRTC_V_SYNC_A                = 0x6028,
+    D1CRTC_V_SYNC_A_CNTL           = 0x602C,
+    D1CRTC_V_SYNC_B                = 0x6030,
+    D1CRTC_V_SYNC_B_CNTL           = 0x6034,
 
-#define D1GRPH_X_END                   0x6134
-#define D1GRPH_Y_END                   0x6138
-#define D1GRPH_PRIMARY_SURFACE_ADDRESS 0x6110
-#define D1MODE_VIEWPORT_SIZE           0x6584
+    D1GRPH_X_END                   = 0x6134,
+    D1GRPH_Y_END                   = 0x6138,
+    D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
+    D1MODE_VIEWPORT_SIZE           = 0x6584,
 
 /* CRTC2 registers */
-#define D2CRTC_CONTROL                 0x6880
+    D2CRTC_CONTROL                 = 0x6880,
 
 /* D2GRPH registers */
-#define D2GRPH_ENABLE                  0x6900
+    D2GRPH_ENABLE                  = 0x6900,
 
 /* DAC B */
-#define DACB_SOURCE_SELECT             0x7A04
+    DACB_SOURCE_SELECT             = 0x7A04
+};
+
 
 /* Some handy functions that makes life so much more readable */
 CARD32 RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
