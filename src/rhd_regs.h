@@ -32,6 +32,27 @@ enum {
     D1VGA_CONTROL                  = 0x0330,
     D2VGA_CONTROL                  = 0x0338,
 
+    EXT1_PPLL_REF_DIV_SRC          = 0x0400,
+    EXT1_PPLL_REF_DIV              = 0x0404,
+    EXT1_PPLL_UPDATE_LOCK          = 0x0408,
+    EXT1_PPLL_UPDATE_CNTL          = 0x040C,
+    EXT2_PPLL_REF_DIV_SRC          = 0x0410,
+    EXT2_PPLL_REF_DIV              = 0x0414,
+    EXT2_PPLL_UPDATE_LOCK          = 0x0418,
+    EXT2_PPLL_UPDATE_CNTL          = 0x041C,
+
+    EXT1_PPLL_FB_DIV               = 0x0430,
+    EXT2_PPLL_FB_DIV               = 0x0434,
+    EXT1_PPLL_POST_DIV_SRC         = 0x0438,
+    EXT1_PPLL_POST_DIV             = 0x043C,
+    EXT2_PPLL_POST_DIV_SRC         = 0x0440,
+    EXT2_PPLL_POST_DIV             = 0x0444,
+    P1PLL_CNTL                     = 0x0450,
+    P2PLL_CNTL                     = 0x0454,
+
+    PCLK_CRTC1_CNTL                = 0x0480,
+    PCLK_CRTC2_CNTL                = 0x0484,
+
     D1CRTC_H_TOTAL                 = 0x6000,
     D1CRTC_H_BLANK_START_END       = 0x6004,
     D1CRTC_H_SYNC_A                = 0x6008,
@@ -46,6 +67,10 @@ enum {
     D1CRTC_V_SYNC_B                = 0x6030,
     D1CRTC_V_SYNC_B_CNTL           = 0x6034,
 
+    D1CRTC_CONTROL                 = 0x6080,
+    D1CRTC_STATUS                  = 0x609C,
+
+    D1GRPH_PITCH                   = 0x6120,
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
     D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
@@ -53,11 +78,13 @@ enum {
 
 /* CRTC2 registers */
     D2CRTC_CONTROL                 = 0x6880,
+    D2CRTC_STATUS                  = 0x609C,
 
 /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
 
 /* DAC B */
+    DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04
 };
 

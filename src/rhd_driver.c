@@ -33,6 +33,9 @@
 /* For PIO/MMIO */
 #include "compiler.h"
 
+/* for usleep */
+#include "xf86_ansic.h"
+
 #include "xf86Resources.h"
 
 #include "xf86PciInfo.h"
@@ -294,6 +297,27 @@ RHDProbe(DriverPtr drv, int flags)
     return foundScreen;
 }
 
+/*
+ *
+ */
+static void
+rhdModeCrtcFill(DisplayModePtr Mode)
+{
+    Mode->CrtcHDisplay = Mode->HDisplay;
+    Mode->CrtcHBlankStart = Mode->HDisplay;
+    Mode->CrtcHSyncStart = Mode->HSyncStart;
+    Mode->CrtcHSyncEnd = Mode->HSyncEnd;
+    Mode->CrtcHBlankEnd = Mode->HTotal;
+    Mode->CrtcHTotal = Mode->HTotal;
+    Mode->CrtcHSkew = 0;
+    Mode->CrtcVDisplay = Mode->VDisplay;
+    Mode->CrtcVBlankStart = Mode->VDisplay;
+    Mode->CrtcVSyncStart = Mode->VSyncStart;
+    Mode->CrtcVSyncEnd = Mode->VSyncEnd;
+    Mode->CrtcVBlankEnd = Mode->VTotal;
+    Mode->CrtcVTotal = Mode->VTotal;
+}
+
 static Bool
 RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
@@ -467,8 +491,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Tell X that we support at least one mode */
     /* WARNING: xf86CVTMode doesn't exist before 7.1 */
     {
-	int HDisplay = 1280, VDisplay = 1024;
+	int HDisplay = 1600, VDisplay = 1200;
 	DisplayModePtr Mode = xf86CVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
+
+	rhdModeCrtcFill(Mode);
 
 	pScrn->virtualX = HDisplay;
 	pScrn->virtualY = VDisplay;
@@ -917,6 +943,257 @@ rhdUnlock(ScrnInfoPtr pScrn)
 }
 
 static void
+rhdCRTC1Sync(ScrnInfoPtr pScrn, Bool On)
+{
+#define CRTC_SYNC_WAIT 100000
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    if (On)
+	RHDRegMask(rhdPtr, D1CRTC_CONTROL, 1, 1);
+    else {
+	CARD8 delay = (RHDRegRead(rhdPtr, D1CRTC_CONTROL) >> 8) & 0xFF;
+
+	RHDRegMask(rhdPtr, D1CRTC_CONTROL, 0, 0xFF01);
+
+	for (i = 0; i < CRTC_SYNC_WAIT; i++)
+	    if (!(RHDRegRead(rhdPtr, D1CRTC_STATUS) & 1)) {
+		RHDRegMask(rhdPtr, D1CRTC_CONTROL, delay << 8, 0xFF00);
+		return;
+	    }
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to Unsync Primary CRTC\n");
+    }
+}
+
+static void
+rhdCRTC2Sync(ScrnInfoPtr pScrn, Bool On)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    if (On)
+	RHDRegMask(rhdPtr, D2CRTC_CONTROL, 1, 1);
+    else {
+	CARD8 delay = (RHDRegRead(rhdPtr, D2CRTC_CONTROL) >> 8) & 0xFF;
+
+	RHDRegMask(rhdPtr, D2CRTC_CONTROL, 0, 0xFF01);
+
+	for (i = 0; i < CRTC_SYNC_WAIT; i++)
+	    if (!(RHDRegRead(rhdPtr, D2CRTC_STATUS) & 1)) {
+		RHDRegMask(rhdPtr, D2CRTC_CONTROL, delay << 8, 0xFF00);
+		return;
+	    }
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to Unsync Secondary CRTC");
+    }
+}
+
+/*
+ *
+ */
+static void
+rhdPLL1Sleep(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x01, 0x01); /* Reset */
+    usleep(2);
+
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x02, 0x02); /* Poyer down */
+    usleep(200);
+}
+
+/*
+ *
+ */
+static void
+rhdPLL2Sleep(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x01, 0x01); /* Reset */
+    usleep(2);
+
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x02, 0x02); /* Power down */
+    usleep(200);
+}
+
+/*
+ *
+ */
+static void
+rhdPLL1Set(ScrnInfoPtr pScrn, int ReferenceDivider, int FeedbackDivider,
+	int FeedbackDividerFraction, int PostDivider)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0x01); /* lock */
+
+    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV, ReferenceDivider);
+    RHDRegMask(rhdPtr, EXT1_PPLL_FB_DIV,
+	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
+    RHDRegMask(rhdPtr, EXT1_PPLL_POST_DIV, PostDivider, 0x007F);
+
+    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x04); /* don't bypass calibration */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0); /* unlock */
+    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
+
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x02); /* Powah */
+    usleep(2);
+
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 1, 0x01); /* Reset */
+    usleep(2);
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x01); /* Set */
+
+    for (i = 0; i < CRTC_SYNC_WAIT; i++)
+	if (((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x03) == 0x03)
+	    break;
+
+    if (i == CRTC_SYNC_WAIT) {
+	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Unable to calibrate the Primary PixelClock.\n");
+	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Unable to lock the Primary PixelClock.\n");
+    } else
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Primary PixelClock Calibration: %d loops\n", i);
+
+    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
+}
+
+/*
+ *
+ */
+static void
+rhdPLL2Set(ScrnInfoPtr pScrn, int ReferenceDivider, int FeedbackDivider,
+	int FeedbackDividerFraction, int PostDivider)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0x01); /* lock */
+
+    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV, ReferenceDivider);
+    RHDRegMask(rhdPtr, EXT2_PPLL_FB_DIV,
+	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
+    RHDRegMask(rhdPtr, EXT2_PPLL_POST_DIV, PostDivider, 0x007F);
+
+    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x04); /* don't bypass calibration */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0); /* unlock */
+    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
+
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x02); /* Powah */
+    usleep(2);
+
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 1, 0x01); /* Reset */
+    usleep(2);
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x01); /* Set */
+
+    for (i = 0; i < CRTC_SYNC_WAIT; i++)
+	if (((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x03) == 0x03)
+	    break;
+
+    if (i == CRTC_SYNC_WAIT) {
+	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Unable to calibrate the Secondary PixelClock.\n");
+	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Unable to lock the Secondary PixelClock.\n");
+     } else
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Secondary PixelClock Calibration: %d loops\n", i);
+
+    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
+}
+
+
+/* from struct in atom */
+#define XTAL_FREQ 0xA8C * 10
+#define PLLIN_MIN 0x64 * 1000
+#define PLLIN_MAX 0x546 * 1000
+#define PLLOUT_MAX 0x9C40 * 10
+
+/*
+ * Calculate the PLL parameters for a given dotclock.
+ */
+static Bool
+rhdPPLLCalculate(int scrnIndex, CARD32 PixelClock,
+		 CARD16 *RefDivider, CARD16 *FBDivider, CARD8 *PostDivider)
+{
+/* limited by the number of bits available */
+#define FB_DIV_LIMIT 2048
+#define REF_DIV_LIMIT 1024
+#define POST_DIV_LIMIT 128
+
+    CARD32 FBDiv, RefDiv, PostDiv, BestDiff = 0xFFFFFFFF;
+    float Ratio;
+
+    if ((PixelClock < 16000) || (PixelClock > PLLOUT_MAX)) {
+	xf86DrvMsg(scrnIndex, X_ERROR, "PixelClock (%dkHz) is outside "
+		   "[%dkHz - %dkHz] range.\n", PixelClock, 16000, PLLOUT_MAX);
+	return FALSE;
+    }
+
+    Ratio = ((float) PixelClock) / ((float) XTAL_FREQ);
+
+    for (PostDiv = 2; PostDiv < POST_DIV_LIMIT; PostDiv++) {
+	CARD32 PLLIn = PixelClock * PostDiv;
+
+	if (PLLIn < PLLIN_MIN * 6) /* need to get the internal clock a bit higher */
+	    continue;
+	if (PLLIn > PLLIN_MAX)
+	    break;
+
+	for (RefDiv = 1; RefDiv < REF_DIV_LIMIT; RefDiv++) {
+	    int Diff;
+
+	    FBDiv = (float) (Ratio * PostDiv * RefDiv) + 0.5;
+	    if (!FBDiv)
+		continue;
+	    if (FBDiv >= FB_DIV_LIMIT)
+		break;
+
+	    Diff = PixelClock - (FBDiv * XTAL_FREQ) / (PostDiv * RefDiv);
+	    if (Diff < 0)
+		Diff *= -1;
+
+	    if (Diff < BestDiff) {
+		*FBDivider = FBDiv;
+		*RefDivider = RefDiv;
+		*PostDivider = PostDiv;
+		BestDiff = Diff;
+	    }
+
+	    if (BestDiff == 0)
+		break;
+	}
+	if (BestDiff == 0)
+	    break;
+    }
+
+    if (BestDiff != 0xFFFFFFFF) {
+	xf86DrvMsg(scrnIndex, X_INFO, "PLL Calculation: %dkHz = "
+		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n", PixelClock,
+		   XTAL_FREQ, *RefDivider, *FBDivider, *PostDivider, BestDiff);
+	return TRUE;
+    } else {
+	xf86DrvMsg(scrnIndex, X_ERROR,
+		   "Failed to get a valid PLL setting for %dkHz\n", PixelClock);
+	return FALSE;
+    }
+}
+
+
+static void
 rhdSave(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -956,12 +1233,15 @@ rhdSave(ScrnInfoPtr pScrn)
 	save->IsVGA = FALSE;
 
     save->DACB_Source_Select = RHDRegRead(rhdPtr, DACB_SOURCE_SELECT);
+    save->DACB_Enable = RHDRegRead(rhdPtr, DACB_ENABLE);
+
     save->D2CRTC_Control = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
     save->D2GRPH_Enable = RHDRegRead(rhdPtr, D2GRPH_ENABLE);
 
     save->D1GRPH_X_End = RHDRegRead(rhdPtr, D1GRPH_X_END);
     save->D1GRPH_Y_End = RHDRegRead(rhdPtr, D1GRPH_Y_END);
     save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS);
+    save->D1GRPH_Pitch = RHDRegRead(rhdPtr, D1GRPH_PITCH);
     save->D1Mode_ViewPort_Size = RHDRegRead(rhdPtr, D1MODE_VIEWPORT_SIZE);
 
     save->D1CRTC_H_Total = RHDRegRead(rhdPtr, D1CRTC_H_TOTAL);
@@ -977,12 +1257,42 @@ rhdSave(ScrnInfoPtr pScrn)
     save->D1CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_A_CNTL);
     save->D1CRTC_V_Sync_B = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B);
     save->D1CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B_CNTL);
+
+    save->PLL1Active = !(RHDRegRead(rhdPtr, P1PLL_CNTL) & 0x03);
+    save->PLL1RefDivider = RHDRegRead(rhdPtr, EXT1_PPLL_REF_DIV) & 0x3FF;
+    save->PLL1FBDivider = (RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
+    save->PLL1FBDividerFraction = RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) & 0x0F;
+    save->PLL1PostDivider = RHDRegRead(rhdPtr, EXT1_PPLL_POST_DIV) & 0x7F;
+
+    save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr, PCLK_CRTC1_CNTL);
+
+    save->PLL2Active = !(RHDRegRead(rhdPtr, P2PLL_CNTL) & 0x03);
+    save->PLL2RefDivider = RHDRegRead(rhdPtr, EXT2_PPLL_REF_DIV) & 0x3FF;
+    save->PLL2FBDivider = (RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
+    save->PLL2FBDividerFraction = RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) & 0x0F;
+    save->PLL2PostDivider = RHDRegRead(rhdPtr, EXT2_PPLL_POST_DIV) & 0x7F;
+
+    save->PCLK_CRTC2_Control = RHDRegRead(rhdPtr, PCLK_CRTC2_CNTL);
 }
 
 static void
 rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (restore->PLL1Active) {
+	rhdPLL1Set(pScrn, restore->PLL1RefDivider, restore->PLL1FBDivider,
+		   restore->PLL1FBDividerFraction, restore->PLL1PostDivider);
+	RHDRegWrite(rhdPtr, PCLK_CRTC1_CNTL, restore->PCLK_CRTC1_Control);
+    } else
+	rhdPLL1Sleep(pScrn);
+
+    if (restore->PLL2Active) {
+	rhdPLL2Set(pScrn, restore->PLL2RefDivider, restore->PLL2FBDivider,
+		   restore->PLL2FBDividerFraction, restore->PLL2PostDivider);
+	RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
+    } else
+	rhdPLL2Sleep(pScrn);
 
     RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, restore->D1CRTC_H_Total);
     RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, restore->D1CRTC_H_Blank_Start_End);
@@ -999,6 +1309,7 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B_CNTL, restore->D1CRTC_V_Sync_B_Cntl);
 
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, restore->D1Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D1GRPH_PITCH, restore->D1GRPH_Pitch);
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
 
     RHDRegWrite(rhdPtr, D1GRPH_X_END, restore->D1GRPH_X_End);
@@ -1006,7 +1317,9 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 
     RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
     RHDRegWrite(rhdPtr, D2CRTC_CONTROL, restore->D2CRTC_Control);
+
     RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, restore->DACB_Source_Select);
+    RHDRegWrite(rhdPtr, DACB_ENABLE, restore->DACB_Enable);
 
     if (restore->IsVGA) {
 	if (restore->VGAFBSize)
@@ -1020,10 +1333,14 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     }
 }
 
+/*
+ *
+ */
 static void
 rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    unsigned int BlankStart, BlankEnd;
 
     /* Disable all of VGA */
     RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
@@ -1031,36 +1348,59 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
     RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
 
-    /* this rv530 its CRT connection lives on DACB,
-     * Tie it to CRTC1 */
-    RHDRegMask(rhdPtr, DACB_SOURCE_SELECT, 0, 0x00000003);
+    /* Disable DACB */
+    RHDRegWrite(rhdPtr, DACB_ENABLE, 0);
 
     /* shut down D2 for now */
-    RHDRegMask(rhdPtr, D2CRTC_CONTROL, 0, 0x00000001);
+    rhdCRTC2Sync(pScrn, FALSE);
     RHDRegMask(rhdPtr, D2GRPH_ENABLE, 0, 0x00000001);
+    rhdPLL2Sleep(pScrn); /* TODO: restore */
+
+    /* Now set out actual mode */
+    rhdCRTC1Sync(pScrn, FALSE);
 
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbAddress);
+    RHDRegWrite(rhdPtr, D1GRPH_PITCH, pScrn->displayWidth);
     RHDRegWrite(rhdPtr, D1GRPH_X_END, Mode->HDisplay);
     RHDRegWrite(rhdPtr, D1GRPH_Y_END, Mode->VDisplay);
 
-    /* once we can program the dotclock, we can start using this code */
-#if 0
-    RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, Mode->CrtcHTotal);
-    RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, Mode->CrtcHBlankStart | (Mode->CrtcHBlankEnd << 16));
-    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A, 0);
-    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A_CNTL, 0);
-    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_B, Mode->CrtcHSyncStart | ( Mode->CrtcHSyncEnd << 16));
-    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_B_CNTL, Mode->Flags & V_NHSYNC);
+    /* Set the actual CRTC timing */
+    RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
 
-    RHDRegWrite(rhdPtr, D1CRTC_V_TOTAL, Mode->CrtcVTotal);
-    RHDRegWrite(rhdPtr, D1CRTC_V_BLANK_START_END, Mode->CrtcVBlankStart | (Mode->CrtcVBlankEnd << 16));
-    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A, 0);
-    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A_CNTL, 0);
-    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B, Mode->CrtcVSyncStart | ( Mode->CrtcVSyncEnd << 16));
-    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B_CNTL, Mode->Flags & V_NVSYNC);
-#endif
+    BlankStart = Mode->CrtcHTotal + Mode->CrtcHBlankStart - Mode->CrtcHSyncStart;
+    BlankEnd = Mode->CrtcHBlankEnd - Mode->CrtcHSyncStart;
+    RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
+
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
+
+    RHDRegWrite(rhdPtr, D1CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
+
+    BlankStart = Mode->CrtcVTotal + Mode->CrtcVBlankStart - Mode->CrtcVSyncStart;
+    BlankEnd = Mode->CrtcVBlankEnd - Mode->CrtcVSyncStart;
+    RHDRegWrite(rhdPtr, D1CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
+
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
+
+    { /* Set up the dotclock */
+	CARD16 RefDivider = 0, FBDivider = 0;
+	CARD8 PostDivider = 0;
+
+	if (rhdPPLLCalculate(pScrn->scrnIndex, Mode->Clock,
+			     &RefDivider, &FBDivider, &PostDivider)) {
+	    rhdPLL1Set(pScrn, RefDivider, FBDivider, 0, PostDivider);
+	    RHDRegMask(rhdPtr, PCLK_CRTC1_CNTL, 0, 0x00010000); /* PLL1 -> CRTC1 */
+	}
+    }
+
+    rhdCRTC1Sync(pScrn, TRUE);
+
+    /* this rv530 its CRT connection lives on DACB */
+    RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, 0); /* CRTC1 */
+    RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
 }
 
 /*

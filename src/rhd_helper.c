@@ -27,9 +27,9 @@ void
 RhdGetOptValULong(const OptionInfoRec *table, int token,
                  RHDOptPtr optp, unsigned long def)
 {
-    if (!(optp->set = xf86GetOptValULong(table, token, &optp->val.ulong))) {
+    if (!(optp->set = xf86GetOptValULong(table, token, &optp->val.uslong))) {
 	optp->set = FALSE;
-        optp->val.ulong = def;
+        optp->val.uslong = def;
     } else
 	optp->set = TRUE;
 }

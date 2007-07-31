@@ -47,6 +47,7 @@ typedef struct RHDRegs {
     CARD32 D1VGA_Control;
     CARD32 D2VGA_Control;
 
+    /* CRTC1 */
     CARD32 D1CRTC_H_Total;
     CARD32 D1CRTC_H_Blank_Start_End;
     CARD32 D1CRTC_H_Sync_A;
@@ -64,7 +65,17 @@ typedef struct RHDRegs {
     CARD32 D1GRPH_X_End;
     CARD32 D1GRPH_Y_End;
     CARD32 D1GRPH_Primary_Surface_Address;
+    CARD32 D1GRPH_Pitch;
     CARD32 D1Mode_ViewPort_Size;
+
+    /* PLL1 */
+    Bool PLL1Active;
+    CARD16 PLL1RefDivider;
+    CARD16 PLL1FBDivider;
+    CARD8 PLL1FBDividerFraction;
+    CARD8 PLL1PostDivider;
+
+    CARD32 PCLK_CRTC1_Control;
 
     /* D2GRPH */
     CARD32 D2GRPH_Enable;
@@ -72,7 +83,17 @@ typedef struct RHDRegs {
     /* CRTC2 */
     CARD32 D2CRTC_Control;
 
+    /* PLL2 */
+    Bool PLL2Active;
+    CARD16 PLL2RefDivider;
+    CARD16 PLL2FBDivider;
+    CARD8 PLL2FBDividerFraction;
+    CARD8 PLL2PostDivider;
+
+    CARD32 PCLK_CRTC2_Control;
+
     /* DACB  */
+    CARD32 DACB_Enable;
     CARD32 DACB_Source_Select;
 
 } RHDRegs, *RHDRegPtr;
@@ -83,7 +104,7 @@ typedef struct _RHDopt {
     union  {
         Bool bool;
         int integer;
-        unsigned long ulong;
+        unsigned long uslong;
         double real;
         double freq;
         char *string;
