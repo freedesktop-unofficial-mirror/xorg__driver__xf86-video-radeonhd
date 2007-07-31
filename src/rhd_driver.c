@@ -491,7 +491,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Tell X that we support at least one mode */
     /* WARNING: xf86CVTMode doesn't exist before 7.1 */
     {
-	int HDisplay = 1600, VDisplay = 1200;
+	int HDisplay = 1280, VDisplay = 1024;
 	DisplayModePtr Mode = xf86CVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
 
 	rhdModeCrtcFill(Mode);
