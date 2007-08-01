@@ -842,7 +842,7 @@ rhdMapMMIO(ScrnInfoPtr pScrn)
 	break;
     }
 
-    rhdPtr->MMIOMapSize = 2 << rhdPtr->PciInfo->size[BAR];
+    rhdPtr->MMIOMapSize = 1 << rhdPtr->PciInfo->size[BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO, rhdPtr->PciTag,
 		      rhdPtr->PciInfo->memBase[BAR], rhdPtr->MMIOMapSize);
@@ -884,7 +884,7 @@ rhdMapFB(ScrnInfoPtr pScrn)
 	break;
     }
 
-    rhdPtr->FbMapSize = 2 << rhdPtr->PciInfo->size[BAR];
+    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[BAR];
     rhdPtr->FbAddress = rhdPtr->PciInfo->memBase[BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
