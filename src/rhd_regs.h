@@ -83,9 +83,21 @@ enum {
 /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
 
-/* DAC B */
+    /* DAC B */
+    DACA_ENABLE                    = 0x7800,
+    DACA_SOURCE_SELECT             = 0x7804,
+    DACA_FORCE_OUTPUT_CNTL         = 0x783C,
+    DACA_POWERDOWN                 = 0x7850,
+
+    /* DAC B */
     DACB_ENABLE                    = 0x7A00,
-    DACB_SOURCE_SELECT             = 0x7A04
+    DACB_SOURCE_SELECT             = 0x7A04,
+    DACB_FORCE_OUTPUT_CNTL         = 0x7A3C,
+    DACB_POWERDOWN                 = 0x7A50,
+
+    /* I2C */
+    DC_I2C_CONTROL                 = 0x7D30,
+    DC_I2C_DDC1_SETUP              = 0x7D50
 };
 
 #endif /* _RHD_REGS_H */

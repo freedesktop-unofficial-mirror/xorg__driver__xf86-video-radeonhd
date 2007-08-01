@@ -1232,6 +1232,13 @@ rhdSave(ScrnInfoPtr pScrn)
     } else
 	save->IsVGA = FALSE;
 
+    save->DACA_Powerdown = RHDRegRead(rhdPtr, DACA_POWERDOWN);
+    save->DACA_Force_Output_Control = RHDRegRead(rhdPtr, DACA_FORCE_OUTPUT_CNTL);
+    save->DACA_Source_Select = RHDRegRead(rhdPtr, DACA_SOURCE_SELECT);
+    save->DACA_Enable = RHDRegRead(rhdPtr, DACA_ENABLE);
+
+    save->DACB_Powerdown = RHDRegRead(rhdPtr, DACB_POWERDOWN);
+    save->DACB_Force_Output_Control = RHDRegRead(rhdPtr, DACB_FORCE_OUTPUT_CNTL);
     save->DACB_Source_Select = RHDRegRead(rhdPtr, DACB_SOURCE_SELECT);
     save->DACB_Enable = RHDRegRead(rhdPtr, DACB_ENABLE);
 
@@ -1318,6 +1325,19 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
     RHDRegWrite(rhdPtr, D2CRTC_CONTROL, restore->D2CRTC_Control);
 
+       /* this rv530 its CRT connection lives on DACB */
+    RHDRegWrite(rhdPtr, DACB_POWERDOWN, 0);
+    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, 0);
+    RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, 0); /* CRTC1 */
+    RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
+
+    RHDRegWrite(rhdPtr, DACA_POWERDOWN, restore->DACA_Powerdown);
+    RHDRegWrite(rhdPtr, DACA_FORCE_OUTPUT_CNTL, restore->DACA_Force_Output_Control);
+    RHDRegWrite(rhdPtr, DACA_SOURCE_SELECT, restore->DACA_Source_Select);
+    RHDRegWrite(rhdPtr, DACA_ENABLE, restore->DACA_Enable);
+
+    RHDRegWrite(rhdPtr, DACB_POWERDOWN, restore->DACB_Powerdown);
+    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, restore->DACB_Force_Output_Control);
     RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, restore->DACB_Source_Select);
     RHDRegWrite(rhdPtr, DACB_ENABLE, restore->DACB_Enable);
 
@@ -1348,7 +1368,8 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
     RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
 
-    /* Disable DACB */
+    /* Disable DACs */
+    RHDRegWrite(rhdPtr, DACA_ENABLE, 0);
     RHDRegWrite(rhdPtr, DACB_ENABLE, 0);
 
     /* shut down D2 for now */
@@ -1399,8 +1420,16 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     rhdCRTC1Sync(pScrn, TRUE);
 
     /* this rv530 its CRT connection lives on DACB */
+    RHDRegWrite(rhdPtr, DACB_POWERDOWN, 0);
+    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, 0);
     RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, 0); /* CRTC1 */
     RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
+
+    /* but the real DACA is on the DVI-I connector */
+    RHDRegWrite(rhdPtr, DACA_POWERDOWN, 0);
+    RHDRegWrite(rhdPtr, DACA_FORCE_OUTPUT_CNTL, 0);
+    RHDRegWrite(rhdPtr, DACA_SOURCE_SELECT, 0); /* CRTC1 */
+    RHDRegWrite(rhdPtr, DACA_ENABLE, 1);
 }
 
 /*
