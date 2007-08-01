@@ -25,7 +25,9 @@
 # define _RHD_REGS_H
 
 enum {
-/* VGA registers */
+    FB_INTERNAL_ADDRESS            = 0x0134,
+
+    /* VGA registers */
     VGA_RENDER_CONTROL             = 0x0300,
     VGA_MEMORY_BASE_ADDRESS        = 0x0310,
     VGA_HDP_CONTROL                = 0x0328,

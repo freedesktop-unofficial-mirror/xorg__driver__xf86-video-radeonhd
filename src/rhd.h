@@ -133,8 +133,8 @@ typedef struct RHDRec {
     RHDRegs             savedRegs;
 
     unsigned int        FbMapSize;
-    unsigned int        FbAddress; /* real address of FB */
     pointer             FbBase;   /* map base of fb   */
+    unsigned int        FbIntAddress; /* card internal address of FB */
 
     unsigned int        MMIOMapSize;
     pointer             MMIOBase; /* map base if mmio */

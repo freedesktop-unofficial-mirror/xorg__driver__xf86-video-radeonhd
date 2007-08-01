@@ -885,13 +885,21 @@ rhdMapFB(ScrnInfoPtr pScrn)
     }
 
     rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[BAR];
-    rhdPtr->FbAddress = rhdPtr->PciInfo->memBase[BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
-		      rhdPtr->FbAddress, rhdPtr->FbMapSize);
+		      rhdPtr->PciInfo->memBase[BAR], rhdPtr->FbMapSize);
 
     if (!rhdPtr->FbBase)
         return FALSE;
+
+    /* R5xx has an internal address reference, which some other address
+     * registers in there also use. This can be different from the address
+     * in the BAR */
+    rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, FB_INTERNAL_ADDRESS) << 16;
+    if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[BAR])
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR)is at "
+		       "0x%08X while card Internal Address is 0x%08X\n",
+		       rhdPtr->FbIntAddress, rhdPtr->PciInfo->memBase[BAR]);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
@@ -1217,19 +1225,29 @@ rhdSave(ScrnInfoPtr pScrn)
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		   "VGA mode detected. Saving appropriately.\n");
 
+	/* Store our VGA FB */
 	save->IsVGA = TRUE;
 	save->VGAFBOffset =
-	    RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbAddress;
-
-	save->VGAFBSize = 256 * 1024;
-	save->VGAFB = xcalloc(save->VGAFBSize, 1);
-	if (save->VGAFB)
-	    memcpy(save->VGAFB, ((CARD8 *) rhdPtr->FbBase) + save->VGAFBOffset,
-		   save->VGAFBSize);
-	else {
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		       "Failed to allocate space for storing the VGA framebuffer.\n");
-	    save->VGAFBSize = 0;
+		RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbIntAddress;
+	/* Could be that the VGA internal address no longer is pointing to what
+	   we know as our FB memory, in which case we should give up cleanly. */
+	if (save->VGAFBOffset < pScrn->videoRam) {
+	    save->VGAFBSize = 256 * 1024;
+	    save->VGAFB = xcalloc(save->VGAFBSize, 1);
+	    if (save->VGAFB)
+		memcpy(save->VGAFB, ((CARD8 *) rhdPtr->FbBase) + save->VGAFBOffset,
+		       save->VGAFBSize);
+	    else {
+		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+			   "Failed to allocate space for storing the VGA framebuffer.\n");
+		save->VGAFBSize = 0;
+	    }
+	} else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "VGA FB Offset (0x%08X) is "
+		       "out of range of the Cards Internal FB Address (0x%08X)\n",
+		       RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS),
+		       rhdPtr->FbIntAddress);
+	    save->VGAFBOffset = 0xFFFFFFFF;
 	}
     } else
 	save->IsVGA = FALSE;
@@ -1384,7 +1402,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
-    RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbAddress);
+    RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
     RHDRegWrite(rhdPtr, D1GRPH_PITCH, pScrn->displayWidth);
     RHDRegWrite(rhdPtr, D1GRPH_X_END, Mode->HDisplay);
     RHDRegWrite(rhdPtr, D1GRPH_Y_END, Mode->VDisplay);
