@@ -35,6 +35,12 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
+/* Just define where which PCI BAR lives for now. Will deal with different
+ * locations as soon as cards with a different BAR layout arrives.
+ */
+#define RHD_FB_BAR   0
+#define RHD_MMIO_BAR 2
+
 typedef struct RHDRegs {
 
     /* All to do with VGA handling. */

@@ -118,6 +118,7 @@ static void     rhdUnmapMMIO(ScrnInfoPtr pScrn);
 static Bool     rhdMapFB(ScrnInfoPtr pScrn);
 static void     rhdUnmapFB(ScrnInfoPtr pScrn);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
+static CARD32   rhdGetVideoRamSize(ScrnInfoPtr pScrn);
 
 #define RHD_VERSION 0001
 #define RHD_NAME "RADEONHD"
@@ -419,11 +420,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
-    /* Use MC to detect how much RAM is there.
-     * For now, just use an option. */
+    /* We can use a register which is programmed by the BIOS to find otu the
+       size of our framebuffer */
     if (!pScrn->videoRam) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
-	goto error1;
+	pScrn->videoRam = rhdGetVideoRamSize(pScrn);
+	if (!pScrn->videoRam) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
+	    goto error1;
+	}
     }
 
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
@@ -833,19 +837,11 @@ static Bool
 rhdMapMMIO(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    int BAR;
 
-    /* There are bound to be chips which use a different BAR */
-    switch(rhdPtr->RhdChipset) {
-    default:
-	BAR = 2;
-	break;
-    }
-
-    rhdPtr->MMIOMapSize = 1 << rhdPtr->PciInfo->size[BAR];
+    rhdPtr->MMIOMapSize = 1 << rhdPtr->PciInfo->size[RHD_MMIO_BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_MMIO, rhdPtr->PciTag,
-		      rhdPtr->PciInfo->memBase[BAR], rhdPtr->MMIOMapSize);
+		      rhdPtr->PciInfo->memBase[RHD_MMIO_BAR], rhdPtr->MMIOMapSize);
     if (!rhdPtr->MMIOBase)
         return FALSE;
 
@@ -871,23 +867,37 @@ rhdUnmapMMIO(ScrnInfoPtr pScrn)
 /*
  *
  */
+static CARD32
+rhdGetVideoRamSize(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    CARD32 RamSize, BARSize;
+
+    RamSize = (RHDRegRead(rhdPtr, XXX_CONFIG_MEMSIZE)) >> 10;
+    BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
+
+    if (RamSize > BARSize) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "The detected amount of videoram"
+		   " exceeds the PCI BAR aperture.\n");
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Using only %dkB of the total "
+		   "%dkB.\n", BARSize, RamSize);
+	return BARSize;
+    } else
+	return RamSize;
+}
+
+/*
+ *
+ */
 static Bool
 rhdMapFB(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    int BAR;
 
-    /* There are bound to be chips which use a different BAR */
-    switch(rhdPtr->RhdChipset) {
-    default:
-	BAR = 0;
-	break;
-    }
-
-    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[BAR];
+    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(pScrn->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
-		      rhdPtr->PciInfo->memBase[BAR], rhdPtr->FbMapSize);
+		      rhdPtr->PciInfo->memBase[RHD_FB_BAR], rhdPtr->FbMapSize);
 
     if (!rhdPtr->FbBase)
         return FALSE;
@@ -896,10 +906,10 @@ rhdMapFB(ScrnInfoPtr pScrn)
      * registers in there also use. This can be different from the address
      * in the BAR */
     rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, XXX_FB_INTERNAL_ADDRESS) << 16;
-    if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[BAR])
+    if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[RHD_FB_BAR])
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR)is at "
 		       "0x%08X while card Internal Address is 0x%08X\n",
-		       rhdPtr->PciInfo->memBase[BAR], rhdPtr->FbIntAddress);
+		       rhdPtr->PciInfo->memBase[RHD_FB_BAR], rhdPtr->FbIntAddress);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);

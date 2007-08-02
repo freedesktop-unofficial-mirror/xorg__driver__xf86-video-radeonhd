@@ -25,6 +25,8 @@
 # define _RHD_REGS_H
 
 enum {
+    XXX_CONFIG_MEMSIZE             = 0x00F8,
+
     XXX_FB_INTERNAL_ADDRESS        = 0x0134,
 
     /* VGA registers */
