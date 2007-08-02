@@ -72,18 +72,40 @@ enum {
     D1CRTC_CONTROL                 = 0x6080,
     D1CRTC_STATUS                  = 0x609C,
 
+    /* D1GRPH registers */
+    D1GRPH_ENABLE                  = 0x6100,
     D1GRPH_PITCH                   = 0x6120,
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
     D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
     D1MODE_VIEWPORT_SIZE           = 0x6584,
 
-/* CRTC2 registers */
-    D2CRTC_CONTROL                 = 0x6880,
-    D2CRTC_STATUS                  = 0x609C,
+    /* CRTC2 registers */
+    D2CRTC_H_TOTAL                 = 0x6800,
+    D2CRTC_H_BLANK_START_END       = 0x6804,
+    D2CRTC_H_SYNC_A                = 0x6808,
+    D2CRTC_H_SYNC_A_CNTL           = 0x680C,
+    D2CRTC_H_SYNC_B                = 0x6810,
+    D2CRTC_H_SYNC_B_CNTL           = 0x6814,
 
-/* D2GRPH registers */
+    D2CRTC_V_TOTAL                 = 0x6820,
+    D2CRTC_V_BLANK_START_END       = 0x6824,
+    D2CRTC_V_SYNC_A                = 0x6828,
+    D2CRTC_V_SYNC_A_CNTL           = 0x682C,
+    D2CRTC_V_SYNC_B                = 0x6830,
+    D2CRTC_V_SYNC_B_CNTL           = 0x6834,
+
+    D2CRTC_CONTROL                 = 0x6880,
+    D2CRTC_STATUS                  = 0x689C,
+
+    /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
+    D2GRPH_PITCH                   = 0x6920,
+    D2GRPH_X_END                   = 0x6934,
+    D2GRPH_Y_END                   = 0x6938,
+    D2GRPH_PRIMARY_SURFACE_ADDRESS = 0x6910,
+    D2MODE_VIEWPORT_SIZE           = 0x6D84,
+
 
     /* DAC B */
     DACA_ENABLE                    = 0x7800,

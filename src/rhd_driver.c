@@ -993,7 +993,7 @@ rhdCRTC2Sync(ScrnInfoPtr pScrn, Bool On)
 		RHDRegMask(rhdPtr, D2CRTC_CONTROL, delay << 8, 0xFF00);
 		return;
 	    }
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to Unsync Secondary CRTC");
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to Unsync Secondary CRTC\n");
     }
 }
 
@@ -1262,14 +1262,14 @@ rhdSave(ScrnInfoPtr pScrn)
     save->DACB_Source_Select = RHDRegRead(rhdPtr, DACB_SOURCE_SELECT);
     save->DACB_Enable = RHDRegRead(rhdPtr, DACB_ENABLE);
 
-    save->D2CRTC_Control = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
-    save->D2GRPH_Enable = RHDRegRead(rhdPtr, D2GRPH_ENABLE);
-
+    save->D1GRPH_Enable = RHDRegRead(rhdPtr, D1GRPH_ENABLE);
     save->D1GRPH_X_End = RHDRegRead(rhdPtr, D1GRPH_X_END);
     save->D1GRPH_Y_End = RHDRegRead(rhdPtr, D1GRPH_Y_END);
     save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS);
     save->D1GRPH_Pitch = RHDRegRead(rhdPtr, D1GRPH_PITCH);
     save->D1Mode_ViewPort_Size = RHDRegRead(rhdPtr, D1MODE_VIEWPORT_SIZE);
+
+    save->D1CRTC_Control = RHDRegRead(rhdPtr, D1CRTC_CONTROL);
 
     save->D1CRTC_H_Total = RHDRegRead(rhdPtr, D1CRTC_H_TOTAL);
     save->D1CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr, D1CRTC_H_BLANK_START_END);
@@ -1293,6 +1293,29 @@ rhdSave(ScrnInfoPtr pScrn)
 
     save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr, PCLK_CRTC1_CNTL);
 
+    save->D2GRPH_Enable = RHDRegRead(rhdPtr, D2GRPH_ENABLE);
+    save->D2GRPH_X_End = RHDRegRead(rhdPtr, D2GRPH_X_END);
+    save->D2GRPH_Y_End = RHDRegRead(rhdPtr, D2GRPH_Y_END);
+    save->D2GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS);
+    save->D2GRPH_Pitch = RHDRegRead(rhdPtr, D2GRPH_PITCH);
+    save->D2Mode_ViewPort_Size = RHDRegRead(rhdPtr, D2MODE_VIEWPORT_SIZE);
+
+    save->D2CRTC_Control = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
+
+    save->D2CRTC_H_Total = RHDRegRead(rhdPtr, D2CRTC_H_TOTAL);
+    save->D2CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr, D2CRTC_H_BLANK_START_END);
+    save->D2CRTC_H_Sync_A = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_A);
+    save->D2CRTC_H_Sync_A_Cntl = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_A_CNTL);
+    save->D2CRTC_H_Sync_B = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_B);
+    save->D2CRTC_H_Sync_B_Cntl = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_B_CNTL);
+
+    save->D2CRTC_V_Total = RHDRegRead(rhdPtr, D2CRTC_V_TOTAL);
+    save->D2CRTC_V_Blank_Start_End = RHDRegRead(rhdPtr, D2CRTC_V_BLANK_START_END);
+    save->D2CRTC_V_Sync_A = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_A);
+    save->D2CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_A_CNTL);
+    save->D2CRTC_V_Sync_B = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B);
+    save->D2CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B_CNTL);
+
     save->PLL2Active = !(RHDRegRead(rhdPtr, P2PLL_CNTL) & 0x03);
     save->PLL2RefDivider = RHDRegRead(rhdPtr, EXT2_PPLL_REF_DIV) & 0x3FF;
     save->PLL2FBDivider = (RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
@@ -1314,13 +1337,6 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     } else
 	rhdPLL1Sleep(pScrn);
 
-    if (restore->PLL2Active) {
-	rhdPLL2Set(pScrn, restore->PLL2RefDivider, restore->PLL2FBDivider,
-		   restore->PLL2FBDividerFraction, restore->PLL2PostDivider);
-	RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
-    } else
-	rhdPLL2Sleep(pScrn);
-
     RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, restore->D1CRTC_H_Total);
     RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, restore->D1CRTC_H_Blank_Start_End);
     RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A, restore->D1CRTC_H_Sync_A);
@@ -1335,21 +1351,46 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B, restore->D1CRTC_V_Sync_B);
     RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B_CNTL, restore->D1CRTC_V_Sync_B_Cntl);
 
+    RHDRegWrite(rhdPtr, D1CRTC_CONTROL, restore->D1CRTC_Control);
+
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, restore->D1Mode_ViewPort_Size);
     RHDRegWrite(rhdPtr, D1GRPH_PITCH, restore->D1GRPH_Pitch);
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
-
     RHDRegWrite(rhdPtr, D1GRPH_X_END, restore->D1GRPH_X_End);
     RHDRegWrite(rhdPtr, D1GRPH_Y_END, restore->D1GRPH_Y_End);
 
-    RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
+    RHDRegWrite(rhdPtr, D1GRPH_ENABLE, restore->D1GRPH_Enable);
+
+    if (restore->PLL2Active) {
+	rhdPLL2Set(pScrn, restore->PLL2RefDivider, restore->PLL2FBDivider,
+		   restore->PLL2FBDividerFraction, restore->PLL2PostDivider);
+	RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
+    } else
+	rhdPLL2Sleep(pScrn);
+
+    RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, restore->D2CRTC_H_Total);
+    RHDRegWrite(rhdPtr, D2CRTC_H_BLANK_START_END, restore->D2CRTC_H_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A, restore->D2CRTC_H_Sync_A);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A_CNTL, restore->D2CRTC_H_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_B, restore->D2CRTC_H_Sync_B);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_B_CNTL, restore->D2CRTC_H_Sync_B_Cntl);
+
+    RHDRegWrite(rhdPtr, D2CRTC_V_TOTAL, restore->D2CRTC_V_Total);
+    RHDRegWrite(rhdPtr, D2CRTC_V_BLANK_START_END, restore->D2CRTC_V_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A, restore->D2CRTC_V_Sync_A);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A_CNTL, restore->D2CRTC_V_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_B, restore->D2CRTC_V_Sync_B);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_B_CNTL, restore->D2CRTC_V_Sync_B_Cntl);
+
     RHDRegWrite(rhdPtr, D2CRTC_CONTROL, restore->D2CRTC_Control);
 
-       /* this rv530 its CRT connection lives on DACB */
-    RHDRegWrite(rhdPtr, DACB_POWERDOWN, 0);
-    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, 0);
-    RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, 0); /* CRTC1 */
-    RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, restore->D2Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D2GRPH_PITCH, restore->D2GRPH_Pitch);
+    RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, restore->D2GRPH_Primary_Surface_Address);
+    RHDRegWrite(rhdPtr, D2GRPH_X_END, restore->D2GRPH_X_End);
+    RHDRegWrite(rhdPtr, D2GRPH_Y_END, restore->D2GRPH_Y_End);
+
+    RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
 
     RHDRegWrite(rhdPtr, DACA_POWERDOWN, restore->DACA_Powerdown);
     RHDRegWrite(rhdPtr, DACA_FORCE_OUTPUT_CNTL, restore->DACA_Force_Output_Control);
@@ -1377,29 +1418,12 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
  *
  */
 static void
-rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
+rhdD1Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     unsigned int BlankStart, BlankEnd;
 
-    /* Disable all of VGA */
-    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
-    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
-    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
-    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
-
-    /* Disable DACs */
-    RHDRegWrite(rhdPtr, DACA_ENABLE, 0);
-    RHDRegWrite(rhdPtr, DACB_ENABLE, 0);
-
-    /* shut down D2 for now */
-    rhdCRTC2Sync(pScrn, FALSE);
-    RHDRegMask(rhdPtr, D2GRPH_ENABLE, 0, 0x00000001);
-    rhdPLL2Sleep(pScrn); /* TODO: restore */
-
-    /* Now set out actual mode */
-    rhdCRTC1Sync(pScrn, FALSE);
-
+    RHDRegMask(rhdPtr, D1GRPH_ENABLE, 1, 0x00000001);
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
@@ -1436,20 +1460,152 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 	    RHDRegMask(rhdPtr, PCLK_CRTC1_CNTL, 0, 0x00010000); /* PLL1 -> CRTC1 */
 	}
     }
+}
 
-    rhdCRTC1Sync(pScrn, TRUE);
+/*
+ *
+ */
+static void
+rhdD2Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    unsigned int BlankStart, BlankEnd;
 
-    /* this rv530 its CRT connection lives on DACB */
-    RHDRegWrite(rhdPtr, DACB_POWERDOWN, 0);
-    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, 0);
-    RHDRegWrite(rhdPtr, DACB_SOURCE_SELECT, 0); /* CRTC1 */
-    RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
+    RHDRegMask(rhdPtr, D2GRPH_ENABLE, 1, 0x00000001);
+    /* different ordering than documented for VIEWPORT_SIZE */
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
+    RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
+    RHDRegWrite(rhdPtr, D2GRPH_PITCH, pScrn->displayWidth);
+    RHDRegWrite(rhdPtr, D2GRPH_X_END, Mode->HDisplay);
+    RHDRegWrite(rhdPtr, D2GRPH_Y_END, Mode->VDisplay);
 
-    /* but the real DACA is on the DVI-I connector */
+    /* Set the actual CRTC timing */
+    RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
+
+    BlankStart = Mode->CrtcHTotal + Mode->CrtcHBlankStart - Mode->CrtcHSyncStart;
+    BlankEnd = Mode->CrtcHBlankEnd - Mode->CrtcHSyncStart;
+    RHDRegWrite(rhdPtr, D2CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
+
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
+
+    RHDRegWrite(rhdPtr, D2CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
+
+    BlankStart = Mode->CrtcVTotal + Mode->CrtcVBlankStart - Mode->CrtcVSyncStart;
+    BlankEnd = Mode->CrtcVBlankEnd - Mode->CrtcVSyncStart;
+    RHDRegWrite(rhdPtr, D2CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
+
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
+
+    { /* Set up the dotclock */
+	CARD16 RefDivider = 0, FBDivider = 0;
+	CARD8 PostDivider = 0;
+
+	if (rhdPPLLCalculate(pScrn->scrnIndex, Mode->Clock,
+			     &RefDivider, &FBDivider, &PostDivider)) {
+	    rhdPLL2Set(pScrn, RefDivider, FBDivider, 0, PostDivider);
+	    RHDRegMask(rhdPtr, PCLK_CRTC2_CNTL, 1, 0x00010000); /* PLL2 -> CRTC2 */
+	}
+    }
+}
+
+/*
+ *
+ */
+static void
+rhdD1Disable(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    rhdCRTC1Sync(pScrn, FALSE);
+    RHDRegMask(rhdPtr, D1GRPH_ENABLE, 0, 0x00000001);
+    rhdPLL1Sleep(pScrn);
+}
+
+/*
+ *
+ */
+static void
+rhdD2Disable(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    rhdCRTC2Sync(pScrn, FALSE);
+    RHDRegMask(rhdPtr, D2GRPH_ENABLE, 0, 0x00000001);
+    rhdPLL2Sleep(pScrn);
+}
+
+/*
+ *
+ */
+static void
+rhdDACASet(ScrnInfoPtr pScrn, int CRTC)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
     RHDRegWrite(rhdPtr, DACA_POWERDOWN, 0);
     RHDRegWrite(rhdPtr, DACA_FORCE_OUTPUT_CNTL, 0);
-    RHDRegWrite(rhdPtr, DACA_SOURCE_SELECT, 0); /* CRTC1 */
+    RHDRegMask(rhdPtr, DACA_SOURCE_SELECT, CRTC, 1);
     RHDRegWrite(rhdPtr, DACA_ENABLE, 1);
+}
+
+/*
+ *
+ */
+static void
+rhdDACBSet(ScrnInfoPtr pScrn, int CRTC)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDRegWrite(rhdPtr, DACB_POWERDOWN, 0);
+    RHDRegWrite(rhdPtr, DACB_FORCE_OUTPUT_CNTL, 0);
+    RHDRegMask(rhdPtr, DACB_SOURCE_SELECT, CRTC, 1);
+    RHDRegWrite(rhdPtr, DACB_ENABLE, 1);
+}
+
+/*
+ *
+ */
+static void
+rhdVGADisable(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
+    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
+    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
+    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
+}
+
+/*
+ *
+ */
+static void
+rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    /* Disable DACs */
+    RHDRegWrite(rhdPtr, DACA_ENABLE, 0);
+    RHDRegWrite(rhdPtr, DACB_ENABLE, 0);
+
+    /* Disable CRTCs */
+    rhdCRTC1Sync(pScrn, FALSE);
+    rhdCRTC2Sync(pScrn, FALSE);
+
+    /* now disable our VGA Mode */
+    rhdVGADisable(pScrn);
+
+    /* Now set our actual modes */
+    rhdD1Mode(pScrn, Mode);
+    rhdD2Mode(pScrn, Mode);
+
+    rhdCRTC1Sync(pScrn, TRUE);
+    rhdCRTC2Sync(pScrn, TRUE);
+
+    rhdDACASet(pScrn, 0); /* D1CRTC */
+    rhdDACBSet(pScrn, 1); /* D2CRTC */
 }
 
 /*

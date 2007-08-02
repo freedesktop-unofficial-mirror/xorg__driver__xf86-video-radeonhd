@@ -49,6 +49,8 @@ typedef struct RHDRegs {
     CARD32 D2VGA_Control;
 
     /* CRTC1 */
+    CARD32 D1CRTC_Control;
+
     CARD32 D1CRTC_H_Total;
     CARD32 D1CRTC_H_Blank_Start_End;
     CARD32 D1CRTC_H_Sync_A;
@@ -63,6 +65,7 @@ typedef struct RHDRegs {
     CARD32 D1CRTC_V_Sync_B;
     CARD32 D1CRTC_V_Sync_B_Cntl;
 
+    CARD32 D1GRPH_Enable;
     CARD32 D1GRPH_X_End;
     CARD32 D1GRPH_Y_End;
     CARD32 D1GRPH_Primary_Surface_Address;
@@ -78,11 +81,29 @@ typedef struct RHDRegs {
 
     CARD32 PCLK_CRTC1_Control;
 
-    /* D2GRPH */
-    CARD32 D2GRPH_Enable;
-
     /* CRTC2 */
     CARD32 D2CRTC_Control;
+
+    CARD32 D2CRTC_H_Total;
+    CARD32 D2CRTC_H_Blank_Start_End;
+    CARD32 D2CRTC_H_Sync_A;
+    CARD32 D2CRTC_H_Sync_A_Cntl;
+    CARD32 D2CRTC_H_Sync_B;
+    CARD32 D2CRTC_H_Sync_B_Cntl;
+
+    CARD32 D2CRTC_V_Total;
+    CARD32 D2CRTC_V_Blank_Start_End;
+    CARD32 D2CRTC_V_Sync_A;
+    CARD32 D2CRTC_V_Sync_A_Cntl;
+    CARD32 D2CRTC_V_Sync_B;
+    CARD32 D2CRTC_V_Sync_B_Cntl;
+
+    CARD32 D2GRPH_Enable;
+    CARD32 D2GRPH_X_End;
+    CARD32 D2GRPH_Y_End;
+    CARD32 D2GRPH_Primary_Surface_Address;
+    CARD32 D2GRPH_Pitch;
+    CARD32 D2Mode_ViewPort_Size;
 
     /* PLL2 */
     Bool PLL2Active;
