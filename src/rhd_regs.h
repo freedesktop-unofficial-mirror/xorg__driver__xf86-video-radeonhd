@@ -76,6 +76,7 @@ enum {
 
     /* D1GRPH registers */
     D1GRPH_ENABLE                  = 0x6100,
+    D1GRPH_CONTROL                 = 0x6104,
     D1GRPH_PITCH                   = 0x6120,
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
@@ -102,6 +103,7 @@ enum {
 
     /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
+    D2GRPH_CONTROL                 = 0x6904,
     D2GRPH_PITCH                   = 0x6920,
     D2GRPH_X_END                   = 0x6934,
     D2GRPH_Y_END                   = 0x6938,

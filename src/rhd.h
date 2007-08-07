@@ -72,6 +72,7 @@ typedef struct RHDRegs {
     CARD32 D1CRTC_V_Sync_B_Cntl;
 
     CARD32 D1GRPH_Enable;
+    CARD32 D1GRPH_Control;
     CARD32 D1GRPH_X_End;
     CARD32 D1GRPH_Y_End;
     CARD32 D1GRPH_Primary_Surface_Address;
@@ -105,6 +106,7 @@ typedef struct RHDRegs {
     CARD32 D2CRTC_V_Sync_B_Cntl;
 
     CARD32 D2GRPH_Enable;
+    CARD32 D2GRPH_Control;
     CARD32 D2GRPH_X_End;
     CARD32 D2GRPH_Y_End;
     CARD32 D2GRPH_Primary_Surface_Address;

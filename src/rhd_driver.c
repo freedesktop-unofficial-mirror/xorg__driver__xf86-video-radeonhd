@@ -395,7 +395,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	/* Check that the returned depth is one we support */
 	switch (pScrn->depth) {
 	case 8:
-	case 15:
 	case 16:
 	case 24:
 	    break;
@@ -445,10 +444,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* detect outputs */
     /* @@@ */
 
-#if 0  /* @@@ rgb bits boilerplate */
+    /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
-	pScrn->rgbBits = 6;
-#endif
+	pScrn->rgbBits = 8;
 
     /* Get the depth24 pixmap format */
     if (pScrn->depth == 24 && pix24bpp == 0)
@@ -1273,6 +1271,7 @@ rhdSave(ScrnInfoPtr pScrn)
     save->DACB_Enable = RHDRegRead(rhdPtr, DACB_ENABLE);
 
     save->D1GRPH_Enable = RHDRegRead(rhdPtr, D1GRPH_ENABLE);
+    save->D1GRPH_Control = RHDRegRead(rhdPtr, D1GRPH_CONTROL);
     save->D1GRPH_X_End = RHDRegRead(rhdPtr, D1GRPH_X_END);
     save->D1GRPH_Y_End = RHDRegRead(rhdPtr, D1GRPH_Y_END);
     save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS);
@@ -1304,6 +1303,7 @@ rhdSave(ScrnInfoPtr pScrn)
     save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr, PCLK_CRTC1_CNTL);
 
     save->D2GRPH_Enable = RHDRegRead(rhdPtr, D2GRPH_ENABLE);
+    save->D2GRPH_Control = RHDRegRead(rhdPtr, D2GRPH_CONTROL);
     save->D2GRPH_X_End = RHDRegRead(rhdPtr, D2GRPH_X_END);
     save->D2GRPH_Y_End = RHDRegRead(rhdPtr, D2GRPH_Y_END);
     save->D2GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS);
@@ -1368,7 +1368,7 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
     RHDRegWrite(rhdPtr, D1GRPH_X_END, restore->D1GRPH_X_End);
     RHDRegWrite(rhdPtr, D1GRPH_Y_END, restore->D1GRPH_Y_End);
-
+    RHDRegWrite(rhdPtr, D1GRPH_CONTROL, restore->D1GRPH_Control);
     RHDRegWrite(rhdPtr, D1GRPH_ENABLE, restore->D1GRPH_Enable);
 
     if (restore->PLL2Active) {
@@ -1399,7 +1399,7 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, restore->D2GRPH_Primary_Surface_Address);
     RHDRegWrite(rhdPtr, D2GRPH_X_END, restore->D2GRPH_X_End);
     RHDRegWrite(rhdPtr, D2GRPH_Y_END, restore->D2GRPH_Y_End);
-
+    RHDRegWrite(rhdPtr, D2GRPH_CONTROL, restore->D2GRPH_Control);
     RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
 
     RHDRegWrite(rhdPtr, DACA_POWERDOWN, restore->DACA_Powerdown);
@@ -1434,6 +1434,22 @@ rhdD1Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     unsigned int BlankStart, BlankEnd;
 
     RHDRegMask(rhdPtr, D1GRPH_ENABLE, 1, 0x00000001);
+
+    switch (pScrn->bitsPerPixel) {
+    case 8:
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0, 0x10703);
+	break;
+    case 16:
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00101, 0x10703);
+	break;
+    case 24:
+    case 32:
+    default:
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00202, 0x10703);
+	break;
+    /* TODO: 64bpp ;p */
+    }
+
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
@@ -1482,6 +1498,22 @@ rhdD2Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     unsigned int BlankStart, BlankEnd;
 
     RHDRegMask(rhdPtr, D2GRPH_ENABLE, 1, 0x00000001);
+
+    switch (pScrn->bitsPerPixel) {
+    case 8:
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0, 0x10703);
+	break;
+    case 16:
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00101, 0x10703);
+	break;
+    case 24:
+    case 32:
+    default:
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00202, 0x10703);
+	break;
+    /* TODO: 64bpp ;p */
+    }
+
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
     RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
