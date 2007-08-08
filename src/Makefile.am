@@ -8,9 +8,9 @@ radeonhd_drv_la_SOURCES = \
 	 rhd_cursor.c \
 	 rhd_helper.c \
 	 rhd_atombios.c \
+	 rhd_id.c \
          rhd.h \
 	 rhd_regs.h \
-	 rhd_macros.h \
 	 rhd_cursor.h \
 	 rhd_atombios.h
 	

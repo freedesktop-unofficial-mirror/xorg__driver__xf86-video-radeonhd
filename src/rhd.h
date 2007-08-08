@@ -27,12 +27,45 @@
 
 # include "xf86Cursor.h"
 
+#define RHD_VERSION 0001
+#define RHD_NAME "RADEONHD"
+#define RHD_DRIVER_NAME "radeonhd"
+
+#define RHD_MAJOR_VERSION 0
+#define RHD_MINOR_VERSION 0
+#define RHD_PATCHLEVEL    1
+
 enum RHD_CHIPSETS {
     RHD_UNKOWN = 0,
+    RHD_RV505,
     RHD_RV515,
+    RHD_R520,
     RHD_RV530,
+    RHD_RV535,
+    RHD_RV570,
     RHD_R580,
+    RHD_R600,
+    RHD_RV610,
+    RHD_RV630,
+    RHD_M52,
+    RHD_M54,
+    RHD_M56,
+    RHD_M58,
+    RHD_M71,
+    RHD_M72,
+    RHD_M76,
+    RHD_RS600,
+    RHD_RS690,
     RHD_CHIP_END
+};
+
+struct rhd_card {
+    CARD16 device;
+    CARD16 card_vendor;
+    CARD16 card_device;
+    char *name;
+
+    /* add whatever quirk handling we need here */
 };
 
 /* Just define where which PCI BAR lives for now. Will deal with different
@@ -154,6 +187,8 @@ typedef struct RHDRec {
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
     int			entityIndex;
+    struct rhd_card     *Card;
+
     OptionInfoPtr       Options;
     RHDOpt              noAccel;
     RHDOpt              swCursor;
@@ -172,6 +207,8 @@ typedef struct RHDRec {
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 } RHDRec, *RHDPtr;
+
+#define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
 
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,

@@ -20,3 +20,4 @@ missing
 src/.deps
 src/.libs
 stamp-h1
+src/atombios.h

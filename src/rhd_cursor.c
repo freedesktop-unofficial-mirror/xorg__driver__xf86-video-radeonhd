@@ -37,7 +37,6 @@
 #include "cursorstr.h"
 /* Driver specific headers */
 #include "rhd.h"
-#include "rhd_macros.h"
 
 void
 rhdShowCursor(ScrnInfoPtr pScrn)

@@ -23,10 +23,7 @@
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "rhd.h"
-#include "rhd_macros.h"
 #include "rhd_atombios.h"
-
-#include "xf86.h"
 
 /* these types are used in ATI's atombios.h */
 # ifndef ULONG

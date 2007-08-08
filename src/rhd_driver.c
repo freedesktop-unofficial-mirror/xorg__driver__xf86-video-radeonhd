@@ -80,7 +80,6 @@
  */
 #include "rhd.h"
 #include "rhd_regs.h"
-#include "rhd_macros.h"
 #include "rhd_cursor.h"
 #include "rhd_atombios.h"
 
@@ -120,13 +119,11 @@ static void     rhdUnmapFB(ScrnInfoPtr pScrn);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 static CARD32   rhdGetVideoRamSize(ScrnInfoPtr pScrn);
 
-#define RHD_VERSION 0001
-#define RHD_NAME "RADEONHD"
-#define RHD_DRIVER_NAME "radeonhd"
-
-#define RHD_MAJOR_VERSION 0
-#define RHD_MINOR_VERSION 0
-#define RHD_PATCHLEVEL    1
+/* rhd_id.c */
+extern SymTabRec RHDChipsets[];
+extern PciChipsets RHDPCIchipsets[];
+Bool RHDChipExperimental(ScrnInfoPtr pScrn);
+struct rhd_card *RHDCardIdentify(ScrnInfoPtr pScrn);
 
 /* keep accross drivers */
 static int pix24bpp = 0;
@@ -141,30 +138,18 @@ _X_EXPORT DriverRec RADEONHD = {
     0
 };
 
-static SymTabRec RHDChipsets[] = {
-    { RHD_RV515, "RV515" },
-    { RHD_RV530, "RV530" },
-    { RHD_R580,  "R580"  },
-    { -1,      NULL }
-};
-
-static PciChipsets RHDPCIchipsets[] = {
-    { RHD_RV515, 0x7146, RES_SHARED_VGA },
-    { RHD_RV530, 0x71C2, RES_SHARED_VGA },
-    { RHD_R580,  0x7249, RES_SHARED_VGA },
-    { -1,	     -1,	     RES_UNDEFINED}
-};
-
 typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
-    OPTION_PCI_BURST
+    OPTION_PCI_BURST,
+    OPTION_EXPERIMENTAL
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,	"NoAccel",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
+    { OPTION_EXPERIMENTAL, "experimental",	OPTV_BOOLEAN,   {0}, FALSE },
     { -1,               NULL,           OPTV_NONE,	{0}, FALSE }
 };
 
@@ -241,13 +226,6 @@ RHDAvailableOptions(int chipid, int busid)
     return RHDOptions;
 }
 
-static void
-RHDIdentify(int flags)
-{
-    xf86PrintChipsets(RHD_NAME, "Driver for RadeonHD chipsets",
-			RHDChipsets);
-}
-
 static Bool
 RHDProbe(DriverPtr drv, int flags)
 {
@@ -274,9 +252,10 @@ RHDProbe(DriverPtr drv, int flags)
 		foundScreen = TRUE;
 	    else for (i = 0; i < numUsed; i++) {
 		ScrnInfoPtr pScrn = NULL;
+
 		if ((pScrn = xf86ConfigPciEntity(pScrn, 0, usedChips[i],
-						       RHDPCIchipsets,NULL, NULL,
-						       NULL, NULL, NULL))) {
+					      RHDPCIchipsets,NULL, NULL,
+					      NULL, NULL, NULL))) {
 		    pScrn->driverVersion = RHD_VERSION;
 		    pScrn->driverName    = RHD_DRIVER_NAME;
 		    pScrn->name          = RHD_NAME;
@@ -329,6 +308,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     pointer biosHandle = NULL;
     Bool ret = FALSE;
     AtomBIOSArg arg;
+    RHDOpt tmpOpt;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -378,13 +358,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xfree(pEnt);
 
-    switch(rhdPtr->RhdChipset){
-        default:
-        xf86ErrorF("Unknown Chipset found");
-	break;
-    }
-    xf86ErrorF("\n");
-    
     /* xf86CollectOptions cluelessly depends on these and
        will SIGSEGV otherwise */
     pScrn->monitor = pScrn->confScreen->monitor;
@@ -408,6 +381,27 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86PrintDepthBpp(pScrn);
 
     rhdProcessOptions(pScrn);
+
+    /* Check whether we should accept this hardware already */
+    if (RHDChipExperimental(pScrn)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "This hardware is marked as EXPERIMENTAL.\n\t"
+		   "It could be harmful to try to use this driver on this card.\n\t"
+		   "To help rectify this, please send your X log to MAILINGLIST.\n");
+
+	RhdGetOptValBool(rhdPtr->Options, OPTION_EXPERIMENTAL, &tmpOpt, FALSE);
+	if (!tmpOpt.val.bool)
+	    goto error0;
+    }
+
+    /* Now check whether we know this card */
+    rhdPtr->Card = RHDCardIdentify(pScrn);
+    if (rhdPtr->Card)
+	xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "Detected an %s on a %s\n",
+		   pScrn->chipset, rhdPtr->Card->name);
+    else
+	xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "Detected an %s on an "
+		   "unidentified card\n", pScrn->chipset);
 
     /* We have none of these things yet. */
     rhdPtr->noAccel.val.bool = TRUE;
@@ -907,7 +901,8 @@ rhdMapFB(ScrnInfoPtr pScrn)
     if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[RHD_FB_BAR])
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR)is at "
 		       "0x%08X while card Internal Address is 0x%08X\n",
-		       rhdPtr->PciInfo->memBase[RHD_FB_BAR], rhdPtr->FbIntAddress);
+		       (unsigned int) rhdPtr->PciInfo->memBase[RHD_FB_BAR],
+		       rhdPtr->FbIntAddress);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
