@@ -1440,7 +1440,7 @@ rhdD1Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     case 24:
     case 32:
     default:
-	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00202, 0x10703);
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00002, 0x10703);
 	break;
     /* TODO: 64bpp ;p */
     }
@@ -1504,7 +1504,7 @@ rhdD2Mode(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     case 24:
     case 32:
     default:
-	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00202, 0x10703);
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00002, 0x10703);
 	break;
     /* TODO: 64bpp ;p */
     }
