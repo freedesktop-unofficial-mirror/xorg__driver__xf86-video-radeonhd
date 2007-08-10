@@ -44,9 +44,6 @@ enum RHD_CHIPSETS {
     RHD_RV535,
     RHD_RV570,
     RHD_R580,
-    RHD_R600,
-    RHD_RV610,
-    RHD_RV630,
     RHD_M52,
     RHD_M54,
     RHD_M56,
@@ -54,8 +51,10 @@ enum RHD_CHIPSETS {
     RHD_M71,
     RHD_M72,
     RHD_M76,
-    RHD_RS600,
     RHD_RS690,
+    RHD_R600,
+    RHD_RV610,
+    RHD_RV630,
     RHD_CHIP_END
 };
 

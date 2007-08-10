@@ -39,9 +39,6 @@ SymTabRec RHDChipsets[] = {
     { RHD_RV535, "RV535" },
     { RHD_RV570, "RV570" },
     { RHD_R580,  "R580" },
-    { RHD_R600,  "R600" },
-    { RHD_RV610, "R610" },
-    { RHD_RV630, "R630" },
     { RHD_M52,   "M52" },
     { RHD_M54,   "M54" },
     { RHD_M56,   "M56" },
@@ -49,8 +46,10 @@ SymTabRec RHDChipsets[] = {
     { RHD_M71,   "M71" },
     { RHD_M72,   "M72" },
     { RHD_M76,   "M76" },
-    { RHD_RS600, "RS600" },
     { RHD_RS690, "RS690" },
+    { RHD_R600,  "R600" },
+    { RHD_RV610, "R610" },
+    { RHD_RV630, "R630" },
     { -1,      NULL }
 };
 
@@ -142,9 +141,6 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_R580,  0x7293, RES_SHARED_VGA }, /* Radeon X1650 */
     { RHD_RS690, 0x791E, RES_SHARED_VGA }, /* Radeon X1200 */
     { RHD_RS690, 0x791F, RES_SHARED_VGA }, /* Radeon X1200 (M) */
-    { RHD_RS600, 0x793F, RES_SHARED_VGA }, /* Radeon Xpress 1200 */
-    { RHD_RS600, 0x7941, RES_SHARED_VGA }, /* Radeon Xpress 1200 */
-    { RHD_RS600, 0x7942, RES_SHARED_VGA }, /* Radeon Xpress 1200 (M) */
     { RHD_R600,  0x9400, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9401, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9402, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
@@ -186,7 +182,6 @@ RHDIdentify(int flags)
 	    "M71    : Mobility Radeon HD 2300.\n\t"
 	    "M72    : Mobility Radeon HD 2400.\n\t"
 	    "M76    : Mobility Radeon HD 2600.\n\t"
-	    "RS600  : Radeon Xpress 1200.\n\t"
 	    "RS690  : Radeon X1200.\n");
     xf86Msg(X_NONE, "\n");
 }
@@ -328,9 +323,6 @@ rhdCards[] =
     /* 0x7293 : R580 : Radeon X1650 */
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 (M) */
-    /* 0x793F : RS600 : Radeon Xpress 1200 */
-    /* 0x7941 : RS600 : Radeon Xpress 1200 */
-    /* 0x7942 : RS600 : Radeon Xpress 1200 (M) */
     /* 0x9400 : R600 : Radeon HD 2900 XT */
     { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT" },
     /* 0x9401 : R600 : Radeon HD 2900 XT */
