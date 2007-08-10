@@ -88,7 +88,7 @@
 
 /* Mandatory functions */
 static const OptionInfoRec *	RHDAvailableOptions(int chipid, int busid);
-static void     RHDIdentify(int flags);
+void     RHDIdentify(int flags);
 static Bool     RHDProbe(DriverPtr drv, int flags);
 static Bool     RHDPreInit(ScrnInfoPtr pScrn, int flags);
 static Bool     RHDScreenInit(int Index, ScreenPtr pScreen, int argc,
@@ -122,6 +122,7 @@ static CARD32   rhdGetVideoRamSize(ScrnInfoPtr pScrn);
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
+void RHDIdentify(int flags);
 Bool RHDChipExperimental(ScrnInfoPtr pScrn);
 struct rhd_card *RHDCardIdentify(ScrnInfoPtr pScrn);
 
@@ -339,7 +340,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
-    rhdPtr->RhdChipset = pEnt->chipset;
+    rhdPtr->ChipSet = pEnt->chipset;
     pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
 
     pScrn->videoRam = pEnt->device->videoRam;
@@ -865,14 +866,17 @@ rhdGetVideoRamSize(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     CARD32 RamSize, BARSize;
 
-    RamSize = (RHDRegRead(rhdPtr, XXX_CONFIG_MEMSIZE)) >> 10;
+    if (rhdPtr->ChipSet < RHD_R600)
+	RamSize = (RHDRegRead(rhdPtr, R5XX_CONFIG_MEMSIZE)) >> 10;
+    else
+	RamSize = (RHDRegRead(rhdPtr, R6XX_CONFIG_MEMSIZE)) >> 10;
     BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
 
     if (RamSize > BARSize) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "The detected amount of videoram"
 		   " exceeds the PCI BAR aperture.\n");
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Using only %dkB of the total "
-		   "%dkB.\n", BARSize, RamSize);
+		   "%dkB.\n", (int) BARSize, (int) RamSize);
 	return BARSize;
     } else
 	return RamSize;
@@ -894,12 +898,16 @@ rhdMapFB(ScrnInfoPtr pScrn)
     if (!rhdPtr->FbBase)
         return FALSE;
 
-    /* R5xx has an internal address reference, which some other address
-     * registers in there also use. This can be different from the address
-     * in the BAR */
-    rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, XXX_FB_INTERNAL_ADDRESS) << 16;
+    /* These devices have an internal address reference, which some other
+     * address registers in there also use. This can be different from the
+     * address in the BAR */
+    if (rhdPtr->ChipSet < RHD_R600)
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS) << 16;
+    else
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
+
     if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[RHD_FB_BAR])
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR)is at "
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
 		       "0x%08X while card Internal Address is 0x%08X\n",
 		       (unsigned int) rhdPtr->PciInfo->memBase[RHD_FB_BAR],
 		       rhdPtr->FbIntAddress);
@@ -1152,7 +1160,8 @@ rhdPPLLCalculate(int scrnIndex, CARD32 PixelClock,
 
     if ((PixelClock < 16000) || (PixelClock > PLLOUT_MAX)) {
 	xf86DrvMsg(scrnIndex, X_ERROR, "PixelClock (%dkHz) is outside "
-		   "[%dkHz - %dkHz] range.\n", PixelClock, 16000, PLLOUT_MAX);
+		   "[%dkHz - %dkHz] range.\n",
+		   (int) PixelClock, 16000, PLLOUT_MAX);
 	return FALSE;
     }
 
@@ -1195,12 +1204,14 @@ rhdPPLLCalculate(int scrnIndex, CARD32 PixelClock,
 
     if (BestDiff != 0xFFFFFFFF) {
 	xf86DrvMsg(scrnIndex, X_INFO, "PLL Calculation: %dkHz = "
-		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n", PixelClock,
-		   XTAL_FREQ, *RefDivider, *FBDivider, *PostDivider, BestDiff);
+		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
+		   (int) PixelClock, XTAL_FREQ, *RefDivider, *FBDivider,
+		   *PostDivider, (int) BestDiff);
 	return TRUE;
     } else {
 	xf86DrvMsg(scrnIndex, X_ERROR,
-		   "Failed to get a valid PLL setting for %dkHz\n", PixelClock);
+		   "Failed to get a valid PLL setting for %dkHz\n",
+		   (int) PixelClock);
 	return FALSE;
     }
 }
@@ -1248,7 +1259,7 @@ rhdSave(ScrnInfoPtr pScrn)
 	} else {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "VGA FB Offset (0x%08X) is "
 		       "out of range of the Cards Internal FB Address (0x%08X)\n",
-		       RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS),
+		       (int) RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS),
 		       rhdPtr->FbIntAddress);
 	    save->VGAFBOffset = 0xFFFFFFFF;
 	}

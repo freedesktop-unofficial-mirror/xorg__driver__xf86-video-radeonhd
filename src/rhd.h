@@ -182,7 +182,7 @@ typedef struct _RHDopt {
 } RHDOpt, *RHDOptPtr;
 
 typedef struct RHDRec {
-    int                 RhdChipset;
+    int                 ChipSet;
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
     int			entityIndex;

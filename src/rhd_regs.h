@@ -25,9 +25,9 @@
 # define _RHD_REGS_H
 
 enum {
-    XXX_CONFIG_MEMSIZE             = 0x00F8,
+    R5XX_CONFIG_MEMSIZE            = 0x00F8,
 
-    XXX_FB_INTERNAL_ADDRESS        = 0x0134,
+    R5XX_FB_INTERNAL_ADDRESS       = 0x0134,
 
     /* VGA registers */
     VGA_RENDER_CONTROL             = 0x0300,
@@ -56,6 +56,9 @@ enum {
 
     PCLK_CRTC1_CNTL                = 0x0480,
     PCLK_CRTC2_CNTL                = 0x0484,
+
+    R6XX_CONFIG_MEMSIZE            = 0x5428,
+    R6XX_CONFIG_FB_BASE            = 0x542C, /* AKA CONFIG_F0_BASE */
 
     D1CRTC_H_TOTAL                 = 0x6000,
     D1CRTC_H_BLANK_START_END       = 0x6004,
@@ -111,7 +114,7 @@ enum {
     D2MODE_VIEWPORT_SIZE           = 0x6D84,
 
 
-    /* DAC B */
+    /* DAC A */
     DACA_ENABLE                    = 0x7800,
     DACA_SOURCE_SELECT             = 0x7804,
     DACA_FORCE_OUTPUT_CNTL         = 0x783C,
