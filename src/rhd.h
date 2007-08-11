@@ -182,6 +182,8 @@ typedef struct _RHDopt {
 } RHDOpt, *RHDOptPtr;
 
 typedef struct RHDRec {
+    int                 scrnIndex;
+
     int                 ChipSet;
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
@@ -223,10 +225,22 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
 
-/* rhd.h */
+/* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
 CARD32 RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
 void RHDRegWrite(RHDPtr rhdPtr, CARD16 offset, CARD32 value);
 void RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask);
+
+
+/* Extra debugging verbosity: decimates gdb usage */
+
+/* __func__ is really nice, but not universal */
+#if !defined(__GNUC__) && !defined(C99)
+#define __func__ "unknown"
+#endif
+
+#define LOG_DEBUG 7
+void RHDDebug(int scrnIndex, const char *format, ...);
+#define RHDFUNC(scrnIndex) RHDDebug((scrnIndex), "FUNCTION: %s\n", __func__);
 
 #endif /* _RHD_H */
