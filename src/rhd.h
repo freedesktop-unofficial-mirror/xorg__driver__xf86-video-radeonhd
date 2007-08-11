@@ -227,9 +227,9 @@ void RhdGetOptValString(const OptionInfoRec *table, int token,
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
-CARD32 RHDRegRead(RHDPtr rhdPtr, CARD16 offset);
-void RHDRegWrite(RHDPtr rhdPtr, CARD16 offset, CARD32 value);
-void RHDRegMask(RHDPtr rhdPtr, CARD16 offset, CARD32 value, CARD32 mask);
+CARD32 RHDRegRead(int scrnIndex, CARD16 offset);
+void RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
+void RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 
 
 /* Extra debugging verbosity: decimates gdb usage */
