@@ -51,6 +51,9 @@
 /* For SW cursor */
 #include "mipointer.h"
 
+/* For HW cursor */
+#include "xf86Cursor.h"
+
 /* optional backing store */
 #include "mibstore.h"
 

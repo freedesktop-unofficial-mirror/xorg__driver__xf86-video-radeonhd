@@ -26,17 +26,16 @@
 #include "config.h"
 #endif
 
-#include "rhd.h"
-#include "rhd_cursor.h"
-
 /* All drivers should typically include these */
 #include "xf86.h"
 #include "xf86_OSproc.h"
 
 #include "xf86Cursor.h"
 #include "cursorstr.h"
+
 /* Driver specific headers */
 #include "rhd.h"
+#include "rhd_cursor.h"
 
 void
 rhdShowCursor(ScrnInfoPtr pScrn)

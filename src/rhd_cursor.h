@@ -1,5 +1,3 @@
-#ifndef _RHD_CURSOR_H
-# define _RHD_CURSOR_H
 /*
  * Copyright 2007  Luc Verhaegen <lverhagen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
@@ -24,7 +22,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-# include "xf86str.h"
+#ifndef _RHD_CURSOR_H
+# define _RHD_CURSOR_H
 
 Bool RHDCursorInit(ScreenPtr pScreen);
 void rhdShowCursor(ScrnInfoPtr);

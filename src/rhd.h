@@ -23,9 +23,7 @@
  */
 
 #ifndef _RHD_H
-# define _RHD_H
-
-# include "xf86Cursor.h"
+#define _RHD_H
 
 #define RHD_VERSION 0001
 #define RHD_NAME "RADEONHD"
@@ -204,7 +202,7 @@ typedef struct RHDRec {
     unsigned int        MMIOMapSize;
     pointer             MMIOBase; /* map base if mmio */
 
-    xf86CursorInfoPtr   CursorInfo;
+    struct _xf86CursorInfoRec  *CursorInfo;
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 } RHDRec, *RHDPtr;
