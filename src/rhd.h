@@ -151,19 +151,6 @@ typedef struct RHDRegs {
     CARD8 PLL2PostDivider;
 
     CARD32 PCLK_CRTC2_Control;
-
-    /* DACA  */
-    CARD32 DACA_Enable;
-    CARD32 DACA_Source_Select;
-    CARD32 DACA_Powerdown;
-    CARD32 DACA_Force_Output_Control;
-
-    /* DACB  */
-    CARD32 DACB_Enable;
-    CARD32 DACB_Source_Select;
-    CARD32 DACB_Powerdown;
-    CARD32 DACB_Force_Output_Control;
-
 } RHDRegs, *RHDRegPtr;
 
 
@@ -205,6 +192,8 @@ typedef struct RHDRec {
     struct _xf86CursorInfoRec  *CursorInfo;
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
+
+    struct rhd_Output   *Outputs;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

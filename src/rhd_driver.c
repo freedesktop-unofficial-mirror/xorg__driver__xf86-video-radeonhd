@@ -85,6 +85,7 @@
 #include "rhd_regs.h"
 #include "rhd_cursor.h"
 #include "rhd_atombios.h"
+#include "rhd_output.h"
 
 /* ??? */
 #include "servermd.h"
@@ -222,6 +223,8 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 
     if (rhdPtr->Options)
 	xfree(rhdPtr->Options);
+
+    RHDOutputsDestroy(rhdPtr);
 
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
@@ -442,8 +445,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_REF_CLOCK, &arg);
     }
 
-    /* detect outputs */
-    /* @@@ */
+    /* Init output structures */
+    RHDOutputsInit(rhdPtr);
 
     /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
@@ -492,6 +495,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
+
+    if (!RHDOutputsSense(rhdPtr)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
+	goto error2;
+    }
+
+    /* Pick anything for now */
+    RHDOutputsSelect(rhdPtr);
 
     /* Tell X that we support at least one mode */
     /* WARNING: xf86CVTMode doesn't exist before 7.1 */
@@ -798,15 +809,19 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
     switch (PowerManagementMode) {
     case DPMSModeOn:
 	/* Screen: On; HSync: On, VSync: On */
+	RHDOutputsPower(rhdPtr, RHD_POWER_ON);
 	break;
     case DPMSModeStandby:
 	/* Screen: Off; HSync: Off, VSync: On */
+	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 	break;
     case DPMSModeSuspend:
 	/* Screen: Off; HSync: On, VSync: Off */
+	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 	break;
     case DPMSModeOff:
 	/* Screen: Off; HSync: Off, VSync: Off */
+	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 	break;
     }
 }
@@ -1291,15 +1306,7 @@ rhdSave(ScrnInfoPtr pScrn)
     } else
 	save->IsVGA = FALSE;
 
-    save->DACA_Powerdown = RHDRegRead(rhdPtr->scrnIndex, DACA_POWERDOWN);
-    save->DACA_Force_Output_Control = RHDRegRead(rhdPtr->scrnIndex, DACA_FORCE_OUTPUT_CNTL);
-    save->DACA_Source_Select = RHDRegRead(rhdPtr->scrnIndex, DACA_SOURCE_SELECT);
-    save->DACA_Enable = RHDRegRead(rhdPtr->scrnIndex, DACA_ENABLE);
-
-    save->DACB_Powerdown = RHDRegRead(rhdPtr->scrnIndex, DACB_POWERDOWN);
-    save->DACB_Force_Output_Control = RHDRegRead(rhdPtr->scrnIndex, DACB_FORCE_OUTPUT_CNTL);
-    save->DACB_Source_Select = RHDRegRead(rhdPtr->scrnIndex, DACB_SOURCE_SELECT);
-    save->DACB_Enable = RHDRegRead(rhdPtr->scrnIndex, DACB_ENABLE);
+    RHDOutputsSave(rhdPtr);
 
     save->D1GRPH_Enable = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_ENABLE);
     save->D1GRPH_Control = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_CONTROL);
@@ -1435,15 +1442,7 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_CONTROL, restore->D2GRPH_Control);
     RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_ENABLE, restore->D2GRPH_Enable);
 
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_POWERDOWN, restore->DACA_Powerdown);
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_FORCE_OUTPUT_CNTL, restore->DACA_Force_Output_Control);
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_SOURCE_SELECT, restore->DACA_Source_Select);
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_ENABLE, restore->DACA_Enable);
-
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_POWERDOWN, restore->DACB_Powerdown);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_FORCE_OUTPUT_CNTL, restore->DACB_Force_Output_Control);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_SOURCE_SELECT, restore->DACB_Source_Select);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_ENABLE, restore->DACB_Enable);
+    RHDOutputsRestore(rhdPtr);
 
     if (restore->IsVGA) {
 	if (restore->VGAFBSize)
@@ -1619,34 +1618,6 @@ rhdD2Disable(RHDPtr rhdPtr)
  *
  */
 static void
-rhdDACASet(RHDPtr rhdPtr, int CRTC)
-{
-    RHDFUNC(rhdPtr->scrnIndex);
-
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_POWERDOWN, 0);
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_FORCE_OUTPUT_CNTL, 0);
-    RHDRegMask(rhdPtr->scrnIndex, DACA_SOURCE_SELECT, CRTC, 1);
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_ENABLE, 1);
-}
-
-/*
- *
- */
-static void
-rhdDACBSet(RHDPtr rhdPtr, int CRTC)
-{
-    RHDFUNC(rhdPtr->scrnIndex);
-
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_POWERDOWN, 0);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_FORCE_OUTPUT_CNTL, 0);
-    RHDRegMask(rhdPtr->scrnIndex, DACB_SOURCE_SELECT, CRTC, 1);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_ENABLE, 1);
-}
-
-/*
- *
- */
-static void
 rhdVGADisable(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr->scrnIndex);
@@ -1665,9 +1636,7 @@ rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
 {
     RHDFUNC(rhdPtr->scrnIndex);
 
-    /* Disable DACs */
-    RHDRegWrite(rhdPtr->scrnIndex, DACA_ENABLE, 0);
-    RHDRegWrite(rhdPtr->scrnIndex, DACB_ENABLE, 0);
+    RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 
     /* Disable CRTCs */
     rhdCRTC1Sync(rhdPtr, FALSE);
@@ -1680,11 +1649,14 @@ rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
     rhdD1Mode(rhdPtr, Mode);
     rhdD2Mode(rhdPtr, Mode);
 
+    RHDOutputsMode(rhdPtr, 0);
+    RHDOutputsMode(rhdPtr, 1);
+    RHDOutputsShutdownInactive(rhdPtr);
+
     rhdCRTC1Sync(rhdPtr, TRUE);
     rhdCRTC2Sync(rhdPtr, TRUE);
 
-    rhdDACASet(rhdPtr, 0); /* D1CRTC */
-    rhdDACBSet(rhdPtr, 1); /* D2CRTC */
+    RHDOutputsPower(rhdPtr, RHD_POWER_ON);
 }
 
 /*
