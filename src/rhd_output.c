@@ -36,7 +36,7 @@ rhdOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
 {
     struct rhd_Output *Last = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     if (!New)
 	return;
@@ -56,7 +56,7 @@ rhdOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
 void
 RHDOutputsInit(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     rhdOutputAdd(rhdPtr, RHDDACAInit(rhdPtr));
     rhdOutputAdd(rhdPtr, RHDDACBInit(rhdPtr));
@@ -71,7 +71,7 @@ RHDOutputsSense(RHDPtr rhdPtr)
     struct rhd_Output *Output = rhdPtr->Outputs;
     Bool Attached = FALSE;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (Output->Sense) {
@@ -94,7 +94,7 @@ RHDOutputsMode(RHDPtr rhdPtr, int Crtc)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (Output->Active && Output->Mode && (Output->Crtc == Crtc))
@@ -112,7 +112,7 @@ RHDOutputsPower(RHDPtr rhdPtr, int Power)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (Output->Power)
@@ -130,7 +130,7 @@ RHDOutputsShutdownInactive(RHDPtr rhdPtr)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (!Output->Active && Output->Power) {
@@ -150,7 +150,7 @@ RHDOutputsSave(RHDPtr rhdPtr)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (Output->Save)
@@ -168,7 +168,7 @@ RHDOutputsRestore(RHDPtr rhdPtr)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	if (Output->Restore)
@@ -186,7 +186,7 @@ RHDOutputsDestroy(RHDPtr rhdPtr)
 {
     struct rhd_Output *Output = rhdPtr->Outputs, *Next;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	Next = Output->Next;
@@ -211,7 +211,7 @@ RHDOutputsSelect(RHDPtr rhdPtr)
     struct rhd_Output *Output = rhdPtr->Outputs;
     int i = 0;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     while (Output) {
 	Output->Active = TRUE;

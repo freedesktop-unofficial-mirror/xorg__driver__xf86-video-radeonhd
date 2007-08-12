@@ -888,9 +888,9 @@ rhdGetVideoRamSize(ScrnInfoPtr pScrn)
     CARD32 RamSize, BARSize;
 
     if (rhdPtr->ChipSet < RHD_R600)
-	RamSize = (RHDRegRead(rhdPtr->scrnIndex, R5XX_CONFIG_MEMSIZE)) >> 10;
+	RamSize = (RHDRegRead(rhdPtr, R5XX_CONFIG_MEMSIZE)) >> 10;
     else
-	RamSize = (RHDRegRead(rhdPtr->scrnIndex, R6XX_CONFIG_MEMSIZE)) >> 10;
+	RamSize = (RHDRegRead(rhdPtr, R6XX_CONFIG_MEMSIZE)) >> 10;
     BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
 
     if (RamSize > BARSize) {
@@ -923,9 +923,9 @@ rhdMapFB(ScrnInfoPtr pScrn)
      * address registers in there also use. This can be different from the
      * address in the BAR */
     if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr->scrnIndex, R5XX_FB_INTERNAL_ADDRESS) << 16;
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS) << 16;
     else
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr->scrnIndex, R6XX_CONFIG_FB_BASE);
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
 
     if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[RHD_FB_BAR])
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
@@ -957,7 +957,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     rhdUnlock(pScrn);
 
@@ -997,18 +997,18 @@ rhdCRTC1Sync(RHDPtr rhdPtr, Bool On)
 {
     int i;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     if (On)
-	RHDRegMask(rhdPtr->scrnIndex, D1CRTC_CONTROL, 1, 1);
+	RHDRegMask(rhdPtr, D1CRTC_CONTROL, 1, 1);
     else {
-	CARD8 delay = (RHDRegRead(rhdPtr->scrnIndex, D1CRTC_CONTROL) >> 8) & 0xFF;
+	CARD8 delay = (RHDRegRead(rhdPtr, D1CRTC_CONTROL) >> 8) & 0xFF;
 
-	RHDRegMask(rhdPtr->scrnIndex, D1CRTC_CONTROL, 0, 0xFF01);
+	RHDRegMask(rhdPtr, D1CRTC_CONTROL, 0, 0xFF01);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
-	    if (!(RHDRegRead(rhdPtr->scrnIndex, D1CRTC_STATUS) & 1)) {
-		RHDRegMask(rhdPtr->scrnIndex, D1CRTC_CONTROL, delay << 8, 0xFF00);
+	    if (!(RHDRegRead(rhdPtr, D1CRTC_STATUS) & 1)) {
+		RHDRegMask(rhdPtr, D1CRTC_CONTROL, delay << 8, 0xFF00);
 		RHDDebug(rhdPtr->scrnIndex, "%s: %d loops\n", __func__, i);
 		return;
 	    }
@@ -1025,18 +1025,18 @@ rhdCRTC2Sync(RHDPtr rhdPtr, Bool On)
 {
     int i;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     if (On)
-	RHDRegMask(rhdPtr->scrnIndex, D2CRTC_CONTROL, 1, 1);
+	RHDRegMask(rhdPtr, D2CRTC_CONTROL, 1, 1);
     else {
-	CARD8 delay = (RHDRegRead(rhdPtr->scrnIndex, D2CRTC_CONTROL) >> 8) & 0xFF;
+	CARD8 delay = (RHDRegRead(rhdPtr, D2CRTC_CONTROL) >> 8) & 0xFF;
 
-	RHDRegMask(rhdPtr->scrnIndex, D2CRTC_CONTROL, 0, 0xFF01);
+	RHDRegMask(rhdPtr, D2CRTC_CONTROL, 0, 0xFF01);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
-	    if (!(RHDRegRead(rhdPtr->scrnIndex, D2CRTC_STATUS) & 1)) {
-		RHDRegMask(rhdPtr->scrnIndex, D2CRTC_CONTROL, delay << 8, 0xFF00);
+	    if (!(RHDRegRead(rhdPtr, D2CRTC_STATUS) & 1)) {
+		RHDRegMask(rhdPtr, D2CRTC_CONTROL, delay << 8, 0xFF00);
 		RHDDebug(rhdPtr->scrnIndex, "%s: %d loops\n", __func__, i);
 		return;
 	    }
@@ -1051,12 +1051,12 @@ rhdCRTC2Sync(RHDPtr rhdPtr, Bool On)
 static void
 rhdPLL1Sleep(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 0x01, 0x01); /* Reset */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x01, 0x01); /* Reset */
     usleep(2);
 
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 0x02, 0x02); /* Poyer down */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x02, 0x02); /* Poyer down */
     usleep(200);
 }
 
@@ -1066,12 +1066,12 @@ rhdPLL1Sleep(RHDPtr rhdPtr)
 static void
 rhdPLL2Sleep(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 0x01, 0x01); /* Reset */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x01, 0x01); /* Reset */
     usleep(2);
 
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 0x02, 0x02); /* Power down */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x02, 0x02); /* Power down */
     usleep(200);
 }
 
@@ -1085,44 +1085,44 @@ rhdPLL1Set(RHDPtr rhdPtr, int ReferenceDivider, int FeedbackDivider,
 {
     int i;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_UPDATE_LOCK, 0x01); /* lock */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0x01); /* lock */
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_REF_DIV, ReferenceDivider);
-    RHDRegMask(rhdPtr->scrnIndex, EXT1_PPLL_FB_DIV,
+    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV, ReferenceDivider);
+    RHDRegMask(rhdPtr, EXT1_PPLL_FB_DIV,
 	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
-    RHDRegMask(rhdPtr->scrnIndex, EXT1_PPLL_POST_DIV, PostDivider, 0x007F);
+    RHDRegMask(rhdPtr, EXT1_PPLL_POST_DIV, PostDivider, 0x007F);
 
-    RHDRegMask(rhdPtr->scrnIndex, EXT1_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 0, 0x04); /* don't bypass calibration */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_UPDATE_LOCK, 0); /* unlock */
-    RHDRegMask(rhdPtr->scrnIndex, EXT1_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
+    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x04); /* don't bypass calibration */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0); /* unlock */
+    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
 
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 0, 0x02); /* Powah */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x02); /* Powah */
     usleep(2);
 
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 1, 0x01); /* Reset */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 1, 0x01); /* Reset */
     usleep(2);
-    RHDRegMask(rhdPtr->scrnIndex, P1PLL_CNTL, 0, 0x01); /* Set */
+    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x01); /* Set */
 
     for (i = 0; i < PLL_CALIBRATE_WAIT; i++)
-	if (((RHDRegRead(rhdPtr->scrnIndex, P1PLL_CNTL) >> 20) & 0x03) == 0x03)
+	if (((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x03) == 0x03)
 	    break;
 
     if (i == CRTC_SYNC_WAIT) {
-	if ((RHDRegRead(rhdPtr->scrnIndex, P1PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(rhdPtr->scrnIndex, P1PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		       "%s: Locking failed.\n", __func__);
     } else
 	RHDDebug(rhdPtr->scrnIndex, "%s: lock in %d loops\n", __func__, i);
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT1_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
+    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
 }
 
 /*
@@ -1134,44 +1134,44 @@ rhdPLL2Set(RHDPtr rhdPtr, int ReferenceDivider, int FeedbackDivider,
 {
     int i;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_UPDATE_LOCK, 0x01); /* lock */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0x01); /* lock */
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_REF_DIV, ReferenceDivider);
-    RHDRegMask(rhdPtr->scrnIndex, EXT2_PPLL_FB_DIV,
+    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV, ReferenceDivider);
+    RHDRegMask(rhdPtr, EXT2_PPLL_FB_DIV,
 	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
-    RHDRegMask(rhdPtr->scrnIndex, EXT2_PPLL_POST_DIV, PostDivider, 0x007F);
+    RHDRegMask(rhdPtr, EXT2_PPLL_POST_DIV, PostDivider, 0x007F);
 
-    RHDRegMask(rhdPtr->scrnIndex, EXT2_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 0, 0x04); /* don't bypass calibration */
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_UPDATE_LOCK, 0); /* unlock */
-    RHDRegMask(rhdPtr->scrnIndex, EXT2_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
+    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x04); /* don't bypass calibration */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0); /* unlock */
+    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
 
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 0, 0x02); /* Powah */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x02); /* Powah */
     usleep(2);
 
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 1, 0x01); /* Reset */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 1, 0x01); /* Reset */
     usleep(2);
-    RHDRegMask(rhdPtr->scrnIndex, P2PLL_CNTL, 0, 0x01); /* Set */
+    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x01); /* Set */
 
     for (i = 0; i < PLL_CALIBRATE_WAIT; i++)
-	if (((RHDRegRead(rhdPtr->scrnIndex, P2PLL_CNTL) >> 20) & 0x03) == 0x03)
+	if (((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x03) == 0x03)
 	    break;
 
     if (i == CRTC_SYNC_WAIT) {
-	if ((RHDRegRead(rhdPtr->scrnIndex, P2PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(rhdPtr->scrnIndex, P2PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		       "%s: Locking failed.\n", __func__);
      } else
 	RHDDebug(rhdPtr->scrnIndex, "%s: lock in %d loops\n", __func__, i);
 
-    RHDRegWrite(rhdPtr->scrnIndex, EXT2_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
+    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
 }
 
 
@@ -1261,14 +1261,14 @@ rhdSave(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     RHDRegPtr save;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     save = &(rhdPtr->savedRegs);
 
-    save->VGA_Render_Control = RHDRegRead(rhdPtr->scrnIndex, VGA_RENDER_CONTROL);
-    save->VGA_HDP_Control = RHDRegRead(rhdPtr->scrnIndex, VGA_HDP_CONTROL);
-    save->D1VGA_Control = RHDRegRead(rhdPtr->scrnIndex, D1VGA_CONTROL);
-    save->D2VGA_Control = RHDRegRead(rhdPtr->scrnIndex, D2VGA_CONTROL);
+    save->VGA_Render_Control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
+    save->VGA_HDP_Control = RHDRegRead(rhdPtr, VGA_HDP_CONTROL);
+    save->D1VGA_Control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
+    save->D2VGA_Control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
 
     /* Check whether anything to do with VGA is enabled,
        if so, store things accordingly */
@@ -1282,7 +1282,7 @@ rhdSave(ScrnInfoPtr pScrn)
 	/* Store our VGA FB */
 	save->IsVGA = TRUE;
 	save->VGAFBOffset =
-		RHDRegRead(rhdPtr->scrnIndex, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbIntAddress;
+		RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbIntAddress;
 	/* Could be that the VGA internal address no longer is pointing to what
 	   we know as our FB memory, in which case we should give up cleanly. */
 	if (save->VGAFBOffset < pScrn->videoRam) {
@@ -1299,7 +1299,7 @@ rhdSave(ScrnInfoPtr pScrn)
 	} else {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: VGA FB Offset (0x%08X) is "
 		       "out of range of the Cards Internal FB Address (0x%08X)\n",
-		       __func__, (int) RHDRegRead(rhdPtr->scrnIndex, VGA_MEMORY_BASE_ADDRESS),
+		       __func__, (int) RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS),
 		       rhdPtr->FbIntAddress);
 	    save->VGAFBOffset = 0xFFFFFFFF;
 	}
@@ -1308,69 +1308,69 @@ rhdSave(ScrnInfoPtr pScrn)
 
     RHDOutputsSave(rhdPtr);
 
-    save->D1GRPH_Enable = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_ENABLE);
-    save->D1GRPH_Control = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_CONTROL);
-    save->D1GRPH_X_End = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_X_END);
-    save->D1GRPH_Y_End = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_Y_END);
-    save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_PRIMARY_SURFACE_ADDRESS);
-    save->D1GRPH_Pitch = RHDRegRead(rhdPtr->scrnIndex, D1GRPH_PITCH);
-    save->D1Mode_ViewPort_Size = RHDRegRead(rhdPtr->scrnIndex, D1MODE_VIEWPORT_SIZE);
+    save->D1GRPH_Enable = RHDRegRead(rhdPtr, D1GRPH_ENABLE);
+    save->D1GRPH_Control = RHDRegRead(rhdPtr, D1GRPH_CONTROL);
+    save->D1GRPH_X_End = RHDRegRead(rhdPtr, D1GRPH_X_END);
+    save->D1GRPH_Y_End = RHDRegRead(rhdPtr, D1GRPH_Y_END);
+    save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS);
+    save->D1GRPH_Pitch = RHDRegRead(rhdPtr, D1GRPH_PITCH);
+    save->D1Mode_ViewPort_Size = RHDRegRead(rhdPtr, D1MODE_VIEWPORT_SIZE);
 
-    save->D1CRTC_Control = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_CONTROL);
+    save->D1CRTC_Control = RHDRegRead(rhdPtr, D1CRTC_CONTROL);
 
-    save->D1CRTC_H_Total = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_TOTAL);
-    save->D1CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_BLANK_START_END);
-    save->D1CRTC_H_Sync_A = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A);
-    save->D1CRTC_H_Sync_A_Cntl = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A_CNTL);
-    save->D1CRTC_H_Sync_B = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_SYNC_B);
-    save->D1CRTC_H_Sync_B_Cntl = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_H_SYNC_B_CNTL);
+    save->D1CRTC_H_Total = RHDRegRead(rhdPtr, D1CRTC_H_TOTAL);
+    save->D1CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr, D1CRTC_H_BLANK_START_END);
+    save->D1CRTC_H_Sync_A = RHDRegRead(rhdPtr, D1CRTC_H_SYNC_A);
+    save->D1CRTC_H_Sync_A_Cntl = RHDRegRead(rhdPtr, D1CRTC_H_SYNC_A_CNTL);
+    save->D1CRTC_H_Sync_B = RHDRegRead(rhdPtr, D1CRTC_H_SYNC_B);
+    save->D1CRTC_H_Sync_B_Cntl = RHDRegRead(rhdPtr, D1CRTC_H_SYNC_B_CNTL);
 
-    save->D1CRTC_V_Total = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_TOTAL);
-    save->D1CRTC_V_Blank_Start_End = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_BLANK_START_END);
-    save->D1CRTC_V_Sync_A = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A);
-    save->D1CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A_CNTL);
-    save->D1CRTC_V_Sync_B = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_SYNC_B);
-    save->D1CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr->scrnIndex, D1CRTC_V_SYNC_B_CNTL);
+    save->D1CRTC_V_Total = RHDRegRead(rhdPtr, D1CRTC_V_TOTAL);
+    save->D1CRTC_V_Blank_Start_End = RHDRegRead(rhdPtr, D1CRTC_V_BLANK_START_END);
+    save->D1CRTC_V_Sync_A = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_A);
+    save->D1CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_A_CNTL);
+    save->D1CRTC_V_Sync_B = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B);
+    save->D1CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B_CNTL);
 
-    save->PLL1Active = !(RHDRegRead(rhdPtr->scrnIndex, P1PLL_CNTL) & 0x03);
-    save->PLL1RefDivider = RHDRegRead(rhdPtr->scrnIndex, EXT1_PPLL_REF_DIV) & 0x3FF;
-    save->PLL1FBDivider = (RHDRegRead(rhdPtr->scrnIndex, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
-    save->PLL1FBDividerFraction = RHDRegRead(rhdPtr->scrnIndex, EXT1_PPLL_FB_DIV) & 0x0F;
-    save->PLL1PostDivider = RHDRegRead(rhdPtr->scrnIndex, EXT1_PPLL_POST_DIV) & 0x7F;
+    save->PLL1Active = !(RHDRegRead(rhdPtr, P1PLL_CNTL) & 0x03);
+    save->PLL1RefDivider = RHDRegRead(rhdPtr, EXT1_PPLL_REF_DIV) & 0x3FF;
+    save->PLL1FBDivider = (RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
+    save->PLL1FBDividerFraction = RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) & 0x0F;
+    save->PLL1PostDivider = RHDRegRead(rhdPtr, EXT1_PPLL_POST_DIV) & 0x7F;
 
-    save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr->scrnIndex, PCLK_CRTC1_CNTL);
+    save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr, PCLK_CRTC1_CNTL);
 
-    save->D2GRPH_Enable = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_ENABLE);
-    save->D2GRPH_Control = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_CONTROL);
-    save->D2GRPH_X_End = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_X_END);
-    save->D2GRPH_Y_End = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_Y_END);
-    save->D2GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_PRIMARY_SURFACE_ADDRESS);
-    save->D2GRPH_Pitch = RHDRegRead(rhdPtr->scrnIndex, D2GRPH_PITCH);
-    save->D2Mode_ViewPort_Size = RHDRegRead(rhdPtr->scrnIndex, D2MODE_VIEWPORT_SIZE);
+    save->D2GRPH_Enable = RHDRegRead(rhdPtr, D2GRPH_ENABLE);
+    save->D2GRPH_Control = RHDRegRead(rhdPtr, D2GRPH_CONTROL);
+    save->D2GRPH_X_End = RHDRegRead(rhdPtr, D2GRPH_X_END);
+    save->D2GRPH_Y_End = RHDRegRead(rhdPtr, D2GRPH_Y_END);
+    save->D2GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS);
+    save->D2GRPH_Pitch = RHDRegRead(rhdPtr, D2GRPH_PITCH);
+    save->D2Mode_ViewPort_Size = RHDRegRead(rhdPtr, D2MODE_VIEWPORT_SIZE);
 
-    save->D2CRTC_Control = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_CONTROL);
+    save->D2CRTC_Control = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
 
-    save->D2CRTC_H_Total = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_TOTAL);
-    save->D2CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_BLANK_START_END);
-    save->D2CRTC_H_Sync_A = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A);
-    save->D2CRTC_H_Sync_A_Cntl = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A_CNTL);
-    save->D2CRTC_H_Sync_B = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_SYNC_B);
-    save->D2CRTC_H_Sync_B_Cntl = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_H_SYNC_B_CNTL);
+    save->D2CRTC_H_Total = RHDRegRead(rhdPtr, D2CRTC_H_TOTAL);
+    save->D2CRTC_H_Blank_Start_End = RHDRegRead(rhdPtr, D2CRTC_H_BLANK_START_END);
+    save->D2CRTC_H_Sync_A = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_A);
+    save->D2CRTC_H_Sync_A_Cntl = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_A_CNTL);
+    save->D2CRTC_H_Sync_B = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_B);
+    save->D2CRTC_H_Sync_B_Cntl = RHDRegRead(rhdPtr, D2CRTC_H_SYNC_B_CNTL);
 
-    save->D2CRTC_V_Total = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_TOTAL);
-    save->D2CRTC_V_Blank_Start_End = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_BLANK_START_END);
-    save->D2CRTC_V_Sync_A = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A);
-    save->D2CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A_CNTL);
-    save->D2CRTC_V_Sync_B = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_SYNC_B);
-    save->D2CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr->scrnIndex, D2CRTC_V_SYNC_B_CNTL);
+    save->D2CRTC_V_Total = RHDRegRead(rhdPtr, D2CRTC_V_TOTAL);
+    save->D2CRTC_V_Blank_Start_End = RHDRegRead(rhdPtr, D2CRTC_V_BLANK_START_END);
+    save->D2CRTC_V_Sync_A = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_A);
+    save->D2CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_A_CNTL);
+    save->D2CRTC_V_Sync_B = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B);
+    save->D2CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B_CNTL);
 
-    save->PLL2Active = !(RHDRegRead(rhdPtr->scrnIndex, P2PLL_CNTL) & 0x03);
-    save->PLL2RefDivider = RHDRegRead(rhdPtr->scrnIndex, EXT2_PPLL_REF_DIV) & 0x3FF;
-    save->PLL2FBDivider = (RHDRegRead(rhdPtr->scrnIndex, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
-    save->PLL2FBDividerFraction = RHDRegRead(rhdPtr->scrnIndex, EXT2_PPLL_FB_DIV) & 0x0F;
-    save->PLL2PostDivider = RHDRegRead(rhdPtr->scrnIndex, EXT2_PPLL_POST_DIV) & 0x7F;
+    save->PLL2Active = !(RHDRegRead(rhdPtr, P2PLL_CNTL) & 0x03);
+    save->PLL2RefDivider = RHDRegRead(rhdPtr, EXT2_PPLL_REF_DIV) & 0x3FF;
+    save->PLL2FBDivider = (RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
+    save->PLL2FBDividerFraction = RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) & 0x0F;
+    save->PLL2PostDivider = RHDRegRead(rhdPtr, EXT2_PPLL_POST_DIV) & 0x7F;
 
-    save->PCLK_CRTC2_Control = RHDRegRead(rhdPtr->scrnIndex, PCLK_CRTC2_CNTL);
+    save->PCLK_CRTC2_Control = RHDRegRead(rhdPtr, PCLK_CRTC2_CNTL);
 }
 
 static void
@@ -1378,69 +1378,69 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     if (restore->PLL1Active) {
 	rhdPLL1Set(rhdPtr, restore->PLL1RefDivider, restore->PLL1FBDivider,
 		   restore->PLL1FBDividerFraction, restore->PLL1PostDivider);
-	RHDRegWrite(rhdPtr->scrnIndex, PCLK_CRTC1_CNTL, restore->PCLK_CRTC1_Control);
+	RHDRegWrite(rhdPtr, PCLK_CRTC1_CNTL, restore->PCLK_CRTC1_Control);
     } else
 	rhdPLL1Sleep(rhdPtr);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_TOTAL, restore->D1CRTC_H_Total);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_BLANK_START_END, restore->D1CRTC_H_Blank_Start_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A, restore->D1CRTC_H_Sync_A);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A_CNTL, restore->D1CRTC_H_Sync_A_Cntl);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_B, restore->D1CRTC_H_Sync_B);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_B_CNTL, restore->D1CRTC_H_Sync_B_Cntl);
+    RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, restore->D1CRTC_H_Total);
+    RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, restore->D1CRTC_H_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A, restore->D1CRTC_H_Sync_A);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A_CNTL, restore->D1CRTC_H_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_B, restore->D1CRTC_H_Sync_B);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_B_CNTL, restore->D1CRTC_H_Sync_B_Cntl);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_TOTAL, restore->D1CRTC_V_Total);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_BLANK_START_END, restore->D1CRTC_V_Blank_Start_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A, restore->D1CRTC_V_Sync_A);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A_CNTL, restore->D1CRTC_V_Sync_A_Cntl);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_B, restore->D1CRTC_V_Sync_B);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_B_CNTL, restore->D1CRTC_V_Sync_B_Cntl);
+    RHDRegWrite(rhdPtr, D1CRTC_V_TOTAL, restore->D1CRTC_V_Total);
+    RHDRegWrite(rhdPtr, D1CRTC_V_BLANK_START_END, restore->D1CRTC_V_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A, restore->D1CRTC_V_Sync_A);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A_CNTL, restore->D1CRTC_V_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B, restore->D1CRTC_V_Sync_B);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_B_CNTL, restore->D1CRTC_V_Sync_B_Cntl);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_CONTROL, restore->D1CRTC_Control);
+    RHDRegWrite(rhdPtr, D1CRTC_CONTROL, restore->D1CRTC_Control);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1MODE_VIEWPORT_SIZE, restore->D1Mode_ViewPort_Size);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_PITCH, restore->D1GRPH_Pitch);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_X_END, restore->D1GRPH_X_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_Y_END, restore->D1GRPH_Y_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_CONTROL, restore->D1GRPH_Control);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_ENABLE, restore->D1GRPH_Enable);
+    RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, restore->D1Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D1GRPH_PITCH, restore->D1GRPH_Pitch);
+    RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
+    RHDRegWrite(rhdPtr, D1GRPH_X_END, restore->D1GRPH_X_End);
+    RHDRegWrite(rhdPtr, D1GRPH_Y_END, restore->D1GRPH_Y_End);
+    RHDRegWrite(rhdPtr, D1GRPH_CONTROL, restore->D1GRPH_Control);
+    RHDRegWrite(rhdPtr, D1GRPH_ENABLE, restore->D1GRPH_Enable);
 
     if (restore->PLL2Active) {
 	rhdPLL2Set(rhdPtr, restore->PLL2RefDivider, restore->PLL2FBDivider,
 		   restore->PLL2FBDividerFraction, restore->PLL2PostDivider);
-	RHDRegWrite(rhdPtr->scrnIndex, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
+	RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
     } else
 	rhdPLL2Sleep(rhdPtr);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_TOTAL, restore->D2CRTC_H_Total);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_BLANK_START_END, restore->D2CRTC_H_Blank_Start_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A, restore->D2CRTC_H_Sync_A);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A_CNTL, restore->D2CRTC_H_Sync_A_Cntl);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_B, restore->D2CRTC_H_Sync_B);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_B_CNTL, restore->D2CRTC_H_Sync_B_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, restore->D2CRTC_H_Total);
+    RHDRegWrite(rhdPtr, D2CRTC_H_BLANK_START_END, restore->D2CRTC_H_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A, restore->D2CRTC_H_Sync_A);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A_CNTL, restore->D2CRTC_H_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_B, restore->D2CRTC_H_Sync_B);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_B_CNTL, restore->D2CRTC_H_Sync_B_Cntl);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_TOTAL, restore->D2CRTC_V_Total);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_BLANK_START_END, restore->D2CRTC_V_Blank_Start_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A, restore->D2CRTC_V_Sync_A);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A_CNTL, restore->D2CRTC_V_Sync_A_Cntl);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_B, restore->D2CRTC_V_Sync_B);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_B_CNTL, restore->D2CRTC_V_Sync_B_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_V_TOTAL, restore->D2CRTC_V_Total);
+    RHDRegWrite(rhdPtr, D2CRTC_V_BLANK_START_END, restore->D2CRTC_V_Blank_Start_End);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A, restore->D2CRTC_V_Sync_A);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A_CNTL, restore->D2CRTC_V_Sync_A_Cntl);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_B, restore->D2CRTC_V_Sync_B);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_B_CNTL, restore->D2CRTC_V_Sync_B_Cntl);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_CONTROL, restore->D2CRTC_Control);
+    RHDRegWrite(rhdPtr, D2CRTC_CONTROL, restore->D2CRTC_Control);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2MODE_VIEWPORT_SIZE, restore->D2Mode_ViewPort_Size);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_PITCH, restore->D2GRPH_Pitch);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_PRIMARY_SURFACE_ADDRESS, restore->D2GRPH_Primary_Surface_Address);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_X_END, restore->D2GRPH_X_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_Y_END, restore->D2GRPH_Y_End);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_CONTROL, restore->D2GRPH_Control);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_ENABLE, restore->D2GRPH_Enable);
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, restore->D2Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D2GRPH_PITCH, restore->D2GRPH_Pitch);
+    RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, restore->D2GRPH_Primary_Surface_Address);
+    RHDRegWrite(rhdPtr, D2GRPH_X_END, restore->D2GRPH_X_End);
+    RHDRegWrite(rhdPtr, D2GRPH_Y_END, restore->D2GRPH_Y_End);
+    RHDRegWrite(rhdPtr, D2GRPH_CONTROL, restore->D2GRPH_Control);
+    RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
 
     RHDOutputsRestore(rhdPtr);
 
@@ -1449,10 +1449,10 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 	    memcpy(((CARD8 *) rhdPtr->FbBase) + restore->VGAFBOffset,
 		   restore->VGAFB, restore->VGAFBSize);
 
-	RHDRegWrite(rhdPtr->scrnIndex, VGA_RENDER_CONTROL, restore->VGA_Render_Control);
-	RHDRegWrite(rhdPtr->scrnIndex, VGA_HDP_CONTROL, restore->VGA_HDP_Control);
-	RHDRegWrite(rhdPtr->scrnIndex, D1VGA_CONTROL, restore->D1VGA_Control);
-	RHDRegWrite(rhdPtr->scrnIndex, D2VGA_CONTROL, restore->D2VGA_Control);
+	RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, restore->VGA_Render_Control);
+	RHDRegWrite(rhdPtr, VGA_HDP_CONTROL, restore->VGA_HDP_Control);
+	RHDRegWrite(rhdPtr, D1VGA_CONTROL, restore->D1VGA_Control);
+	RHDRegWrite(rhdPtr, D2VGA_CONTROL, restore->D2VGA_Control);
     }
 }
 
@@ -1465,50 +1465,50 @@ rhdD1Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
     unsigned int BlankStart, BlankEnd;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegMask(rhdPtr->scrnIndex, D1GRPH_ENABLE, 1, 0x00000001);
+    RHDRegMask(rhdPtr, D1GRPH_ENABLE, 1, 0x00000001);
 
     switch (pScrn->bitsPerPixel) {
     case 8:
-	RHDRegMask(rhdPtr->scrnIndex, D1GRPH_CONTROL, 0, 0x10703);
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0, 0x10703);
 	break;
     case 16:
-	RHDRegMask(rhdPtr->scrnIndex, D1GRPH_CONTROL, 0x00101, 0x10703);
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00101, 0x10703);
 	break;
     case 24:
     case 32:
     default:
-	RHDRegMask(rhdPtr->scrnIndex, D1GRPH_CONTROL, 0x00002, 0x10703);
+	RHDRegMask(rhdPtr, D1GRPH_CONTROL, 0x00002, 0x10703);
 	break;
     /* TODO: 64bpp ;p */
     }
 
     /* different ordering than documented for VIEWPORT_SIZE */
-    RHDRegWrite(rhdPtr->scrnIndex, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_PITCH, pScrn->displayWidth);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_X_END, Mode->HDisplay);
-    RHDRegWrite(rhdPtr->scrnIndex, D1GRPH_Y_END, Mode->VDisplay);
+    RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
+    RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
+    RHDRegWrite(rhdPtr, D1GRPH_PITCH, pScrn->displayWidth);
+    RHDRegWrite(rhdPtr, D1GRPH_X_END, Mode->HDisplay);
+    RHDRegWrite(rhdPtr, D1GRPH_Y_END, Mode->VDisplay);
 
     /* Set the actual CRTC timing */
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
+    RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
 
     BlankStart = Mode->CrtcHTotal + Mode->CrtcHBlankStart - Mode->CrtcHSyncStart;
     BlankEnd = Mode->CrtcHBlankEnd - Mode->CrtcHSyncStart;
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
+    RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D1CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
+    RHDRegWrite(rhdPtr, D1CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
 
     BlankStart = Mode->CrtcVTotal + Mode->CrtcVBlankStart - Mode->CrtcVSyncStart;
     BlankEnd = Mode->CrtcVBlankEnd - Mode->CrtcVSyncStart;
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
+    RHDRegWrite(rhdPtr, D1CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
 
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
-    RHDRegWrite(rhdPtr->scrnIndex, D1CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
 
     { /* Set up the dotclock */
 	CARD16 RefDivider = 0, FBDivider = 0;
@@ -1517,7 +1517,7 @@ rhdD1Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
 	if (rhdPPLLCalculate(rhdPtr->scrnIndex, Mode->Clock,
 			     &RefDivider, &FBDivider, &PostDivider)) {
 	    rhdPLL1Set(rhdPtr, RefDivider, FBDivider, 0, PostDivider);
-	    RHDRegMask(rhdPtr->scrnIndex, PCLK_CRTC1_CNTL, 0, 0x00010000); /* PLL1 -> CRTC1 */
+	    RHDRegMask(rhdPtr, PCLK_CRTC1_CNTL, 0, 0x00010000); /* PLL1 -> CRTC1 */
 	}
     }
 }
@@ -1531,50 +1531,50 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
     unsigned int BlankStart, BlankEnd;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegMask(rhdPtr->scrnIndex, D2GRPH_ENABLE, 1, 0x00000001);
+    RHDRegMask(rhdPtr, D2GRPH_ENABLE, 1, 0x00000001);
 
     switch (pScrn->bitsPerPixel) {
     case 8:
-	RHDRegMask(rhdPtr->scrnIndex, D2GRPH_CONTROL, 0, 0x10703);
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0, 0x10703);
 	break;
     case 16:
-	RHDRegMask(rhdPtr->scrnIndex, D2GRPH_CONTROL, 0x00101, 0x10703);
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00101, 0x10703);
 	break;
     case 24:
     case 32:
     default:
-	RHDRegMask(rhdPtr->scrnIndex, D2GRPH_CONTROL, 0x00002, 0x10703);
+	RHDRegMask(rhdPtr, D2GRPH_CONTROL, 0x00002, 0x10703);
 	break;
     /* TODO: 64bpp ;p */
     }
 
     /* different ordering than documented for VIEWPORT_SIZE */
-    RHDRegWrite(rhdPtr->scrnIndex, D2MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_PITCH, pScrn->displayWidth);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_X_END, Mode->HDisplay);
-    RHDRegWrite(rhdPtr->scrnIndex, D2GRPH_Y_END, Mode->VDisplay);
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
+    RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
+    RHDRegWrite(rhdPtr, D2GRPH_PITCH, pScrn->displayWidth);
+    RHDRegWrite(rhdPtr, D2GRPH_X_END, Mode->HDisplay);
+    RHDRegWrite(rhdPtr, D2GRPH_Y_END, Mode->VDisplay);
 
     /* Set the actual CRTC timing */
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
+    RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
 
     BlankStart = Mode->CrtcHTotal + Mode->CrtcHBlankStart - Mode->CrtcHSyncStart;
     BlankEnd = Mode->CrtcHBlankEnd - Mode->CrtcHSyncStart;
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
+    RHDRegWrite(rhdPtr, D2CRTC_H_BLANK_START_END, BlankStart | (BlankEnd << 16));
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A, (Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D2CRTC_H_SYNC_A_CNTL, Mode->Flags & V_NHSYNC);
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
+    RHDRegWrite(rhdPtr, D2CRTC_V_TOTAL, Mode->CrtcVTotal - 1);
 
     BlankStart = Mode->CrtcVTotal + Mode->CrtcVBlankStart - Mode->CrtcVSyncStart;
     BlankEnd = Mode->CrtcVBlankEnd - Mode->CrtcVSyncStart;
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
+    RHDRegWrite(rhdPtr, D2CRTC_V_BLANK_START_END, BlankStart | (BlankEnd << 16));
 
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
-    RHDRegWrite(rhdPtr->scrnIndex, D2CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
+    RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
 
     { /* Set up the dotclock */
 	CARD16 RefDivider = 0, FBDivider = 0;
@@ -1583,7 +1583,7 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
 	if (rhdPPLLCalculate(rhdPtr->scrnIndex, Mode->Clock,
 			     &RefDivider, &FBDivider, &PostDivider)) {
 	    rhdPLL2Set(rhdPtr, RefDivider, FBDivider, 0, PostDivider);
-	    RHDRegMask(rhdPtr->scrnIndex, PCLK_CRTC2_CNTL, 1, 0x00010000); /* PLL2 -> CRTC2 */
+	    RHDRegMask(rhdPtr, PCLK_CRTC2_CNTL, 1, 0x00010000); /* PLL2 -> CRTC2 */
 	}
     }
 }
@@ -1594,10 +1594,10 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
 static void
 rhdD1Disable(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     rhdCRTC1Sync(rhdPtr, FALSE);
-    RHDRegMask(rhdPtr->scrnIndex, D1GRPH_ENABLE, 0, 0x00000001);
+    RHDRegMask(rhdPtr, D1GRPH_ENABLE, 0, 0x00000001);
     rhdPLL1Sleep(rhdPtr);
 }
 
@@ -1607,10 +1607,10 @@ rhdD1Disable(RHDPtr rhdPtr)
 static void
 rhdD2Disable(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     rhdCRTC2Sync(rhdPtr, FALSE);
-    RHDRegMask(rhdPtr->scrnIndex, D2GRPH_ENABLE, 0, 0x00000001);
+    RHDRegMask(rhdPtr, D2GRPH_ENABLE, 0, 0x00000001);
     rhdPLL2Sleep(rhdPtr);
 }
 
@@ -1620,12 +1620,12 @@ rhdD2Disable(RHDPtr rhdPtr)
 static void
 rhdVGADisable(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
-    RHDRegMask(rhdPtr->scrnIndex, VGA_RENDER_CONTROL, 0, 0x00030000);
-    RHDRegMask(rhdPtr->scrnIndex, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
-    RHDRegMask(rhdPtr->scrnIndex, D1VGA_CONTROL, 0, 0x00000001);
-    RHDRegMask(rhdPtr->scrnIndex, D2VGA_CONTROL, 0, 0x00000001);
+    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
+    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
+    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
+    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
 }
 
 /*
@@ -1634,7 +1634,7 @@ rhdVGADisable(RHDPtr rhdPtr)
 static void
 rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
 {
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 
@@ -1663,7 +1663,7 @@ rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
  *
  */
 CARD32
-RHDRegRead(int scrnIndex, CARD16 offset)
+_RHDRegRead(int scrnIndex, CARD16 offset)
 {
     return *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset);
 }
@@ -1672,7 +1672,7 @@ RHDRegRead(int scrnIndex, CARD16 offset)
  *
  */
 void
-RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value)
+_RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value)
 {
     *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset) = value;
 }
@@ -1681,14 +1681,14 @@ RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value)
  * This one might seem clueless, but it is an actual lifesaver.
  */
 void
-RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
+_RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
 {
     CARD32 tmp;
 
-    tmp = RHDRegRead(scrnIndex, offset);
+    tmp = _RHDRegRead(scrnIndex, offset);
     tmp &= ~mask;
     tmp |= (value & mask);
-    RHDRegWrite(scrnIndex, offset, tmp);
+    _RHDRegWrite(scrnIndex, offset, tmp);
 }
 
 /*

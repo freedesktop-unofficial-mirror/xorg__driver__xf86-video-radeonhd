@@ -214,10 +214,12 @@ void RhdGetOptValString(const OptionInfoRec *table, int token,
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
-CARD32 RHDRegRead(int scrnIndex, CARD16 offset);
-void RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
-void RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
-
+CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
+#define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
+void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
+#define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
+void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
+#define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
 
 /* Extra debugging verbosity: decimates gdb usage */
 
@@ -228,6 +230,6 @@ void RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 
 #define LOG_DEBUG 7
 void RHDDebug(int scrnIndex, const char *format, ...);
-#define RHDFUNC(scrnIndex) RHDDebug((scrnIndex), "FUNCTION: %s\n", __func__);
+#define RHDFUNC(ptr) RHDDebug((ptr)->scrnIndex, "FUNCTION: %s\n", __func__);
 
 #endif /* _RHD_H */

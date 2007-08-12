@@ -48,10 +48,10 @@ struct rhd_DAC_Private {
  *
  */
 static inline void
-rhdDACSet(int scrnIndex, CARD16 offset, int Crtc)
+rhdDACSet(struct rhd_Output *Output, CARD16 offset)
 {
-    RHDRegWrite(scrnIndex, offset + DACA_FORCE_OUTPUT_CNTL, 0);
-    RHDRegMask(scrnIndex, offset + DACA_SOURCE_SELECT, Crtc, 0x00000001);
+    RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
+    RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc, 0x00000001);
 }
 
 /*
@@ -60,9 +60,9 @@ rhdDACSet(int scrnIndex, CARD16 offset, int Crtc)
 static void
 rhdDACASet(struct rhd_Output *Output)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACSet(Output->scrnIndex, REG_DACA_OFFSET, Output->Crtc);
+    rhdDACSet(Output, REG_DACA_OFFSET);
 }
 
 /*
@@ -71,25 +71,25 @@ rhdDACASet(struct rhd_Output *Output)
 static void
 rhdDACBSet(struct rhd_Output *Output)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACSet(Output->scrnIndex, REG_DACB_OFFSET, Output->Crtc);
+    rhdDACSet(Output, REG_DACB_OFFSET);
 }
 
 /*
  *
  */
 static inline void
-rhdDACPower(int scrnIndex, CARD16 offset, int Power)
+rhdDACPower(struct rhd_Output *Output, CARD16 offset, int Power)
 {
     switch (Power) {
     case RHD_POWER_ON:
-	RHDRegWrite(scrnIndex, offset + DACA_POWERDOWN, 0);
-	RHDRegWrite(scrnIndex, offset + DACA_ENABLE, 1);
+	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0);
+	RHDRegWrite(Output, offset + DACA_ENABLE, 1);
 	return;
     case RHD_POWER_SHUTDOWN:
-	RHDRegWrite(scrnIndex, offset + DACA_POWERDOWN, 0x01010101);
-	RHDRegWrite(scrnIndex, offset + DACA_ENABLE, 0);
+	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0x01010101);
+	RHDRegWrite(Output, offset + DACA_ENABLE, 0);
 	return;
     case RHD_POWER_RESET: /* don't bother */
     default:
@@ -103,9 +103,9 @@ rhdDACPower(int scrnIndex, CARD16 offset, int Power)
 static void
 rhdDACAPower(struct rhd_Output *Output, int Power)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACPower(Output->scrnIndex, REG_DACA_OFFSET, Power);
+    rhdDACPower(Output, REG_DACA_OFFSET, Power);
 }
 
 /*
@@ -114,21 +114,23 @@ rhdDACAPower(struct rhd_Output *Output, int Power)
 static void
 rhdDACBPower(struct rhd_Output *Output, int Power)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACPower(Output->scrnIndex, REG_DACB_OFFSET, Power);
+    rhdDACPower(Output, REG_DACB_OFFSET, Power);
 }
 
 /*
  *
  */
 static inline void
-rhdDACSave(int scrnIndex, CARD16 offset, struct rhd_DAC_Private *Private)
+rhdDACSave(struct rhd_Output *Output, CARD16 offset)
 {
-    Private->Store_Powerdown = RHDRegRead(scrnIndex, offset + DACA_POWERDOWN);
-    Private->Store_Force_Output_Control = RHDRegRead(scrnIndex, offset + DACA_FORCE_OUTPUT_CNTL);
-    Private->Store_Source_Select = RHDRegRead(scrnIndex, offset + DACA_SOURCE_SELECT);
-    Private->Store_Enable = RHDRegRead(scrnIndex, offset + DACA_ENABLE);
+    struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
+
+    Private->Store_Powerdown = RHDRegRead(Output, offset + DACA_POWERDOWN);
+    Private->Store_Force_Output_Control = RHDRegRead(Output, offset + DACA_FORCE_OUTPUT_CNTL);
+    Private->Store_Source_Select = RHDRegRead(Output, offset + DACA_SOURCE_SELECT);
+    Private->Store_Enable = RHDRegRead(Output, offset + DACA_ENABLE);
 
     Private->Stored = TRUE;
 }
@@ -139,10 +141,9 @@ rhdDACSave(int scrnIndex, CARD16 offset, struct rhd_DAC_Private *Private)
 static void
 rhdDACASave(struct rhd_Output *Output)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACSave(Output->scrnIndex, REG_DACA_OFFSET,
-	       (struct rhd_DAC_Private *) Output->Private);
+    rhdDACSave(Output, REG_DACA_OFFSET);
 }
 
 /*
@@ -151,22 +152,23 @@ rhdDACASave(struct rhd_Output *Output)
 static void
 rhdDACBSave(struct rhd_Output *Output)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
-    rhdDACSave(Output->scrnIndex, REG_DACB_OFFSET,
-	       (struct rhd_DAC_Private *) Output->Private);
+    rhdDACSave(Output, REG_DACB_OFFSET);
 }
 
 /*
  *
  */
 static inline void
-rhdDACRestore(int scrnIndex, CARD16 offset, struct rhd_DAC_Private *Private)
+rhdDACRestore(struct rhd_Output *Output, CARD16 offset)
 {
-    RHDRegWrite(scrnIndex, offset + DACA_POWERDOWN, Private->Store_Powerdown);
-    RHDRegWrite(scrnIndex, offset + DACA_FORCE_OUTPUT_CNTL, Private->Store_Force_Output_Control);
-    RHDRegWrite(scrnIndex, offset + DACA_SOURCE_SELECT, Private->Store_Source_Select);
-    RHDRegWrite(scrnIndex, offset + DACA_ENABLE, Private->Store_Enable);
+    struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
+
+    RHDRegWrite(Output, offset + DACA_POWERDOWN, Private->Store_Powerdown);
+    RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, Private->Store_Force_Output_Control);
+    RHDRegWrite(Output, offset + DACA_SOURCE_SELECT, Private->Store_Source_Select);
+    RHDRegWrite(Output, offset + DACA_ENABLE, Private->Store_Enable);
 }
 
 /*
@@ -175,16 +177,15 @@ rhdDACRestore(int scrnIndex, CARD16 offset, struct rhd_DAC_Private *Private)
 static void
 rhdDACARestore(struct rhd_Output *Output)
 {
-    struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
+    RHDFUNC(Output);
 
-    RHDFUNC(Output->scrnIndex);
-
-    if (!Private->Stored) {
-	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: No registers stored.\n", __func__);
+    if (!((struct rhd_DAC_Private *) Output->Private)->Stored) {
+	xf86DrvMsg(Output->scrnIndex, X_ERROR,
+		   "%s: No registers stored.\n", __func__);
 	return;
     }
 
-    rhdDACRestore(Output->scrnIndex, REG_DACA_OFFSET, Private);
+    rhdDACRestore(Output, REG_DACA_OFFSET);
 }
 
 /*
@@ -193,16 +194,15 @@ rhdDACARestore(struct rhd_Output *Output)
 static void
 rhdDACBRestore(struct rhd_Output *Output)
 {
-    struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
+    RHDFUNC(Output);
 
-    RHDFUNC(Output->scrnIndex);
-
-    if (!Private->Stored) {
-	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: No registers stored.\n", __func__);
+    if (!((struct rhd_DAC_Private *) Output->Private)->Stored) {
+	xf86DrvMsg(Output->scrnIndex, X_ERROR,
+		   "%s: No registers stored.\n", __func__);
 	return;
     }
 
-    rhdDACRestore(Output->scrnIndex, REG_DACB_OFFSET, Private);
+    rhdDACRestore(Output, REG_DACB_OFFSET);
 }
 
 /*
@@ -211,7 +211,7 @@ rhdDACBRestore(struct rhd_Output *Output)
 static void
 rhdDACDestroy(struct rhd_Output *Output)
 {
-    RHDFUNC(Output->scrnIndex);
+    RHDFUNC(Output);
 
     if (!Output->Private)
 	return;
@@ -229,7 +229,7 @@ RHDDACAInit(RHDPtr rhdPtr)
     struct rhd_Output *Output;
     struct rhd_DAC_Private *Private;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     Output = xnfcalloc(sizeof(struct rhd_Output), 1);
 
@@ -264,7 +264,7 @@ RHDDACBInit(RHDPtr rhdPtr)
     struct rhd_Output *Output;
     struct rhd_DAC_Private *Private;
 
-    RHDFUNC(rhdPtr->scrnIndex);
+    RHDFUNC(rhdPtr);
 
     Output = xnfcalloc(sizeof(struct rhd_Output), 1);
 
