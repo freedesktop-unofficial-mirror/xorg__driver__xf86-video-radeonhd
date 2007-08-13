@@ -114,8 +114,6 @@ static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(ScrnInfoPtr pScrn);
 static void     rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore);
-static void     rhdUnlock(ScrnInfoPtr pScrn);
-static void     rhdLock(ScrnInfoPtr pScrn);
 static void     rhdSetMode(RHDPtr rhdPtr, DisplayModePtr mode);
 static Bool     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(ScrnInfoPtr pScrn);
@@ -737,7 +735,6 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	    rhdHideCursor(pScrn);
 	rhdRestore(pScrn, &rhdPtr->savedRegs);
 
-	rhdLock(pScrn);
 	rhdUnmapFB(pScrn);
 	rhdUnmapMMIO(pScrn);
     }
@@ -791,7 +788,6 @@ RHDLeaveVT(int scrnIndex, int flags)
     if (rhdPtr->CursorInfo)
 	rhdHideCursor(pScrn);
     rhdRestore(pScrn,  &rhdPtr->savedRegs);
-    rhdLock(pScrn);
 }
 
 static Bool
@@ -976,8 +972,6 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 
     RHDFUNC(rhdPtr);
 
-    rhdUnlock(pScrn);
-
     pScrn->vtSema = TRUE;
 
     rhdSetMode(rhdPtr, mode);
@@ -988,21 +982,6 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 /*
  * Low level bit banging functions
  */
-
-static void
-rhdLock(ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    /* @@@ any lock code to prevent register access */
-}
-
-static void
-rhdUnlock(ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    /* @@@ any unlock code to allow access to all regs */
-}
-
 
 #define CRTC_SYNC_WAIT 0x100000
 
