@@ -100,9 +100,10 @@ RHDCursorInit(ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     xf86CursorInfoPtr infoPtr;
-    infoPtr = xf86CreateCursorInfoRec();
-    if(!infoPtr) return FALSE;
 
+    infoPtr = xf86CreateCursorInfoRec();
+    if (!infoPtr)
+	return FALSE;
 
     infoPtr->MaxHeight = 64;  /* @@@ fixme */
     infoPtr->MaxWidth = 64;

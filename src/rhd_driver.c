@@ -679,13 +679,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
 
     /* Inititalize HW cursor */
-    if (!rhdPtr->swCursor.val.bool) {
-        if (!RHDCursorInit(pScreen)) {
+    if (!rhdPtr->swCursor.val.bool)
+        if (!RHDCursorInit(pScreen))
             xf86DrvMsg(scrnIndex, X_ERROR,
                        "Hardware cursor initialization failed\n");
-            return FALSE;
-        }
-    }
 
     /* default colormap */
     if(!miCreateDefColormap(pScreen))
@@ -732,7 +729,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     if(pScrn->vtSema){
-        if (!rhdPtr->swCursor.val.bool)
+        if (rhdPtr->CursorInfo)
 	    rhdHideCursor(pScrn);
 	rhdRestore(pScrn, &rhdPtr->savedRegs);
 
@@ -742,7 +739,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     }
 
     /* @@@ deacllocate any data structures that are rhdPtr private here */
-    if (!rhdPtr->swCursor.val.bool) {
+    if (rhdPtr->CursorInfo) {
         xf86DestroyCursorInfoRec(rhdPtr->CursorInfo);
         rhdPtr->CursorInfo = NULL;
     }
@@ -772,7 +769,7 @@ RHDEnterVT(int scrnIndex, int flags)
 
     /* @@@ video overlays can be initialized here */
 
-    if (!rhdPtr->swCursor.val.bool)
+    if (rhdPtr->CursorInfo)
 	rhdShowCursor(pScrn);
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
@@ -787,7 +784,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     /* Invalidate the cached acceleration registers */
-    if (!rhdPtr->swCursor.val.bool)
+    if (rhdPtr->CursorInfo)
 	rhdHideCursor(pScrn);
     rhdRestore(pScrn,  &rhdPtr->savedRegs);
     rhdLock(pScrn);
