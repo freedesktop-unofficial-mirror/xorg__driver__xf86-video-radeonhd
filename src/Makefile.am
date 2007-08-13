@@ -12,10 +12,12 @@ radeonhd_drv_la_SOURCES = \
 	rhd_id.c \
 	rhd_output.c \
 	rhd_pll.c \
+	rhd_vga.c \
 	rhd.h \
 	rhd_atombios.h
 	rhd_cursor.h \
 	rhd_output.h \
 	rhd_pll.h \
-	rhd_regs.h
+	rhd_regs.h \
+	rhd_vga.h
 	

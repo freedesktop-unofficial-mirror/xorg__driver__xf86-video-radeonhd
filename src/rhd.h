@@ -77,18 +77,6 @@ struct rhd_card {
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
 
 typedef struct RHDRegs {
-
-    /* All to do with VGA handling. */
-    Bool IsVGA;
-    CARD32 VGAFBOffset;
-    CARD8 *VGAFB;
-    int VGAFBSize; /* most cases, 256kB */
-
-    CARD32 VGA_Render_Control;
-    CARD32 VGA_HDP_Control;
-    CARD32 D1VGA_Control;
-    CARD32 D2VGA_Control;
-
     /* CRTC1 */
     CARD32 D1CRTC_Control;
 
@@ -183,6 +171,9 @@ typedef struct RHDRec {
     struct _xf86CursorInfoRec  *CursorInfo;
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
+
+    /* here our VGA registers and memory are stored */
+    struct rhd_VGA      *VGA;
 
     struct rhd_PLL      *PLLs[2];
     struct rhd_PLL      *Crtc1PLL;

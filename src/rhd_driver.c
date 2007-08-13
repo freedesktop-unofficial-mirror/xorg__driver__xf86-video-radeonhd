@@ -87,6 +87,7 @@
 #include "rhd_atombios.h"
 #include "rhd_output.h"
 #include "rhd_pll.h"
+#include "rhd_vga.h"
 
 /* ??? */
 #include "servermd.h"
@@ -225,6 +226,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     if (rhdPtr->Options)
 	xfree(rhdPtr->Options);
 
+    RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
 
@@ -448,6 +450,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     /* Init modesetting structures */
+    RHDVGAInit(rhdPtr);
+
     RHDPLLsInit(rhdPtr);
     rhdPtr->Crtc1PLL = RHDPLLGrab(rhdPtr);
     rhdPtr->Crtc2PLL = RHDPLLGrab(rhdPtr);
@@ -1068,47 +1072,7 @@ rhdSave(ScrnInfoPtr pScrn)
 
     save = &(rhdPtr->savedRegs);
 
-    save->VGA_Render_Control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
-    save->VGA_HDP_Control = RHDRegRead(rhdPtr, VGA_HDP_CONTROL);
-    save->D1VGA_Control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
-    save->D2VGA_Control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
-
-    /* Check whether anything to do with VGA is enabled,
-       if so, store things accordingly */
-    if ((save->VGA_Render_Control & 0x00030000) || /* VGA_VSTATUS_CNTL */
-	!(save->VGA_HDP_Control & 0x00000010) || /* VGA_MEMORY_DISABLE */
-	(save->D1VGA_Control & 0x00000001) || /* D1VGA_MODE_ENABLE */
-	(save->D2VGA_Control & 0x00000001)) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		   "VGA mode detected. Saving appropriately.\n");
-
-	/* Store our VGA FB */
-	save->IsVGA = TRUE;
-	save->VGAFBOffset =
-		RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbIntAddress;
-	/* Could be that the VGA internal address no longer is pointing to what
-	   we know as our FB memory, in which case we should give up cleanly. */
-	if (save->VGAFBOffset < pScrn->videoRam) {
-	    save->VGAFBSize = 256 * 1024;
-	    save->VGAFB = xcalloc(save->VGAFBSize, 1);
-	    if (save->VGAFB)
-		memcpy(save->VGAFB, ((CARD8 *) rhdPtr->FbBase) + save->VGAFBOffset,
-		       save->VGAFBSize);
-	    else {
-		xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: Failed to allocate"
-			   " space for storing the VGA framebuffer.\n", __func__);
-		save->VGAFBSize = 0;
-	    }
-	} else {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: VGA FB Offset (0x%08X) is "
-		       "out of range of the Cards Internal FB Address (0x%08X)\n",
-		       __func__, (int) RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS),
-		       rhdPtr->FbIntAddress);
-	    save->VGAFBOffset = 0xFFFFFFFF;
-	}
-    } else
-	save->IsVGA = FALSE;
-
+    RHDVGASave(rhdPtr);
     RHDOutputsSave(rhdPtr);
     RHDPLLsSave(rhdPtr);
 
@@ -1226,18 +1190,9 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D2GRPH_CONTROL, restore->D2GRPH_Control);
     RHDRegWrite(rhdPtr, D2GRPH_ENABLE, restore->D2GRPH_Enable);
 
+    RHDVGARestore(rhdPtr);
+
     RHDOutputsRestore(rhdPtr);
-
-    if (restore->IsVGA) {
-	if (restore->VGAFBSize)
-	    memcpy(((CARD8 *) rhdPtr->FbBase) + restore->VGAFBOffset,
-		   restore->VGAFB, restore->VGAFBSize);
-
-	RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, restore->VGA_Render_Control);
-	RHDRegWrite(rhdPtr, VGA_HDP_CONTROL, restore->VGA_HDP_Control);
-	RHDRegWrite(rhdPtr, D1VGA_CONTROL, restore->D1VGA_Control);
-	RHDRegWrite(rhdPtr, D2VGA_CONTROL, restore->D2VGA_Control);
-    }
 }
 
 /*
@@ -1388,20 +1343,6 @@ rhdD2Disable(RHDPtr rhdPtr)
  *
  */
 static void
-rhdVGADisable(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
-    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
-    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
-    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
-}
-
-/*
- *
- */
-static void
 rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
 {
     RHDFUNC(rhdPtr);
@@ -1413,7 +1354,7 @@ rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
     rhdCRTC2Sync(rhdPtr, FALSE);
 
     /* now disable our VGA Mode */
-    rhdVGADisable(rhdPtr);
+    RHDVGADisable(rhdPtr);
 
     /* Now set our actual modes */
     rhdD1Mode(rhdPtr, Mode);
