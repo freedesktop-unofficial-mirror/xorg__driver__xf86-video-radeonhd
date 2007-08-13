@@ -71,6 +71,11 @@ struct rhd_card {
 #define RHD_FB_BAR   0
 #define RHD_MMIO_BAR 2
 
+/* More realistic powermanagement */
+#define RHD_POWER_ON       0
+#define RHD_POWER_RESET    1   /* off temporarily */
+#define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
+
 typedef struct RHDRegs {
 
     /* All to do with VGA handling. */
@@ -109,13 +114,6 @@ typedef struct RHDRegs {
     CARD32 D1GRPH_Pitch;
     CARD32 D1Mode_ViewPort_Size;
 
-    /* PLL1 */
-    Bool PLL1Active;
-    CARD16 PLL1RefDivider;
-    CARD16 PLL1FBDivider;
-    CARD8 PLL1FBDividerFraction;
-    CARD8 PLL1PostDivider;
-
     CARD32 PCLK_CRTC1_Control;
 
     /* CRTC2 */
@@ -142,13 +140,6 @@ typedef struct RHDRegs {
     CARD32 D2GRPH_Primary_Surface_Address;
     CARD32 D2GRPH_Pitch;
     CARD32 D2Mode_ViewPort_Size;
-
-    /* PLL2 */
-    Bool PLL2Active;
-    CARD16 PLL2RefDivider;
-    CARD16 PLL2FBDivider;
-    CARD8 PLL2FBDividerFraction;
-    CARD8 PLL2PostDivider;
 
     CARD32 PCLK_CRTC2_Control;
 } RHDRegs, *RHDRegPtr;
@@ -193,7 +184,13 @@ typedef struct RHDRec {
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 
+    struct rhd_PLL      *PLLs[2];
+    struct rhd_PLL      *Crtc1PLL;
+    struct rhd_PLL      *Crtc2PLL;
+
+    /* we can go up to 8 here if there's a LVTMB and DVOB */
     struct rhd_Output   *Outputs;
+
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

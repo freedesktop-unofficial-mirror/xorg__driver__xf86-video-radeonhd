@@ -86,6 +86,7 @@
 #include "rhd_cursor.h"
 #include "rhd_atombios.h"
 #include "rhd_output.h"
+#include "rhd_pll.h"
 
 /* ??? */
 #include "servermd.h"
@@ -224,6 +225,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     if (rhdPtr->Options)
 	xfree(rhdPtr->Options);
 
+    RHDPLLsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
 
     xfree(pScrn->driverPrivate);
@@ -445,7 +447,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_REF_CLOCK, &arg);
     }
 
-    /* Init output structures */
+    /* Init modesetting structures */
+    RHDPLLsInit(rhdPtr);
+    rhdPtr->Crtc1PLL = RHDPLLGrab(rhdPtr);
+    rhdPtr->Crtc2PLL = RHDPLLGrab(rhdPtr);
+
     RHDOutputsInit(rhdPtr);
 
     /* @@@ rgb bits boilerplate */
@@ -509,8 +515,18 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     {
 	int HDisplay = 1280, VDisplay = 1024;
 	DisplayModePtr Mode = xf86CVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
+	ModeStatus Status;
 
 	rhdModeCrtcFill(Mode);
+
+	Status = RHDPLLValid(rhdPtr->Crtc1PLL, Mode->Clock);
+	if (Status != MODE_OK)
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Invalid Mode %s: %d\n",
+		       Mode->name, Status);
+	Status = RHDPLLValid(rhdPtr->Crtc2PLL, Mode->Clock);
+	if (Status != MODE_OK)
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Invalid Mode %s: %d\n",
+		       Mode->name, Status);
 
 	pScrn->virtualX = HDisplay;
 	pScrn->virtualY = VDisplay;
@@ -1045,216 +1061,6 @@ rhdCRTC2Sync(RHDPtr rhdPtr, Bool On)
     }
 }
 
-/*
- *
- */
-static void
-rhdPLL1Sleep(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x01, 0x01); /* Reset */
-    usleep(2);
-
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 0x02, 0x02); /* Poyer down */
-    usleep(200);
-}
-
-/*
- *
- */
-static void
-rhdPLL2Sleep(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x01, 0x01); /* Reset */
-    usleep(2);
-
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 0x02, 0x02); /* Power down */
-    usleep(200);
-}
-
-#define PLL_CALIBRATE_WAIT 0x100000
-/*
- *
- */
-static void
-rhdPLL1Set(RHDPtr rhdPtr, int ReferenceDivider, int FeedbackDivider,
-	   int FeedbackDividerFraction, int PostDivider)
-{
-    int i;
-
-    RHDFUNC(rhdPtr);
-
-    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
-    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
-    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0x01); /* lock */
-
-    RHDRegWrite(rhdPtr, EXT1_PPLL_REF_DIV, ReferenceDivider);
-    RHDRegMask(rhdPtr, EXT1_PPLL_FB_DIV,
-	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
-    RHDRegMask(rhdPtr, EXT1_PPLL_POST_DIV, PostDivider, 0x007F);
-
-    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x04); /* don't bypass calibration */
-    RHDRegWrite(rhdPtr, EXT1_PPLL_UPDATE_LOCK, 0); /* unlock */
-    RHDRegMask(rhdPtr, EXT1_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
-
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x02); /* Powah */
-    usleep(2);
-
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 1, 0x01); /* Reset */
-    usleep(2);
-    RHDRegMask(rhdPtr, P1PLL_CNTL, 0, 0x01); /* Set */
-
-    for (i = 0; i < PLL_CALIBRATE_WAIT; i++)
-	if (((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x03) == 0x03)
-	    break;
-
-    if (i == CRTC_SYNC_WAIT) {
-	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(rhdPtr, P1PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		       "%s: Locking failed.\n", __func__);
-    } else
-	RHDDebug(rhdPtr->scrnIndex, "%s: lock in %d loops\n", __func__, i);
-
-    RHDRegWrite(rhdPtr, EXT1_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
-}
-
-/*
- *
- */
-static void
-rhdPLL2Set(RHDPtr rhdPtr, int ReferenceDivider, int FeedbackDivider,
-	   int FeedbackDividerFraction, int PostDivider)
-{
-    int i;
-
-    RHDFUNC(rhdPtr);
-
-    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
-    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
-    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0x01); /* lock */
-
-    RHDRegWrite(rhdPtr, EXT2_PPLL_REF_DIV, ReferenceDivider);
-    RHDRegMask(rhdPtr, EXT2_PPLL_FB_DIV,
-	       (FeedbackDivider << 16) | (FeedbackDividerFraction >> 24), 0xFFFF000F);
-    RHDRegMask(rhdPtr, EXT2_PPLL_POST_DIV, PostDivider, 0x007F);
-
-    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0x00010000, 0x00010000); /* no autoreset */
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x04); /* don't bypass calibration */
-    RHDRegWrite(rhdPtr, EXT2_PPLL_UPDATE_LOCK, 0); /* unlock */
-    RHDRegMask(rhdPtr, EXT2_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
-
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x02); /* Powah */
-    usleep(2);
-
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 1, 0x01); /* Reset */
-    usleep(2);
-    RHDRegMask(rhdPtr, P2PLL_CNTL, 0, 0x01); /* Set */
-
-    for (i = 0; i < PLL_CALIBRATE_WAIT; i++)
-	if (((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x03) == 0x03)
-	    break;
-
-    if (i == CRTC_SYNC_WAIT) {
-	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(rhdPtr, P2PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		       "%s: Locking failed.\n", __func__);
-     } else
-	RHDDebug(rhdPtr->scrnIndex, "%s: lock in %d loops\n", __func__, i);
-
-    RHDRegWrite(rhdPtr, EXT2_PPLL_POST_DIV_SRC, 0x01); /* source is PLL itself */
-}
-
-
-/* from struct in atom */
-#define XTAL_FREQ 0xA8C * 10
-#define PLLIN_MIN 0x64 * 1000
-#define PLLIN_MAX 0x546 * 1000
-#define PLLOUT_MAX 0x9C40 * 10
-
-/*
- * Calculate the PLL parameters for a given dotclock.
- */
-static Bool
-rhdPPLLCalculate(int scrnIndex, CARD32 PixelClock,
-		 CARD16 *RefDivider, CARD16 *FBDivider, CARD8 *PostDivider)
-{
-/* limited by the number of bits available */
-#define FB_DIV_LIMIT 2048
-#define REF_DIV_LIMIT 1024
-#define POST_DIV_LIMIT 128
-
-    CARD32 FBDiv, RefDiv, PostDiv, BestDiff = 0xFFFFFFFF;
-    float Ratio;
-
-    if ((PixelClock < 16000) || (PixelClock > PLLOUT_MAX)) {
-	xf86DrvMsg(scrnIndex, X_ERROR, "%s: PixelClock (%dkHz) is outside "
-		   "[%dkHz - %dkHz] range.\n", __func__,
-		   (int) PixelClock, 16000, PLLOUT_MAX);
-	return FALSE;
-    }
-
-    Ratio = ((float) PixelClock) / ((float) XTAL_FREQ);
-
-    for (PostDiv = 2; PostDiv < POST_DIV_LIMIT; PostDiv++) {
-	CARD32 PLLIn = PixelClock * PostDiv;
-
-	if (PLLIn < PLLIN_MIN * 6) /* need to get the internal clock a bit higher */
-	    continue;
-	if (PLLIn > PLLIN_MAX)
-	    break;
-
-	for (RefDiv = 1; RefDiv < REF_DIV_LIMIT; RefDiv++) {
-	    int Diff;
-
-	    FBDiv = (float) (Ratio * PostDiv * RefDiv) + 0.5;
-	    if (!FBDiv)
-		continue;
-	    if (FBDiv >= FB_DIV_LIMIT)
-		break;
-
-	    Diff = PixelClock - (FBDiv * XTAL_FREQ) / (PostDiv * RefDiv);
-	    if (Diff < 0)
-		Diff *= -1;
-
-	    if (Diff < BestDiff) {
-		*FBDivider = FBDiv;
-		*RefDivider = RefDiv;
-		*PostDivider = PostDiv;
-		BestDiff = Diff;
-	    }
-
-	    if (BestDiff == 0)
-		break;
-	}
-	if (BestDiff == 0)
-	    break;
-    }
-
-    if (BestDiff != 0xFFFFFFFF) {
-	xf86DrvMsg(scrnIndex, X_INFO, "PLL Calculation: %dkHz = "
-		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
-		   (int) PixelClock, XTAL_FREQ, *RefDivider, *FBDivider,
-		   *PostDivider, (int) BestDiff);
-	return TRUE;
-    } else {
-	xf86DrvMsg(scrnIndex, X_ERROR,
-		   "%s: Failed to get a valid PLL setting for %dkHz\n",
-		   __func__, (int) PixelClock);
-	return FALSE;
-    }
-}
-
-
 static void
 rhdSave(ScrnInfoPtr pScrn)
 {
@@ -1307,6 +1113,7 @@ rhdSave(ScrnInfoPtr pScrn)
 	save->IsVGA = FALSE;
 
     RHDOutputsSave(rhdPtr);
+    RHDPLLsSave(rhdPtr);
 
     save->D1GRPH_Enable = RHDRegRead(rhdPtr, D1GRPH_ENABLE);
     save->D1GRPH_Control = RHDRegRead(rhdPtr, D1GRPH_CONTROL);
@@ -1331,12 +1138,6 @@ rhdSave(ScrnInfoPtr pScrn)
     save->D1CRTC_V_Sync_A_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_A_CNTL);
     save->D1CRTC_V_Sync_B = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B);
     save->D1CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D1CRTC_V_SYNC_B_CNTL);
-
-    save->PLL1Active = !(RHDRegRead(rhdPtr, P1PLL_CNTL) & 0x03);
-    save->PLL1RefDivider = RHDRegRead(rhdPtr, EXT1_PPLL_REF_DIV) & 0x3FF;
-    save->PLL1FBDivider = (RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
-    save->PLL1FBDividerFraction = RHDRegRead(rhdPtr, EXT1_PPLL_FB_DIV) & 0x0F;
-    save->PLL1PostDivider = RHDRegRead(rhdPtr, EXT1_PPLL_POST_DIV) & 0x7F;
 
     save->PCLK_CRTC1_Control = RHDRegRead(rhdPtr, PCLK_CRTC1_CNTL);
 
@@ -1364,12 +1165,6 @@ rhdSave(ScrnInfoPtr pScrn)
     save->D2CRTC_V_Sync_B = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B);
     save->D2CRTC_V_Sync_B_Cntl = RHDRegRead(rhdPtr, D2CRTC_V_SYNC_B_CNTL);
 
-    save->PLL2Active = !(RHDRegRead(rhdPtr, P2PLL_CNTL) & 0x03);
-    save->PLL2RefDivider = RHDRegRead(rhdPtr, EXT2_PPLL_REF_DIV) & 0x3FF;
-    save->PLL2FBDivider = (RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
-    save->PLL2FBDividerFraction = RHDRegRead(rhdPtr, EXT2_PPLL_FB_DIV) & 0x0F;
-    save->PLL2PostDivider = RHDRegRead(rhdPtr, EXT2_PPLL_POST_DIV) & 0x7F;
-
     save->PCLK_CRTC2_Control = RHDRegRead(rhdPtr, PCLK_CRTC2_CNTL);
 }
 
@@ -1380,12 +1175,9 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
 
     RHDFUNC(rhdPtr);
 
-    if (restore->PLL1Active) {
-	rhdPLL1Set(rhdPtr, restore->PLL1RefDivider, restore->PLL1FBDivider,
-		   restore->PLL1FBDividerFraction, restore->PLL1PostDivider);
-	RHDRegWrite(rhdPtr, PCLK_CRTC1_CNTL, restore->PCLK_CRTC1_Control);
-    } else
-	rhdPLL1Sleep(rhdPtr);
+    RHDPLLsRestore(rhdPtr);
+
+    RHDRegWrite(rhdPtr, PCLK_CRTC1_CNTL, restore->PCLK_CRTC1_Control);
 
     RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, restore->D1CRTC_H_Total);
     RHDRegWrite(rhdPtr, D1CRTC_H_BLANK_START_END, restore->D1CRTC_H_Blank_Start_End);
@@ -1411,12 +1203,7 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D1GRPH_CONTROL, restore->D1GRPH_Control);
     RHDRegWrite(rhdPtr, D1GRPH_ENABLE, restore->D1GRPH_Enable);
 
-    if (restore->PLL2Active) {
-	rhdPLL2Set(rhdPtr, restore->PLL2RefDivider, restore->PLL2FBDivider,
-		   restore->PLL2FBDividerFraction, restore->PLL2PostDivider);
-	RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
-    } else
-	rhdPLL2Sleep(rhdPtr);
+    RHDRegWrite(rhdPtr, PCLK_CRTC2_CNTL, restore->PCLK_CRTC2_Control);
 
     RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, restore->D2CRTC_H_Total);
     RHDRegWrite(rhdPtr, D2CRTC_H_BLANK_START_END, restore->D2CRTC_H_Blank_Start_End);
@@ -1510,16 +1297,9 @@ rhdD1Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
     RHDRegWrite(rhdPtr, D1CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
 
-    { /* Set up the dotclock */
-	CARD16 RefDivider = 0, FBDivider = 0;
-	CARD8 PostDivider = 0;
-
-	if (rhdPPLLCalculate(rhdPtr->scrnIndex, Mode->Clock,
-			     &RefDivider, &FBDivider, &PostDivider)) {
-	    rhdPLL1Set(rhdPtr, RefDivider, FBDivider, 0, PostDivider);
-	    RHDRegMask(rhdPtr, PCLK_CRTC1_CNTL, 0, 0x00010000); /* PLL1 -> CRTC1 */
-	}
-    }
+    RHDPLLSet(rhdPtr->Crtc1PLL, Mode->Clock);
+    RHDRegMask(rhdPtr, PCLK_CRTC1_CNTL,
+	       (rhdPtr->Crtc1PLL->Id) << 16, 0x00010000);
 }
 
 /*
@@ -1576,16 +1356,9 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A, (Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
     RHDRegWrite(rhdPtr, D2CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
 
-    { /* Set up the dotclock */
-	CARD16 RefDivider = 0, FBDivider = 0;
-	CARD8 PostDivider = 0;
-
-	if (rhdPPLLCalculate(rhdPtr->scrnIndex, Mode->Clock,
-			     &RefDivider, &FBDivider, &PostDivider)) {
-	    rhdPLL2Set(rhdPtr, RefDivider, FBDivider, 0, PostDivider);
-	    RHDRegMask(rhdPtr, PCLK_CRTC2_CNTL, 1, 0x00010000); /* PLL2 -> CRTC2 */
-	}
-    }
+    RHDPLLSet(rhdPtr->Crtc2PLL, Mode->Clock);
+    RHDRegMask(rhdPtr, PCLK_CRTC2_CNTL,
+	       (rhdPtr->Crtc2PLL->Id) << 16, 0x00010000);
 }
 
 /*
@@ -1598,7 +1371,7 @@ rhdD1Disable(RHDPtr rhdPtr)
 
     rhdCRTC1Sync(rhdPtr, FALSE);
     RHDRegMask(rhdPtr, D1GRPH_ENABLE, 0, 0x00000001);
-    rhdPLL1Sleep(rhdPtr);
+    RHDPLLPower(rhdPtr->Crtc1PLL, RHD_POWER_SHUTDOWN);
 }
 
 /*
@@ -1611,7 +1384,7 @@ rhdD2Disable(RHDPtr rhdPtr)
 
     rhdCRTC2Sync(rhdPtr, FALSE);
     RHDRegMask(rhdPtr, D2GRPH_ENABLE, 0, 0x00000001);
-    rhdPLL2Sleep(rhdPtr);
+    RHDPLLPower(rhdPtr->Crtc2PLL, RHD_POWER_SHUTDOWN);
 }
 
 /*
@@ -1648,6 +1421,7 @@ rhdSetMode(RHDPtr rhdPtr, DisplayModePtr Mode)
     /* Now set our actual modes */
     rhdD1Mode(rhdPtr, Mode);
     rhdD2Mode(rhdPtr, Mode);
+    RHDPLLsShutdownUnused(rhdPtr);
 
     RHDOutputsMode(rhdPtr, 0);
     RHDOutputsMode(rhdPtr, 1);

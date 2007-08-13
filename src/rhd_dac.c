@@ -48,7 +48,7 @@ struct rhd_DAC_Private {
  *
  */
 static inline void
-rhdDACSet(struct rhd_Output *Output, CARD16 offset)
+DACSet(struct rhd_Output *Output, CARD16 offset)
 {
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
     RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc, 0x00000001);
@@ -58,29 +58,29 @@ rhdDACSet(struct rhd_Output *Output, CARD16 offset)
  *
  */
 static void
-rhdDACASet(struct rhd_Output *Output)
+DACASet(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
-    rhdDACSet(Output, REG_DACA_OFFSET);
+    DACSet(Output, REG_DACA_OFFSET);
 }
 
 /*
  *
  */
 static void
-rhdDACBSet(struct rhd_Output *Output)
+DACBSet(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
-    rhdDACSet(Output, REG_DACB_OFFSET);
+    DACSet(Output, REG_DACB_OFFSET);
 }
 
 /*
  *
  */
 static inline void
-rhdDACPower(struct rhd_Output *Output, CARD16 offset, int Power)
+DACPower(struct rhd_Output *Output, CARD16 offset, int Power)
 {
     switch (Power) {
     case RHD_POWER_ON:
@@ -101,29 +101,29 @@ rhdDACPower(struct rhd_Output *Output, CARD16 offset, int Power)
  *
  */
 static void
-rhdDACAPower(struct rhd_Output *Output, int Power)
+DACAPower(struct rhd_Output *Output, int Power)
 {
     RHDFUNC(Output);
 
-    rhdDACPower(Output, REG_DACA_OFFSET, Power);
+    DACPower(Output, REG_DACA_OFFSET, Power);
 }
 
 /*
  *
  */
 static void
-rhdDACBPower(struct rhd_Output *Output, int Power)
+DACBPower(struct rhd_Output *Output, int Power)
 {
     RHDFUNC(Output);
 
-    rhdDACPower(Output, REG_DACB_OFFSET, Power);
+    DACPower(Output, REG_DACB_OFFSET, Power);
 }
 
 /*
  *
  */
 static inline void
-rhdDACSave(struct rhd_Output *Output, CARD16 offset)
+DACSave(struct rhd_Output *Output, CARD16 offset)
 {
     struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
 
@@ -139,29 +139,29 @@ rhdDACSave(struct rhd_Output *Output, CARD16 offset)
  *
  */
 static void
-rhdDACASave(struct rhd_Output *Output)
+DACASave(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
-    rhdDACSave(Output, REG_DACA_OFFSET);
+    DACSave(Output, REG_DACA_OFFSET);
 }
 
 /*
  *
  */
 static void
-rhdDACBSave(struct rhd_Output *Output)
+DACBSave(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
-    rhdDACSave(Output, REG_DACB_OFFSET);
+    DACSave(Output, REG_DACB_OFFSET);
 }
 
 /*
  *
  */
 static inline void
-rhdDACRestore(struct rhd_Output *Output, CARD16 offset)
+DACRestore(struct rhd_Output *Output, CARD16 offset)
 {
     struct rhd_DAC_Private *Private = (struct rhd_DAC_Private *) Output->Private;
 
@@ -175,7 +175,7 @@ rhdDACRestore(struct rhd_Output *Output, CARD16 offset)
  *
  */
 static void
-rhdDACARestore(struct rhd_Output *Output)
+DACARestore(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
@@ -185,14 +185,14 @@ rhdDACARestore(struct rhd_Output *Output)
 	return;
     }
 
-    rhdDACRestore(Output, REG_DACA_OFFSET);
+    DACRestore(Output, REG_DACA_OFFSET);
 }
 
 /*
  *
  */
 static void
-rhdDACBRestore(struct rhd_Output *Output)
+DACBRestore(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
@@ -202,14 +202,14 @@ rhdDACBRestore(struct rhd_Output *Output)
 	return;
     }
 
-    rhdDACRestore(Output, REG_DACB_OFFSET);
+    DACRestore(Output, REG_DACB_OFFSET);
 }
 
 /*
  *
  */
 static void
-rhdDACDestroy(struct rhd_Output *Output)
+DACDestroy(struct rhd_Output *Output)
 {
     RHDFUNC(Output);
 
@@ -243,11 +243,11 @@ RHDDACAInit(RHDPtr rhdPtr)
     */
 
     Output->Sense = NULL;
-    Output->Mode = rhdDACASet;
-    Output->Power = rhdDACAPower;
-    Output->Save = rhdDACASave;
-    Output->Restore = rhdDACARestore;
-    Output->Destroy = rhdDACDestroy;
+    Output->Mode = DACASet;
+    Output->Power = DACAPower;
+    Output->Save = DACASave;
+    Output->Restore = DACARestore;
+    Output->Destroy = DACDestroy;
 
     Private = xnfcalloc(sizeof(struct rhd_DAC_Private), 1);
     Output->Private = Private;
@@ -278,11 +278,11 @@ RHDDACBInit(RHDPtr rhdPtr)
     */
 
     Output->Sense = NULL;
-    Output->Mode = rhdDACBSet;
-    Output->Power = rhdDACBPower;
-    Output->Save = rhdDACBSave;
-    Output->Restore = rhdDACBRestore;
-    Output->Destroy = rhdDACDestroy;
+    Output->Mode = DACBSet;
+    Output->Power = DACBPower;
+    Output->Save = DACBSave;
+    Output->Restore = DACBRestore;
+    Output->Destroy = DACDestroy;
 
     Private = xnfcalloc(sizeof(struct rhd_DAC_Private), 1);
     Output->Private = Private;

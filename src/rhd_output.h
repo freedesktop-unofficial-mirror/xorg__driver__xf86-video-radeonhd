@@ -55,9 +55,6 @@ struct rhd_Output {
     Bool (*Sense) (struct rhd_Output *Output);
     /* Validate */
     void (*Mode) (struct rhd_Output *Output);
-#define RHD_POWER_ON       0
-#define RHD_POWER_RESET    1   /* off temporarily */
-#define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
     void (*Power) (struct rhd_Output *Output, int Power);
     void (*Save) (struct rhd_Output *Output);
     void (*Restore) (struct rhd_Output *Output);
