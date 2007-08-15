@@ -28,6 +28,9 @@
 
 #include "xf86.h"
 
+/* for usleep */
+#include "xf86_ansic.h"
+
 #include "rhd.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
@@ -43,6 +46,158 @@ struct rhd_DAC_Private {
     CARD32 Store_Source_Select;
     CARD32 Store_Enable;
 };
+
+/*
+ *
+ */
+static CARD8
+DACASense(struct rhd_Output *Output, Bool TV)
+{
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
+
+    CompEnable = RHDRegRead(Output, DACA_COMPARATOR_ENABLE);
+    Control1 = RHDRegRead(Output, DACA_CONTROL1);
+    Control2 = RHDRegRead(Output, DACA_CONTROL2);
+    DetectControl = RHDRegRead(Output, DACA_AUTODETECT_CONTROL);
+    Enable = RHDRegRead(Output, DACA_ENABLE);
+
+    RHDRegWrite(Output, DACA_ENABLE, 1);
+    RHDRegMask(Output, DACA_AUTODETECT_CONTROL, 0, 0x00000003);
+    RHDRegMask(Output, DACA_CONTROL2, 0, 0x00000001);
+
+    if (TV)
+	RHDRegMask(Output, DACA_CONTROL2, 0x00000100, 0x00000100);
+    else
+	RHDRegMask(Output, DACA_CONTROL2, 0, 0x00000100);
+
+    RHDRegWrite(Output, DACA_FORCE_DATA, 0);
+    RHDRegMask(Output, DACA_CONTROL2, 0x00000001, 0x0000001);
+
+    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
+    RHDRegWrite(Output, DACA_CONTROL1, 0x00050802);
+    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    usleep(5);
+
+    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegWrite(Output, DACA_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
+    usleep(200);
+
+    RHDRegMask(Output, DACA_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
+    usleep(88);
+
+    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    usleep(100);
+
+    /* Get RGB detect values
+     * If only G is detected, we could have a monochrome monitor,
+     * but we don't bother with this at the moment.
+     */
+    ret = (RHDRegRead(Output, DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
+
+    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RHDRegWrite(Output, DACA_CONTROL1, Control1);
+    RHDRegMask(Output, DACA_CONTROL2, Control2, 0x000001FF);
+    RHDRegMask(Output, DACA_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
+    RHDRegMask(Output, DACA_ENABLE, Enable, 0x000000FF);
+
+    RHDDebug(Output->scrnIndex, "%s: DAC: 0x0%1X\n", __func__, ret);
+
+    return ret;
+}
+
+/*
+ * TV detection is for later.
+ */
+static Bool
+DACASenseCRT(struct rhd_Output *Output)
+{
+    RHDFUNC(Output);
+
+    if (DACASense(Output, FALSE))
+	return TRUE;
+    else
+	return FALSE;
+}
+
+/*
+ *
+ */
+static CARD8
+DACBSense(struct rhd_Output *Output, Bool TV)
+{
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
+
+    CompEnable = RHDRegRead(Output, DACB_COMPARATOR_ENABLE);
+    Control1 = RHDRegRead(Output, DACB_CONTROL1);
+    Control2 = RHDRegRead(Output, DACB_CONTROL2);
+    DetectControl = RHDRegRead(Output, DACB_AUTODETECT_CONTROL);
+    Enable = RHDRegRead(Output, DACB_ENABLE);
+
+    RHDRegWrite(Output, DACB_ENABLE, 1);
+    RHDRegMask(Output, DACB_AUTODETECT_CONTROL, 0, 0x00000003);
+    RHDRegMask(Output, DACB_CONTROL2, 0, 0x00000001);
+
+    if (TV)
+	RHDRegMask(Output, DACB_CONTROL2, 0x00000100, 0x00000100);
+    else
+	RHDRegMask(Output, DACB_CONTROL2, 0, 0x00000100);
+
+    RHDRegWrite(Output, DACB_FORCE_DATA, 0);
+    RHDRegMask(Output, DACB_CONTROL2, 0x00000001, 0x0000001);
+
+    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
+    RHDRegWrite(Output, DACB_CONTROL1, 0x00050802);
+    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    usleep(5);
+
+    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegWrite(Output, DACB_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
+    usleep(200);
+
+    RHDRegMask(Output, DACB_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
+    usleep(88);
+
+    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    usleep(100);
+
+    /* Get RGB detect values
+     * If only G is detected, we could have a monochrome monitor,
+     * but we don't bother with this at the moment.
+     */
+    ret = (RHDRegRead(Output, DACB_COMPARATOR_OUTPUT) & 0x0E) >> 1;
+
+    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RHDRegWrite(Output, DACB_CONTROL1, Control1);
+    RHDRegMask(Output, DACB_CONTROL2, Control2, 0x000001FF);
+    RHDRegMask(Output, DACB_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
+    RHDRegMask(Output, DACB_ENABLE, Enable, 0x000000FF);
+
+    RHDDebug(Output->scrnIndex, "%s: DAC: 0x0%1X\n", __func__, ret);
+
+    return ret;
+}
+
+/*
+ * TV detection is for later.
+ */
+static Bool
+DACBSenseCRT(struct rhd_Output *Output)
+{
+    RHDFUNC(Output);
+
+    if (DACBSense(Output, FALSE))
+	return TRUE;
+    else
+	return FALSE;
+}
 
 /*
  *
@@ -242,7 +397,7 @@ RHDDACAInit(RHDPtr rhdPtr)
       int Active;
     */
 
-    Output->Sense = NULL;
+    Output->Sense = DACASenseCRT;
     Output->Mode = DACASet;
     Output->Power = DACAPower;
     Output->Save = DACASave;
@@ -277,7 +432,7 @@ RHDDACBInit(RHDPtr rhdPtr)
       int Active;
     */
 
-    Output->Sense = NULL;
+    Output->Sense = DACBSenseCRT;
     Output->Mode = DACBSet;
     Output->Power = DACBPower;
     Output->Save = DACBSave;

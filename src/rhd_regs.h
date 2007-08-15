@@ -117,14 +117,26 @@ enum {
     /* DAC A */
     DACA_ENABLE                    = 0x7800,
     DACA_SOURCE_SELECT             = 0x7804,
+    DACA_AUTODETECT_CONTROL        = 0x7828,
     DACA_FORCE_OUTPUT_CNTL         = 0x783C,
+    DACA_FORCE_DATA                = 0x7840,
     DACA_POWERDOWN                 = 0x7850,
+    DACA_CONTROL1                  = 0x7854,
+    DACA_CONTROL2                  = 0x7858,
+    DACA_COMPARATOR_ENABLE         = 0x785C,
+    DACA_COMPARATOR_OUTPUT         = 0x7860,
 
     /* DAC B */
     DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04,
+    DACB_AUTODETECT_CONTROL        = 0x7A28,
     DACB_FORCE_OUTPUT_CNTL         = 0x7A3C,
+    DACB_FORCE_DATA                = 0x7A40,
     DACB_POWERDOWN                 = 0x7A50,
+    DACB_CONTROL1                  = 0x7A54,
+    DACB_CONTROL2                  = 0x7A58,
+    DACB_COMPARATOR_ENABLE         = 0x7A5C,
+    DACB_COMPARATOR_OUTPUT         = 0x7A60,
 
     /* I2C */
     DC_I2C_CONTROL                 = 0x7D30,
