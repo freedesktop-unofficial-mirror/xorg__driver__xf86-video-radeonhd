@@ -88,6 +88,7 @@
 #include "rhd_output.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
+#include "rhd_hpd.h"
 
 /* ??? */
 #include "servermd.h"
@@ -227,6 +228,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
+    RHDHPDDestroy(rhdPtr);
 
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
@@ -454,7 +456,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->Crtc1PLL = RHDPLLGrab(rhdPtr);
     rhdPtr->Crtc2PLL = RHDPLLGrab(rhdPtr);
 
+    /* Output handling needs to wrap itself in HPD handling */
+    RHDHPDInit(rhdPtr);
+    RHDHPDSave(rhdPtr);
+    RHDHPDSet(rhdPtr);
+
     RHDOutputsInit(rhdPtr);
+
+    RHDHPDRestore(rhdPtr);
 
     /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)

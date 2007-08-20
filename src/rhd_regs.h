@@ -140,7 +140,13 @@ enum {
 
     /* I2C */
     DC_I2C_CONTROL                 = 0x7D30,
-    DC_I2C_DDC1_SETUP              = 0x7D50
+    DC_I2C_DDC1_SETUP              = 0x7D50,
+
+    /* HPD */
+    DC_GPIO_HPD_MASK               = 0x7E90,
+    DC_GPIO_HPD_A                  = 0x7E94,
+    DC_GPIO_HPD_EN                 = 0x7E98,
+    DC_GPIO_HPD_Y                  = 0x7E9C
 };
 
 #endif /* _RHD_REGS_H */

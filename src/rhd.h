@@ -172,15 +172,21 @@ typedef struct RHDRec {
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 
-    /* here our VGA registers and memory are stored */
-    struct rhd_VGA      *VGA;
 
-    struct rhd_PLL      *PLLs[2];
+    struct rhd_VGA      *VGA; /* VGA compatibility HW */
+
+    struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
+
+    /* Placeholders for when CRTCs are abstracted out */
     struct rhd_PLL      *Crtc1PLL;
     struct rhd_PLL      *Crtc2PLL;
 
-    /* we can go up to 8 here if there's a LVTMB and DVOB */
+    /* List of output devices:
+     * we can go up to 5: DACA, DACB, TMDS, shared LVDS/TMDS, DVO.
+     * Will also include displayport when this happens. */
     struct rhd_Output   *Outputs;
+
+    struct rhd_HPD      *HPD; /* Hot plug detect subsystem */
 
 } RHDRec, *RHDPtr;
 

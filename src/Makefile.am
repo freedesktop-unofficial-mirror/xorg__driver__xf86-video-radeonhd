@@ -9,6 +9,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_dac.c \
 	rhd_driver.c \
 	rhd_helper.c \
+	rhd_hpd.c \
 	rhd_id.c \
 	rhd_output.c \
 	rhd_pll.c \
@@ -16,6 +17,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd.h \
 	rhd_atombios.h
 	rhd_cursor.h \
+	rhd_hpd.h \
 	rhd_output.h \
 	rhd_pll.h \
 	rhd_regs.h \
