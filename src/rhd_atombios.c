@@ -348,8 +348,8 @@ rhdUninitAtomBIOS(ScrnInfoPtr pScrn, pointer handle)
     xfree(myhandle);
 }
 
-int
-RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, driverFunc func,
+AtomBiosResult
+RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, AtomBiosFunc func,
 		AtomBIOSArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
@@ -367,15 +367,15 @@ RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, driverFunc func,
     }
 
     if (func < FUNC_END) {
-	CARD8 cref, fref;
+	CARD8 crev, frev;
 
 	atomDataPtr = ((atomBIOSHandlePtr)handle)->atomDataPtr;
 	if (!rhdGetAtomBiosTableRevisionAndSize(
 		(ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
-					     &cref,&fref,NULL)) {
+					     &crev,&frev,NULL)) {
 	    return FAILED;
 	}
-	switch (cref) {
+	switch (crev) {
 	    case 1:
 		switch (func) {
 		    case GET_MAX_PLL_CLOCK:

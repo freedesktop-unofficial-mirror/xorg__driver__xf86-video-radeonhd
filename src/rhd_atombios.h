@@ -25,12 +25,6 @@
 # define RHD_ATOMBIOS_H_
 
 typedef enum {
-    SUCCESS,
-    FAILED,
-    NOT_IMPLEMENTED
-} driverFuncResult;
-
-typedef enum {
     ATOMBIOS_INIT,
     ATOMBIOS_UNINIT,
     GET_MAX_PLL_CLOCK,
@@ -38,7 +32,13 @@ typedef enum {
     GET_MAX_PIXEL_CLK,
     GET_REF_CLOCK,
     FUNC_END
-} driverFunc;
+} AtomBiosFunc;
+
+typedef enum {
+    SUCCESS,
+    FAILED,
+    NOT_IMPLEMENTED
+} AtomBiosResult;
 
 typedef union 
 {
@@ -49,7 +49,8 @@ typedef union
 } AtomBIOSArg, *AtomBIOSArgPtr;
 
 
-int RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, driverFunc func,
+AtomBiosResult
+RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
 #endif /*  RHD_ATOMBIOS_H_ */
