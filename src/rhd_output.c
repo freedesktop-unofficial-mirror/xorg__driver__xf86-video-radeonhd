@@ -60,6 +60,7 @@ RHDOutputsInit(RHDPtr rhdPtr)
 
     rhdOutputAdd(rhdPtr, RHDDACAInit(rhdPtr));
     rhdOutputAdd(rhdPtr, RHDDACBInit(rhdPtr));
+    rhdOutputAdd(rhdPtr, RHDTMDSAInit(rhdPtr));
 }
 
 /*
@@ -115,7 +116,7 @@ RHDOutputsPower(RHDPtr rhdPtr, int Power)
     RHDFUNC(rhdPtr);
 
     while (Output) {
-	if (Output->Power)
+	if (Output->Active && Output->Power)
 	    Output->Power(Output, Power);
 
 	Output = Output->Next;
@@ -214,7 +215,14 @@ RHDOutputsSelect(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     while (Output) {
-	Output->Active = TRUE;
+	if (Output->Sense) {
+	    if (Output->Sense(Output))
+		Output->Active = TRUE;
+	    else
+		Output->Active = FALSE;
+	} else
+	    Output->Active = TRUE;
+
 	Output->Crtc = i & 1; /* ;) */
 
 	Output = Output->Next;

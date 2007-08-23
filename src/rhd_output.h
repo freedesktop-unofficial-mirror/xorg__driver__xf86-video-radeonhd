@@ -77,5 +77,6 @@ void RHDOutputsSelect(RHDPtr rhdPtr);
 /* rhd_dac.c */
 struct rhd_Output *RHDDACAInit(RHDPtr rhdPtr);
 struct rhd_Output *RHDDACBInit(RHDPtr rhdPtr);
+struct rhd_Output *RHDTMDSAInit(RHDPtr rhdPtr);
 
 #endif /* _RHD_OUTPUT_H */

@@ -126,6 +126,22 @@ enum {
     DACA_COMPARATOR_ENABLE         = 0x785C,
     DACA_COMPARATOR_OUTPUT         = 0x7860,
 
+    /* TMDSA */
+    TMDSA_CNTL                     = 0x7880,
+    TMDSA_SOURCE_SELECT            = 0x7884,
+    TMDSA_COLOR_FORMAT             = 0x7888,
+    TMDSA_FORCE_OUTPUT_CNTL        = 0x788C,
+    TMDSA_BIT_DEPTH_CONTROL        = 0x7894,
+    TMDSA_DCBALANCER_CONTROL       = 0x78D0,
+    TMDSA_DATA_SYNCHRONIZATION_R500 = 0x78D8,
+    TMDSA_DATA_SYNCHRONIZATION_R600 = 0x78DC,
+    TMDSA_TRANSMITTER_ENABLE       = 0x7904,
+    TMDSA_LOAD_DETECT              = 0x7908,
+    TMDSA_MACRO_CONTROL            = 0x790C, /* r5x0 and r600: 3 for pll and 1 for TX */
+    TMDSA_PLL_ADJUST               = 0x790C, /* rv6x0: pll only */
+    TMDSA_TRANSMITTER_CONTROL      = 0x7910,
+    TMDSA_TRANSMITTER_ADJUST       = 0x7920, /* rv6x0: TX part of macro control */
+
     /* DAC B */
     DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04,

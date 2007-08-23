@@ -1218,6 +1218,9 @@ rhdD1Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     RHDRegWrite(rhdPtr, D1GRPH_X_END, Mode->HDisplay);
     RHDRegWrite(rhdPtr, D1GRPH_Y_END, Mode->VDisplay);
 
+    /* enable read requests */
+    RHDRegMask(rhdPtr, D1CRTC_CONTROL, 0, 0x01000000);
+
     /* Set the actual CRTC timing */
     RHDRegWrite(rhdPtr, D1CRTC_H_TOTAL, Mode->CrtcHTotal - 1);
 
@@ -1276,6 +1279,9 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     RHDRegWrite(rhdPtr, D2GRPH_PITCH, pScrn->displayWidth);
     RHDRegWrite(rhdPtr, D2GRPH_X_END, Mode->HDisplay);
     RHDRegWrite(rhdPtr, D2GRPH_Y_END, Mode->VDisplay);
+
+    /* enable read requests */
+    RHDRegMask(rhdPtr, D2CRTC_CONTROL, 0, 0x01000000);
 
     /* Set the actual CRTC timing */
     RHDRegWrite(rhdPtr, D2CRTC_H_TOTAL, Mode->CrtcHTotal - 1);

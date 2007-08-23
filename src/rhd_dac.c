@@ -45,6 +45,7 @@ struct rhd_DAC_Private {
     CARD32 Store_Force_Output_Control;
     CARD32 Store_Source_Select;
     CARD32 Store_Enable;
+    CARD32 Store_Control1;
 };
 
 /*
@@ -207,6 +208,7 @@ DACSet(struct rhd_Output *Output, CARD16 offset)
 {
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
     RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc, 0x00000001);
+    RHDRegMask(Output, offset + DACA_CONTROL1, 0x00000002, 0x00000003);
 }
 
 /*
@@ -286,6 +288,7 @@ DACSave(struct rhd_Output *Output, CARD16 offset)
     Private->Store_Force_Output_Control = RHDRegRead(Output, offset + DACA_FORCE_OUTPUT_CNTL);
     Private->Store_Source_Select = RHDRegRead(Output, offset + DACA_SOURCE_SELECT);
     Private->Store_Enable = RHDRegRead(Output, offset + DACA_ENABLE);
+    Private->Store_Control1 = RHDRegRead(Output, offset + DACA_CONTROL1);
 
     Private->Stored = TRUE;
 }
@@ -324,6 +327,7 @@ DACRestore(struct rhd_Output *Output, CARD16 offset)
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, Private->Store_Force_Output_Control);
     RHDRegWrite(Output, offset + DACA_SOURCE_SELECT, Private->Store_Source_Select);
     RHDRegWrite(Output, offset + DACA_ENABLE, Private->Store_Enable);
+    RHDRegWrite(Output, offset + DACA_CONTROL1, Private->Store_Control1);
 }
 
 /*
