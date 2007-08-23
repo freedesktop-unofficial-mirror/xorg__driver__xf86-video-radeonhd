@@ -84,6 +84,9 @@ enum {
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
     D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
+
+    D1MODE_DESKTOP_HEIGHT          = 0x652C,
+    D1MODE_VIEWPORT_START          = 0x6580,
     D1MODE_VIEWPORT_SIZE           = 0x6584,
 
     /* CRTC2 registers */
@@ -111,8 +114,10 @@ enum {
     D2GRPH_X_END                   = 0x6934,
     D2GRPH_Y_END                   = 0x6938,
     D2GRPH_PRIMARY_SURFACE_ADDRESS = 0x6910,
-    D2MODE_VIEWPORT_SIZE           = 0x6D84,
 
+    D2MODE_DESKTOP_HEIGHT          = 0x6D2C,
+    D2MODE_VIEWPORT_START          = 0x6D80,
+    D2MODE_VIEWPORT_SIZE           = 0x6D84,
 
     /* DAC A */
     DACA_ENABLE                    = 0x7800,

@@ -100,6 +100,9 @@ typedef struct RHDRegs {
     CARD32 D1GRPH_Y_End;
     CARD32 D1GRPH_Primary_Surface_Address;
     CARD32 D1GRPH_Pitch;
+
+    CARD32 D1Mode_Desktop_Height;
+    CARD32 D1Mode_ViewPort_Start;
     CARD32 D1Mode_ViewPort_Size;
 
     CARD32 PCLK_CRTC1_Control;
@@ -127,6 +130,9 @@ typedef struct RHDRegs {
     CARD32 D2GRPH_Y_End;
     CARD32 D2GRPH_Primary_Surface_Address;
     CARD32 D2GRPH_Pitch;
+
+    CARD32 D2Mode_Desktop_Height;
+    CARD32 D2Mode_ViewPort_Start;
     CARD32 D2Mode_ViewPort_Size;
 
     CARD32 PCLK_CRTC2_Control;

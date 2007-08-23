@@ -1070,7 +1070,10 @@ rhdSave(ScrnInfoPtr pScrn)
     save->D1GRPH_Y_End = RHDRegRead(rhdPtr, D1GRPH_Y_END);
     save->D1GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS);
     save->D1GRPH_Pitch = RHDRegRead(rhdPtr, D1GRPH_PITCH);
+
     save->D1Mode_ViewPort_Size = RHDRegRead(rhdPtr, D1MODE_VIEWPORT_SIZE);
+    save->D1Mode_ViewPort_Start = RHDRegRead(rhdPtr, D1MODE_VIEWPORT_START);
+    save->D1Mode_Desktop_Height = RHDRegRead(rhdPtr, D1MODE_DESKTOP_HEIGHT);
 
     save->D1CRTC_Control = RHDRegRead(rhdPtr, D1CRTC_CONTROL);
 
@@ -1096,7 +1099,10 @@ rhdSave(ScrnInfoPtr pScrn)
     save->D2GRPH_Y_End = RHDRegRead(rhdPtr, D2GRPH_Y_END);
     save->D2GRPH_Primary_Surface_Address = RHDRegRead(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS);
     save->D2GRPH_Pitch = RHDRegRead(rhdPtr, D2GRPH_PITCH);
+
     save->D2Mode_ViewPort_Size = RHDRegRead(rhdPtr, D2MODE_VIEWPORT_SIZE);
+    save->D2Mode_ViewPort_Start = RHDRegRead(rhdPtr, D2MODE_VIEWPORT_START);
+    save->D2Mode_Desktop_Height = RHDRegRead(rhdPtr, D2MODE_DESKTOP_HEIGHT);
 
     save->D2CRTC_Control = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
 
@@ -1145,6 +1151,9 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D1CRTC_CONTROL, restore->D1CRTC_Control);
 
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, restore->D1Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_START, restore->D1Mode_ViewPort_Start);
+    RHDRegWrite(rhdPtr, D1MODE_DESKTOP_HEIGHT, restore->D1Mode_Desktop_Height);
+
     RHDRegWrite(rhdPtr, D1GRPH_PITCH, restore->D1GRPH_Pitch);
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, restore->D1GRPH_Primary_Surface_Address);
     RHDRegWrite(rhdPtr, D1GRPH_X_END, restore->D1GRPH_X_End);
@@ -1171,6 +1180,9 @@ rhdRestore(ScrnInfoPtr pScrn, RHDRegPtr restore)
     RHDRegWrite(rhdPtr, D2CRTC_CONTROL, restore->D2CRTC_Control);
 
     RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, restore->D2Mode_ViewPort_Size);
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_START, restore->D2Mode_ViewPort_Start);
+    RHDRegWrite(rhdPtr, D2MODE_DESKTOP_HEIGHT, restore->D2Mode_Desktop_Height);
+
     RHDRegWrite(rhdPtr, D2GRPH_PITCH, restore->D2GRPH_Pitch);
     RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, restore->D2GRPH_Primary_Surface_Address);
     RHDRegWrite(rhdPtr, D2GRPH_X_END, restore->D2GRPH_X_End);
@@ -1213,10 +1225,13 @@ rhdD1Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
 
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
+    RHDRegWrite(rhdPtr, D1MODE_VIEWPORT_START, 0);
+    RHDRegWrite(rhdPtr, D1MODE_DESKTOP_HEIGHT, pScrn->virtualY);
+
     RHDRegWrite(rhdPtr, D1GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
     RHDRegWrite(rhdPtr, D1GRPH_PITCH, pScrn->displayWidth);
-    RHDRegWrite(rhdPtr, D1GRPH_X_END, Mode->HDisplay);
-    RHDRegWrite(rhdPtr, D1GRPH_Y_END, Mode->VDisplay);
+    RHDRegWrite(rhdPtr, D1GRPH_X_END, pScrn->virtualX);
+    RHDRegWrite(rhdPtr, D1GRPH_Y_END, pScrn->virtualY);
 
     /* enable read requests */
     RHDRegMask(rhdPtr, D1CRTC_CONTROL, 0, 0x01000000);
@@ -1276,9 +1291,12 @@ rhdD2Mode(RHDPtr rhdPtr, DisplayModePtr Mode)
     /* different ordering than documented for VIEWPORT_SIZE */
     RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_SIZE, Mode->VDisplay | (Mode->HDisplay << 16));
     RHDRegWrite(rhdPtr, D2GRPH_PRIMARY_SURFACE_ADDRESS, rhdPtr->FbIntAddress);
+    RHDRegWrite(rhdPtr, D2MODE_VIEWPORT_START, 0);
+    RHDRegWrite(rhdPtr, D2MODE_DESKTOP_HEIGHT, pScrn->virtualY);
+
     RHDRegWrite(rhdPtr, D2GRPH_PITCH, pScrn->displayWidth);
-    RHDRegWrite(rhdPtr, D2GRPH_X_END, Mode->HDisplay);
-    RHDRegWrite(rhdPtr, D2GRPH_Y_END, Mode->VDisplay);
+    RHDRegWrite(rhdPtr, D2GRPH_X_END, pScrn->virtualX);
+    RHDRegWrite(rhdPtr, D2GRPH_Y_END, pScrn->virtualY);
 
     /* enable read requests */
     RHDRegMask(rhdPtr, D2CRTC_CONTROL, 0, 0x01000000);
