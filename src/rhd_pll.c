@@ -191,6 +191,26 @@ PLL1Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
     RHDRegWrite(PLL, EXT1_PPLL_UPDATE_LOCK, 0); /* unlock */
     RHDRegMask(PLL, EXT1_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
 
+    /* Set up gain, charge pump, loop filter and current bias.
+     * For R500, this is done in atombios by ASIC_RegistersInit */
+    switch (RHDPTR(xf86Screens[PLL->scrnIndex])->ChipSet) {
+    case RHD_R600:
+	RHDRegWrite(PLL, EXT1_PPLL_CNTL, 0x01130704);
+	break;
+    case RHD_RV610:
+    case RHD_RV630:
+	RHDRegMask(PLL, EXT1_PPLL_CNTL, 0x159F8704, 0xFFFFE000);
+	if (FeedbackDivider >= 0x6C)
+	    RHDRegMask(PLL, EXT1_PPLL_CNTL, 0x00001EC7, 0x00001FFF);
+	else if (FeedbackDivider >= 0x49)
+	    RHDRegMask(PLL, EXT1_PPLL_CNTL, 0x00001B87, 0x00001FFF);
+	else
+	    RHDRegMask(PLL, EXT1_PPLL_CNTL, 0x00000704, 0x00001FFF);
+	break;
+    default:
+	break;
+    }
+
     RHDRegMask(PLL, P1PLL_CNTL, 0, 0x02); /* Powah */
     usleep(2);
 
@@ -221,6 +241,26 @@ PLL2Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
     RHDRegMask(PLL, P2PLL_CNTL, 0, 0x04); /* don't bypass calibration */
     RHDRegWrite(PLL, EXT2_PPLL_UPDATE_LOCK, 0); /* unlock */
     RHDRegMask(PLL, EXT2_PPLL_UPDATE_CNTL, 0, 0x01); /* we're done updating! */
+
+    /* Set up gain, charge pump, loop filter and current bias.
+     * For R500, this is done in atombios by ASIC_RegistersInit */
+    switch (RHDPTR(xf86Screens[PLL->scrnIndex])->ChipSet) {
+    case RHD_R600:
+	RHDRegWrite(PLL, EXT2_PPLL_CNTL, 0x01130704);
+	break;
+    case RHD_RV610:
+    case RHD_RV630:
+	RHDRegMask(PLL, EXT2_PPLL_CNTL, 0x159F8704, 0xFFFFE000);
+	if (FeedbackDivider >= 0x6C)
+	    RHDRegMask(PLL, EXT2_PPLL_CNTL, 0x00001EC7, 0x00001FFF);
+	else if (FeedbackDivider >= 0x49)
+	    RHDRegMask(PLL, EXT2_PPLL_CNTL, 0x00001B87, 0x00001FFF);
+	else
+	    RHDRegMask(PLL, EXT2_PPLL_CNTL, 0x00000704, 0x00001FFF);
+	break;
+    default:
+	break;
+    }
 
     RHDRegMask(PLL, P2PLL_CNTL, 0, 0x02); /* Powah */
     usleep(2);
@@ -411,13 +451,13 @@ PLLCalculate(struct rhd_PLL *PLL, CARD32 PixelClock,
 
     Ratio = ((float) PixelClock) / ((float) PLL->RefClock);
 
-    for (PostDiv = 2; PostDiv < POST_DIV_LIMIT; PostDiv++) {
+    for (PostDiv = POST_DIV_LIMIT - 1; PostDiv > 1; PostDiv--) {
 	CARD32 PLLIn = PixelClock * PostDiv;
 
 	if (PLLIn < PLL->InMin)
-	    continue;
-	if (PLLIn > PLL->InMax)
 	    break;
+	if (PLLIn > PLL->InMax)
+	    continue;
 
 	for (RefDiv = 1; RefDiv < REF_DIV_LIMIT; RefDiv++) {
 	    int Diff;

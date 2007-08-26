@@ -51,6 +51,8 @@ enum {
     EXT1_PPLL_POST_DIV             = 0x043C,
     EXT2_PPLL_POST_DIV_SRC         = 0x0440,
     EXT2_PPLL_POST_DIV             = 0x0444,
+    EXT1_PPLL_CNTL                 = 0x0448,
+    EXT2_PPLL_CNTL                 = 0x044C,
     P1PLL_CNTL                     = 0x0450,
     P2PLL_CNTL                     = 0x0454,
 
