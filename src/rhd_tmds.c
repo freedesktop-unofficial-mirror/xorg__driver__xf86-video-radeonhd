@@ -250,8 +250,10 @@ TMDSAPower(struct rhd_Output *Output, int Power)
 	usleep(2);
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
-    case RHD_POWER_SHUTDOWN:
     case RHD_POWER_RESET:
+	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	return;
+    case RHD_POWER_SHUTDOWN:
     default:
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);

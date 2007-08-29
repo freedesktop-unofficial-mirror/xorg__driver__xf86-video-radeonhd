@@ -245,11 +245,11 @@ DACPower(struct rhd_Output *Output, CARD16 offset, int Power)
 	RHDRegWrite(Output, offset + DACA_ENABLE, 1);
 	return;
     case RHD_POWER_SHUTDOWN:
+    default:
 	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0x01010101);
 	RHDRegWrite(Output, offset + DACA_ENABLE, 0);
 	return;
     case RHD_POWER_RESET: /* don't bother */
-    default:
 	return;
     }
 }

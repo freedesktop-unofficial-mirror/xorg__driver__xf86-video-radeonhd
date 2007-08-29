@@ -30,6 +30,7 @@
 
 #include "rhd.h"
 #include "rhd_output.h"
+#include "rhd_crtc.h"
 
 static void
 rhdOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
@@ -224,6 +225,8 @@ RHDOutputsSelect(RHDPtr rhdPtr)
 	    Output->Active = TRUE;
 
 	Output->Crtc = i & 1; /* ;) */
+
+	rhdPtr->Crtc[Output->Crtc]->Active = TRUE;
 
 	Output = Output->Next;
 	i++;

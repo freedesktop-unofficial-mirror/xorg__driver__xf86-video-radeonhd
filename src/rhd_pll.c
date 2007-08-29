@@ -105,7 +105,6 @@ PLL1Power(struct rhd_PLL *PLL, int Power)
     RHDFUNC(PLL);
 
     switch (Power) {
-    default:
     case RHD_POWER_ON:
 	RHDRegMask(PLL, P1PLL_CNTL, 0, 0x02); /* Powah */
 	usleep(2);
@@ -122,6 +121,7 @@ PLL1Power(struct rhd_PLL *PLL, int Power)
 
 	return;
     case RHD_POWER_SHUTDOWN:
+    default:
 	RHDRegMask(PLL, P1PLL_CNTL, 0x01, 0x01); /* Reset */
 	usleep(2);
 
@@ -141,7 +141,6 @@ PLL2Power(struct rhd_PLL *PLL, int Power)
     RHDFUNC(PLL);
 
     switch (Power) {
-    default:
     case RHD_POWER_ON:
 	RHDRegMask(PLL, P2PLL_CNTL, 0, 0x02); /* Powah */
 	usleep(2);
@@ -158,6 +157,7 @@ PLL2Power(struct rhd_PLL *PLL, int Power)
 
 	return;
     case RHD_POWER_SHUTDOWN:
+    default:
 	RHDRegMask(PLL, P2PLL_CNTL, 0x01, 0x01); /* Reset */
 	usleep(2);
 
@@ -381,42 +381,6 @@ RHDPLLsInit(RHDPtr rhdPtr)
 /*
  *
  */
-struct rhd_PLL *
-RHDPLLGrab(RHDPtr rhdPtr)
-{
-    struct rhd_PLL *PLL;
-
-    RHDFUNC(rhdPtr);
-
-    PLL = rhdPtr->PLLs[0];
-    if (!PLL || PLL->InUse) {
-	PLL = rhdPtr->PLLs[1];
-	if (!PLL || PLL->InUse) {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unable to find an "
-		       "available PLL\n", __func__);
-	    return NULL;
-	}
-    }
-
-    PLL->InUse = TRUE;
-
-    return PLL;
-}
-
-/*
- *
- */
-void
-RHDPLLRelease(struct rhd_PLL *PLL)
-{
-    RHDFUNC(PLL);
-
-    PLL->InUse = FALSE;
-}
-
-/*
- *
- */
 ModeStatus
 RHDPLLValid(struct rhd_PLL *PLL, CARD32 Clock)
 {
@@ -516,6 +480,7 @@ RHDPLLSet(struct rhd_PLL *PLL, CARD32 Clock)
 	PLL->Set(PLL, RefDivider, FBDivider, 0, PostDivider);
 
 	PLL->CurrentClock = Clock;
+	PLL->Active = TRUE;
     } else
 	xf86DrvMsg(PLL->scrnIndex, X_WARNING,
 		   "%s: Not altering any settings.\n", __func__);
@@ -556,18 +521,18 @@ RHDPLLsPowerAll(RHDPtr rhdPtr, int Power)
  *
  */
 void
-RHDPLLsShutdownUnused(RHDPtr rhdPtr)
+RHDPLLsShutdownInactive(RHDPtr rhdPtr)
 {
     struct rhd_PLL *PLL;
 
     RHDFUNC(rhdPtr);
 
     PLL = rhdPtr->PLLs[0];
-    if (PLL->Power && !PLL->InUse)
+    if (PLL->Power && !PLL->Active)
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
     PLL = rhdPtr->PLLs[1];
-    if (PLL->Power && !PLL->InUse)
+    if (PLL->Power && !PLL->Active)
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 }
 

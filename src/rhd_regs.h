@@ -77,12 +77,18 @@ enum {
     D1CRTC_V_SYNC_B_CNTL           = 0x6034,
 
     D1CRTC_CONTROL                 = 0x6080,
+    D1CRTC_BLANK_CONTROL           = 0x6084,
     D1CRTC_STATUS                  = 0x609C,
 
     /* D1GRPH registers */
     D1GRPH_ENABLE                  = 0x6100,
     D1GRPH_CONTROL                 = 0x6104,
+    D1GRPH_LUT_SEL                 = 0x6108,
     D1GRPH_PITCH                   = 0x6120,
+    D1GRPH_SURFACE_OFFSET_X        = 0x6124,
+    D1GRPH_SURFACE_OFFSET_Y        = 0x6128,
+    D1GRPH_X_START                 = 0x612C,
+    D1GRPH_Y_START                 = 0x6130,
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
     D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
@@ -90,6 +96,8 @@ enum {
     D1MODE_DESKTOP_HEIGHT          = 0x652C,
     D1MODE_VIEWPORT_START          = 0x6580,
     D1MODE_VIEWPORT_SIZE           = 0x6584,
+    D1MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6588,
+    D1MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x658C,
 
     /* CRTC2 registers */
     D2CRTC_H_TOTAL                 = 0x6800,
@@ -107,12 +115,18 @@ enum {
     D2CRTC_V_SYNC_B_CNTL           = 0x6834,
 
     D2CRTC_CONTROL                 = 0x6880,
+    D2CRTC_BLANK_CONTROL           = 0x6884,
     D2CRTC_STATUS                  = 0x689C,
 
     /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
     D2GRPH_CONTROL                 = 0x6904,
+    D2GRPH_LUT_SEL                 = 0x6908,
     D2GRPH_PITCH                   = 0x6920,
+    D2GRPH_SURFACE_OFFSET_X        = 0x6924,
+    D2GRPH_SURFACE_OFFSET_Y        = 0x6928,
+    D2GRPH_X_START                 = 0x692C,
+    D2GRPH_Y_START                 = 0x6930,
     D2GRPH_X_END                   = 0x6934,
     D2GRPH_Y_END                   = 0x6938,
     D2GRPH_PRIMARY_SURFACE_ADDRESS = 0x6910,
@@ -120,6 +134,8 @@ enum {
     D2MODE_DESKTOP_HEIGHT          = 0x6D2C,
     D2MODE_VIEWPORT_START          = 0x6D80,
     D2MODE_VIEWPORT_SIZE           = 0x6D84,
+    D2MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6D88,
+    D2MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x6D8C,
 
     /* DAC A */
     DACA_ENABLE                    = 0x7800,

@@ -40,7 +40,6 @@ struct rhd_PLL {
 
     CARD32 CurrentClock;
     Bool Active;
-    Bool InUse;
 
     /* from defaults or from atom */
     CARD32 RefClock;
@@ -67,13 +66,11 @@ struct rhd_PLL {
 };
 
 void RHDPLLsInit(RHDPtr rhdPtr);
-struct rhd_PLL *RHDPLLGrab(RHDPtr rhdPtr);
-void RHDPLLRelease(struct rhd_PLL *PLL);
 ModeStatus RHDPLLValid(struct rhd_PLL *PLL, CARD32 Clock);
 void RHDPLLSet(struct rhd_PLL *PLL, CARD32 Clock);
 void RHDPLLPower(struct rhd_PLL *PLL, int Power);
 void RHDPLLsPowerAll(RHDPtr rhdPtr, int Power);
-void RHDPLLsShutdownUnused(RHDPtr rhdPtr);
+void RHDPLLsShutdownInactive(RHDPtr rhdPtr);
 void RHDPLLsSave(RHDPtr rhdPtr);
 void RHDPLLsRestore(RHDPtr rhdPtr);
 void RHDPLLsDestroy(RHDPtr rhdPtr);

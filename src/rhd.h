@@ -76,69 +76,6 @@ struct rhd_card {
 #define RHD_POWER_RESET    1   /* off temporarily */
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
 
-typedef struct RHDRegs {
-    /* CRTC1 */
-    CARD32 D1CRTC_Control;
-
-    CARD32 D1CRTC_H_Total;
-    CARD32 D1CRTC_H_Blank_Start_End;
-    CARD32 D1CRTC_H_Sync_A;
-    CARD32 D1CRTC_H_Sync_A_Cntl;
-    CARD32 D1CRTC_H_Sync_B;
-    CARD32 D1CRTC_H_Sync_B_Cntl;
-
-    CARD32 D1CRTC_V_Total;
-    CARD32 D1CRTC_V_Blank_Start_End;
-    CARD32 D1CRTC_V_Sync_A;
-    CARD32 D1CRTC_V_Sync_A_Cntl;
-    CARD32 D1CRTC_V_Sync_B;
-    CARD32 D1CRTC_V_Sync_B_Cntl;
-
-    CARD32 D1GRPH_Enable;
-    CARD32 D1GRPH_Control;
-    CARD32 D1GRPH_X_End;
-    CARD32 D1GRPH_Y_End;
-    CARD32 D1GRPH_Primary_Surface_Address;
-    CARD32 D1GRPH_Pitch;
-
-    CARD32 D1Mode_Desktop_Height;
-    CARD32 D1Mode_ViewPort_Start;
-    CARD32 D1Mode_ViewPort_Size;
-
-    CARD32 PCLK_CRTC1_Control;
-
-    /* CRTC2 */
-    CARD32 D2CRTC_Control;
-
-    CARD32 D2CRTC_H_Total;
-    CARD32 D2CRTC_H_Blank_Start_End;
-    CARD32 D2CRTC_H_Sync_A;
-    CARD32 D2CRTC_H_Sync_A_Cntl;
-    CARD32 D2CRTC_H_Sync_B;
-    CARD32 D2CRTC_H_Sync_B_Cntl;
-
-    CARD32 D2CRTC_V_Total;
-    CARD32 D2CRTC_V_Blank_Start_End;
-    CARD32 D2CRTC_V_Sync_A;
-    CARD32 D2CRTC_V_Sync_A_Cntl;
-    CARD32 D2CRTC_V_Sync_B;
-    CARD32 D2CRTC_V_Sync_B_Cntl;
-
-    CARD32 D2GRPH_Enable;
-    CARD32 D2GRPH_Control;
-    CARD32 D2GRPH_X_End;
-    CARD32 D2GRPH_Y_End;
-    CARD32 D2GRPH_Primary_Surface_Address;
-    CARD32 D2GRPH_Pitch;
-
-    CARD32 D2Mode_Desktop_Height;
-    CARD32 D2Mode_ViewPort_Start;
-    CARD32 D2Mode_ViewPort_Size;
-
-    CARD32 PCLK_CRTC2_Control;
-} RHDRegs, *RHDRegPtr;
-
-
 typedef struct _RHDopt {
     Bool set;
     union  {
@@ -165,8 +102,6 @@ typedef struct RHDRec {
     RHDOpt              swCursor;
     RHDOpt              onPciBurst;
 
-    RHDRegs             savedRegs;
-
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbIntAddress; /* card internal address of FB */
@@ -180,12 +115,8 @@ typedef struct RHDRec {
 
 
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
-
+    struct rhd_Crtc     *Crtc[2];
     struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
-
-    /* Placeholders for when CRTCs are abstracted out */
-    struct rhd_PLL      *Crtc1PLL;
-    struct rhd_PLL      *Crtc2PLL;
 
     /* List of output devices:
      * we can go up to 5: DACA, DACB, TMDS, shared LVDS/TMDS, DVO.
