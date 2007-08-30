@@ -57,10 +57,10 @@ PLL1Calibrate(struct rhd_PLL *PLL)
 	    break;
 
     if (i == PLL_CALIBRATE_WAIT) {
-	if ((RHDRegRead(PLL, P1PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	if (RHDRegRead(PLL, P1PLL_CNTL) & 0x00100000) /* Calibration done? */
 	    xf86DrvMsg(PLL->scrnIndex, X_ERROR,
 		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(PLL, P1PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	if (RHDRegRead(PLL, P1PLL_CNTL) & 0x00200000) /* PLL locked? */
 	    xf86DrvMsg(PLL->scrnIndex, X_ERROR,
 		       "%s: Locking failed.\n", __func__);
     } else
@@ -86,10 +86,10 @@ PLL2Calibrate(struct rhd_PLL *PLL)
 	    break;
 
     if (i == PLL_CALIBRATE_WAIT) {
-	if ((RHDRegRead(PLL, P2PLL_CNTL) >> 20) & 0x01) /* Calibration done? */
+	if (RHDRegRead(PLL, P2PLL_CNTL) & 0x00100000) /* Calibration done? */
 	    xf86DrvMsg(PLL->scrnIndex, X_ERROR,
 		       "%s: Calibration failed.\n", __func__);
-	if ((RHDRegRead(PLL, P2PLL_CNTL) >> 21) & 0x01) /* PLL locked? */
+	if (RHDRegRead(PLL, P2PLL_CNTL) & 0x00200000) /* PLL locked? */
 	    xf86DrvMsg(PLL->scrnIndex, X_ERROR,
 		       "%s: Locking failed.\n", __func__);
     } else

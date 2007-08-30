@@ -1020,8 +1020,8 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		pScrn->bitsPerPixel, 0);
     Crtc->ModeSet(Crtc, mode);
-    RHDPLLSet(rhdPtr->PLLs[0], mode->Clock);
-    Crtc->PLLSelect(Crtc, rhdPtr->PLLs[0]);
+    RHDPLLSet(rhdPtr->PLLs[1], mode->Clock);
+    Crtc->PLLSelect(Crtc, rhdPtr->PLLs[1]);
     Crtc->LUTSelect(Crtc, 0);
     RHDOutputsMode(rhdPtr, Crtc->Id);
 

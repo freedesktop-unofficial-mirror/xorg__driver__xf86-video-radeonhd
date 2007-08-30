@@ -62,6 +62,7 @@ enum {
     R6XX_CONFIG_MEMSIZE            = 0x5428,
     R6XX_CONFIG_FB_BASE            = 0x542C, /* AKA CONFIG_F0_BASE */
 
+    /* CRTC1 registers */
     D1CRTC_H_TOTAL                 = 0x6000,
     D1CRTC_H_BLANK_START_END       = 0x6004,
     D1CRTC_H_SYNC_A                = 0x6008,
