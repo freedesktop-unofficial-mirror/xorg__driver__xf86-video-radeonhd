@@ -117,6 +117,8 @@ static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(RHDPtr rhdPtr);
 static void     rhdRestore(RHDPtr rhdPtr);
+static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
+static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
 static void     rhdUnmapMMIO(RHDPtr rhdPtr);
@@ -465,6 +467,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     RHDHPDRestore(rhdPtr);
 
+    /* Pick anything for now */
+    if (!rhdModeLayoutSelect(rhdPtr)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
+	goto error2;
+    }
+    rhdModeLayoutPrint(rhdPtr);
+
     /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
 	pScrn->rgbBits = 8;
@@ -512,14 +521,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
-
-    if (!RHDOutputsSense(rhdPtr)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
-	goto error2;
-    }
-
-    /* Pick anything for now */
-    RHDOutputsSelect(rhdPtr);
 
     /* Tell X that we support at least one mode */
     /* WARNING: xf86CVTMode doesn't exist before 7.1 */
@@ -821,7 +822,7 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
 	Crtc->FrameSet(Crtc, x, y);
 
-    Crtc = rhdPtr->Crtc[0];
+    Crtc = rhdPtr->Crtc[1];
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
 	Crtc->FrameSet(Crtc, x, y);
 }
@@ -986,6 +987,117 @@ rhdUnmapFB(RHDPtr rhdPtr)
 /*
  *
  */
+static Bool
+rhdModeLayoutSelect(RHDPtr rhdPtr)
+{
+    struct rhd_Output *Output;
+    Bool ret = FALSE;
+    int i = 0;
+
+    RHDFUNC(rhdPtr);
+
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+	if (Output->Sense && !Output->Sense(Output))
+	    Output->Active = FALSE;
+	else {
+	    Output->Active = TRUE;
+
+	    ret = TRUE;
+
+	    Output->Crtc = i & 1; /* ;) */
+	    i++;
+
+	    rhdPtr->Crtc[Output->Crtc]->Active = TRUE;
+	}
+
+    rhdPtr->Crtc[0]->PLL = rhdPtr->PLLs[0];
+    rhdPtr->Crtc[1]->PLL = rhdPtr->PLLs[1];
+
+    return ret;
+}
+
+/*
+ *
+ */
+static void
+rhdModeLayoutPrint(RHDPtr rhdPtr)
+{
+    struct rhd_Crtc *Crtc;
+    struct rhd_Output *Output;
+    Bool Found;
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Listing modesetting layout:\n\n");
+
+    /* CRTC 1 */
+    Crtc = rhdPtr->Crtc[0];
+    if (Crtc->Active) {
+	xf86Msg(X_NONE, "\t%s: tied to %s and LUT A:\n",
+		Crtc->Name, Crtc->PLL->Name);
+
+	Found = FALSE;
+	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+	    if (Output->Active && (Output->Crtc == Crtc->Id)) {
+		if (!Found) {
+		    xf86Msg(X_NONE, "\t\tOutputs: %s", Output->Name);
+		    Found = TRUE;
+		} else
+		    xf86Msg(X_NONE, ", %s", Output->Name);
+	    }
+
+	if (!Found)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		       "%s is active without outputs\n", Crtc->Name);
+	else
+	     xf86Msg(X_NONE, "\n");
+    } else
+	xf86Msg(X_NONE, "\t%s: unused\n", Crtc->Name);
+    xf86Msg(X_NONE, "\n");
+
+    /* CRTC 2 */
+    Crtc = rhdPtr->Crtc[1];
+    if (Crtc->Active) {
+	xf86Msg(X_NONE, "\t%s: tied to %s and LUT B:\n",
+		Crtc->Name, Crtc->PLL->Name);
+
+	Found = FALSE;
+	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+	    if (Output->Active && (Output->Crtc == Crtc->Id)) {
+		if (!Found) {
+		    xf86Msg(X_NONE, "\t\tOutputs: %s", Output->Name);
+		    Found = TRUE;
+		} else
+		    xf86Msg(X_NONE, ", %s", Output->Name);
+	    }
+
+	if (!Found)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		       "%s is active without outputs\n", Crtc->Name);
+	else
+	    xf86Msg(X_NONE, "\n");
+    } else
+	xf86Msg(X_NONE, "\t%s: unused\n", Crtc->Name);
+    xf86Msg(X_NONE, "\n");
+
+    /* Print out unused Outputs */
+    Found = FALSE;
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+	if (!Output->Active) {
+	    if (!Found) {
+		xf86Msg(X_NONE, "\tUnused Outputs: %s", Output->Name);
+		Found = TRUE;
+	    } else
+		xf86Msg(X_NONE, ", %s", Output->Name);
+	}
+
+    if (Found)
+	xf86Msg(X_NONE, "\n");
+    xf86Msg(X_NONE, "\n");
+}
+
+
+/*
+ *
+ */
 static void
 rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
@@ -1008,30 +1120,41 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 
     /* Set up D1 and appendages */
     Crtc = rhdPtr->Crtc[0];
-    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		pScrn->bitsPerPixel, 0);
-    Crtc->ModeSet(Crtc, mode);
-    RHDPLLSet(rhdPtr->PLLs[0], mode->Clock);
-    Crtc->PLLSelect(Crtc, rhdPtr->PLLs[0]);
-    Crtc->LUTSelect(Crtc, 0);
-    RHDOutputsMode(rhdPtr, Crtc->Id);
+    if (Crtc->Active) {
+	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
+		    pScrn->bitsPerPixel, 0);
+	Crtc->ModeSet(Crtc, mode);
+	RHDPLLSet(Crtc->PLL, mode->Clock);
+	Crtc->PLLSelect(Crtc, Crtc->PLL);
+	Crtc->LUTSelect(Crtc, 0);
+	RHDOutputsMode(rhdPtr, Crtc->Id);
+    }
 
     /* Set up D2 and appendages */
     Crtc = rhdPtr->Crtc[1];
-    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		pScrn->bitsPerPixel, 0);
-    Crtc->ModeSet(Crtc, mode);
-    RHDPLLSet(rhdPtr->PLLs[1], mode->Clock);
-    Crtc->PLLSelect(Crtc, rhdPtr->PLLs[1]);
-    Crtc->LUTSelect(Crtc, 0);
-    RHDOutputsMode(rhdPtr, Crtc->Id);
+    if (Crtc->Active) {
+	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
+		    pScrn->bitsPerPixel, 0);
+	Crtc->ModeSet(Crtc, mode);
+	RHDPLLSet(Crtc->PLL, mode->Clock);
+	Crtc->PLLSelect(Crtc, Crtc->PLL);
+	Crtc->LUTSelect(Crtc, 0);
+	RHDOutputsMode(rhdPtr, Crtc->Id);
+    }
 
     /* shut down that what we don't use */
     RHDPLLsShutdownInactive(rhdPtr);
     RHDOutputsShutdownInactive(rhdPtr);
 
-    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_ON);
-    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_ON);
+    if (rhdPtr->Crtc[0]->Active)
+	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_ON);
+    else
+	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_SHUTDOWN);
+
+    if (rhdPtr->Crtc[1]->Active)
+	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_ON);
+    else
+	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_SHUTDOWN);
 
     RHDOutputsPower(rhdPtr, RHD_POWER_ON);
 }

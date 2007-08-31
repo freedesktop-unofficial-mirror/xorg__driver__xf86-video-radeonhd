@@ -293,4 +293,3 @@ rhdCVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
 
     return Mode;
 }
-

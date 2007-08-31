@@ -203,32 +203,3 @@ RHDOutputsDestroy(RHDPtr rhdPtr)
 	Output = Next;
     }
 }
-
-/*
- *
- */
-void
-RHDOutputsSelect(RHDPtr rhdPtr)
-{
-    struct rhd_Output *Output = rhdPtr->Outputs;
-    int i = 0;
-
-    RHDFUNC(rhdPtr);
-
-    while (Output) {
-	if (Output->Sense) {
-	    if (Output->Sense(Output))
-		Output->Active = TRUE;
-	    else
-		Output->Active = FALSE;
-	} else
-	    Output->Active = TRUE;
-
-	Output->Crtc = i & 1; /* ;) */
-
-	rhdPtr->Crtc[Output->Crtc]->Active = TRUE;
-
-	Output = Output->Next;
-	i++;
-    }
-}

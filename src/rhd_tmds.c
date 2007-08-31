@@ -95,6 +95,23 @@ TMDSASense(struct rhd_Output *Output)
 }
 
 /*
+ *
+ */
+static ModeStatus
+TMDSAModeValid(struct rhd_Output *Output, DisplayModePtr Mode)
+{
+    RHDFUNC(Output);
+
+    if (Mode->Clock < 25000)
+	return MODE_CLOCK_LOW;
+
+    if (Mode->Clock > 165000)
+	return MODE_CLOCK_HIGH;
+
+    return MODE_OK;
+}
+
+/*
  * TODO: use only when atombios tables fail us.
  */
 static void
@@ -372,6 +389,7 @@ RHDTMDSAInit(RHDPtr rhdPtr)
     */
 
     Output->Sense = TMDSASense;
+    Output->ModeValid = TMDSAModeValid;
     Output->Mode = TMDSASet;
     Output->Power = TMDSAPower;
     Output->Save = TMDSASave;

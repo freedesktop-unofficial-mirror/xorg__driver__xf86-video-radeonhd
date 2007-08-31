@@ -451,7 +451,7 @@ PLLCalculate(struct rhd_PLL *PLL, CARD32 PixelClock,
     }
 
     if (BestDiff != 0xFFFFFFFF) {
-	xf86DrvMsg(PLL->scrnIndex, X_INFO, "PLL Calculation: %dkHz = "
+	RHDDebug(PLL->scrnIndex, "PLL Calculation: %dkHz = "
 		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
 		   (int) PixelClock, (unsigned int) PLL->RefClock, *RefDivider,
 		   *FBDivider, *PostDivider, (int) BestDiff);

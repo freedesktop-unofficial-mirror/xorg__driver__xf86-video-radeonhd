@@ -53,7 +53,7 @@ struct rhd_Output {
     /* ... */
 
     Bool (*Sense) (struct rhd_Output *Output);
-    /* Validate */
+    ModeStatus (*ModeValid) (struct rhd_Output *Output, DisplayModePtr Mode);
     void (*Mode) (struct rhd_Output *Output);
     void (*Power) (struct rhd_Output *Output, int Power);
     void (*Save) (struct rhd_Output *Output);
@@ -72,7 +72,6 @@ void RHDOutputsSave(RHDPtr rhdPtr);
 void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
 void RHDOutputsInit(RHDPtr rhdPtr);
-void RHDOutputsSelect(RHDPtr rhdPtr);
 
 /* rhd_dac.c */
 struct rhd_Output *RHDDACAInit(RHDPtr rhdPtr);
