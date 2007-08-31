@@ -90,6 +90,7 @@
 #include "rhd_vga.h"
 #include "rhd_hpd.h"
 #include "rhd_crtc.h"
+#include "rhd_modes.h"
 
 /* ??? */
 #include "servermd.h"
@@ -524,7 +525,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* WARNING: xf86CVTMode doesn't exist before 7.1 */
     {
 	int HDisplay = 1280, VDisplay = 1024;
-	DisplayModePtr Mode = xf86CVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
+	DisplayModePtr Mode = rhdCVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
 	ModeStatus Status;
 
 	rhdModeCrtcFill(Mode);
