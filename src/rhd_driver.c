@@ -505,8 +505,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* @@@ need this? */
     pScrn->progClock = TRUE;
 
-    rhdPtr->XOrigModes = pScrn->confScreen->monitor->Modes;
-
     if (pScrn->display->virtualX && pScrn->display->virtualY)
         if (!RHDGetVirtualFromConfig(pScrn)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,

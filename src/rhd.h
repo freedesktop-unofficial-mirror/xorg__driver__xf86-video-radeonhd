@@ -113,8 +113,6 @@ typedef struct RHDRec {
     Bool                HWCursorShown;
     CloseScreenProcPtr  CloseScreen;
 
-    DisplayModePtr      XOrigModes;
-
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
     struct rhd_Crtc     *Crtc[2];
     struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */

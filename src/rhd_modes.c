@@ -1130,22 +1130,17 @@ rhdModesListValidateAndCopy(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent
 static DisplayModePtr
 rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    /* RHDPtr rhdPtr = RHDPTR(pScrn); */
     DisplayModePtr Keepers = NULL, Modes;
 
     /* First Pass, X's own Modes. */
-    if (!Silent)
-        xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes from X (config &"
-                   " built-in)\n");
-    Modes = rhdModesListValidateAndCopy(pScrn, rhdPtr->XOrigModes, Silent);
-    Keepers = rhdModesAdd(Keepers, Modes);
-
-    /* Here we would cycles through our monitors list */
     if (!Silent && pScrn->confScreen->monitor->Modes)
         xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes from the "
 		   "configured Monitor: %s\n", pScrn->confScreen->monitor->id);
     Modes = rhdModesListValidateAndCopy(pScrn, pScrn->confScreen->monitor->Modes, Silent);
     Keepers = rhdModesAdd(Keepers, Modes);
+
+    /* Here we would cycles through our actual monitors list */
 
     return Keepers;
 }
