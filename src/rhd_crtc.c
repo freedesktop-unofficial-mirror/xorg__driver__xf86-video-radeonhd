@@ -79,80 +79,68 @@ struct rhd_Crtc_Store {
 };
 
 /*
- *
+ * Checks whether Width, Height are within boundaries.
+ * If MODE_OK is returned and pPitch is not NULL, it is set.
  */
-static Bool
-DxFBValid(struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
-	  int bpp, int Offset)
+static ModeStatus
+DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
+	  CARD32 Size, CARD32 *pPitch)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
+    CARD16 Pitch;
     int BytesPerPixel;
-    int tmp;
+    CARD8 PitchMask = 0xFF;
 
-    RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
+    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
 
-    switch (bpp) {
+     switch (pScrn->bitsPerPixel) {
     case 8:
 	BytesPerPixel = 1;
 	break;
     case 16:
 	BytesPerPixel = 2;
+	PitchMask /= BytesPerPixel;
 	break;
     case 24:
     case 32:
 	BytesPerPixel = 4;
+	PitchMask /= BytesPerPixel;
 	break;
     default:
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: %dbpp is not supported\n",
-		   __func__, bpp);
-	return FALSE;
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: %dbpp is not implemented!\n",
+		   __func__, pScrn->bitsPerPixel);
+	return MODE_BAD;
     }
 
-    tmp = Width * Height * BytesPerPixel;
-    if ((Offset + tmp) > (pScrn->videoRam * 1024)) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Offset (0x%08X) plus ScanOut "
-		   "Buffer (0x%08X) exceed available Framebuffer memory"
-		   " (0x%08X)\n", __func__, Offset, tmp,
-		   pScrn->videoRam * 1024);
-	return FALSE;
-    }
+     /* Be reasonable */
+     if (Width < 0x100)
+	 return MODE_H_ILLEGAL;
+     if (Height < 0x100)
+	 return MODE_V_ILLEGAL;
 
-    /* Every FB address needs to be 4k aligned */
-    if (Offset & 0xFFF) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Offset (0x%08X) is not "
-		   "4K aligned\n", __func__, Offset);
-	return FALSE;
-    }
+    /* D1GRPH_X_START is 14bits while D1_MODE_VIEWPORT_X_START is only 13 bits.
+     * Since it is reasonable to assume that modes will be at least 1x1
+     * limit at 13bits + 1 */
+    if (Width > 0x2000)
+	return MODE_VIRTUAL_X;
 
-    /* D1GRPH_PITCH needs 256byte alignment */
-    if ((Pitch * BytesPerPixel) & 0xFF) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Pitch (0x%08X) is not "
-		   "256bytes aligned\n", __func__, Pitch);
-	return FALSE;
-    }
+    /* D1GRPH_Y_START is 14bits while D1_MODE_VIEWPORT_Y_START is only 13 bits.
+     * Since it is reasonable to assume that modes will be at least 1x1
+     * limit at 13bits + 1 */
+    if (Height > 0x2000)
+	return MODE_VIRTUAL_Y;
 
-    /* D1GRPH_PITCH: 14bits */
-    if (Pitch >= 0x4000) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Pitch (%d) is larger than "
-		   "%d pixels.\n", __func__, Pitch, 0x4000 - 1);
-	return FALSE;
-    }
+    Pitch = (Width + PitchMask) & ~PitchMask;
+    /* D1_PITCH limit: should never happen after clamping Width to 0x2000 */
+    if (Pitch >= 0x4000)
+	return MODE_VIRTUAL_X;
 
-    /* D1GRPH_Y_START: 14bits */
-    if (Width >= 0x4000) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Width (%d) is larger than "
-		   "%d pixels.\n", __func__, Width, 0x4000 - 1);
-	return FALSE;
-    }
+    if ((Pitch * BytesPerPixel * Height) > Size)
+	return MODE_MEM_VIRT;
 
-    /* D1GRPH_Y_END / D1MODE_DESKTOP_HEIGHT: 14bits */
-    if (Height >= 0x4000) {
-	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Height (%d) is larger than "
-		   "%d lines.\n", __func__, Height, 0x4000 - 1);
-	return FALSE;
-    }
-
-    return TRUE;
+    if (pPitch)
+	*pPitch = Pitch;
+    return MODE_OK;
 }
 
 /*
@@ -219,7 +207,7 @@ DxModeValid(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
 
-    /* D1_MODE_VIEWPORT_HEIGHT: 14bits */
+    /* D1_MODE_VIEWPORT_WIDTH: 14bits */
     if (Mode->CrtcHDisplay >= 0x4000)
 	return MODE_BAD_HVALUE;
 
@@ -242,7 +230,7 @@ DxModeValid(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
     if (tmp >= 0x2000)
 	return MODE_HSYNC_WIDE;
 
-    /* D1_MODE_VIEWPORT_WIDTH: 13bits */
+    /* D1_MODE_VIEWPORT_HEIGHT: 14bits */
     if (Mode->CrtcVDisplay >= 0x4000)
 	return MODE_BAD_VVALUE;
 

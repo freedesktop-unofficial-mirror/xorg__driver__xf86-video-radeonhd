@@ -41,6 +41,23 @@
 /*
  *
  */
+static ModeStatus
+PLLValid(struct rhd_PLL *PLL, CARD32 Clock)
+{
+    RHDFUNC(PLL);
+
+    if (Clock < PLL->OutMin)
+	return MODE_CLOCK_LOW;
+
+    if (Clock > PLL->OutMax)
+	return MODE_CLOCK_HIGH;
+
+    return MODE_OK;
+}
+
+/*
+ *
+ */
 static void
 PLL1Calibrate(struct rhd_PLL *PLL)
 {
@@ -348,7 +365,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->OutMin = 16000; /* guess */
     PLL->OutMax = 400000;
 
-    PLL->Valid = NULL;
+    PLL->Valid = PLLValid;
     PLL->Set = PLL1Set;
     PLL->Power = PLL1Power;
     PLL->Save = PLL1Save;
@@ -369,7 +386,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->OutMin = 16000; /* guess */
     PLL->OutMax = 400000;
 
-    PLL->Valid = NULL;
+    PLL->Valid = PLLValid;
     PLL->Set = PLL2Set;
     PLL->Power = PLL2Power;
     PLL->Save = PLL2Save;

@@ -299,24 +299,6 @@ RHDProbe(DriverPtr drv, int flags)
 /*
  *
  */
-static void
-rhdModeCrtcFill(DisplayModePtr Mode)
-{
-    Mode->CrtcHDisplay = Mode->HDisplay;
-    Mode->CrtcHBlankStart = Mode->HDisplay;
-    Mode->CrtcHSyncStart = Mode->HSyncStart;
-    Mode->CrtcHSyncEnd = Mode->HSyncEnd;
-    Mode->CrtcHBlankEnd = Mode->HTotal;
-    Mode->CrtcHTotal = Mode->HTotal;
-    Mode->CrtcHSkew = 0;
-    Mode->CrtcVDisplay = Mode->VDisplay;
-    Mode->CrtcVBlankStart = Mode->VDisplay;
-    Mode->CrtcVSyncStart = Mode->VSyncStart;
-    Mode->CrtcVSyncEnd = Mode->VSyncEnd;
-    Mode->CrtcVBlankEnd = Mode->VTotal;
-    Mode->CrtcVTotal = Mode->VTotal;
-}
-
 static Bool
 RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
@@ -326,6 +308,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     Bool ret = FALSE;
     AtomBIOSArg arg;
     RHDOpt tmpOpt;
+    DisplayModePtr Modes;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -522,32 +505,30 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* @@@ need this? */
     pScrn->progClock = TRUE;
 
-    /* Tell X that we support at least one mode */
-    /* WARNING: xf86CVTMode doesn't exist before 7.1 */
-    {
-	int HDisplay = 1280, VDisplay = 1024;
-	DisplayModePtr Mode = rhdCVTMode(HDisplay, VDisplay, 0, FALSE, FALSE);
-	ModeStatus Status;
+    rhdPtr->XOrigModes = pScrn->confScreen->monitor->Modes;
 
-	rhdModeCrtcFill(Mode);
+    if (pScrn->display->virtualX && pScrn->display->virtualY)
+        if (!RHDGetVirtualFromConfig(pScrn)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Unable to find valid framebuffer dimensions\n");
+	    goto error2;
+	}
 
-	Status = RHDPLLValid(rhdPtr->PLLs[0], Mode->Clock);
-	if (Status != MODE_OK)
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Invalid Mode %s: %d\n",
-		       Mode->name, Status);
-	Status = RHDPLLValid(rhdPtr->PLLs[1], Mode->Clock);
-	if (Status != MODE_OK)
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Invalid Mode %s: %d\n",
-		       Mode->name, Status);
-
-	pScrn->virtualX = HDisplay;
-	pScrn->virtualY = VDisplay;
-	pScrn->displayWidth = HDisplay; /* need some alignment value here */
-	pScrn->modes = Mode;
-	pScrn->currentMode = Mode;
-	Mode->next = Mode;
-	Mode->prev = Mode;
+    Modes = RHDModesPoolCreate(pScrn, FALSE);
+    if (!Modes) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
+	goto error2;
     }
+
+    if (!pScrn->virtualX || !pScrn->virtualY)
+        RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
+
+    RHDModesAttach(pScrn, Modes);
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+               "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
+               pScrn->virtualY, pScrn->displayWidth);
+    xf86PrintModes(pScrn);
 
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);

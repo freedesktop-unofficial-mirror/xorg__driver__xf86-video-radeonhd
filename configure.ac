@@ -47,6 +47,14 @@ sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 # Header files checks.
 AC_HEADER_STDC
 
+# Check wether MonRec has a reducedblanking member.
+AC_CHECK_MEMBER([MonRec.reducedblanking],
+         [MONREC_HAS_REDUCED=yes], [MONREC_HAS_REDUCED=no],
+         [#include "${sdkdir}/xf86.h"])
+if test "x$MONREC_HAS_REDUCED" = xyes; then
+        AC_DEFINE(MONREC_HAS_REDUCED, 1, [MonRec has member reducedblanking])
+fi
+
 # libraries checks.
 
 AC_SUBST([XORG_CFLAGS])

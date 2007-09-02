@@ -48,8 +48,8 @@ struct rhd_Crtc {
     DisplayModePtr CurrentMode;
     DisplayModePtr Modes; /* Cycle through these */
 
-    Bool (*FBValid) (struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width,
-		     CARD16 Height, int bpp, int Offset);
+    ModeStatus (*FBValid) (struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height,
+			   int bpp, CARD32 Size, CARD32 *pPitch);
     void (*FBSet) (struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width,
 		   CARD16 Height, int bpp, int Offset);
 

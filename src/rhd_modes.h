@@ -25,7 +25,13 @@
 #ifndef _RHD_MODES_H
 #define _RHD_MODES_H
 
-DisplayModePtr rhdCVTMode(int HDisplay, int VDisplay, float VRefresh,
+DisplayModePtr RHDCVTMode(int HDisplay, int VDisplay, float VRefresh,
 			  Bool Reduced, Bool Interlaced);
+
+DisplayModePtr RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent);
+void RHDModesAttach(ScrnInfoPtr pScrn, DisplayModePtr Modes);
+
+Bool RHDGetVirtualFromConfig(ScrnInfoPtr pScrn);
+void RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent);
 
 #endif /* _RHD_MODES_H */
