@@ -33,6 +33,7 @@ struct rhd_VGA {
     int FBSize; /* most cases, 256kB */
 
     CARD32 Render_Control;
+    CARD32 Mode_Control;
     CARD32 HDP_Control;
     CARD32 D1_Control;
     CARD32 D2_Control;

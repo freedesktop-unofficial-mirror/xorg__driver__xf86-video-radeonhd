@@ -31,6 +31,7 @@ enum {
 
     /* VGA registers */
     VGA_RENDER_CONTROL             = 0x0300,
+    VGA_MODE_CONTROL             = 0x0308,
     VGA_MEMORY_BASE_ADDRESS        = 0x0310,
     VGA_HDP_CONTROL                = 0x0328,
     D1VGA_CONTROL                  = 0x0330,
@@ -85,6 +86,7 @@ enum {
     D1GRPH_ENABLE                  = 0x6100,
     D1GRPH_CONTROL                 = 0x6104,
     D1GRPH_LUT_SEL                 = 0x6108,
+    D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
     D1GRPH_PITCH                   = 0x6120,
     D1GRPH_SURFACE_OFFSET_X        = 0x6124,
     D1GRPH_SURFACE_OFFSET_Y        = 0x6128,
@@ -92,13 +94,16 @@ enum {
     D1GRPH_Y_START                 = 0x6130,
     D1GRPH_X_END                   = 0x6134,
     D1GRPH_Y_END                   = 0x6138,
-    D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
+    D1GRPH_UPDATE                  = 0x6144,
 
     D1MODE_DESKTOP_HEIGHT          = 0x652C,
     D1MODE_VIEWPORT_START          = 0x6580,
     D1MODE_VIEWPORT_SIZE           = 0x6584,
     D1MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6588,
     D1MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x658C,
+
+    /* D1SCL */
+    D1SCL_UPDATE                   = 0x65CC,
 
     /* CRTC2 registers */
     D2CRTC_H_TOTAL                 = 0x6800,
@@ -123,6 +128,7 @@ enum {
     D2GRPH_ENABLE                  = 0x6900,
     D2GRPH_CONTROL                 = 0x6904,
     D2GRPH_LUT_SEL                 = 0x6908,
+    D2GRPH_PRIMARY_SURFACE_ADDRESS = 0x6910,
     D2GRPH_PITCH                   = 0x6920,
     D2GRPH_SURFACE_OFFSET_X        = 0x6924,
     D2GRPH_SURFACE_OFFSET_Y        = 0x6928,
@@ -130,13 +136,15 @@ enum {
     D2GRPH_Y_START                 = 0x6930,
     D2GRPH_X_END                   = 0x6934,
     D2GRPH_Y_END                   = 0x6938,
-    D2GRPH_PRIMARY_SURFACE_ADDRESS = 0x6910,
 
     D2MODE_DESKTOP_HEIGHT          = 0x6D2C,
     D2MODE_VIEWPORT_START          = 0x6D80,
     D2MODE_VIEWPORT_SIZE           = 0x6D84,
     D2MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6D88,
     D2MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x6D8C,
+
+    /* D2SCL */
+    D2SCL_UPDATE                   = 0x6DCC,
 
     /* DAC A */
     DACA_ENABLE                    = 0x7800,

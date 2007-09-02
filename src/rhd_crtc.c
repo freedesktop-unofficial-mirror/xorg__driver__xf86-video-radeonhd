@@ -372,11 +372,16 @@ D1ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
 {
     RHDFUNC(Crtc);
 
-    xf86DrvMsg(Crtc->scrnIndex, X_WARNING, "%s: not implemented.\n", __func__);
-    return;
+    /* not as granular as docs make it seem to be. */
+    X &= ~0x03;
+    Y &= ~0x01;
 
-    /* kills the linebuffer!!! requires full powerdown to fix. */
+    RHDRegMask(Crtc, D1SCL_UPDATE, 0x00010000, 0x0001000);
     RHDRegWrite(Crtc, D1MODE_VIEWPORT_START, (X << 16) | Y);
+    RHDRegMask(Crtc, D1SCL_UPDATE, 0, 0x0001000);
+
+    Crtc->X = X;
+    Crtc->Y = Y;
 }
 
 /*
@@ -387,11 +392,16 @@ D2ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
 {
     RHDFUNC(Crtc);
 
-    xf86DrvMsg(Crtc->scrnIndex, X_WARNING, "%s: not implemented.\n", __func__);
-    return;
+    /* not as granular as docs make it seem to be. */
+    X &= ~0x03;
+    Y &= ~0x01;
 
-    /* kills the linebuffer!!! requires full powerdown to fix. */
+    RHDRegMask(Crtc, D2SCL_UPDATE, 0x00010000, 0x0001000);
     RHDRegWrite(Crtc, D2MODE_VIEWPORT_START, (X << 16) | Y);
+    RHDRegMask(Crtc, D2SCL_UPDATE, 0, 0x0001000);
+
+    Crtc->X = X;
+    Crtc->Y = Y;
 }
 
 #define CRTC_SYNC_WAIT 0x100000

@@ -72,6 +72,7 @@ RHDVGASave(RHDPtr rhdPtr)
 	return; /* We don't need to warn , this is intended use */
 
     VGA->Render_Control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
+    VGA->Mode_Control = RHDRegRead(rhdPtr, VGA_MODE_CONTROL);
     VGA->HDP_Control = RHDRegRead(rhdPtr, VGA_HDP_CONTROL);
     VGA->D1_Control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
     VGA->D2_Control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
@@ -132,6 +133,7 @@ RHDVGARestore(RHDPtr rhdPtr)
 	       VGA->FB, VGA->FBSize);
 
     RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, VGA->Render_Control);
+    RHDRegWrite(rhdPtr, VGA_MODE_CONTROL, VGA->Mode_Control);
     RHDRegWrite(rhdPtr, VGA_HDP_CONTROL, VGA->HDP_Control);
     RHDRegWrite(rhdPtr, D1VGA_CONTROL, VGA->D1_Control);
     RHDRegWrite(rhdPtr, D2VGA_CONTROL, VGA->D2_Control);
@@ -146,7 +148,8 @@ RHDVGADisable(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, 0x00030000);
-    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00000010, 0x00000010);
+    RHDRegMask(rhdPtr, VGA_MODE_CONTROL, 0, 0x00000030);
+    RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00010010, 0x00010010);
     RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, 0x00000001);
     RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, 0x00000001);
 }
