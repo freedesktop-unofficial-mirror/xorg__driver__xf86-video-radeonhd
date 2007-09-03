@@ -43,7 +43,7 @@ struct rhd_Crtc {
     int X, Y; /* Current frame */
 
     struct rhd_PLL *PLL; /* Currently attached PLL */
-    int LUT; /* Currently attached LUT */
+    struct rhdLUT *LUT; /* Currently attached LUT */
 
     DisplayModePtr CurrentMode;
     DisplayModePtr Modes; /* Cycle through these */
@@ -57,7 +57,7 @@ struct rhd_Crtc {
     void (*ModeSet) (struct rhd_Crtc *Crtc, DisplayModePtr Mode);
 
     void (*PLLSelect) (struct rhd_Crtc *Crtc, struct rhd_PLL *PLL);
-    void (*LUTSelect) (struct rhd_Crtc *Crtc, int LUT);
+    void (*LUTSelect) (struct rhd_Crtc *Crtc, struct rhdLUT *LUT);
 
     void (*FrameSet) (struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y);
 

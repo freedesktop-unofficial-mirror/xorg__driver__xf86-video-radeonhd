@@ -96,6 +96,27 @@ enum {
     D1GRPH_Y_END                   = 0x6138,
     D1GRPH_UPDATE                  = 0x6144,
 
+    /* LUT */
+    DC_LUT_RW_SELECT               = 0x6480,
+    DC_LUT_RW_MODE                 = 0x6484,
+    DC_LUT_RW_INDEX                = 0x6488,
+    DC_LUT_SEQ_COLOR               = 0x648C,
+    DC_LUT_PWL_DATA                = 0x6490,
+    DC_LUT_30_COLOR                = 0x6494,
+    DC_LUT_READ_PIPE_SELECT        = 0x6498,
+    DC_LUT_WRITE_EN_MASK           = 0x649C,
+    DC_LUT_AUTOFILL                = 0x64A0,
+
+    /* LUTA */
+    DC_LUTA_CONTROL                = 0x64C0,
+    DC_LUTA_BLACK_OFFSET_BLUE      = 0x64C4,
+    DC_LUTA_BLACK_OFFSET_GREEN     = 0x64C8,
+    DC_LUTA_BLACK_OFFSET_RED       = 0x64CC,
+    DC_LUTA_WHITE_OFFSET_BLUE      = 0x64D0,
+    DC_LUTA_WHITE_OFFSET_GREEN     = 0x64D4,
+    DC_LUTA_WHITE_OFFSET_RED       = 0x64D8,
+
+    /* D1MODE */
     D1MODE_DESKTOP_HEIGHT          = 0x652C,
     D1MODE_VIEWPORT_START          = 0x6580,
     D1MODE_VIEWPORT_SIZE           = 0x6584,
@@ -137,6 +158,16 @@ enum {
     D2GRPH_X_END                   = 0x6934,
     D2GRPH_Y_END                   = 0x6938,
 
+    /* LUTB */
+    DC_LUTB_CONTROL                = 0x6CC0,
+    DC_LUTB_BLACK_OFFSET_BLUE      = 0x6CC4,
+    DC_LUTB_BLACK_OFFSET_GREEN     = 0x6CC8,
+    DC_LUTB_BLACK_OFFSET_RED       = 0x6CCC,
+    DC_LUTB_WHITE_OFFSET_BLUE      = 0x6CD0,
+    DC_LUTB_WHITE_OFFSET_GREEN     = 0x6CD4,
+    DC_LUTB_WHITE_OFFSET_RED       = 0x6CD8,
+
+    /* D2MODE */
     D2MODE_DESKTOP_HEIGHT          = 0x6D2C,
     D2MODE_VIEWPORT_START          = 0x6D80,
     D2MODE_VIEWPORT_SIZE           = 0x6D84,

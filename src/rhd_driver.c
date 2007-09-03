@@ -91,6 +91,7 @@
 #include "rhd_hpd.h"
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
+#include "rhd_lut.h"
 
 /* ??? */
 #include "servermd.h"
@@ -230,6 +231,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
+    RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDHPDDestroy(rhdPtr);
 
@@ -368,6 +370,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	/* Check that the returned depth is one we support */
 	switch (pScrn->depth) {
 	case 8:
+	case 15:
 	case 16:
 	case 24:
 	    break;
@@ -440,6 +443,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     RHDCRTCInit(rhdPtr);
     RHDPLLsInit(rhdPtr);
+    RHDLUTsInit(rhdPtr);
 
     /* Output handling needs to wrap itself in HPD handling */
     RHDHPDInit(rhdPtr);
@@ -836,17 +840,28 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
     }
 }
 
+/*
+ *
+ */
 static void
-RHDLoadPalette(
-   ScrnInfoPtr pScrn,
-   int numColors,
-   int *indices,
-   LOCO *colors,
-   VisualPtr pVisual)
+RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
+	       VisualPtr pVisual)
 {
-    /* @@@ load palette code */
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct rhd_Crtc *Crtc;
+
+    Crtc = rhdPtr->Crtc[0];
+    if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active)
+	Crtc->LUT->Set(Crtc->LUT, numColors, indices, colors);
+
+    Crtc = rhdPtr->Crtc[1];
+    if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active)
+	Crtc->LUT->Set(Crtc->LUT, numColors, indices, colors);
 }
 
+/*
+ *
+ */
 static Bool
 rhdSaveScreen(ScreenPtr pScrn, int on)
 {
@@ -990,7 +1005,10 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 	}
 
     rhdPtr->Crtc[0]->PLL = rhdPtr->PLLs[0];
+    rhdPtr->Crtc[0]->LUT = rhdPtr->LUT[0];
+
     rhdPtr->Crtc[1]->PLL = rhdPtr->PLLs[1];
+    rhdPtr->Crtc[1]->LUT = rhdPtr->LUT[1];
 
     return ret;
 }
@@ -1010,8 +1028,8 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
     /* CRTC 1 */
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
-	xf86Msg(X_NONE, "\t%s: tied to %s and LUT A:\n",
-		Crtc->Name, Crtc->PLL->Name);
+	xf86Msg(X_NONE, "\t%s: tied to %s and %s:\n",
+		Crtc->Name, Crtc->PLL->Name, Crtc->LUT->Name);
 
 	Found = FALSE;
 	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
@@ -1035,8 +1053,8 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
     /* CRTC 2 */
     Crtc = rhdPtr->Crtc[1];
     if (Crtc->Active) {
-	xf86Msg(X_NONE, "\t%s: tied to %s and LUT B:\n",
-		Crtc->Name, Crtc->PLL->Name);
+	xf86Msg(X_NONE, "\t%s: tied to %s and %s:\n",
+		Crtc->Name, Crtc->PLL->Name, Crtc->LUT->Name);
 
 	Found = FALSE;
 	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
@@ -1101,11 +1119,11 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->bitsPerPixel, 0);
+		    pScrn->depth, 0);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
-	Crtc->LUTSelect(Crtc, 0);
+	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc->Id);
     }
 
@@ -1113,11 +1131,11 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[1];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->bitsPerPixel, 0);
+		    pScrn->depth, 0);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
-	Crtc->LUTSelect(Crtc, 0);
+	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc->Id);
     }
 
@@ -1151,6 +1169,7 @@ rhdSave(RHDPtr rhdPtr)
     RHDOutputsSave(rhdPtr);
 
     RHDPLLsSave(rhdPtr);
+    RHDLUTsSave(rhdPtr);
 
     rhdPtr->Crtc[0]->Save(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Save(rhdPtr->Crtc[1]);
@@ -1165,6 +1184,7 @@ rhdRestore(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     RHDPLLsRestore(rhdPtr);
+    RHDLUTsRestore(rhdPtr);
 
     rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);

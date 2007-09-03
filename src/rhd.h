@@ -117,6 +117,9 @@ typedef struct RHDRec {
     struct rhd_Crtc     *Crtc[2];
     struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
 
+    struct rhdLUTStore  *LUTStore;
+    struct rhdLUT       *LUT[2];
+
     /* List of output devices:
      * we can go up to 5: DACA, DACB, TMDS, shared LVDS/TMDS, DVO.
      * Will also include displayport when this happens. */

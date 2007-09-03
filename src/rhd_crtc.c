@@ -34,6 +34,7 @@
 #include "rhd.h"
 #include "rhd_crtc.h"
 #include "rhd_pll.h"
+#include "rhd_lut.h"
 #include "rhd_regs.h"
 
 #define D1_REG_OFFSET 0x0000
@@ -93,10 +94,11 @@ DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
 
-     switch (pScrn->bitsPerPixel) {
+    switch (pScrn->bitsPerPixel) {
     case 8:
 	BytesPerPixel = 1;
 	break;
+    case 15:
     case 16:
 	BytesPerPixel = 2;
 	PitchMask /= BytesPerPixel;
@@ -165,6 +167,9 @@ DxFBSet(struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
     switch (bpp) {
     case 8:
 	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0, 0x10703);
+	break;
+    case 15:
+	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x00001, 0x10703);
 	break;
     case 16:
 	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x00101, 0x10703);
@@ -344,11 +349,11 @@ D2PLLSelect(struct rhd_Crtc *Crtc, struct rhd_PLL *PLL)
  *
  */
 static void
-D1LUTSelect(struct rhd_Crtc *Crtc, int LUT)
+D1LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
 {
     RHDFUNC(Crtc);
 
-    RHDRegWrite(Crtc, D1GRPH_LUT_SEL, LUT & 1);
+    RHDRegWrite(Crtc, D1GRPH_LUT_SEL, LUT->Id & 1);
     Crtc->LUT = LUT;
 }
 
@@ -356,11 +361,11 @@ D1LUTSelect(struct rhd_Crtc *Crtc, int LUT)
  *
  */
 static void
-D2LUTSelect(struct rhd_Crtc *Crtc, int LUT)
+D2LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
 {
     RHDFUNC(Crtc);
 
-    RHDRegWrite(Crtc, D2GRPH_LUT_SEL, LUT & 1);
+    RHDRegWrite(Crtc, D2GRPH_LUT_SEL, LUT->Id & 1);
     Crtc->LUT = LUT;
 }
 
