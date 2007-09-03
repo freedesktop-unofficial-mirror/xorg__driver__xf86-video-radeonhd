@@ -428,6 +428,22 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
                pScrn->videoRam);
 
+    rhdPtr->FbFreeStart = 0;
+    rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
+
+    {/* Take off our cursors: move to some cursor structure init. */
+	int size = RHD_FB_CHUNK(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
+
+	/* I love a bit of a challenge, so move start instead of end */
+	rhdPtr->D1CursorOffset = rhdPtr->FbFreeStart;
+	rhdPtr->FbFreeStart += size;
+	rhdPtr->FbFreeSize -= size;
+
+	rhdPtr->D2CursorOffset = rhdPtr->FbFreeStart;
+	rhdPtr->FbFreeStart += size;
+	rhdPtr->FbFreeSize -= size;
+    }
+
     if (RhdAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &arg) == SUCCESS) {
 	biosHandle = arg.ptr;
 	/* for testing functions */
@@ -616,7 +632,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* @@@ do shadow stuff here */
 
     /* init fb */
-    ret = fbScreenInit(pScreen, rhdPtr->FbBase,
+    ret = fbScreenInit(pScreen,
+		       (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
 		       pScrn->virtualX, pScrn->virtualY,
 		       pScrn->xDpi, pScrn->yDpi,
 		       pScrn->displayWidth, pScrn->bitsPerPixel);
@@ -643,23 +660,21 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     xf86SetBlackWhitePixels(pScreen);
 
-    /* reserve space for scanout buffer hw cursor etc.
-       initialize memory manager.*/
-
+    /* initialize memory manager.*/
     {
         BoxRec AvailFBArea;
-        int hwcur = 0/*@@@*/;
-        int lines =  (pScrn->videoRam * 1024 - hwcur) /
-            (pScrn->displayWidth * (pScrn->bitsPerPixel >> 3));
+
         AvailFBArea.x1 = 0;
         AvailFBArea.y1 = 0;
         AvailFBArea.x2 = pScrn->displayWidth;
-        AvailFBArea.y2 = lines;
+        AvailFBArea.y2 = rhdPtr->FbFreeSize /
+	    (pScrn->displayWidth * (pScrn->bitsPerPixel >> 3));
+
         xf86InitFBManager(pScreen, &AvailFBArea);
 
         xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                    "Using %i scanlines of offscreen memory \n",
-                   lines - pScrn->virtualY);
+                   AvailFBArea.y2 - pScrn->virtualY);
     }
 
     /* Initialize 2D accel here */
@@ -1144,7 +1159,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, OFFSET_RESERVED);
+		    pScrn->depth, rhdPtr->FbFreeStart);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
@@ -1156,7 +1171,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[1];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, OFFSET_RESERVED);
+		    pScrn->depth, rhdPtr->FbFreeStart);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);

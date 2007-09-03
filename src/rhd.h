@@ -106,6 +106,12 @@ typedef struct RHDRec {
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbIntAddress; /* card internal address of FB */
 
+    /* Some simplistic memory handling */
+    /* Use this macro to always chew up 4096byte aligned pieces. */
+#define RHD_FB_CHUNK(x)     (((x) + 0xFFF) & ~0xFFF) /* align */
+    unsigned int        FbFreeStart;
+    unsigned int        FbFreeSize;
+
     unsigned int        MMIOMapSize;
     pointer             MMIOBase; /* map base if mmio */
 
@@ -117,6 +123,8 @@ typedef struct RHDRec {
     struct rhd_Cursor_Bits *CursorBits;	/* ARGB if NULL */
     CARD32             *CursorImage;
     int                 CursorWidth, CursorHeight;
+    unsigned int        D1CursorOffset;
+    unsigned int        D2CursorOffset;
 
     CloseScreenProcPtr  CloseScreen;
 

@@ -49,17 +49,9 @@ struct rhd_Crtc {
     DisplayModePtr Modes; /* Cycle through these */
 
     ModeStatus (*FBValid) (struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height,
-			   int bpp, CARD32 Size, CARD32 *pPitch);
-    /* Reserved at the beginning of VRAM */
-#define OFFSET_CURSOR(x) ((x)*4*4096)	/* 64*64*4 */
-#define OFFSET_RESERVED (8*4096)
-// Until actually working
-#undef  OFFSET_CURSOR
-#undef  OFFSET_RESERVED
-#define OFFSET_CURSOR(x) (128*1024*1024-8*4096+(x)*4*4096)
-#define OFFSET_RESERVED (0)
+			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
     void (*FBSet) (struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width,
-		   CARD16 Height, int bpp, int Offset);
+		   CARD16 Height, int bpp, CARD32 Offset);
 
     ModeStatus (*ModeValid) (struct rhd_Crtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhd_Crtc *Crtc, DisplayModePtr Mode);

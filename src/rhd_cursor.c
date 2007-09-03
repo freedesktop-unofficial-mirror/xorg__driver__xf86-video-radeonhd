@@ -52,6 +52,8 @@
 
 #define REG_CUR_OFFSET(x) ((x)*0x200)
 
+#define OFFSET_CURSOR(i) ((i) ? rhdPtr->D2CursorOffset : rhdPtr->D1CursorOffset)
+
 /* Internal interface to RealizeCursor - we need width/height */
 struct rhd_Cursor_Bits {
     int width, height;

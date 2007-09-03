@@ -85,7 +85,7 @@ struct rhd_Crtc_Store {
  */
 static ModeStatus
 DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
-	  CARD32 Size, CARD32 *pPitch)
+	  CARD32 Offset, CARD32 Size, CARD32 *pPitch)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
     CARD16 Pitch;
@@ -93,6 +93,13 @@ DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
     CARD8 PitchMask = 0xFF;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
+
+    /* If we hit this, then the memory claimed so far is not properly aligned */
+    if (Offset & 0xFFF) {
+	xf86DrvMsg(Crtc->scrnIndex, X_ERROR, "%s: Offset (0x%08X) is invalid!\n",
+		   __func__, (int) Offset);
+	return MODE_ERROR;
+    }
 
     switch (pScrn->bitsPerPixel) {
     case 8:
@@ -150,7 +157,7 @@ DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
  */
 static void
 DxFBSet(struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
-	int bpp, int Offset)
+	int bpp, CARD32 Offset)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[Crtc->scrnIndex]);
     CARD16 RegOff;
