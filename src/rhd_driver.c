@@ -408,7 +408,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* We have none of these things yet. */
     rhdPtr->noAccel.val.bool = TRUE;
-    rhdPtr->swCursor.val.bool = TRUE;
 
     /* We need access to IO space already */
     if (!rhdMapMMIO(rhdPtr)) {
@@ -801,6 +800,9 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhd_Crtc *Crtc;
 
+    rhdPtr->FrameX = x;
+    rhdPtr->FrameY = x;
+
     Crtc = rhdPtr->Crtc[0];
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
 	Crtc->FrameSet(Crtc, x, y);
@@ -1119,7 +1121,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, 0);
+		    pScrn->depth, OFFSET_RESERVED);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
@@ -1131,7 +1133,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[1];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, 0);
+		    pScrn->depth, OFFSET_RESERVED);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);

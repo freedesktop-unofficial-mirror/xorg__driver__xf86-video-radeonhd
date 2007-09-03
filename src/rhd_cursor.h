@@ -25,6 +25,9 @@
 #ifndef _RHD_CURSOR_H
 # define _RHD_CURSOR_H
 
+#define MAX_CURSOR_WIDTH  64
+#define MAX_CURSOR_HEIGHT 64
+
 Bool RHDCursorInit(ScreenPtr pScreen);
 void rhdShowCursor(ScrnInfoPtr);
 void rhdHideCursor(ScrnInfoPtr);

@@ -111,6 +111,13 @@ typedef struct RHDRec {
 
     struct _xf86CursorInfoRec  *CursorInfo;
     Bool                HWCursorShown;
+    int                 FrameX, FrameY;
+    int                 CursorX, CursorY; /* TODO: MPX? */
+    CARD32              CursorColor0, CursorColor1;
+    struct rhd_Cursor_Bits *CursorBits;	/* ARGB if NULL */
+    CARD32             *CursorImage;
+    int                 CursorWidth, CursorHeight;
+
     CloseScreenProcPtr  CloseScreen;
 
     struct rhd_VGA      *VGA; /* VGA compatibility HW */

@@ -116,6 +116,14 @@ enum {
     DC_LUTA_WHITE_OFFSET_GREEN     = 0x64D4,
     DC_LUTA_WHITE_OFFSET_RED       = 0x64D8,
 
+    /* D1CUR */
+    D1CUR_CONTROL                  = 0x6400,
+    D1CUR_SURFACE_ADDRESS          = 0x6408,
+    D1CUR_SIZE                     = 0x6410,
+    D1CUR_POSITION                 = 0x6414,
+    D1CUR_HOT_SPOT                 = 0x6418,
+    D1CUR_UPDATE                   = 0x6424,
+
     /* D1MODE */
     D1MODE_DESKTOP_HEIGHT          = 0x652C,
     D1MODE_VIEWPORT_START          = 0x6580,
