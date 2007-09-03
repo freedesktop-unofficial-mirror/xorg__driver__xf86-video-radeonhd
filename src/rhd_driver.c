@@ -818,26 +818,49 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 			     int flags)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct rhd_Output *Output;
+    struct rhd_Crtc *Crtc1, *Crtc2;
 
     if (!pScrn->vtSema)
 	return;
 
+    Crtc1 = rhdPtr->Crtc[0];
+    Crtc2 = rhdPtr->Crtc[1];
+
     switch (PowerManagementMode) {
     case DPMSModeOn:
-	/* Screen: On; HSync: On, VSync: On */
-	RHDOutputsPower(rhdPtr, RHD_POWER_ON);
+	if (Crtc1->Active) {
+	    Crtc1->Power(Crtc1, RHD_POWER_ON);
+
+	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1->Id))
+		    Output->Power(Output, RHD_POWER_ON);
+	}
+
+	if (Crtc2->Active) {
+	    Crtc2->Power(Crtc1, RHD_POWER_ON);
+
+	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2->Id))
+		    Output->Power(Output, RHD_POWER_ON);
+	}
 	break;
     case DPMSModeStandby:
-	/* Screen: Off; HSync: Off, VSync: On */
-	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
-	break;
     case DPMSModeSuspend:
-	/* Screen: Off; HSync: On, VSync: Off */
-	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
-	break;
     case DPMSModeOff:
-	/* Screen: Off; HSync: Off, VSync: Off */
-	RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
+	if (Crtc1->Active) {
+	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1->Id))
+		    Output->Power(Output, RHD_POWER_RESET);
+	    Crtc1->Power(Crtc1, RHD_POWER_RESET);
+	}
+
+	if (Crtc2->Active) {
+	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2->Id))
+		    Output->Power(Output, RHD_POWER_RESET);
+	    Crtc2->Power(Crtc2, RHD_POWER_RESET);
+	}
 	break;
     }
 }
