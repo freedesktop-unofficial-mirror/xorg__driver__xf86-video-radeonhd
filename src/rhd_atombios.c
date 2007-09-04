@@ -297,8 +297,8 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle;
     AtomBIOSArg data;
-    CARD32 fb_base = 0;
-    CARD32 fb_size = 0;
+    unsigned int fb_base = 0;
+    unsigned int fb_size = 0;
 
     if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
 	int length = 1 << rhdPtr->PciInfo->biosSize;
@@ -358,37 +358,39 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = pScrn->scrnIndex;
 	
-    if (RhdAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
+    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
 	== ATOM_SUCCESS) {
+	int videoRam = pScrn->videoRam * 1024;
 	fb_base = data.val;
-	if (RhdAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
+	if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
 	    == ATOM_SUCCESS) {
 	    fb_size = data.val * 1024; /* convert to bytes */
 	    /* 4k align */
-	    fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0); 
-	    if (fb_base + fb_size > rhdPtr->FbMapSize) {
-		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, 
-			   "%s: FW FB scratch area extends beyond mapped size\n",
-			   __func__);
+	    fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0);
+	    if ((fb_base + fb_size) > videoRam) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+			   "%s: FW FB scratch area %i (size: %i)"
+			   " extends beyond framebuffer size %i\n",
+			   __func__, fb_base, fb_size, videoRam);
 	    } else {
-		if (fb_base + fb_size < rhdPtr->FbMapSize) 
-		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, 
+		if ((fb_base + fb_size) < videoRam)
+		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			       "%s: FW FB scratch area not located "
 			       "at the end of VRAM. Scratch End: "
 			       "0x%x VRAM End: 0x%x\n", __func__,
 			       (unsigned int)(fb_base + fb_size),
-			       (unsigned int)rhdPtr->FbMapSize);
+			       videoRam);
 		handle->fbBase = fb_base;
 	    }
 	} else {
 	    handle->fbBase = 0;
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, 
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "%s: No VRAM FW scratch area size specifed!\n",
 		       __func__);
 	}
     } else {
 	handle->fbBase = 0;
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, 
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "%s: No VRAM FW scratch area specifed!\n",
 		   __func__);
     }
@@ -403,14 +405,11 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 }
 
 void
-rhdUninitAtomBIOS(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle)
+rhdTearDownAtomBIOS(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle)
 {
-    atomBIOSHandlePtr myhandle = handle;
-    if (!myhandle)
-	return;
-    xfree(myhandle->BIOSBase);
-    xfree(myhandle->atomDataPtr);
-    xfree(myhandle);
+    xfree(handle->BIOSBase);
+    xfree(handle->atomDataPtr);
+    xfree(handle);
 }
 AtomBiosResult
 rhdAtomBIOSVramInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
@@ -424,6 +423,7 @@ rhdAtomBIOSVramInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFu
 	case GET_FW_FB_START:
 	    *val = atomDataPtr->VRAM_UsageByFirmware
 		->asFirmwareVramReserveInfo[0].ulStartAddrUsedByFirmware;
+	    break;
 	case GET_FW_FB_SIZE:
 	    *val = atomDataPtr->VRAM_UsageByFirmware
 		->asFirmwareVramReserveInfo[0].usFirmwareUseInKb;
@@ -571,11 +571,11 @@ rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSp
 }
 
 AtomBiosResult
-RhdAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
+RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		AtomBIOSArgPtr data)
 {
     AtomBiosResult ret = ATOM_NOT_IMPLEMENTED;
-    CARD32 val;
+    CARD32 val; 
 
     if (func == ATOMBIOS_INIT) {
 	if (!(data->atomp = rhdInitAtomBIOS(pScrn)))
@@ -584,14 +584,16 @@ RhdAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
     }
     if (!handle)
 	return ATOM_FAILED;
-    if (func <= ATOMBIOS_UNINIT) {
-	rhdUninitAtomBIOS(pScrn, handle);
+    if (func <= ATOMBIOS_TEARDOWN) {
+	rhdAtomTearDownBIOS(pScrn, handle);
 	return ATOM_SUCCESS;
     }
     if (func == ATOMBIOS_EXEC) {
 	if (!rhdAtomExec(handle, data->execp.index,
 			 data->execp.pspace, data->execp.dataSpace))
 	    return ATOM_FAILED;
+	else
+	    return ATOM_SUCCESS;
     } else if (func >= ATOM_QUERY_FUNCS && func < ATOM_VRAM_QUERIES) {
 	ret = rhdAtomBIOSFirmwareInfoQuery(pScrn, handle, func, &val);
 	data->val = val;

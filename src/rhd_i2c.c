@@ -396,7 +396,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 }
 
 static void
-rhdI2CTearDown(rhdI2CPtr I2C)
+rhdTearDownI2C(rhdI2CPtr I2C)
 {
     I2CBusPtr *I2CBuses;
     int  i = xf86I2CGetScreenBuses(I2C->scrnIndex, &I2CBuses);
@@ -410,7 +410,7 @@ rhdI2CTearDown(rhdI2CPtr I2C)
 }
 
 static rhdI2CPtr
-rhdI2CInit(int scrnIndex)
+rhdInitI2C(int scrnIndex)
 {
     int i;
     rhdI2CPtr I2C;
@@ -465,14 +465,15 @@ RHDI2CFunc(ScrnInfoPtr pScrn, rhdI2CPtr I2C, RHDi2cFunc func,
 	   RHDI2CDataArgPtr data)
 {
     if (func == RHD_I2C_INIT) {
-	if (!(data->i2cp = rhdI2CInit(pScrn->scrnIndex)))
+	if (!(data->i2cp = rhdInitI2C(pScrn->scrnIndex)))
 	    return RHD_I2C_FAILED;
 	else
 	    return RHD_I2C_SUCCESS;
     }
-    if (!I2C)
-	return RHD_I2C_FAILED;
-    if (func == RHD_I2C_TEARDOWN)
-	rhdI2CTearDown(I2C);
-    return RHD_I2C_SUCCESS;
+    if (func == RHD_I2C_TEARDOWN) {
+	if (I2C)
+	    rhdTearDownI2C(I2C);
+	return RHD_I2C_SUCCESS;
+    }
+    return RHD_I2C_FAILED;
 }

@@ -92,6 +92,7 @@
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
 #include "rhd_lut.h"
+#include "rhd_i2c.h"
 
 /* ??? */
 #include "servermd.h"
@@ -234,7 +235,9 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
-
+    RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
+    RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_TEARDOWN, NULL);
+    
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -308,7 +311,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     EntityInfoPtr pEnt = NULL;
     pointer biosHandle = NULL;
     Bool ret = FALSE;
-    AtomBIOSArg arg;
+    AtomBIOSArg atomBiosArg;
+    RHDI2CDataArg i2cArg;
+    
     RHDOpt tmpOpt;
     DisplayModePtr Modes;
 
@@ -452,15 +457,23 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->FbFreeSize -= size;
     }
 
-    if (RhdAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &arg) == ATOM_SUCCESS) {
-	biosHandle = arg.ptr;
+    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) == ATOM_SUCCESS) {
+	rhdPtr->atomBIOS = atomBiosArg.ptr;
 	/* for testing functions */
-	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PLL_CLOCK, &arg);
-	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MIN_PLL_CLOCK, &arg);
-	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PIXEL_CLK, &arg);
-	RhdAtomBIOSFunc(pScrn, biosHandle, GET_REF_CLOCK, &arg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PLL_CLOCK, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MIN_PLL_CLOCK, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PIXEL_CLK, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_REF_CLOCK, &atomBiosArg);
     }
 
+    if (xf86LoadSubModule(pScrn, "i2c")) {
+	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS)
+	    rhdPtr->I2C = i2cArg.i2cp;
+	else 
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "I2C init failed\n");
+    } else
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Failed to load I2C module\n");
+    
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
 
@@ -498,7 +511,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rgb zeros = {0, 0, 0};
 
 	if (!xf86SetWeight(pScrn, zeros, zeros)) {
-	    goto error2;
+	    goto error1;
 	} else {
 	    /* XXX check that weight returned is supported */
 	    ;
@@ -506,14 +519,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     if (!xf86SetDefaultVisual(pScrn, -1)) {
-	goto error2;
+	goto error1;
     } else {
         /* We don't currently support DirectColor at > 8bpp */
         if (pScrn->depth > 8 && pScrn->defaultVisual != TrueColor) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Given default visual"
                        " (%s) is not supported at depth %d\n",
                        xf86GetVisualName(pScrn->defaultVisual), pScrn->depth);
-	    goto error2;
+	    goto error1;
         }
     }
 
@@ -522,7 +535,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
         /* @@@ */
 	if (!xf86SetGamma(pScrn, zeros)) {
-	    goto error2;
+	    goto error1;
 	}
     }
 
@@ -533,13 +546,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
         if (!RHDGetVirtualFromConfig(pScrn)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Unable to find valid framebuffer dimensions\n");
-	    goto error2;
+	    goto error1;
 	}
 
     Modes = RHDModesPoolCreate(pScrn, FALSE);
     if (!Modes) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
-	goto error2;
+	goto error1;
     }
 
     if (!pScrn->virtualX || !pScrn->virtualY)
@@ -556,22 +569,20 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86SetDpi(pScrn, 0, 0);
 
     if (xf86LoadSubModule(pScrn, "fb") == NULL) {
-	goto error2;
+	goto error1;
     }
 
     if (!xf86LoadSubModule(pScrn, "xaa")) {
-	goto error2;
+	goto error1;
     }
 
     if (!rhdPtr->swCursor.val.bool) {
 	if (!xf86LoadSubModule(pScrn, "ramdac")) {
-	    goto error2;
+	    goto error1;
 	}
     }
     ret = TRUE;
 
- error2:
-    RhdAtomBIOSFunc(pScrn, biosHandle, ATOMBIOS_UNINIT, NULL);
  error1:
     rhdUnmapMMIO(rhdPtr);
  error0:

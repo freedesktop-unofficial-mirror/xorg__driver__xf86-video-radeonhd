@@ -22,6 +22,4 @@ typedef enum {
 RHDI2CResult
 RHDI2CFunc(ScrnInfoPtr pScrn, rhdI2CPtr I2C, RHDi2cFunc func,
 			RHDI2CDataArgPtr data);
-
-
 #endif

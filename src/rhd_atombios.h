@@ -30,15 +30,15 @@
 
 typedef enum {
     ATOMBIOS_INIT,
-    ATOMBIOS_UNINIT,
+    ATOMBIOS_TEARDOWN,
     ATOMBIOS_EXEC,
     ATOM_QUERY_FUNCS = 0x1000,
     GET_MAX_PLL_CLOCK = ATOM_QUERY_FUNCS,
     GET_MIN_PLL_CLOCK,
     GET_MAX_PIXEL_CLK,
     GET_REF_CLOCK,
-    ATOM_VRAM_QUERIES = GET_REF_CLOCK,
-    GET_FW_FB_START,
+    ATOM_VRAM_QUERIES,
+    GET_FW_FB_START = ATOM_VRAM_QUERIES,
     GET_FW_FB_SIZE,
     FUNC_END
 } AtomBiosFunc;
@@ -55,7 +55,7 @@ typedef struct {
     pointer *dataSpace;
 } AtomExec, AtomExecPtr;
 
-typedef union 
+typedef union
 {
     CARD32 val;
     pointer ptr;
@@ -65,7 +65,7 @@ typedef union
 
 
 extern AtomBiosResult
-RhdAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
+RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
 #endif /*  RHD_ATOMBIOS_H_ */
