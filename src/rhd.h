@@ -84,6 +84,8 @@ struct rhd_card {
 #define RHD_POWER_RESET    1   /* off temporarily */
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
 
+typedef struct _rhdI2CRec *rhdI2CPtr;
+
 typedef struct _RHDopt {
     Bool set;
     union  {
@@ -133,7 +135,9 @@ typedef struct RHDRec {
     unsigned int        D2CursorOffset;
 
     CloseScreenProcPtr  CloseScreen;
-
+    
+    rhdI2CPtr		I2C;  /* I2C handle */
+    
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
     struct rhd_Crtc     *Crtc[2];
     struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
@@ -175,6 +179,7 @@ void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
 #define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
 void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 #define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
+#define regOR(handle, offset, value) RHDRegMask((handle), (offset), (value), (value))
 
 /* Extra debugging verbosity: decimates gdb usage */
 

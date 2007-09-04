@@ -25,6 +25,11 @@
 # define _RHD_REGS_H
 
 enum {
+    CLOCK_CNTL_INDEX      =       0x8,  /* (RW) */
+    CLOCK_CNTL_DATA       =       0xC,  /* (RW) */
+    MC_IND_INDEX	  =       0x70, /* (RW) */
+    MC_IND_DATA           =       0x74, /* (RW) */
+
     R5XX_CONFIG_MEMSIZE            = 0x00F8,
 
     R5XX_FB_INTERNAL_ADDRESS       = 0x0134,
@@ -226,14 +231,64 @@ enum {
     DACB_COMPARATOR_OUTPUT         = 0x7A60,
 
     /* I2C */
-    DC_I2C_CONTROL                 = 0x7D30,
-    DC_I2C_DDC1_SETUP              = 0x7D50,
+    DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
+    DC_I2C_ARBITRATION             = 0x7D34,  /* (RW) */
+    DC_I2C_INTERRUPT_CONTROL       = 0x7D38,  /* (RW) */
+    DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) */
+    DC_I2C_DDC1_SPEED              = 0x7D4C,  /* (RW) */
+    DC_I2C_DDC1_SETUP              = 0x7D50,  /* (RW) */
+    DC_I2C_DDC2_SPEED              = 0x7D54,  /* (RW) */
+    DC_I2C_DDC2_SETUP              = 0x7D58,  /* (RW) */
+    DC_I2C_DDC3_SPEED              = 0x7D5C,  /* (RW) */
+    DC_I2C_DDC3_SETUP              = 0x7D60,  /* (RW) */
+    DC_I2C_TRANSACTION0            = 0x7D64,  /* (RW) */
+    DC_I2C_TRANSACTION1            = 0x7D68,  /* (RW) */
+    DC_I2C_DATA                    = 0x7D74,  /* (RW) */
+    DC_I2C_DDC4_SPEED              = 0x7DB4,  /* (RW) */
+    DC_I2C_DDC4_SETUP              = 0x7DBC,  /* (RW) */
+    DC_GPIO_DDC4_MASK              = 0x7E00,  /* (RW) */
+    DC_GPIO_DDC4_A                 = 0x7E04,  /* (RW) */
+    DC_GPIO_DDC4_EN                = 0x7E08,  /* (RW) */
+    DC_GPIO_DDC1_MASK              = 0x7E40,  /* (RW) */
+    DC_GPIO_DDC1_A                 = 0x7E44,  /* (RW) */
+    DC_GPIO_DDC1_EN                = 0x7E48,  /* (RW) */
+    DC_GPIO_DDC1_Y                 = 0x7E4C,  /* (RW) */
+    DC_GPIO_DDC2_MASK              = 0x7E50,  /* (RW) */
+    DC_GPIO_DDC2_A                 = 0x7E54,  /* (RW) */
+    DC_GPIO_DDC2_EN                = 0x7E58,  /* (RW) */
+    DC_GPIO_DDC2_Y                 = 0x7E5C,  /* (RW) */
+    DC_GPIO_DDC3_MASK              = 0x7E60,  /* (RW) */
+    DC_GPIO_DDC3_A                 = 0x7E64,  /* (RW) */
+    DC_GPIO_DDC3_EN                = 0x7E68,  /* (RW) */
+    DC_GPIO_DDC3_Y                 = 0x7E6C,  /* (RW) */
 
     /* HPD */
     DC_GPIO_HPD_MASK               = 0x7E90,
     DC_GPIO_HPD_A                  = 0x7E94,
     DC_GPIO_HPD_EN                 = 0x7E98,
     DC_GPIO_HPD_Y                  = 0x7E9C
+};
+
+enum {
+    /* CLOCK_CNTL_INDEX */
+    PLL_ADDR     = (0x3f << 0),
+    PLL_WR_EN    = (0x1 << 7),
+    PPLL_DIV_SEL         = (0x3 << 8),
+    /* CLOCK_CNTL_DATA */
+    PLL_DATA     = (0xffffffff << 0),
+    /* MC_IND_INDEX */
+    MC_IND_ADDR		 = (0xffff << 0),
+    MC_IND_SEQ_RBS_0     = (0x1 << 16),
+    MC_IND_SEQ_RBS_1     = (0x1 << 17),
+    MC_IND_SEQ_RBS_2     = (0x1 << 18),
+    MC_IND_SEQ_RBS_3     = (0x1 << 19),
+    MC_IND_AIC_RBS       = (0x1 << 20),
+    MC_IND_CITF_ARB0     = (0x1 << 21),
+    MC_IND_CITF_ARB1     = (0x1 << 22),
+    MC_IND_WR_EN         = (0x1 << 23),
+    MC_IND_RD_INV        = (0x1 << 24),
+    /* MC_IND_DATA */
+    MC_IND_DATA_BIT      = (0xffffffff << 0)
 };
 
 #endif /* _RHD_REGS_H */

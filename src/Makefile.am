@@ -4,7 +4,7 @@ radeonhd_drv_la_LDFLAGS = -module -avoid-version
 radeonhd_drv_ladir = @moduledir@/drivers
 
 radeonhd_drv_la_SOURCES = \
-	rhd_atombios.c \
+	rhd_i2c.c \
 	rhd_crtc.c \
 	rhd_connector.c \
 	rhd_cursor.c \
@@ -19,7 +19,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_tmds.c \
 	rhd_vga.c \
 	rhd.h \
-	rhd_atombios.h \
+	rhd_i2c.h \
 	rhd_crtc.h \
 	rhd_connector.h \
 	rhd_cursor.h \
