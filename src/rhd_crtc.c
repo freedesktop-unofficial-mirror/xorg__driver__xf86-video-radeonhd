@@ -384,8 +384,10 @@ D1ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
 {
     RHDFUNC(Crtc);
 
-    /* not as granular as docs make it seem to be. */
-    X &= ~0x03;
+    /* not as granular as docs make it seem to be.
+     * if the lower two bits are set the line buffer might screw up, requiring
+     * a power cycle. */
+    X = (X + 0x02) & ~0x03;
     Y &= ~0x01;
 
     RHDRegMask(Crtc, D1SCL_UPDATE, 0x00010000, 0x0001000);
@@ -405,7 +407,7 @@ D2ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
     RHDFUNC(Crtc);
 
     /* not as granular as docs make it seem to be. */
-    X &= ~0x03;
+    X = (X + 0x02) & ~0x03;
     Y &= ~0x01;
 
     RHDRegMask(Crtc, D2SCL_UPDATE, 0x00010000, 0x0001000);
