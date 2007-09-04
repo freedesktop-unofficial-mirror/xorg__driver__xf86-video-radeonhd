@@ -50,7 +50,7 @@
 #include <assert.h>
 
 
-#define REG_CUR_OFFSET(x) ((x)*0x200)
+#define REG_CUR_OFFSET(x) ((x)*0x800)
 
 #define OFFSET_CURSOR(i) ((i) ? rhdPtr->D2CursorOffset : rhdPtr->D1CursorOffset)
 
@@ -85,7 +85,8 @@ unlockCursor(RHDPtr rhdPtr, int regoffset)
 }
 
 /* RadeonHD has hardware support for hotspots, but doesn't allow negative
- * cursor coordinates. Emulated in rhdSetCursorPosition. */
+ * cursor coordinates. Emulated in rhdShowCursor.
+ * Coordinates are absolute, not relative to visible fb portion. */
 static void
 setCursorPos(RHDPtr rhdPtr, int regoffset, unsigned int x, unsigned int y,
 	     unsigned int hotx, unsigned int hoty)
@@ -202,15 +203,22 @@ rhdShowCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
-    rhdPtr->HWCursorShown = TRUE;
-
     for (i = 0; i < 2; i++) {
 	struct rhd_Crtc *Crtc = rhdPtr->Crtc[i];
+	lockCursor  (rhdPtr, REG_CUR_OFFSET(i));
 	if (cursorVisible (rhdPtr, Crtc, rhdPtr->CursorX, rhdPtr->CursorY)) {
-	    lockCursor  (rhdPtr, REG_CUR_OFFSET(i));
 	    enableCursor(rhdPtr, REG_CUR_OFFSET(i));
-	    unlockCursor(rhdPtr, REG_CUR_OFFSET(i));
-	}
+	    /* Hardware doesn't allow negative cursor pos. Use hardware
+	     * hotspot support for that. Cannot exceed width, but cursor is
+	     * not visible in this case. */
+	    setCursorPos(rhdPtr, REG_CUR_OFFSET(i),
+			 rhdPtr->CursorX >= 0 ? rhdPtr->CursorX : 0,
+			 rhdPtr->CursorY >= 0 ? rhdPtr->CursorY : 0,
+			 rhdPtr->CursorX >= 0 ? 0 : -rhdPtr->CursorX,
+			 rhdPtr->CursorY >= 0 ? 0 : -rhdPtr->CursorY);
+	} else
+	    disableCursor(rhdPtr, REG_CUR_OFFSET(i));
+	unlockCursor(rhdPtr, REG_CUR_OFFSET(i));
     }
 }
 
@@ -219,8 +227,6 @@ rhdHideCursor(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
-
-    rhdPtr->HWCursorShown = FALSE;
 
     for (i = 0; i < 2; i++) {
 	lockCursor   (rhdPtr, REG_CUR_OFFSET(i));
@@ -233,29 +239,11 @@ static void
 rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    int i;
 
     /* Given cursor pos is always relative to frame - make absolute here */
-    rhdPtr->CursorX = x + rhdPtr->FrameX;
-    rhdPtr->CursorY = y + rhdPtr->FrameY;
-
-    for (i = 0; i < 2; i++) {
-	struct rhd_Crtc *Crtc = rhdPtr->Crtc[i];
-	lockCursor  (rhdPtr, REG_CUR_OFFSET(i));
-	if (cursorVisible(rhdPtr, Crtc, rhdPtr->CursorX, rhdPtr->CursorY)) {
-	    int cx   = rhdPtr->CursorX - Crtc->X;
-	    int cy   = rhdPtr->CursorY - Crtc->Y;
-	    enableCursor(rhdPtr, REG_CUR_OFFSET(i));
-	    /* Hardware doesn't allow negative cursor pos. Use hardware
-	     * hotspot support for that. Cannot exceed width, but cursor is
-	     * not visible in this case. */
-	    setCursorPos(rhdPtr, REG_CUR_OFFSET(i),
-			 cx >= 0 ? cx : 0,   cy >= 0 ? cy : 0,
-			 cx >= 0 ? 0  : -cx, cy >= 0 ? 0  : -cy);
-	} else
-	    disableCursor(rhdPtr, REG_CUR_OFFSET(i));
-	unlockCursor(rhdPtr, REG_CUR_OFFSET(i));
-    }
+    rhdPtr->CursorX = x + pScrn->frameX0;
+    rhdPtr->CursorY = y + pScrn->frameY0;
+    rhdShowCursor (pScrn);
 }
 
 static void
@@ -404,6 +392,7 @@ RHDCursorInit(ScreenPtr pScreen)
     }
     rhdPtr->CursorInfo   = infoPtr;
     rhdPtr->CursorImage  = xalloc(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
+    xf86DrvMsg(pScrn->scrnIndex,X_INFO,"Using HW cursor\n");
 
     return TRUE;
 }

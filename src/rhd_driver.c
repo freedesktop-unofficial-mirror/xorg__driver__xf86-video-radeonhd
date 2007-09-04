@@ -776,8 +776,7 @@ RHDEnterVT(int scrnIndex, int flags)
 
     /* @@@ video overlays can be initialized here */
 
-    if (rhdPtr->CursorInfo)
-	rhdShowCursor(pScrn);
+    /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
     return TRUE;
@@ -815,9 +814,6 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhd_Crtc *Crtc;
 
-    rhdPtr->FrameX = x;
-    rhdPtr->FrameY = x;
-
     Crtc = rhdPtr->Crtc[0];
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
 	Crtc->FrameSet(Crtc, x, y);
@@ -825,6 +821,9 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     Crtc = rhdPtr->Crtc[1];
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
 	Crtc->FrameSet(Crtc, x, y);
+
+    if (rhdPtr->CursorInfo)
+	rhdShowCursor(pScrn);
 }
 
 static void

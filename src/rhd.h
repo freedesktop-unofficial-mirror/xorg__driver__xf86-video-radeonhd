@@ -116,13 +116,11 @@ typedef struct RHDRec {
     pointer             MMIOBase; /* map base if mmio */
 
     struct _xf86CursorInfoRec  *CursorInfo;
-    Bool                HWCursorShown;
-    int                 FrameX, FrameY;
-    int                 CursorX, CursorY; /* TODO: MPX? */
+    struct rhd_Cursor_Bits     *CursorBits; /* ARGB if NULL */
     CARD32              CursorColor0, CursorColor1;
-    struct rhd_Cursor_Bits *CursorBits;	/* ARGB if NULL */
     CARD32             *CursorImage;
-    int                 CursorWidth, CursorHeight;
+    int                 CursorWidth,  CursorHeight;
+    int                 CursorX,      CursorY;
     unsigned int        D1CursorOffset;
     unsigned int        D2CursorOffset;
 
