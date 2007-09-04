@@ -32,8 +32,8 @@
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 
-static void
-rhdOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
+void
+RHDOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
 {
     struct rhd_Output *Last = rhdPtr->Outputs;
 
@@ -55,44 +55,7 @@ rhdOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
  *
  */
 void
-RHDOutputsInit(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    rhdOutputAdd(rhdPtr, RHDDACAInit(rhdPtr));
-    rhdOutputAdd(rhdPtr, RHDDACBInit(rhdPtr));
-    rhdOutputAdd(rhdPtr, RHDTMDSAInit(rhdPtr));
-}
-
-/*
- *
- */
-Bool
-RHDOutputsSense(RHDPtr rhdPtr)
-{
-    struct rhd_Output *Output = rhdPtr->Outputs;
-    Bool Attached = FALSE;
-
-    RHDFUNC(rhdPtr);
-
-    while (Output) {
-	if (Output->Sense) {
-	    if (Output->Sense(Output))
-		Attached = TRUE;
-	} else
-	    Attached = TRUE;
-
-	Output = Output->Next;
-    }
-
-    return Attached;
-}
-
-/*
- *
- */
-void
-RHDOutputsMode(RHDPtr rhdPtr, int Crtc)
+RHDOutputsMode(RHDPtr rhdPtr, struct rhd_Crtc *Crtc)
 {
     struct rhd_Output *Output = rhdPtr->Outputs;
 

@@ -6,11 +6,11 @@ radeonhd_drv_ladir = @moduledir@/drivers
 radeonhd_drv_la_SOURCES = \
 	rhd_atombios.c \
 	rhd_crtc.c \
+	rhd_connector.c \
 	rhd_cursor.c \
 	rhd_dac.c \
 	rhd_driver.c \
 	rhd_helper.c \
-	rhd_hpd.c \
 	rhd_id.c \
 	rhd_lut.c \
 	rhd_modes.c \
@@ -21,8 +21,8 @@ radeonhd_drv_la_SOURCES = \
 	rhd.h \
 	rhd_atombios.h \
 	rhd_crtc.h \
+	rhd_connector.h \
 	rhd_cursor.h \
-	rhd_hpd.h \
 	rhd_lut.h \
 	rhd_modes.h \
 	rhd_output.h \

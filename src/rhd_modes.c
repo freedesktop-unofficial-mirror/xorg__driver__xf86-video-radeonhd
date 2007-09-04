@@ -419,10 +419,11 @@ rhdModeDelete(DisplayModePtr Modes, DisplayModePtr Delete)
 	Delete->next = NULL;
 
     Next = Delete->next;
+    Previous = Delete->prev;
+
     if (Next)
 	Next->prev = Previous;
 
-    Previous = Delete->prev;
     if (Previous)
 	Previous->next = Next;
 
@@ -734,7 +735,7 @@ rhdModeValidateCrtc(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
             continue;
 
         for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-            if (Output->Active && (Output->Crtc == Crtc->Id)) {
+            if (Output->Active && (Output->Crtc == Crtc)) {
                 Status = Output->ModeValid(Output, Mode);
                 if (Status != MODE_OK)
                     return Status;

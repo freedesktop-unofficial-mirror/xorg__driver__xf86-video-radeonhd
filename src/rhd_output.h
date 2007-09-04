@@ -25,6 +25,13 @@
 #ifndef _RHD_OUTPUT_H
 #define _RHD_OUTPUT_H
 
+/* Also needed for connector -> output mapping */
+#define RHD_OUTPUT_NONE  0
+#define RHD_OUTPUT_DACA  1
+#define RHD_OUTPUT_DACB  2
+#define RHD_OUTPUT_TMDSA 3
+#define RHD_OUTPUT_LVTMA 4
+
 /*
  *
  * This structure should deal with everything output related.
@@ -34,25 +41,16 @@ struct rhd_Output {
     struct rhd_Output *Next;
 
     int scrnIndex;
-    RHDPtr rhdPtr;
 
     char *Name;
-#define RHD_CRTC_D1    0
-#define RHD_CRTC_D2    1
-    int Crtc;
-    int Type;
-    int Connector;
-    int Active;
+    int Id;
 
-    /* xf86I2CBus *DDCBus; */
+    Bool Active;
 
-    /* TODO: xf86i2cDev for DVO;
-     * monitor/display handling: restrictions, modelist, modelist handling.
-     */
-    /* DisplayModePtr Modes; */
-    /* ... */
+    struct rhd_Crtc *Crtc;
+    struct rhdConnector *Connector;
 
-    Bool (*Sense) (struct rhd_Output *Output);
+    Bool (*Sense) (struct rhd_Output *Output, int Type);
     ModeStatus (*ModeValid) (struct rhd_Output *Output, DisplayModePtr Mode);
     void (*Mode) (struct rhd_Output *Output);
     void (*Power) (struct rhd_Output *Output, int Power);
@@ -64,16 +62,15 @@ struct rhd_Output {
     void *Private;
 };
 
-Bool RHDOutputsSense(RHDPtr rhdPtr);
-void RHDOutputsMode(RHDPtr rhdPtr, int Crtc);
+void RHDOutputAdd(RHDPtr rhdPtr, struct rhd_Output *Output);
+void RHDOutputsMode(RHDPtr rhdPtr, struct rhd_Crtc *Crtc);
 void RHDOutputsPower(RHDPtr rhdPtr, int Power);
 void RHDOutputsShutdownInactive(RHDPtr rhdPtr);
 void RHDOutputsSave(RHDPtr rhdPtr);
 void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
-void RHDOutputsInit(RHDPtr rhdPtr);
 
-/* rhd_dac.c */
+/* output local functions. */
 struct rhd_Output *RHDDACAInit(RHDPtr rhdPtr);
 struct rhd_Output *RHDDACBInit(RHDPtr rhdPtr);
 struct rhd_Output *RHDTMDSAInit(RHDPtr rhdPtr);

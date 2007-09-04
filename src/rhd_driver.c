@@ -88,7 +88,7 @@
 #include "rhd_output.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
-#include "rhd_hpd.h"
+#include "rhd_connector.h"
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
 #include "rhd_lut.h"
@@ -233,7 +233,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDPLLsDestroy(rhdPtr);
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
-    RHDHPDDestroy(rhdPtr);
+    RHDConnectorsDestroy(rhdPtr);
 
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
@@ -406,6 +406,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "Detected an %s on an "
 		   "unidentified card\n", pScrn->chipset);
 
+    /* TODO: generic connector handling */
+    if (!rhdPtr->Card) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Cannot map connectors on an unknown card!\n"
+		   "To help rectify this, please send your X log to MAILINGLIST.\n");
+	goto error0;
+    }
+
     /* We have none of these things yet. */
     rhdPtr->noAccel.val.bool = TRUE;
 
@@ -460,14 +468,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
 
-    /* Output handling needs to wrap itself in HPD handling */
-    RHDHPDInit(rhdPtr);
-    RHDHPDSave(rhdPtr);
-    RHDHPDSet(rhdPtr);
-
-    RHDOutputsInit(rhdPtr);
-
-    RHDHPDRestore(rhdPtr);
+    if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Card information has invalid connector information\n");
+	goto error2;
+    }
 
     /* Pick anything for now */
     if (!rhdModeLayoutSelect(rhdPtr)) {
@@ -847,7 +852,7 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc1->Power(Crtc1, RHD_POWER_ON);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc1->Id))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
 		    Output->Power(Output, RHD_POWER_ON);
 	}
 
@@ -855,7 +860,7 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc2->Power(Crtc1, RHD_POWER_ON);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc2->Id))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
 		    Output->Power(Output, RHD_POWER_ON);
 	}
 	break;
@@ -864,14 +869,14 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
     case DPMSModeOff:
 	if (Crtc1->Active) {
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc1->Id))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
 		    Output->Power(Output, RHD_POWER_RESET);
 	    Crtc1->Power(Crtc1, RHD_POWER_RESET);
 	}
 
 	if (Crtc2->Active) {
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc2->Id))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
 		    Output->Power(Output, RHD_POWER_RESET);
 	    Crtc2->Power(Crtc2, RHD_POWER_RESET);
 	}
@@ -1024,32 +1029,97 @@ static Bool
 rhdModeLayoutSelect(RHDPtr rhdPtr)
 {
     struct rhd_Output *Output;
-    Bool ret = FALSE;
-    int i = 0;
+    struct rhdConnector *Connector;
+    Bool Found = FALSE;
+    int i = 0, j;
 
     RHDFUNC(rhdPtr);
 
-    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-	if (Output->Sense && !Output->Sense(Output))
-	    Output->Active = FALSE;
-	else {
-	    Output->Active = TRUE;
-
-	    ret = TRUE;
-
-	    Output->Crtc = i & 1; /* ;) */
-	    i++;
-
-	    rhdPtr->Crtc[Output->Crtc]->Active = TRUE;
-	}
-
+    /* housekeeping */
     rhdPtr->Crtc[0]->PLL = rhdPtr->PLLs[0];
     rhdPtr->Crtc[0]->LUT = rhdPtr->LUT[0];
 
     rhdPtr->Crtc[1]->PLL = rhdPtr->PLLs[1];
     rhdPtr->Crtc[1]->LUT = rhdPtr->LUT[1];
 
-    return ret;
+    /* start layout afresh */
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+	Output->Active = FALSE;
+	Output->Crtc = NULL;
+	Output->Connector = NULL;
+    }
+
+    /* Check on the basis of Connector->HPD */
+    for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
+	Connector = rhdPtr->Connector[i];
+
+	if (!Connector)
+	    continue;
+
+	if (Connector->HPDCheck) {
+	    if (Connector->HPDCheck(Connector)) {
+		Connector->HPDAttached = TRUE;
+
+		/* First, try to sense */
+		for (j = 0; j < 2; j++) {
+		    Output = Connector->Output[j];
+		    if (Output && Output->Sense &&
+			Output->Sense(Output, Connector->Type)) {
+			Output->Connector = Connector;
+			break;
+		    }
+		}
+
+		if (j == 2) {
+		    /* now just enable the ones without sensing */
+		    for (j = 0; j < 2; j++) {
+			Output = Connector->Output[j];
+			if (Output && !Output->Sense) {
+			    Output->Connector = Connector;
+			    break;
+			}
+		    }
+		}
+	    } else
+		Connector->HPDAttached = FALSE;
+	} else {
+	    /* First, try to sense */
+	    for (j = 0; j < 2; j++) {
+		Output = Connector->Output[j];
+		if (Output && Output->Sense &&
+		    Output->Sense(Output, Connector->Type)) {
+		    Output->Connector = Connector;
+		    break;
+		}
+	    }
+
+	    if (j == 2) {
+		/* now just enable the ones without sensing */
+		for (j = 0; j < 2; j++) {
+		    Output = Connector->Output[j];
+		    if (Output && !Output->Sense) {
+			Output->Connector = Connector;
+			break;
+		    }
+		}
+	    }
+	}
+    }
+
+    j = 0;
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+	if (Output->Connector) {
+	    Found = TRUE;
+
+	    Output->Active = TRUE;
+
+	    Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
+	    j++;
+
+	    Output->Crtc->Active = TRUE;
+	}
+
+    return Found;
 }
 
 /*
@@ -1072,12 +1142,14 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
 
 	Found = FALSE;
 	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-	    if (Output->Active && (Output->Crtc == Crtc->Id)) {
+	    if (Output->Active && (Output->Crtc == Crtc)) {
 		if (!Found) {
-		    xf86Msg(X_NONE, "\t\tOutputs: %s", Output->Name);
+		    xf86Msg(X_NONE, "\t\tOutputs: %s (%s)",
+			    Output->Name, Output->Connector->Name);
 		    Found = TRUE;
 		} else
-		    xf86Msg(X_NONE, ", %s", Output->Name);
+		    xf86Msg(X_NONE, ", %s (%s)", Output->Name,
+			    Output->Connector->Name);
 	    }
 
 	if (!Found)
@@ -1097,12 +1169,14 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
 
 	Found = FALSE;
 	for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-	    if (Output->Active && (Output->Crtc == Crtc->Id)) {
+	    if (Output->Active && (Output->Crtc == Crtc)) {
 		if (!Found) {
-		    xf86Msg(X_NONE, "\t\tOutputs: %s", Output->Name);
+		    xf86Msg(X_NONE, "\t\tOutputs: %s (%s)",
+			    Output->Name, Output->Connector->Name);
 		    Found = TRUE;
 		} else
-		    xf86Msg(X_NONE, ", %s", Output->Name);
+		    xf86Msg(X_NONE, ", %s (%s)", Output->Name,
+			    Output->Connector->Name);
 	    }
 
 	if (!Found)
@@ -1119,7 +1193,7 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
     for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 	if (!Output->Active) {
 	    if (!Found) {
-		xf86Msg(X_NONE, "\tUnused Outputs: %s", Output->Name);
+		xf86Msg(X_NONE, "\t\tUnused Outputs: %s", Output->Name);
 		Found = TRUE;
 	    } else
 		xf86Msg(X_NONE, ", %s", Output->Name);
@@ -1163,7 +1237,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc->Id);
+	RHDOutputsMode(rhdPtr, Crtc);
     }
 
     /* Set up D2 and appendages */
@@ -1175,7 +1249,7 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc->Id);
+	RHDOutputsMode(rhdPtr, Crtc);
     }
 
     /* shut down that what we don't use */

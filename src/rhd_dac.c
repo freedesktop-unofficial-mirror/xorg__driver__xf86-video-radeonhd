@@ -33,7 +33,10 @@
 
 #include "rhd.h"
 #include "rhd_output.h"
+#include "rhd_crtc.h"
+#include "rhd_connector.h"
 #include "rhd_regs.h"
+
 
 #define REG_DACA_OFFSET 0
 #define REG_DACB_OFFSET 0x200
@@ -115,12 +118,12 @@ DACASense(struct rhd_Output *Output, Bool TV)
  * TV detection is for later.
  */
 static Bool
-DACASenseCRT(struct rhd_Output *Output)
+DACASenseCRT(struct rhd_Output *Output, int Type)
 {
     RHDFUNC(Output);
 
-    if (DACASense(Output, FALSE))
-	return TRUE;
+    if (Type != RHD_CONNECTOR_TV)
+	return (DACASense(Output, FALSE) & 0xFF);
     else
 	return FALSE;
 }
@@ -191,12 +194,12 @@ DACBSense(struct rhd_Output *Output, Bool TV)
  * TV detection is for later.
  */
 static Bool
-DACBSenseCRT(struct rhd_Output *Output)
+DACBSenseCRT(struct rhd_Output *Output, int Type)
 {
     RHDFUNC(Output);
 
-    if (DACBSense(Output, FALSE))
-	return TRUE;
+    if (Type != RHD_CONNECTOR_TV)
+	return (DACBSense(Output, FALSE) & 0xFF);
     else
 	return FALSE;
 }
@@ -225,7 +228,7 @@ static inline void
 DACSet(struct rhd_Output *Output, CARD16 offset)
 {
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
-    RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc, 0x00000001);
+    RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc->Id, 0x00000001);
     RHDRegMask(Output, offset + DACA_CONTROL1, 0x00000002, 0x00000003);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000001);
 }
@@ -414,13 +417,8 @@ RHDDACAInit(RHDPtr rhdPtr)
     Output = xnfcalloc(sizeof(struct rhd_Output), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
-    Output->rhdPtr = rhdPtr;
     Output->Name = "DAC A";
-    /*
-      int Type;
-      int Connector;
-      int Active;
-    */
+    Output->Id = RHD_OUTPUT_DACA;
 
     Output->Sense = DACASenseCRT;
     Output->ModeValid = DACModeValid;
@@ -450,13 +448,8 @@ RHDDACBInit(RHDPtr rhdPtr)
     Output = xnfcalloc(sizeof(struct rhd_Output), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
-    Output->rhdPtr = rhdPtr;
     Output->Name = "DAC B";
-    /*
-      int Type;
-      int Connector;
-      int Active;
-    */
+    Output->Id = RHD_OUTPUT_DACB;
 
     Output->Sense = DACBSenseCRT;
     Output->ModeValid = DACModeValid;

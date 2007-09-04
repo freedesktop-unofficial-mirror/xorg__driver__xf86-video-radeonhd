@@ -22,32 +22,52 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _RHD_HPD_H
-#define _RHD_HPD_H
+#ifndef _RHD_CONNECTOR_H
+#define _RHD_CONNECTOR_H
 
-/*
- *
- */
-struct rhd_HPD {
-    Bool Stored;
-    CARD32 StoreMask;
-    CARD32 StoreEnable;
+/* so that we can map which is which */
+#define RHD_CONNECTOR_NONE  0
+#define RHD_CONNECTOR_VGA   1
+#define RHD_CONNECTOR_DVI_I 2 /* too simplistic */
+#define RHD_CONNECTOR_TV    3 /* too simplistic */
+/* add whatever */
 
-#define HPD_1_CONNECTED 0x00000001
-#define HPD_1_CHANGED   0x00000002
-#define HPD_2_CONNECTED 0x00000100
-#define HPD_2_CHANGED   0x00000200
-#define HPD_3_CONNECTED 0x00010000
-#define HPD_3_CHANGED   0x00020000
-    CARD32 Status;
+/* map which DDC bus is where */
+#define RHD_DDC_NONE 0xFF
+#define RHD_DDC_0 0
+#define RHD_DDC_1 1
+#define RHD_DDC_2 2
+#define RHD_DDC_3 3
+
+/* map which HPD plug is used where */
+#define RHD_HPD_NONE 0
+#define RHD_HPD_0 1
+#define RHD_HPD_1 2
+#define RHD_HPD_2 3
+
+struct rhdConnector {
+    int scrnIndex;
+
+    CARD8 Type;
+    char *Name;
+
+    /* Add actual DDC bus pointer here */
+
+    /* HPD handling here */
+    int  HPDMask;
+    Bool HPDAttached;
+    Bool (*HPDCheck) (struct rhdConnector *Connector);
+
+    /* Add rhdMonitor pointer here. */
+    /* This is created either from default, config or from EDID */
+
+    /* Point back to our Outputs, so we can handle sensing better */
+    struct rhd_Output *Output[2];
 };
 
+Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card);
 void RHDHPDSave(RHDPtr rhdPtr);
 void RHDHPDRestore(RHDPtr rhdPtr);
-void RHDHPDSet(RHDPtr rhdPtr);
-Bool RHDHPDConnected(RHDPtr rhdPtr, CARD32 Mask);
-CARD32 RHDHPDTimerCheck(RHDPtr rhdPtr);
-void RHDHPDInit(RHDPtr rhdPtr);
-void RHDHPDDestroy(RHDPtr rhdPtr);
+void RHDConnectorsDestroy(RHDPtr rhdPtr);
 
-#endif /* _RHD_HPD_H */
+#endif /* _RHD_CONNECTOR_H */

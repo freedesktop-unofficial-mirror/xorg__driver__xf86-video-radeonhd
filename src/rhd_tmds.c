@@ -37,6 +37,7 @@
 #include "xf86_ansic.h"
 
 #include "rhd.h"
+#include "rhd_crtc.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
 
@@ -60,7 +61,7 @@ struct rhd_TMDS_Private {
  *
  */
 static Bool
-TMDSASense(struct rhd_Output *Output)
+TMDSASense(struct rhd_Output *Output, int Type)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[Output->scrnIndex]);
     CARD32 Enable, Control, Detect;
@@ -214,7 +215,7 @@ TMDSASet(struct rhd_Output *Output)
     RHDRegMask(Output, TMDSA_CNTL, 0x00001000, 0x00011000);
 
     /* Select CRTC, select syncA, no stereosync */
-    RHDRegMask(Output, TMDSA_SOURCE_SELECT, Output->Crtc, 0x00010101);
+    RHDRegMask(Output, TMDSA_SOURCE_SELECT, Output->Crtc->Id, 0x00010101);
 
     /* Single link, for now */
     RHDRegWrite(Output, TMDSA_COLOR_FORMAT, 0);
@@ -380,13 +381,8 @@ RHDTMDSAInit(RHDPtr rhdPtr)
     Output = xnfcalloc(sizeof(struct rhd_Output), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
-    Output->rhdPtr = rhdPtr;
     Output->Name = "TMDS A";
-    /*
-      int Type;
-      int Connector;
-      int Active;
-    */
+    Output->Id = RHD_OUTPUT_TMDSA;
 
     Output->Sense = TMDSASense;
     Output->ModeValid = TMDSAModeValid;

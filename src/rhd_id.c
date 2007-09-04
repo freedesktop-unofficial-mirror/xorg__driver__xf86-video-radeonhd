@@ -30,6 +30,8 @@
 #include "xf86Resources.h"
 
 #include "rhd.h"
+#include "rhd_connector.h"
+#include "rhd_output.h"
 
 SymTabRec RHDChipsets[] = {
     { RHD_RV505, "RV505" },
@@ -219,11 +221,32 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
     }
 }
 
+#define CRT_A_DVI_BB1 { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
+                           { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
+	                {RHD_CONNECTOR_DVI_I, "DVI-I", RHD_DDC_NONE, RHD_HPD_1, \
+                           { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_AA0_DVI_BB1 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
+                                    { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}, \
+	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
+                                  { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_BA0_DVI_AB1 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
+                                    { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}, \
+	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
+                                  { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_BB1_DVI_AA0 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_1, \
+                                  { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}, \
+	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_0, \
+                                  { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
+
 /*
  * List of pci subsystem / card ids.
  *
- * Not used currently, except to print the name of the actual card.
- * But this is where card specific quirks should go.
+ * Used for:
+ * - printing card name.
+ * - connector mapping.
  *
  */
 static struct rhd_card
@@ -234,7 +257,7 @@ rhdCards[] =
     /* 0x7102 : M58 : Mobility Radeon X1800 */
     /* 0x7103 : M58 : Mobility FireGL V7200 */
     /* 0x7104 : R520 : FireGL V7200 */
-    { 0x7104, 0x1002, 0x0B32, "ATI FireGL V7200 RH" },
+    { 0x7104, 0x1002, 0x0B32, "ATI FireGL V7200 RH", DVI_BA0_DVI_AB1 },
     /* 0x7105 : R520 : FireGL V5300 */
     /* 0x7106 : M58 : Mobility FireGL V7100 */
     /* 0x7108 : R520 : Radeon X1800 */
@@ -251,7 +274,7 @@ rhdCards[] =
     /* 0x7146 : RV515 : Radeon X1300 */
     { 0x7146, 0x174B, 0x0470, "Sapphire X1300" },
     /* 0x7147 : RV505 : Radeon X1550 */
-    { 0x7147, 0x174B, 0x0840, "Sapphire X1550" },
+    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", CRT_A_DVI_BB1 },
     /* 0x7149 : M52 : Mobility Radeon X1300 */
     /* 0x714A : M52 : Mobility Radeon X1300 */
     /* 0x714B : M52 : Mobility Radeon X1300 */
@@ -280,7 +303,7 @@ rhdCards[] =
     /* 0x719F : RV515 : Radeon X1550 64-bit */
     /* 0x71C0 : RV530 : Radeon X1600 */
     /* 0x71C1 : RV535 : Radeon X1650 Pro */
-    { 0x71C1, 0x174B, 0x0840, "Sapphire X1650 Pro" },
+    { 0x71C1, 0x174B, 0x0840, "Sapphire X1650 Pro", DVI_AA0_DVI_BB1 },
     /* 0x71C2 : RV530 : Radeon X1600 Pro */
     { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro" },
     /* 0x71C3 : RV535 : Radeon X1300 */
@@ -307,7 +330,7 @@ rhdCards[] =
     /* 0x7247 : R580 : Radeon X1900 */
     /* 0x7248 : R580 : Radeon X1900 */
     /* 0x7249 : R580 : Radeon X1900 XTX */
-    { 0x7249, 0x1002, 0x0B12, "ATI Radeon X1900 XTX" },
+    { 0x7249, 0x1002, 0x0B12, "ATI Radeon X1900 XTX", DVI_BA0_DVI_AB1 },
     /* 0x724A : R580 : Radeon X1900 */
     /* 0x724B : R580 : Radeon X1900 */
     /* 0x724C : R580 : Radeon X1900 */
@@ -324,7 +347,7 @@ rhdCards[] =
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 (M) */
     /* 0x9400 : R600 : Radeon HD 2900 XT */
-    { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT" },
+    { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT", DVI_BB1_DVI_AA0 },
     /* 0x9401 : R600 : Radeon HD 2900 XT */
     /* 0x9402 : R600 : Radeon HD 2900 XT */
     /* 0x9403 : R600 : Radeon HD 2900 XT */
@@ -337,9 +360,9 @@ rhdCards[] =
     /* 0x9581 : M76 : Mobility Radeon HD 2600 */
     /* 0x9583 : M76 : Mobility Radeon HD 2600 XT */
     /* 0x9588 : RV630 : Radeon HD 2600 XT */
-    { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT" },
+    { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT", DVI_BA0_DVI_AB1 },
     /* 0x9589 : RV630 : Radeon HD 2600 Pro */
-    { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro" },
+    { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA0_DVI_AB1 },
     { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
 };
 

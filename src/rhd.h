@@ -62,7 +62,15 @@ struct rhd_card {
     CARD16 card_device;
     char *name;
 
-    /* add whatever quirk handling we need here */
+#define RHD_CONNECTORS_MAX 4
+    /* Four bytes in TYPE/DDC layout: see rhd_connector.h */
+    struct {
+	CARD8 Type;
+	char *Name;
+	CARD8 DDC;
+	CARD8 HPD;
+	CARD8 Output[2];
+    } Connectors[RHD_CONNECTORS_MAX];
 };
 
 /* Just define where which PCI BAR lives for now. Will deal with different
@@ -138,6 +146,7 @@ typedef struct RHDRec {
      * Will also include displayport when this happens. */
     struct rhd_Output   *Outputs;
 
+    struct rhdConnector *Connector[RHD_CONNECTORS_MAX];
     struct rhd_HPD      *HPD; /* Hot plug detect subsystem */
 
 } RHDRec, *RHDPtr;
