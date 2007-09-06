@@ -221,6 +221,11 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
     }
 }
 
+/*
+ * Some macros to help us make connector tables less messy.
+ * There are, after all, a limited number of possibilities at the moment.
+ */
+
 #define CRT_A_DVI_BB1 { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
                            { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
 	                {RHD_CONNECTOR_DVI_I, "DVI-I", RHD_DDC_NONE, RHD_HPD_1, \
@@ -314,7 +319,7 @@ rhdCards[] =
     /* 0x71CD : RV530 : Radeon X1600 */
     /* 0x71CE : RV530 : Radeon X1600 Pro / Radeon X1300 XT */
     /* 0x71D2 : RV530 : FireGL V3400 */
-    { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400" },
+    { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", DVI_BB1_DVI_AA0 },
     /* 0x71D4 : M56 : Mobility FireGL V5250 */
     /* 0x71D5 : M56 : Mobility Radeon X1700 */
     /* 0x71D6 : M56 : Mobility Radeon X1700 XT */
