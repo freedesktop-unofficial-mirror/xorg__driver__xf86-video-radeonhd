@@ -5,13 +5,15 @@
 
 typedef enum {
     RHD_I2C_INIT,
+    RHD_I2C_GETBUS,
     RHD_I2C_TEARDOWN
 } RHDi2cFunc;
 
 typedef union
 {
-    pointer *ptr;
-    rhdI2CPtr i2cp;
+    I2CBusPtr *I2CBusList;
+    I2CBusPtr i2cBusPtr;
+    int i;
 } RHDI2CDataArg, *RHDI2CDataArgPtr;
 
 typedef enum {
@@ -20,6 +22,6 @@ typedef enum {
 } RHDI2CResult;
 
 RHDI2CResult
-RHDI2CFunc(ScrnInfoPtr pScrn, rhdI2CPtr I2C, RHDi2cFunc func,
+RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 			RHDI2CDataArgPtr data);
 #endif

@@ -484,20 +484,31 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) == ATOM_SUCCESS) {
 	rhdPtr->atomBIOS = atomBiosArg.ptr;
 	/* for testing functions */
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PLL_CLOCK, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MIN_PLL_CLOCK, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PIXEL_CLK, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_REF_CLOCK, &atomBiosArg);
-
-#ifdef ATOM_ASIC_INIT
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
+			&atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
+			&atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MAX_PIXEL_CLK, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_REF_CLOCK, &atomBiosArg);
 	rhdTestAsicInit(pScrn);
+#ifdef ATOM_ASIC_INIT
 	rhdTestAtomBIOS(pScrn);
 #endif
     }
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
-	    rhdPtr->I2C = i2cArg.i2cp;
+	    rhdPtr->I2C = i2cArg.I2CBusList;
 	    if (xf86LoadSubModule(pScrn, "ddc")) {
 		rhdTestDDC(pScrn);
 	    } else
@@ -1481,18 +1492,25 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 static void
 rhdTestDDC(ScrnInfoPtr pScrn)
 {
-    I2CBusPtr *ppI2CBus = NULL;
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     xf86MonPtr monitor;
-
-    int i, num = xf86I2CGetScreenBuses(pScrn->scrnIndex, &ppI2CBus);
-
-    for (i = 0; i < num; i++) {
-	if ((monitor = xf86DoEDID_DDC2(pScrn->scrnIndex, ppI2CBus[i]))) {
-	    xf86PrintEDID(monitor);
-	} else {
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: DDC on bus %s failed\n",
-		       __func__,ppI2CBus[i]->BusName);
-	}
+    RHDI2CDataArg data;
+    
+    int i = 0;
+    while (1) {
+	data.i = i++;
+	if (RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_GETBUS, &data)
+	    == RHD_I2C_SUCCESS) {
+	    if ((monitor
+		 = xf86DoEDID_DDC2(pScrn->scrnIndex, data.i2cBusPtr))) {
+		xf86PrintEDID(monitor);
+	    } else {
+		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+			   "%s: DDC on bus %s failed\n",
+			   __func__,data.i2cBusPtr->BusName);
+	    }
+	} else
+	    break;
     }
 }
 

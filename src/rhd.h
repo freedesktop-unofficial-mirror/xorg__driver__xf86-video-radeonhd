@@ -139,7 +139,7 @@ typedef struct RHDRec {
 
     CloseScreenProcPtr  CloseScreen;
 
-    rhdI2CPtr		I2C;  /* I2C handle */
+    struct _I2CBusRec	**I2C;  /* I2C bus list */
     atomBIOSHandlePtr   atomBIOS; /* handle for AtomBIOS */
     /*
      * BIOS copy - kludge that should go away

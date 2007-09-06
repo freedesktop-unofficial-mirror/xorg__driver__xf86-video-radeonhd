@@ -30,11 +30,13 @@
 #include "rhd_i2c.h"
 #include "rhd_regs.h"
 
+#define I2C_LINES 4
 typedef struct _rhdI2CRec
 {
     CARD16 prescale;
     CARD8 line;
     int scrnIndex;
+    I2CBusPtr i2cPtr[I2C_LINES];
 } rhdI2CRec;
 
 enum {
@@ -210,7 +212,7 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
      * a new offset.
      */
      RHDFUNC(i2cDevPtr->pI2CBus)
- 
+
     if (nWrite > 15 || (nRead > 15 && nWrite != 1)) {
 	xf86DrvMsg(i2cDevPtr->pI2CBus->scrnIndex,X_ERROR,
 		   "%s: Currently only I2C transfers with "
@@ -249,7 +251,7 @@ rhdI2CStatusR600(I2CBusPtr I2CPtr)
 
 	usleep(1000);
 	val = RHDRegRead(I2CPtr, DC_I2C_SW_STATUS);
-	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count); 
+	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
 	if (val & DC_I2C_SW_DONE)
 	    break;
     }
@@ -323,7 +325,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
     int index = 1;
-    
+
     enum {
 	TRANS_WRITE_READ,
 	TRANS_WRITE,
@@ -331,7 +333,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     } trans;
 
     RHDFUNC(i2cDevPtr->pI2CBus)
-    
+
     if (nWrite > 0 && nRead > 0) {
 	trans = TRANS_WRITE_READ;
     } else if (nWrite > 0) {
@@ -399,59 +401,69 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     RHDRegMask(I2CPtr, DC_I2C_CONTROL, 0x2, 0xff);
     usleep(1000);
     RHDRegWrite(I2CPtr, DC_I2C_CONTROL, 0);
-    
+
     return ret;
 }
 
 static void
-rhdTearDownI2C(rhdI2CPtr I2C)
+rhdTearDownI2C(I2CBusPtr *I2C)
 {
-    I2CBusPtr *I2CBuses;
-    int  i = xf86I2CGetScreenBuses(I2C->scrnIndex, &I2CBuses);
+    int i;
 
-    RHDFUNC(I2C)
-
-    for (--i; i >= 0 ; i--) {
-	char *name = I2CBuses[i]->BusName;
-	xfree(I2CBuses[i]->DriverPrivate.ptr);
-	xf86DestroyI2CBusRec(I2CBuses[i], TRUE, TRUE);
+    /*
+     * xf86I2CGetScreenBuses() is
+     * broken in older server versions.
+     * So we cannot use it. How bad!
+     */
+    for (i = 0; i < I2C_LINES; i++) {
+	char *name;
+	if (!I2C[i])
+	    break;
+	name = I2C[i]->BusName;
+	xfree(I2C[i]->DriverPrivate.ptr);
+	xf86DestroyI2CBusRec(I2C[i], TRUE, TRUE);
 	xfree(name);
     }
     xfree(I2C);
 }
 
-static rhdI2CPtr
+static I2CBusPtr *
 rhdInitI2C(int scrnIndex)
 {
     int i;
     rhdI2CPtr I2C;
     I2CBusPtr I2CPtr = NULL;
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-    
-    RHDFUNCI(scrnIndex)
+    I2CBusPtr *I2CList;
 
+    RHDFUNCI(scrnIndex);
+
+    if (!(I2CList = xcalloc(sizeof(I2CBusPtr),1))) {
+	xf86DrvMsg(scrnIndex, X_ERROR,
+		   "%s: Out of memory.\n",__func__);
+    }
     /* We have 4 I2C lines */
-    for (i = 0; i < 4; i++) {
-	if (!(I2CPtr = xf86CreateI2CBusRec())) {
-	    xf86DrvMsg(scrnIndex, X_ERROR,
-		       "Cannot allocate I2C BusRec.\n");
-	    goto error;
-	}
+    for (i = 0; i < I2C_LINES; i++) {
 	if (!(I2C = xcalloc(sizeof(rhdI2CRec),1))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
 		       "%s: Out of memory.\n",__func__);
-	    xf86DestroyI2CBusRec(I2CPtr, TRUE, FALSE);
 	    goto error;
 	}
-	I2CPtr->DriverPrivate.ptr = I2C;
 	I2C->scrnIndex = scrnIndex;
         /*
 	 * This is a value that has been found to work on many card.
 	 * It nees to be replaced by the proper calculation formula
 	 * once this is available.
 	 */
-	I2C->prescale = 0x7ff; 
+	I2C->prescale = 0x7ff;
 	I2C->line = i;
+	if (!(I2CPtr = xf86CreateI2CBusRec())) {
+	    xf86DrvMsg(scrnIndex, X_ERROR,
+		       "Cannot allocate I2C BusRec.\n");
+	    xfree(I2C);
+	    goto error;
+	}
+	I2CPtr->DriverPrivate.ptr = I2C;
 	if (!(I2CPtr->BusName = xalloc(18))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
 		       "%s: Cannot allocate memory.\n",__func__);
@@ -470,31 +482,38 @@ rhdInitI2C(int scrnIndex)
 	    xf86DrvMsg(scrnIndex, X_ERROR,
 		       "I2C BusInit failed for bus %i\n",i);
 	    xfree(I2CPtr->BusName);
+	    xfree(I2C);
 	    xf86DestroyI2CBusRec(I2CPtr, TRUE, FALSE);
 	    goto error;
 	}
+	I2CList[i] = I2CPtr;
     }
-    return I2C;
+    return I2CList;
  error:
-    rhdTearDownI2C(I2C);
+    rhdTearDownI2C(I2CList);
     return NULL;
 }
 
 RHDI2CResult
-RHDI2CFunc(ScrnInfoPtr pScrn, rhdI2CPtr I2C, RHDi2cFunc func,
-	   RHDI2CDataArgPtr data)
+RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
+	   RHDI2CDataArgPtr datap)
 {
     RHDFUNC(pScrn)
 
     if (func == RHD_I2C_INIT) {
-	if (!(data->i2cp = rhdInitI2C(pScrn->scrnIndex)))
+	if (!(datap->I2CBusList = rhdInitI2C(pScrn->scrnIndex)))
 	    return RHD_I2C_FAILED;
 	else
 	    return RHD_I2C_SUCCESS;
     }
+    if (func == RHD_I2C_GETBUS) {
+	if (datap->i > I2C_LINES || !I2CList[datap->i])
+	    return RHD_I2C_FAILED;
+	datap->i2cBusPtr = I2CList[datap->i];
+    }
     if (func == RHD_I2C_TEARDOWN) {
-	if (I2C)
-	    rhdTearDownI2C(I2C);
+	if (I2CList)
+	    rhdTearDownI2C(I2CList);
 	return RHD_I2C_SUCCESS;
     }
     return RHD_I2C_FAILED;

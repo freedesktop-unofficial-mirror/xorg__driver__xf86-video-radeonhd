@@ -129,12 +129,21 @@ enum {
 };
 
 char *AtomBIOSQueryStr[] = {
-    "Maximum PLL Clock",
-    "Minimum PLL Clock",
+    "Default Engine Clock",
+    "Default Memory Clock",
+    "Maximum Pixel ClockPLL Frequency Output",
+    "Minimum Pixel ClockPLL Frequency Output",
+    "Maximum Pixel ClockPLL Frequency Input",
+    "Minimum Pixel ClockPLL Frequency Input",
     "Minimum Pixel Clock",
     "Reference Clock",
     "Start of VRAM area used by Firmware",
-    "Framebuffer space used by Firmware (kb)"
+    "Framebuffer space used by Firmware (kb)",
+    "TDMS Frequency",
+    "PLL ChargePump",
+    "PLL DutyCycle",
+    "PLL VCO Gain",
+    "PLL VoltageSwing"
 };
 
 static int
@@ -511,6 +520,43 @@ rhdAtomBIOSVramInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFu
 }
 
 AtomBiosResult
+rhdAtomBIOSTmdsInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
+			 AtomBiosFunc func, int index, CARD32 *val)
+{
+    atomDataTablesPtr atomDataPtr;
+
+    atomDataPtr = handle->atomDataPtr;
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
+	    NULL,NULL,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    RHDFUNC(pScrn);
+
+    switch (func) {
+	case ATOM_TMDS_FREQUENCY:
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].usFrequency;
+	    break;
+	case ATOM_TMDS_PLL_CHARGE_PUMP:
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_ChargePump;
+	    break;
+	case ATOM_TMDS_PLL_DUTY_CYCLE:
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_DutyCycle;
+	    break;
+	case ATOM_TMDS_PLL_VCO_GAIN:
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_VCO_Gain;
+	    break;
+	case ATOM_TMDS_PLL_VOLTAGE_SWING:
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_VoltageSwing;
+	    break;
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
+    return ATOM_SUCCESS;
+}
+
+AtomBiosResult
 rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 			     AtomBiosFunc func, CARD32 *val)
 {
@@ -528,13 +574,28 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
     switch (crev) {
 	case 1:
 	    switch (func) {
-		case GET_MAX_PLL_CLOCK:
+		case GET_DEFAULT_ENGINE_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo->ulDefaultEngineClock;
+		    break;
+		case GET_DEFAULT_MEMORY_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo->ulDefaultMemoryClock;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo->ulMaxPixelClockPLL_Output;
 		    break;
-		case GET_MIN_PLL_CLOCK:
+		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo->usMinPixelClockPLL_Output;
+		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo->usMaxPixelClockPLL_Input;
+		    break;
+		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo->usMinPixelClockPLL_Input;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
@@ -549,13 +610,29 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 	    }
 	case 2:
 	    switch (func) {
-		case GET_MAX_PLL_CLOCK:
+		case GET_DEFAULT_ENGINE_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+		    break;
+		case GET_DEFAULT_MEMORY_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_2->ulDefaultMemoryClock;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_2->ulMaxPixelClockPLL_Output;
 		    break;
-		case GET_MIN_PLL_CLOCK:
+		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Output;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_2->usMaxPixelClockPLL_Input;
+		    break;
+		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Input;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
@@ -571,13 +648,29 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 	    break;
 	case 3:
 	    switch (func) {
-		case GET_MAX_PLL_CLOCK:
+		case GET_DEFAULT_ENGINE_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+		    break;
+		case GET_DEFAULT_MEMORY_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_3->ulDefaultMemoryClock;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_3->ulMaxPixelClockPLL_Output;
 		    break;
-		case GET_MIN_PLL_CLOCK:
+		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Output;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_3->usMaxPixelClockPLL_Input;
+		    break;
+		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Input;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
@@ -593,11 +686,26 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 	    break;
 	case 4:
 	    switch (func) {
-		case GET_MAX_PLL_CLOCK:
+		case GET_DEFAULT_ENGINE_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+		    break;
+		case GET_DEFAULT_MEMORY_CLOCK:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_4->ulDefaultMemoryClock;
+		    break;
+		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_4->usMaxPixelClockPLL_Input;
+		    break;
+		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
+		    *val = atomDataPtr->FirmwareInfo
+			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Input;
+		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_4->ulMaxPixelClockPLL_Output;
 		    break;
-		case GET_MIN_PLL_CLOCK:
+		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Output;
 		    break;
