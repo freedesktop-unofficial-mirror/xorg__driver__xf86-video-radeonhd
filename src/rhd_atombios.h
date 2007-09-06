@@ -68,4 +68,8 @@ extern AtomBiosResult
 RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
+/* only for testing */
+void rhdTestAtomBIOS(ScrnInfoPtr pScrn);
+Bool rhdTestAsicInit(ScrnInfoPtr pScrn);
+
 #endif /*  RHD_ATOMBIOS_H_ */

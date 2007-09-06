@@ -129,6 +129,8 @@ static void     rhdUnmapFB(RHDPtr rhdPtr);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
 
+static void rhdTestDDC(ScrnInfoPtr pScrn);
+
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
@@ -237,7 +239,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDConnectorsDestroy(rhdPtr);
     RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
     RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_TEARDOWN, NULL);
-    
+
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -309,11 +311,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
-    pointer biosHandle = NULL;
     Bool ret = FALSE;
     AtomBIOSArg atomBiosArg;
     RHDI2CDataArg i2cArg;
-    
+
     RHDOpt tmpOpt;
     DisplayModePtr Modes;
 
@@ -356,7 +357,30 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
                             rhdPtr->PciInfo->device,
                             rhdPtr->PciInfo->func);
     rhdPtr->entityIndex = pEnt->index;
-
+#ifndef  ATOM_ASIC_INIT
+    if (xf86LoadSubModule(pScrn, "int10")) {
+	xf86Int10InfoPtr Int10;
+	xf86DrvMsg(pScrn->scrnIndex,X_INFO,"Initializing INT10\n");
+	if ((Int10 = xf86InitInt10(rhdPtr->entityIndex))) {
+	    /*
+	     * here we kludge to get a copy of V_BIOS for
+	     * the AtomBIOS code. After POSTing a PCI BIOS
+	     * is not accessible any more. On a non-primary
+	     * card it's lost after we do xf86FreeInt10(),
+	     * so we save it here before we kill int10.
+	     * This still begs the question what to do
+	     * on a non-primary card that has been POSTed
+	     * by an earlier Xserver start.
+	     */
+	    if ((rhdPtr->BIOSCopy = xalloc(RHD_VBIOS_SIZE))) {
+		(void)memcpy(rhdPtr->BIOSCopy,
+			     xf86int10Addr(Int10, Int10->BIOSseg << 4),
+			     RHD_VBIOS_SIZE);
+	    }
+	    xf86FreeInt10(Int10);
+	}
+    }
+#endif
     /* We will disable access to VGA legacy resources emulation and
        save/restore VGA thru MMIO when necessary */
     if (xf86RegisterResources(pEnt->index, NULL, ResNone)) {
@@ -464,16 +488,24 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MIN_PLL_CLOCK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_REF_CLOCK, &atomBiosArg);
+	rhdTestAsicInit(pScrn);
+#ifdef ATOM_ASIC_INIT
+	rhdTestAtomBIOS(pScrn);
+#endif
     }
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
-	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS)
+	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.i2cp;
-	else 
+	    if (xf86LoadSubModule(pScrn, "ddc")) {
+		rhdTestDDC(pScrn);
+	    } else 
+		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load DDC module\n",__func__);
+	} else
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "I2C init failed\n");
     } else
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Failed to load I2C module\n");
-    
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load I2C module\n",__func__);
+
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
 
@@ -490,7 +522,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Pick anything for now */
     if (!rhdModeLayoutSelect(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
-	goto error2;
+	goto error1;
     }
     rhdModeLayoutPrint(rhdPtr);
 
@@ -1395,6 +1427,29 @@ RHDDebug(int scrnIndex, const char *format, ...)
     va_end(ap);
 }
 
+void
+RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size)
+{
+    int i,j;
+    char *c = (char *)start;
+    char line[256];
+    
+    for (j = 0; j <= (size >> 4); j++) {
+	char *cur = line;
+	char *d = c;
+	int k = size < 16 ? size : 16;
+	for (i = 0; i < k; i++)
+	    cur += xf86snprintf(cur,4,"%2.2x ",(unsigned char) (*(c++)));
+	c = d;
+	for (i = 0; i < k; i++) {
+	    cur += xf86snprintf(cur,2,"%c",((((CARD8)(*c)) > 32)
+				&& (((CARD8)(*c)) < 128)) ?
+				(unsigned char) (*(c)): '.');
+	    c++;
+	}
+	xf86DrvMsg(scrnIndex,X_INFO,"%s\n",line);
+    }
+}
 /*
  * breakout functions
  */
@@ -1416,5 +1471,27 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_PCI_BURST, &rhdPtr->onPciBurst,
 		     FALSE);
+}
+
+/*
+ * Crude test if DDC is working.
+ */
+
+static void
+rhdTestDDC(ScrnInfoPtr pScrn)
+{
+    I2CBusPtr *ppI2CBus = NULL;
+    xf86MonPtr monitor;
+
+    int i, num = xf86I2CGetScreenBuses(pScrn->scrnIndex, &ppI2CBus);
+
+    for (i = 0; i < num; i++) {
+	if ((monitor = xf86DoEDID_DDC2(pScrn->scrnIndex, ppI2CBus[i]))) {
+	    xf86PrintEDID(monitor);
+	} else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: DDC on bus %s failed\n",
+		       __func__,ppI2CBus[i]->BusName);
+	}
+    }
 }
 

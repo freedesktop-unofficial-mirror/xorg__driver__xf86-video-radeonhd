@@ -84,6 +84,8 @@ struct rhd_card {
 #define RHD_POWER_RESET    1   /* off temporarily */
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
 
+#define RHD_VBIOS_SIZE 0x10000
+
 typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBIOSHandle *atomBIOSHandlePtr;
 
@@ -139,6 +141,12 @@ typedef struct RHDRec {
     
     rhdI2CPtr		I2C;  /* I2C handle */
     atomBIOSHandlePtr   atomBIOS; /* handle for AtomBIOS */
+    /*
+     * BIOS copy - kludge that should go away
+     * once we know how to read PCI BIOS on
+     * POSTed hardware
+     */
+    unsigned char*	BIOSCopy;  
     
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
     struct rhd_Crtc     *Crtc[2];
@@ -198,5 +206,12 @@ void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
 #define LOG_DEBUG 7
 void RHDDebug(int scrnIndex, const char *format, ...);
 #define RHDFUNC(ptr) RHDDebug((ptr)->scrnIndex, "FUNCTION: %s\n", __func__);
+#define RHDFUNCI(scrnIndex) RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__);
+void RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size);
+#ifdef RHD_DEBUG
+# define DEBUGP(x) {x;}
+#else
+# define DEBUGP(x)
+#endif
 
 #endif /* _RHD_H */

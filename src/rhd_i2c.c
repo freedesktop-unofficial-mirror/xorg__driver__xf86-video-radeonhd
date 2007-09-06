@@ -104,6 +104,8 @@ rhdI2CStatusR500(I2CBusPtr I2CPtr)
     int count = 32;
     CARD32 res;
 
+    RHDFUNC(I2CPtr)
+
     while (count-- != 0) {
 	usleep (1000);
 	if (((RHDRegRead(I2CPtr, 0x7d30)) & 0x08) != 0)
@@ -130,6 +132,8 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     CARD32 save_7d38, save_494;
     CARD32  tmp32;
     Bool ret = TRUE;
+
+    RHDFUNC(i2cDevPtr->pI2CBus)
 
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
     save_7d38 = RHDRegRead(I2CPtr, 0x7d38);
@@ -205,6 +209,8 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
      * the transaction after 15 bytes sending
      * a new offset.
      */
+     RHDFUNC(i2cDevPtr->pI2CBus)
+ 
     if (nWrite > 15 || (nRead > 15 && nWrite != 1)) {
 	xf86DrvMsg(i2cDevPtr->pI2CBus->scrnIndex,X_ERROR,
 		   "%s: Currently only I2C transfers with "
@@ -237,11 +243,13 @@ rhdI2CStatusR600(I2CBusPtr I2CPtr)
     int count = 0x1388;
     volatile CARD32 val;
 
+    RHDFUNC(I2CPtr)
+
     while (--count) {
 
 	usleep(1000);
 	val = RHDRegRead(I2CPtr, DC_I2C_SW_STATUS);
-	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: %x %i\n",(unsigned int)val,count); 
+	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count); 
 	if (val & DC_I2C_SW_DONE)
 	    break;
     }
@@ -256,6 +264,8 @@ static Bool
 rhdI2CSetupStatusR600(I2CBusPtr I2CPtr, int line, int prescale)
 {
     line &= 0xf;
+
+    RHDFUNC(I2CPtr)
 
     switch (line) {
 	case 0:
@@ -312,7 +322,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     rhdI2CPtr I2C = (rhdI2CPtr)I2CPtr->DriverPrivate.ptr;
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
-    int index = 0;
+    int index = 1;
     
     enum {
 	TRANS_WRITE_READ,
@@ -320,6 +330,8 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 	TRANS_READ
     } trans;
 
+    RHDFUNC(i2cDevPtr->pI2CBus)
+    
     if (nWrite > 0 && nRead > 0) {
 	trans = TRANS_WRITE_READ;
     } else if (nWrite > 0) {
@@ -336,12 +348,12 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 		   "%s: 10 bit I2C slave addresses not supported\n",__func__);
 	return FALSE;
     }
+
     if (!rhdI2CSetupStatusR600(I2CPtr, line,  prescale))
 	return FALSE;
 
     regOR(I2CPtr, DC_I2C_CONTROL,
 	  (trans == TRANS_WRITE_READ ? 1 : 0) << 20); /* 2 Transactions */
-
     RHDRegMask(I2CPtr, DC_I2C_TRANSACTION0,
 	       DC_I2C_STOP_ON_NACK0
 	       | (trans == TRANS_READ ? DC_I2C_RW0 : 0)
@@ -349,7 +361,6 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 	       | (trans == TRANS_WRITE_READ ? 0 : DC_I2C_STOP0 )
 	       | ((trans == TRANS_READ ? nRead : nWrite)  << 16),
 	       0xffffff);
-
     if (trans == TRANS_WRITE_READ)
 	RHDRegMask(I2CPtr, DC_I2C_TRANSACTION1,
 		   nRead << 16
@@ -359,11 +370,9 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 		   0xffffff); /* <bytes> read */
 
     data = DC_I2C_INDEX_WRITE
-	| (slave & 0xfe)
-	| ((trans == TRANS_READ ? 1 : 0) << 8 )
+	| (((slave & 0xfe) | (trans == TRANS_READ ? 1 : 0)) << 8 )
 	| (0 << 16);
     RHDRegWrite(I2CPtr, DC_I2C_DATA, data);
-
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
 	    data = DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) | (index++ << 16);
@@ -376,14 +385,13 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     }
     /* Go! */
     regOR(I2CPtr, DC_I2C_CONTROL, DC_I2C_GO);
-
     if (rhdI2CStatusR600(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
 	RHDRegWrite(I2CPtr, DC_I2C_DATA, DC_I2C_INDEX_WRITE
-		    | DC_I2C_DATA_RW  | index++ << 16);
+		    | DC_I2C_DATA_RW  | /* index++ */3 << 16);
 	while (nRead--) {
 	    data = RHDRegRead(I2CPtr, DC_I2C_DATA);
-	    *(ReadBuffer++) = (data >> 8) && 0xff;
+	    *(ReadBuffer++) = (data >> 8) & 0xff;
 	}
 	ret = TRUE;
     }
@@ -391,7 +399,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     RHDRegMask(I2CPtr, DC_I2C_CONTROL, 0x2, 0xff);
     usleep(1000);
     RHDRegWrite(I2CPtr, DC_I2C_CONTROL, 0);
-
+    
     return ret;
 }
 
@@ -401,10 +409,13 @@ rhdTearDownI2C(rhdI2CPtr I2C)
     I2CBusPtr *I2CBuses;
     int  i = xf86I2CGetScreenBuses(I2C->scrnIndex, &I2CBuses);
 
+    RHDFUNC(I2C)
+
     for (--i; i >= 0 ; i--) {
-	xfree(I2CBuses[i]->BusName);
+	char *name = I2CBuses[i]->BusName;
 	xfree(I2CBuses[i]->DriverPrivate.ptr);
 	xf86DestroyI2CBusRec(I2CBuses[i], TRUE, TRUE);
+	xfree(name);
     }
     xfree(I2C);
 }
@@ -417,6 +428,8 @@ rhdInitI2C(int scrnIndex)
     I2CBusPtr I2CPtr = NULL;
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     
+    RHDFUNCI(scrnIndex)
+
     /* We have 4 I2C lines */
     for (i = 0; i < 4; i++) {
 	if (!(I2CPtr = xf86CreateI2CBusRec())) {
@@ -432,6 +445,13 @@ rhdInitI2C(int scrnIndex)
 	}
 	I2CPtr->DriverPrivate.ptr = I2C;
 	I2C->scrnIndex = scrnIndex;
+        /*
+	 * This is a value that has been found to work on many card.
+	 * It nees to be replaced by the proper calculation formula
+	 * once this is available.
+	 */
+	I2C->prescale = 0x7ff; 
+	I2C->line = i;
 	if (!(I2CPtr->BusName = xalloc(18))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
 		       "%s: Cannot allocate memory.\n",__func__);
@@ -456,7 +476,7 @@ rhdInitI2C(int scrnIndex)
     }
     return I2C;
  error:
-    rhdI2CTearDown(I2C);
+    rhdTearDownI2C(I2C);
     return NULL;
 }
 
@@ -464,6 +484,8 @@ RHDI2CResult
 RHDI2CFunc(ScrnInfoPtr pScrn, rhdI2CPtr I2C, RHDi2cFunc func,
 	   RHDI2CDataArgPtr data)
 {
+    RHDFUNC(pScrn)
+
     if (func == RHD_I2C_INIT) {
 	if (!(data->i2cp = rhdInitI2C(pScrn->scrnIndex)))
 	    return RHD_I2C_FAILED;

@@ -7,7 +7,7 @@
 
 
 int
-ParseTableWrapper(void *pspace, int index, void *CAIL, void *BIOSBase,
+ParseTableWrapper(void *pspace, int index, void *handle, void *BIOSBase,
 		  char **msg_return)
 {
     DEVICE_DATA deviceData;
@@ -15,7 +15,7 @@ ParseTableWrapper(void *pspace, int index, void *CAIL, void *BIOSBase,
     
     /* FILL OUT PARAMETER SPACE */
     deviceData.pParameterSpace = (UINT32*) pspace;
-    deviceData.CAIL = CAIL;
+    deviceData.CAIL = handle;
     deviceData.pBIOS_Image = BIOSBase;
     deviceData.format = TABLE_FORMAT_BIOS;
 
