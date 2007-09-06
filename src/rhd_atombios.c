@@ -289,6 +289,80 @@ rhdGetAtombiosDataTable(ScrnInfoPtr pScrn, unsigned char *base,
     return TRUE;
 }
 
+typedef enum {
+    FB_BASE_VRAM,
+    FB_BASE_RAM,
+    FB_BASE_INVALID,
+    FB_BASE_ATOM_INVALID = FB_BASE_INVALID,
+    FB_BASE_NONE
+} rhdFbBaseAllocStatus;
+
+static rhdFbBaseAllocStatus
+rhdAtomBIOSSetFbBase(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, Bool TryHard)
+{
+    AtomBIOSArg data;
+    unsigned int fb_base = 0;
+    unsigned int fb_size = 0;
+    handle->scratchBase = NULL;
+    handle->fbBase = 0;
+    
+    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
+	== ATOM_SUCCESS) {
+	fb_size = data.val * 1024; /* convert to bytes */
+	if (fb_size)
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS requests %ikB"
+		       " of VRAM scratch space\n",fb_size);
+	else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM "
+		       "scratch space size invalid\n", __func__);
+	    if (!TryHard)
+		return FB_BASE_ATOM_INVALID;
+	    /* default in case values are not filled in yet */
+	    fb_size = 20 * 1024;
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, " default to: %i\n",fb_size);
+	}
+    }
+    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
+	== ATOM_SUCCESS) {
+	fb_base = data.val;
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch base: 0x%x\n",
+		   fb_base);
+    } else {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM scratch "
+		   "size invalid\n",__func__);
+	fb_base = 0;
+    }
+    if (fb_base && fb_size && pScrn->videoRam) {
+	int videoRam = pScrn->videoRam * 1024;
+	/* 4k align */
+	fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0);
+	if ((fb_base + fb_size) > videoRam) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "%s: FW FB scratch area %i (size: %i)"
+		       " extends beyond framebuffer size %i\n",
+		       __func__, fb_base, fb_size, videoRam);
+	} else if ((fb_base + fb_size) < videoRam) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "%s: FW FB scratch area not located "
+		       "at the end of VRAM. Scratch End: "
+		       "0x%x VRAM End: 0x%x\n", __func__,
+		       (unsigned int)(fb_base + fb_size),
+		       videoRam);
+	} else {
+	    handle->fbBase = fb_base;
+	    return FB_BASE_VRAM;
+	}
+    }
+    if (!handle->fbBase) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Cannot get VRAM scratch space. "
+		   "Allocating in main memory instead\n");
+	handle->scratchBase = xcalloc(fb_size,1);
+	return FB_BASE_RAM;
+    }
+    return FB_BASE_NONE;
+}
+
 static atomBIOSHandlePtr
 rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 {
@@ -296,9 +370,6 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     unsigned char *ptr;
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle = NULL;
-    AtomBIOSArg data;
-    unsigned int fb_base = 0;
-    unsigned int fb_size = 0;
 
     RHDFUNC(pScrn);
 
@@ -369,52 +440,33 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = pScrn->scrnIndex;
     handle->PciTag = rhdPtr->PciTag;
-
-    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
-	== ATOM_SUCCESS) {
-	int videoRam = pScrn->videoRam * 1024;
-	fb_base = data.val;
-	if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
-	    == ATOM_SUCCESS) {
-	    fb_size = data.val * 1024; /* convert to bytes */
-	    /* 4k align */
-	    fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0);
-	    if ((fb_base + fb_size) > videoRam) {
-		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			   "%s: FW FB scratch area %i (size: %i)"
-			   " extends beyond framebuffer size %i\n",
-			   __func__, fb_base, fb_size, videoRam);
-	    } else if ((fb_base + fb_size) < videoRam) {
+    switch (rhdAtomBIOSSetFbBase(pScrn, handle, FALSE)) {
+	case FB_BASE_ATOM_INVALID:
+	    /*
+	     * If the AtomBIOS table data is invalid we try to run ASIC init
+	     * to init the tables.
+	     */
+	    if (rhdTestAsicInit(pScrn)) {
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch space info"
+			   " invalid. Trying AsicInit\n");
+		if (!rhdAtomBIOSSetFbBase(pScrn, handle, FALSE)) {
 		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			       "%s: FW FB scratch area not located "
-			       "at the end of VRAM. Scratch End: "
-			       "0x%x VRAM End: 0x%x\n", __func__,
-			       (unsigned int)(fb_base + fb_size),
-			       videoRam);
+			       "%s: Cannot allocate FB scratch area\n",__func__);
+		}
 	    } else {
-		handle->fbBase = fb_base;
-		handle->scratchBase = NULL;
+		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+			   "%s: AsicInit failed. Won't be able to obtain in VRAM "
+			   "FB scratch space\n",__func__);
+		if (!rhdAtomBIOSSetFbBase(pScrn, handle, TRUE)) {
+		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+			       "%s: No way to allocate FB scratch area\n",__func__);
+		}
 	    }
-	    if (!handle->fbBase) {
-		handle->scratchBase = xcalloc(fb_size,1);
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-			   "Cannot get VRAM scratch space. "
-			   "Allocating in main memory instead\n");
-	    }
-	} else {
-	    handle->fbBase = 0;
-	    handle->scratchBase = NULL;
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "%s: No VRAM FW scratch area size specifed!\n",
-		       __func__);
-	}
-    } else {
-	handle->fbBase = 0;
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: No VRAM FW scratch area specifed!\n",
-		   __func__);
+	    break;
+	default:
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "%s: Cannot set FB scratch area\n",__func__);
     }
-
     return handle;
 
  error1:
