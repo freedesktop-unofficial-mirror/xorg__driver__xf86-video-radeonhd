@@ -452,7 +452,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->FbFreeSize -= size;
     }
 
-    if (RhdAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &arg) == SUCCESS) {
+    if (RhdAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &arg) == ATOM_SUCCESS) {
 	biosHandle = arg.ptr;
 	/* for testing functions */
 	RhdAtomBIOSFunc(pScrn, biosHandle, GET_MAX_PLL_CLOCK, &arg);
@@ -1337,6 +1337,37 @@ _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
     tmp &= ~mask;
     tmp |= (value & mask);
     _RHDRegWrite(scrnIndex, offset, tmp);
+}
+
+/* The following two are R5XX only. R6XX doesn't require these */
+CARD32
+_RHDReadMC(int scrnIndex, CARD16 offset)
+{
+    CARD32 addr = (offset & 0x1FF) | ((offset & 0xFE) << 7);
+    _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
+    return _RHDRegRead(scrnIndex, MC_IND_DATA);
+}
+
+void
+_RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data)
+{
+    CARD32 addr = (offset & 0x1FF) | ((offset & 0xFE) << 7);
+    _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
+    _RHDRegWrite(scrnIndex, MC_IND_DATA, data);
+}
+
+CARD32
+_RHDReadPLL(int scrnIndex, CARD16 offset)
+{
+    _RHDRegWrite(scrnIndex, CLOCK_CNTL_INDEX, (offset & PLL_ADDR));
+    return _RHDRegRead(scrnIndex, CLOCK_CNTL_DATA);
+}
+
+void
+_RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
+{
+    _RHDRegWrite(scrnIndex, CLOCK_CNTL_INDEX, (offset & PLL_ADDR) | PLL_WR_EN);
+    _RHDRegWrite(scrnIndex, CLOCK_CNTL_DATA, data);
 }
 
 /*

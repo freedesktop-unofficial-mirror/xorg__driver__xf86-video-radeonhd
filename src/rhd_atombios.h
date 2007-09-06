@@ -1,5 +1,7 @@
 /*
  * Copyright 2007  Egbert Eich   <eich@novell.com>
+ * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007  Matthias Hopf <mhopf@novell.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -24,33 +26,46 @@
 #ifndef RHD_ATOMBIOS_H_
 # define RHD_ATOMBIOS_H_
 
+#include "rhd.h"
+
 typedef enum {
     ATOMBIOS_INIT,
     ATOMBIOS_UNINIT,
-    GET_MAX_PLL_CLOCK,
+    ATOMBIOS_EXEC,
+    ATOM_QUERY_FUNCS = 0x1000,
+    GET_MAX_PLL_CLOCK = ATOM_QUERY_FUNCS,
     GET_MIN_PLL_CLOCK,
     GET_MAX_PIXEL_CLK,
     GET_REF_CLOCK,
+    ATOM_VRAM_QUERIES = GET_REF_CLOCK,
+    GET_FW_FB_START,
+    GET_FW_FB_SIZE,
     FUNC_END
 } AtomBiosFunc;
 
 typedef enum {
-    SUCCESS,
-    FAILED,
-    NOT_IMPLEMENTED
+    ATOM_SUCCESS,
+    ATOM_FAILED,
+    ATOM_NOT_IMPLEMENTED
 } AtomBiosResult;
+
+typedef struct {
+    int index;
+    pointer pspace;
+    pointer *dataSpace;
+} AtomExec, AtomExecPtr;
 
 typedef union 
 {
-    CARD8 card8;
-    CARD16 card16;
-    CARD32 card32;
+    CARD32 val;
     pointer ptr;
+    atomBIOSHandlePtr atomp;
+    AtomExecPtr execp;
 } AtomBIOSArg, *AtomBIOSArgPtr;
 
 
-AtomBiosResult
-RhdAtomBIOSFunc(ScrnInfoPtr pScrn, pointer handle, AtomBiosFunc func,
+extern AtomBiosResult
+RhdAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
 #endif /*  RHD_ATOMBIOS_H_ */

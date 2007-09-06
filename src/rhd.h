@@ -85,6 +85,7 @@ struct rhd_card {
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
 
 typedef struct _rhdI2CRec *rhdI2CPtr;
+typedef struct _atomBIOSHandle *atomBIOSHandlePtr;
 
 typedef struct _RHDopt {
     Bool set;
@@ -137,6 +138,7 @@ typedef struct RHDRec {
     CloseScreenProcPtr  CloseScreen;
     
     rhdI2CPtr		I2C;  /* I2C handle */
+    atomBIOSHandlePtr   atomBIOS; /* handle for AtomBIOS */
     
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
     struct rhd_Crtc     *Crtc[2];
@@ -179,6 +181,11 @@ void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
 #define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
 void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 #define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
+CARD32 _RHDReadMC(int scrnIndex, CARD16 offset);
+#define RHDReadMC(ptr,offset) _RHDReadMC((ptr)->scrnIndex,(offset));
+void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
+#define RHDWriteMC(ptr,offset,value) _RHDWriteMC((ptr)->scrnIndex,(offset),(value))
+
 #define regOR(handle, offset, value) RHDRegMask((handle), (offset), (value), (value))
 
 /* Extra debugging verbosity: decimates gdb usage */
