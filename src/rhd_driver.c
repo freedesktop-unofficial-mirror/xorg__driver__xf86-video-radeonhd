@@ -488,8 +488,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MIN_PLL_CLOCK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_REF_CLOCK, &atomBiosArg);
-	rhdTestAsicInit(pScrn);
+
 #ifdef ATOM_ASIC_INIT
+	rhdTestAsicInit(pScrn);
 	rhdTestAtomBIOS(pScrn);
 #endif
     }
@@ -499,7 +500,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    rhdPtr->I2C = i2cArg.i2cp;
 	    if (xf86LoadSubModule(pScrn, "ddc")) {
 		rhdTestDDC(pScrn);
-	    } else 
+	    } else
 		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load DDC module\n",__func__);
 	} else
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "I2C init failed\n");
@@ -516,7 +517,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Card information has invalid connector information\n");
-	goto error2;
+	goto error1;
     }
 
     /* Pick anything for now */

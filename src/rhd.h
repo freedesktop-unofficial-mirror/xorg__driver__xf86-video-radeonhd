@@ -138,7 +138,7 @@ typedef struct RHDRec {
     unsigned int        D2CursorOffset;
 
     CloseScreenProcPtr  CloseScreen;
-    
+
     rhdI2CPtr		I2C;  /* I2C handle */
     atomBIOSHandlePtr   atomBIOS; /* handle for AtomBIOS */
     /*
@@ -146,8 +146,8 @@ typedef struct RHDRec {
      * once we know how to read PCI BIOS on
      * POSTed hardware
      */
-    unsigned char*	BIOSCopy;  
-    
+    unsigned char*	BIOSCopy;
+
     struct rhd_VGA      *VGA; /* VGA compatibility HW */
     struct rhd_Crtc     *Crtc[2];
     struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
