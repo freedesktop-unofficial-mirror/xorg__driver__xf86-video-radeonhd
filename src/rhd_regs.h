@@ -274,8 +274,10 @@ enum {
     PLL_ADDR     = (0x3f << 0),
     PLL_WR_EN    = (0x1 << 7),
     PPLL_DIV_SEL         = (0x3 << 8),
+
     /* CLOCK_CNTL_DATA */
-    PLL_DATA     = (0xffffffff << 0),
+#define PLL_DATA         0xffffffff
+
     /* MC_IND_INDEX */
     MC_IND_ADDR		 = (0xffff << 0),
     MC_IND_SEQ_RBS_0     = (0x1 << 16),
@@ -286,9 +288,10 @@ enum {
     MC_IND_CITF_ARB0     = (0x1 << 21),
     MC_IND_CITF_ARB1     = (0x1 << 22),
     MC_IND_WR_EN         = (0x1 << 23),
-    MC_IND_RD_INV        = (0x1 << 24),
+    MC_IND_RD_INV        = (0x1 << 24)
+
     /* MC_IND_DATA */
-    MC_IND_DATA_BIT      = (0xffffffff << 0)
+#define MC_IND_DATA_BIT  0xffffffff
 };
 
 #endif /* _RHD_REGS_H */
