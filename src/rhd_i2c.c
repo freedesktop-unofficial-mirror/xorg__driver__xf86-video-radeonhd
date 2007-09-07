@@ -438,7 +438,7 @@ rhdInitI2C(int scrnIndex)
 
     RHDFUNCI(scrnIndex);
 
-    if (!(I2CList = xcalloc(sizeof(I2CBusPtr),1))) {
+    if (!(I2CList = xcalloc(sizeof(I2CBusPtr),I2C_LINES))) {
 	xf86DrvMsg(scrnIndex, X_ERROR,
 		   "%s: Out of memory.\n",__func__);
     }
