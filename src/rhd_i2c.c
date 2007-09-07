@@ -494,6 +494,26 @@ rhdInitI2C(int scrnIndex)
     return NULL;
 }
 
+Bool
+rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
+		   int line, CARD8 slave)
+{
+    I2CDevPtr dev;
+    int ret = FALSE;
+    
+    if (line > I2C_LINES || !I2CList[line])
+	return FALSE;
+    if (dev = xf86CreateI2CDevRec(void)) {
+	dev->SlaveAddr = address;
+	dev->pI2CBus = I2CList[i];
+	if (xf86I2CDevInit(dev)) {
+	    ret = xf86WriteRead(dev, NULL, 0, NULL, 0);
+	}
+	xf86DestroyI2CDevRec(dev, TRUE);
+    }
+    return ret;
+}
+
 RHDI2CResult
 RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	   RHDI2CDataArgPtr datap)
@@ -510,6 +530,11 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	if (datap->i > I2C_LINES || !I2CList[datap->i])
 	    return RHD_I2C_FAILED;
 	datap->i2cBusPtr = I2CList[datap->i];
+    }
+    if (func == RHD_I2C_PROBE_ADDR) {
+	return rhdI2CProbeAddress(pScrn, I2CList,
+				  datap->target.line,
+				  datap->target.slave);
     }
     if (func == RHD_I2C_TEARDOWN) {
 	if (I2CList)

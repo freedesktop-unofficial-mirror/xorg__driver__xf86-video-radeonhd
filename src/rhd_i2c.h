@@ -6,14 +6,20 @@
 typedef enum {
     RHD_I2C_INIT,
     RHD_I2C_GETBUS,
+    RHD_I2C_PROBE_ADDR,
     RHD_I2C_TEARDOWN
 } RHDi2cFunc;
+
 
 typedef union
 {
     I2CBusPtr *I2CBusList;
     I2CBusPtr i2cBusPtr;
     int i;
+    struct {
+	int line;
+	CARD8 slave;
+    } target;
 } RHDI2CDataArg, *RHDI2CDataArgPtr;
 
 typedef enum {
