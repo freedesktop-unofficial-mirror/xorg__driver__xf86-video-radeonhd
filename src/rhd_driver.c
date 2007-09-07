@@ -480,8 +480,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->FbFreeStart += size;
 	rhdPtr->FbFreeSize -= size;
     }
-
-    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) == ATOM_SUCCESS) {
+    rhdMapFB(rhdPtr);
+    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
+	== ATOM_SUCCESS) {
 	rhdPtr->atomBIOS = atomBiosArg.ptr;
 	/* for testing functions */
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
@@ -495,17 +496,16 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
 			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+			    GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_MAX_PIXEL_CLK, &atomBiosArg);
+			    GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
-	rhdTestAsicInit(pScrn);
 #ifdef ATOM_ASIC_INIT
-	rhdTestAtomBIOS(pScrn);
+	rhdTestAsicInit(pScrn);
 #endif
-    }
-
+	rhdTestAtomBIOS(pScrn);
+    } 
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
@@ -534,7 +534,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Pick anything for now */
     if (!rhdModeLayoutSelect(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
-	goto error1;
+	goto error2;
     }
     rhdModeLayoutPrint(rhdPtr);
 
@@ -555,7 +555,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rgb zeros = {0, 0, 0};
 
 	if (!xf86SetWeight(pScrn, zeros, zeros)) {
-	    goto error1;
+	    goto error2;
 	} else {
 	    /* XXX check that weight returned is supported */
 	    ;
@@ -563,14 +563,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     if (!xf86SetDefaultVisual(pScrn, -1)) {
-	goto error1;
+	goto error2;
     } else {
         /* We don't currently support DirectColor at > 8bpp */
         if (pScrn->depth > 8 && pScrn->defaultVisual != TrueColor) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Given default visual"
                        " (%s) is not supported at depth %d\n",
                        xf86GetVisualName(pScrn->defaultVisual), pScrn->depth);
-	    goto error1;
+	    goto error2;
         }
     }
 
@@ -579,7 +579,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
         /* @@@ */
 	if (!xf86SetGamma(pScrn, zeros)) {
-	    goto error1;
+	    goto error2;
 	}
     }
 
@@ -590,13 +590,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
         if (!RHDGetVirtualFromConfig(pScrn)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Unable to find valid framebuffer dimensions\n");
-	    goto error1;
+	    goto error2;
 	}
 
     Modes = RHDModesPoolCreate(pScrn, FALSE);
     if (!Modes) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
-	goto error1;
+	goto error2;
     }
 
     if (!pScrn->virtualX || !pScrn->virtualY)
@@ -613,20 +613,22 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86SetDpi(pScrn, 0, 0);
 
     if (xf86LoadSubModule(pScrn, "fb") == NULL) {
-	goto error1;
+	goto error2;
     }
 
     if (!xf86LoadSubModule(pScrn, "xaa")) {
-	goto error1;
+	goto error2;
     }
 
     if (!rhdPtr->swCursor.val.bool) {
 	if (!xf86LoadSubModule(pScrn, "ramdac")) {
-	    goto error1;
+	    goto error2;
 	}
     }
     ret = TRUE;
 
+ error2:
+    rhdUnmapFB(rhdPtr);
  error1:
     rhdUnmapMMIO(rhdPtr);
  error0:
@@ -1071,6 +1073,9 @@ static void
 rhdUnmapFB(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
+    
+    if (!rhdPtr->FbBase)
+	return;
 
     xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
                     rhdPtr->FbMapSize);

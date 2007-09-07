@@ -455,6 +455,7 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 	     * If the AtomBIOS table data is invalid we try to run ASIC init
 	     * to init the tables.
 	     */
+#if 0
 	    if (rhdTestAsicInit(pScrn)) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch space info"
 			   " invalid. Trying AsicInit\n");
@@ -462,7 +463,9 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			       "%s: Cannot allocate FB scratch area\n",__func__);
 		}
-	    } else {
+	    } else
+#endif
+	    {
 		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			   "%s: AsicInit failed. Won't be able to obtain in VRAM "
 			   "FB scratch space\n",__func__);
@@ -730,7 +733,8 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 static Bool
 rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSpace)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[handle->scrnIndex]);
+    ScrnInfoPtr pScrn = xf86Screens[handle->scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     Bool ret = FALSE;
     char *msg;
 
@@ -739,9 +743,15 @@ rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSp
     if (dataSpace) {
 	if (!handle->fbBase && !handle->scratchBase)
 	    return FALSE;
-	if (handle->fbBase)
+	if (handle->fbBase) {
+	    if (!rhdPtr->FbBase) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: "
+			   "Cannot exec AtomBIOS: framebuffer not mapped\n",
+			   __func__);
+		return FALSE;
+	    }
 	    *dataSpace = (CARD8*)rhdPtr->FbBase + handle->fbBase;
-	else
+	} else
 	    *dataSpace = (CARD8*)handle->scratchBase;
     }
     ret = ParseTableWrapper(pspace, index, handle,
