@@ -113,6 +113,7 @@ rhdI2CStatusR500(I2CBusPtr I2CPtr)
 	if (((RHDRegRead(I2CPtr, 0x7d30)) & 0x08) != 0)
 	    continue;
 	res = RHDRegRead(I2CPtr, 0x7d30);
+	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)res,count);
 	if (res & 0x1)
 	    return TRUE;
 	else
@@ -127,7 +128,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 		int nWrite, I2CByte *ReadBuffer, int nRead)
 {
     I2CSlaveAddr slave = i2cDevPtr->SlaveAddr;
-    rhdI2CPtr I2C = (rhdI2CPtr)(i2cDevPtr->DriverPrivate.ptr);
+    rhdI2CPtr I2C = (rhdI2CPtr)(i2cDevPtr->pI2CBus->DriverPrivate.ptr);
     I2CBusPtr I2CPtr = i2cDevPtr->pI2CBus;
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
@@ -143,23 +144,25 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     RHDRegMask(I2CPtr, 0x494, 1, 1);
     RHDRegMask(I2CPtr, 0x7d50, 1, 1);
 
-
     RHDRegMask(I2CPtr, 0x7d30, 0x7, 0xff);
     RHDRegMask(I2CPtr, 0x7d34, 0x1, 0xffff);
     RHDRegWrite(I2CPtr, 0x7d34, 0);
 
     RHDRegMask(I2CPtr, 0x7d38, (line  & 0x0f) << 16 | 0x100, 0xff0100);
-    RHDRegMask(I2CPtr, 0x7d40, 0x30 << 24, 0xff << 24);
 
     if (nWrite) {
 	RHDRegWrite(I2CPtr, 0x7d3c, prescale << 16 | nWrite << 8 | 0x01);
+	RHDRegMask(I2CPtr, 0x7d40, 0x30 << 24, 0xff << 24);
+
+	RHDRegWrite(I2CPtr, 0x7d44, slave); 
 
 	while (nWrite--)
 	    RHDRegWrite(I2CPtr, 0x7d44, *WriteBuffer++);
 
 	RHDRegMask(I2CPtr, 0x7d38, 0x3, 0xff);
 	RHDRegMask(I2CPtr, 0x7d30, 0x8, 0xff);
-	if ((ret = rhdI2CStatusR500(I2CPtr)))
+
+	if ((ret = rhdI2CStatusR500(I2CPtr))) 
 	    RHDRegMask(I2CPtr, 0x7d30, 0x1, 0xff);
 	else
 	    ret = FALSE;
@@ -455,7 +458,7 @@ rhdInitI2C(int scrnIndex)
 	 * It nees to be replaced by the proper calculation formula
 	 * once this is available.
 	 */
-	I2C->prescale = 0x7ff;
+	I2C->prescale = 0x3fff;
 	I2C->line = i;
 	if (!(I2CPtr = xf86CreateI2CBusRec())) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
@@ -527,9 +530,12 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	    return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_GETBUS) {
-	if (datap->i > I2C_LINES || !I2CList[datap->i])
+	if (datap->i > I2C_LINES || !I2CList[datap->i]) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,"line: %i wrong\n",datap->i);
 	    return RHD_I2C_FAILED;
+	}
 	datap->i2cBusPtr = I2CList[datap->i];
+	return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_PROBE_ADDR) {
 	return rhdI2CProbeAddress(pScrn, I2CList,
