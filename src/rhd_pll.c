@@ -34,6 +34,7 @@
 #include "rhd.h"
 #include "rhd_pll.h"
 #include "rhd_regs.h"
+#include "rhd_atombios.h"
 
 
 #define PLL_CALIBRATE_WAIT 0x100000
@@ -341,6 +342,13 @@ PLLRestore(struct rhd_PLL *PLL)
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 }
 
+/* Some defaults for when we don't have this info */
+#define RHD_PLL_DEFAULT_REFERENCE    27000 /* it's right there on the card */
+#define RHD_PLL_DEFAULT_PLLOUT_MIN  600000 /* x6 otherwise clock is unstable */
+#define RHD_PLL_DEFAULT_PLLOUT_MAX 1100000 /* Lowest value seen so far */
+#define RHD_PLL_DEFAULT_MIN          16000 /* guess */
+#define RHD_PLL_DEFAULT_MAX         400000 /* 400Mhz modes... hrm */
+
 /*
  *
  */
@@ -348,8 +356,35 @@ void
 RHDPLLsInit(RHDPtr rhdPtr)
 {
     struct rhd_PLL *PLL;
+    CARD32 RefClock, InMin, InMax, OutMin, OutMax;
+    AtomBIOSArg arg;
+    int ret;
 
     RHDFUNC(rhdPtr);
+
+    /* Retrieve the maximum internal PLL frequency */
+    InMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
+    if (rhdPtr->atomBIOS) {
+	ret = RHDAtomBIOSFunc(xf86Screens[rhdPtr->scrnIndex], rhdPtr->atomBIOS,
+			      GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &arg);
+	if (ret == ATOM_SUCCESS) {
+	    if (arg.val) {
+		if ((arg.val * 10) < RHD_PLL_DEFAULT_PLLOUT_MAX)
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+			       "Lower PLL maximum detected than the default.\n"
+			       "Please contact the authors ASAP.\n");
+		InMax = arg.val * 10;
+	    }
+	}
+    } else
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Failed to retrieve the maximum"
+		   " internal PLL clock from ATOM.\n");
+
+    /* keep the defaults */
+    RefClock = RHD_PLL_DEFAULT_REFERENCE;
+    InMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
+    OutMin = RHD_PLL_DEFAULT_MIN;
+    OutMax = RHD_PLL_DEFAULT_MAX;
 
     /* PLL1 */
     PLL = (struct rhd_PLL *) xnfcalloc(sizeof(struct rhd_PLL), 1);
@@ -358,12 +393,11 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->Name = PLL_NAME_PLL1;
     PLL->Id = PLL_ID_PLL1;
 
-    /* Fill in ATOM values here */
-    PLL->RefClock = 27000;
-    PLL->InMin = 100000 * 6; /* x6 otherwise clock is unstable */
-    PLL->InMax = 1350000;
-    PLL->OutMin = 16000; /* guess */
-    PLL->OutMax = 400000;
+    PLL->RefClock = RefClock;
+    PLL->InMin = InMin;
+    PLL->InMax = InMax;
+    PLL->OutMin = OutMin;
+    PLL->OutMax = OutMax;
 
     PLL->Valid = PLLValid;
     PLL->Set = PLL1Set;
@@ -380,11 +414,11 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->Name = PLL_NAME_PLL2;
     PLL->Id = PLL_ID_PLL2;
 
-    PLL->RefClock = 27000;
-    PLL->InMin = 100000 * 6; /* x6 otherwise clock is unstable */
-    PLL->InMax = 1350000;
-    PLL->OutMin = 16000; /* guess */
-    PLL->OutMax = 400000;
+    PLL->RefClock = RefClock;
+    PLL->InMin = InMin;
+    PLL->InMax = InMax;
+    PLL->OutMin = OutMin;
+    PLL->OutMax = OutMax;
 
     PLL->Valid = PLLValid;
     PLL->Set = PLL2Set;
