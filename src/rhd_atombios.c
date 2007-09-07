@@ -704,6 +704,7 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Input;
+		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
 			.FirmwareInfo_V_1_4->ulMaxPixelClockPLL_Output;
@@ -1037,8 +1038,8 @@ rhdTestAsicInit(ScrnInfoPtr pScrn)
     ASIC_INIT_PS_ALLOCATION asicInit;
     AtomBIOSArg data;
 
-    asicInit.sASICInitClocks.ulDefaultEngineClock = 100000;  /* in 10 Khz */
-    asicInit.sASICInitClocks.ulDefaultMemoryClock = 100000;  /* in 10 Khz */
+    asicInit.sASICInitClocks.ulDefaultEngineClock = 70000;  /* in 10 Khz */
+    asicInit.sASICInitClocks.ulDefaultMemoryClock = 70000;  /* in 10 Khz */
     data.execp.dataSpace = NULL;
     data.execp.index = 0x0;
     data.execp.pspace = &asicInit;
