@@ -372,6 +372,28 @@ rhdAtomBIOSSetFbBase(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, Bool TryHard)
     return FB_BASE_NONE;
 }
 
+static Bool
+rhdASICInit(atomBIOSHandlePtr handle)
+{
+    ASIC_INIT_PS_ALLOCATION asicInit;
+    AtomBIOSArg data;
+    ScrnInfoPtr pScrn = xf86Screens[handle->scrnIndex];
+
+    asicInit.sASICInitClocks.ulDefaultEngineClock = 70000;  /* in 10 Khz */
+    asicInit.sASICInitClocks.ulDefaultMemoryClock = 70000;  /* in 10 Khz */
+    data.execp.dataSpace = NULL;
+    data.execp.index = 0x0;
+    data.execp.pspace = &asicInit;
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
+    if (RHDAtomBIOSFunc(pScrn, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "ASIC_INIT Failed\n");
+    return FALSE;
+}
+
 static atomBIOSHandlePtr
 rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 {
@@ -455,17 +477,15 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
 	     * If the AtomBIOS table data is invalid we try to run ASIC init
 	     * to init the tables.
 	     */
-#if 0
-	    if (rhdTestAsicInit(pScrn)) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch space info"
-			   " invalid. Trying AsicInit\n");
-		if (!rhdAtomBIOSSetFbBase(pScrn, handle, FALSE)) {
+	    
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch space info"
+		       " invalid. Trying AsicInit.\n");
+	    if (rhdASICInit(handle)) {
+		if (rhdAtomBIOSSetFbBase(pScrn, handle, FALSE) >= FB_BASE_INVALID) {
 		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			       "%s: Cannot allocate FB scratch area\n",__func__);
 		}
-	    } else
-#endif
-	    {
+	    } else {
 		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			   "%s: AsicInit failed. Won't be able to obtain in VRAM "
 			   "FB scratch space\n",__func__);
@@ -734,19 +754,17 @@ rhdAtomBIOSFirmwareInfoQuery(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
 static Bool
 rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSpace)
 {
-    ScrnInfoPtr pScrn = xf86Screens[handle->scrnIndex];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[handle->scrnIndex]);
     Bool ret = FALSE;
     char *msg;
 
     RHDFUNCI(handle->scrnIndex);
-
     if (dataSpace) {
 	if (!handle->fbBase && !handle->scratchBase)
 	    return FALSE;
 	if (handle->fbBase) {
 	    if (!rhdPtr->FbBase) {
-		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: "
+		xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: "
 			   "Cannot exec AtomBIOS: framebuffer not mapped\n",
 			   __func__);
 		return FALSE;
@@ -763,7 +781,7 @@ rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSp
     else
 	xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 5, "%s\n",msg);
 
-    return ret == 1 ? TRUE : FALSE;
+    return (ret) ? TRUE : FALSE;
 }
 
 AtomBiosResult
@@ -1034,21 +1052,5 @@ rhdTestAtomBIOS(ScrnInfoPtr pScrn)
 Bool
 rhdTestAsicInit(ScrnInfoPtr pScrn)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    ASIC_INIT_PS_ALLOCATION asicInit;
-    AtomBIOSArg data;
-
-    asicInit.sASICInitClocks.ulDefaultEngineClock = 70000;  /* in 10 Khz */
-    asicInit.sASICInitClocks.ulDefaultMemoryClock = 70000;  /* in 10 Khz */
-    data.execp.dataSpace = NULL;
-    data.execp.index = 0x0;
-    data.execp.pspace = &asicInit;
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Calling ASIC Init\n");
-    if (RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "ASIC_INIT Successful\n");	
-	return TRUE;
-    }
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "ASIC_INIT Failed\n");
-    return FALSE;
+    return rhdASICInit(RHDPTR(pScrn)->atomBIOS);
 }

@@ -22,6 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* #define ATOM_ASIC_INIT */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -452,6 +453,29 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
+    rhdMapFB(rhdPtr);
+    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
+	== ATOM_SUCCESS) {
+	rhdPtr->atomBIOS = atomBiosArg.ptr;
+	/* for testing functions */
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
+			&atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
+			&atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			    GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			    GET_MAX_PIXEL_CLK, &atomBiosArg);
+	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+			GET_REF_CLOCK, &atomBiosArg);
+	rhdTestAtomBIOS(pScrn);
+    } 
     /* We can use a register which is programmed by the BIOS to find otu the
        size of our framebuffer */
     if (!pScrn->videoRam) {
@@ -480,32 +504,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->FbFreeStart += size;
 	rhdPtr->FbFreeSize -= size;
     }
-    rhdMapFB(rhdPtr);
-    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
-	== ATOM_SUCCESS) {
-	rhdPtr->atomBIOS = atomBiosArg.ptr;
-	/* for testing functions */
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
-			&atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
-			&atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			    GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			    GET_MAX_PIXEL_CLK, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
-			GET_REF_CLOCK, &atomBiosArg);
-#ifdef ATOM_ASIC_INIT
-	rhdTestAsicInit(pScrn);
-#endif
-	rhdTestAtomBIOS(pScrn);
-    } 
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
