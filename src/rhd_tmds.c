@@ -137,6 +137,7 @@ TMDSAVoltageControl(RHDPtr rhdPtr)
 	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00A00415);
 	break;
     case 0x71C2: /* RV530 */
+    case 0x71C5: /* M56 */
 	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00A00416);
 	break;
     case 0x71D2: /* RV530 */

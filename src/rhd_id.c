@@ -205,6 +205,7 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
     case 0x7152:
     case 0x71C1:
     case 0x71C2:
+    case 0x71C5:
     case 0x71D2:
     case 0x7249:
     case 0x7280:
@@ -226,25 +227,30 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
  * There are, after all, a limited number of possibilities at the moment.
  */
 
-#define CRT_A_DVI_BB1 { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
+#define VGA_A_DVI_BB1 { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
                            { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
-	                {RHD_CONNECTOR_DVI_I, "DVI-I", RHD_DDC_NONE, RHD_HPD_1, \
+	                {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_NONE, RHD_HPD_1, \
                            { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_AA0_DVI_BB1 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
+#define DVI_AA0_DVI_BB1 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
                                     { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}, \
-	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
+	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
                                   { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_BA0_DVI_AB1 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
+#define DVI_BA0_DVI_AB1 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
                                     { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}, \
-	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
+	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
                                   { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_BB1_DVI_AA0 { {RHD_CONNECTOR_DVI_I, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_1, \
+#define DVI_BB1_DVI_AA0 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_1, \
                                   { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}, \
-	                        {RHD_CONNECTOR_DVI_I, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_0, \
+	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_0, \
                                   { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
+
+#define PANEL_A_VGA_A { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_NONE, RHD_HPD_NONE, \
+                           { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+                        {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
+                           { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
 /*
  * List of pci subsystem / card ids.
@@ -279,7 +285,7 @@ rhdCards[] =
     /* 0x7146 : RV515 : Radeon X1300 */
     { 0x7146, 0x174B, 0x0470, "Sapphire X1300" },
     /* 0x7147 : RV505 : Radeon X1550 */
-    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", CRT_A_DVI_BB1 },
+    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", VGA_A_DVI_BB1 },
     /* 0x7149 : M52 : Mobility Radeon X1300 */
     /* 0x714A : M52 : Mobility Radeon X1300 */
     /* 0x714B : M52 : Mobility Radeon X1300 */
@@ -314,6 +320,7 @@ rhdCards[] =
     /* 0x71C3 : RV535 : Radeon X1300 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
+    { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_A_VGA_A },
     /* 0x71C6 : RV530 : Radeon X1600 */
     /* 0x71C7 : RV535 : Radeon X1650 */
     /* 0x71CD : RV530 : Radeon X1600 */

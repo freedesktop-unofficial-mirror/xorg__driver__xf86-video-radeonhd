@@ -28,8 +28,9 @@
 /* so that we can map which is which */
 #define RHD_CONNECTOR_NONE  0
 #define RHD_CONNECTOR_VGA   1
-#define RHD_CONNECTOR_DVI_I 2 /* too simplistic */
-#define RHD_CONNECTOR_TV    3 /* too simplistic */
+#define RHD_CONNECTOR_DVI   2
+#define RHD_CONNECTOR_PANEL 3
+#define RHD_CONNECTOR_TV    4
 /* add whatever */
 
 /* map which DDC bus is where */
