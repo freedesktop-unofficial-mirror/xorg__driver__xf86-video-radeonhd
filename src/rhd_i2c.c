@@ -22,10 +22,15 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86_ansic.h"
 #include "xf86i2c.h"
+
 #include "rhd.h"
 #include "rhd_i2c.h"
 #include "rhd_regs.h"
@@ -503,15 +508,17 @@ rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
 {
     I2CDevPtr dev;
     int ret = FALSE;
-    
+
     if (line > I2C_LINES || !I2CList[line])
 	return FALSE;
-    if (dev = xf86CreateI2CDevRec(void)) {
-	dev->SlaveAddr = address;
-	dev->pI2CBus = I2CList[i];
-	if (xf86I2CDevInit(dev)) {
-	    ret = xf86WriteRead(dev, NULL, 0, NULL, 0);
-	}
+
+    if ((dev = xf86CreateI2CDevRec())) {
+	dev->SlaveAddr = slave;
+	dev->pI2CBus = I2CList[line];
+
+	if (xf86I2CDevInit(dev))
+	    ret = xf86I2CWriteRead(dev, NULL, 0, NULL, 0);
+
 	xf86DestroyI2CDevRec(dev, TRUE);
     }
     return ret;

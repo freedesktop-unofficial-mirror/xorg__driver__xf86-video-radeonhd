@@ -25,6 +25,16 @@
 #ifndef _RHD_MODES_H
 #define _RHD_MODES_H
 
+/*
+ * In case this isn't in xf86str.h yet.
+ */
+#ifndef M_T_PREFERRED
+#define M_T_PREFERRED 0x08
+#endif
+#ifndef M_T_DRIVER
+#define M_T_DRIVER 0x40
+#endif
+
 DisplayModePtr RHDCVTMode(int HDisplay, int VDisplay, float VRefresh,
 			  Bool Reduced, Bool Interlaced);
 

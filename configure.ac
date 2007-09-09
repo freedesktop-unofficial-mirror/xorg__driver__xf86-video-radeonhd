@@ -41,7 +41,7 @@ XORG_DRIVER_CHECK_EXT(DPMSExtension, xextproto)
 # pkg-config packages checks
 # @@@@ need to check for the right server version once RandR 1.2 is in.
 # @@@ do we really need fontsproto here?
-PKG_CHECK_MODULES(XORG, [xorg-server >= 1.0.99.901 xproto fontsproto $REQUIRED_MODULES])
+PKG_CHECK_MODULES(XORG, [xorg-server xproto fontsproto $REQUIRED_MODULES])
 sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 
 # Header files checks.

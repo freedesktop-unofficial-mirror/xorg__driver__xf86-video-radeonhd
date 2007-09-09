@@ -32,7 +32,7 @@
 #include "rhd_crtc.h"
 #include "rhd_pll.h"
 #include "rhd_output.h"
-
+#include "rhd_modes.h"
 
 /*
  * Define a set of own mode errors.
