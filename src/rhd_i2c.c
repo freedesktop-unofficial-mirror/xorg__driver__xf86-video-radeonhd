@@ -509,7 +509,7 @@ rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
     I2CDevPtr dev;
     int ret = FALSE;
 
-    if (line > I2C_LINES || !I2CList[line])
+    if (line >= I2C_LINES || !I2CList[line])
 	return FALSE;
 
     if ((dev = xf86CreateI2CDevRec())) {
@@ -537,10 +537,9 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	    return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_GETBUS) {
-	if (datap->i > I2C_LINES || !I2CList[datap->i]) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,"line: %i wrong\n",datap->i);
+	if (datap->i >= I2C_LINES || !I2CList[datap->i])
 	    return RHD_I2C_FAILED;
-	}
+
 	datap->i2cBusPtr = I2CList[datap->i];
 	return RHD_I2C_SUCCESS;
     }

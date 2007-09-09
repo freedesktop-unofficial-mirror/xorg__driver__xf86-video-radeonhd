@@ -1498,7 +1498,7 @@ rhdTestDDC(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     xf86MonPtr monitor;
     RHDI2CDataArg data;
-    
+
     int i = 0;
     while (1) {
 	data.i = i++;
@@ -1506,11 +1506,9 @@ rhdTestDDC(ScrnInfoPtr pScrn)
 	    == RHD_I2C_SUCCESS) {
 	    if ((monitor
 		 = xf86DoEDID_DDC2(pScrn->scrnIndex, data.i2cBusPtr))) {
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on %s\n:",
+			   data.i2cBusPtr->BusName);
 		xf86PrintEDID(monitor);
-	    } else {
-		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			   "%s: DDC on bus %s failed\n",
-			   __func__,data.i2cBusPtr->BusName);
 	    }
 	} else
 	    break;

@@ -47,7 +47,20 @@ typedef CARD8 UCHAR;
 
 # include "atombios.h"
 
-#define CAILFUNC(ptr) RHDFUNC((atomBIOSHandlePtr)ptr)
+#define LOG_CAIL LOG_DEBUG + 1
+
+static void
+CailDebug(int scrnIndex, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_CAIL, format, ap);
+    va_end(ap);
+}
+
+#define CAILFUNC(ptr) \
+ CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
 
 typedef struct _atomDataTables
 {
