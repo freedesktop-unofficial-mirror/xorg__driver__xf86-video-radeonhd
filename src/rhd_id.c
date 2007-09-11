@@ -249,7 +249,7 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
 
 #define PANEL_A_VGA_A { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_1, RHD_HPD_NONE, \
                            { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
-                        {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
+                        {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
                            { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
 /*

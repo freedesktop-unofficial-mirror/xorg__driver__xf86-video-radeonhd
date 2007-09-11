@@ -92,7 +92,7 @@
  *
  */
 DisplayModePtr
-rhdCVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
+RHDCVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
            Bool Interlaced)
 {
     DisplayModeRec  *Mode = xnfalloc(sizeof(DisplayModeRec));
@@ -1060,7 +1060,7 @@ rhdModeCreateFromName(ScrnInfoPtr pScrn, char *name, Bool Silent)
 	       "Generating Modeline for \"%s\"\n", name);
 
     /* First, try a plain CVT mode */
-    Mode = rhdCVTMode(HDisplay, VDisplay, VRefresh, Reduced, FALSE);
+    Mode = RHDCVTMode(HDisplay, VDisplay, VRefresh, Reduced, FALSE);
     xfree(Mode->name);
     Mode->name = xnfstrdup(name);
     Mode->type = M_T_USERDEF;
