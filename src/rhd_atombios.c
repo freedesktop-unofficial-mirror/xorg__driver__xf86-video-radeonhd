@@ -22,32 +22,51 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86_ansic.h"
 #include "xf86Pci.h"
 #include "rhd.h"
-#include "rhd_atomwrapper.h"
-#include "xf86int10.h"
 #include "rhd_atombios.h"
-#define INT32 INT32
-#include "CD_Common_Types.h"
-/* these types are used in ATI's atombios.h */
-#if 0
-# ifndef ULONG
-typedef CARD32 ULONG;
-# endif
-# ifndef USHORT
-typedef CARD16 USHORT;
-# endif
-# ifndef UCHAR
-typedef CARD8 UCHAR;
-# endif
-#endif
+
+
+char *AtomBIOSQueryStr[] = {
+    "Default Engine Clock",
+    "Default Memory Clock",
+    "Maximum Pixel ClockPLL Frequency Output",
+    "Minimum Pixel ClockPLL Frequency Output",
+    "Maximum Pixel ClockPLL Frequency Input",
+    "Minimum Pixel ClockPLL Frequency Input",
+    "Minimum Pixel Clock",
+    "Reference Clock",
+    "Start of VRAM area used by Firmware",
+    "Framebuffer space used by Firmware (kb)",
+    "TDMS Frequency",
+    "PLL ChargePump",
+    "PLL DutyCycle",
+    "PLL VCO Gain",
+    "PLL VoltageSwing"
+};
+
+char *AtomBIOSFuncStr[] = {
+    "AtomBIOS Init",
+    "AtomBIOS Teardown",
+    "AtomBIOS Exec",
+    "AtomBIOS Set FB Space"
+};
+
+#ifdef ATOM_BIOS
+# include "rhd_atomwrapper.h"
+# include "xf86int10.h"
+# define INT32 INT32
+# include "CD_Common_Types.h"
 
 # include "atombios.h"
 
-#define LOG_CAIL LOG_DEBUG + 1
+# define LOG_CAIL LOG_DEBUG + 1
 
 static void
 CailDebug(int scrnIndex, const char *format, ...)
@@ -59,8 +78,8 @@ CailDebug(int scrnIndex, const char *format, ...)
     va_end(ap);
 }
 
-#define CAILFUNC(ptr) \
- CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
+# define CAILFUNC(ptr) \
+  CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
 
 typedef struct _atomDataTables
 {
@@ -141,24 +160,6 @@ enum {
     legacyBIOSMax = 0x10000
 };
 
-char *AtomBIOSQueryStr[] = {
-    "Default Engine Clock",
-    "Default Memory Clock",
-    "Maximum Pixel ClockPLL Frequency Output",
-    "Minimum Pixel ClockPLL Frequency Output",
-    "Maximum Pixel ClockPLL Frequency Input",
-    "Minimum Pixel ClockPLL Frequency Input",
-    "Minimum Pixel Clock",
-    "Reference Clock",
-    "Start of VRAM area used by Firmware",
-    "Framebuffer space used by Firmware (kb)",
-    "TDMS Frequency",
-    "PLL ChargePump",
-    "PLL DutyCycle",
-    "PLL VCO Gain",
-    "PLL VoltageSwing"
-};
-
 static int
 rhdAnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
 {
@@ -234,11 +235,11 @@ rhdAnalyzeMasterDataTable(unsigned char *base,
         return FALSE;
     if (!rhdGetAtomBiosTableRevisionAndSize(&table->sHeader,NULL,NULL,&size))
         return FALSE;
-#define SET_DATA_TABLE(x) {\
+# define SET_DATA_TABLE(x) {\
    rhdAnalyzeRomDataTable(base,data_table->x,(void *)(&(data->x)),&size); \
     }
 
-#define SET_DATA_TABLE_VERS(x) {\
+# define SET_DATA_TABLE_VERS(x) {\
    rhdAnalyzeRomDataTable(base,data_table->x,&(data->x.base),&size); \
     }
 
@@ -276,7 +277,7 @@ rhdAnalyzeMasterDataTable(unsigned char *base,
     SET_DATA_TABLE(ASIC_ProfilingInfo);
     SET_DATA_TABLE(VoltageObjectInfo);
     SET_DATA_TABLE(PowerSourceInfo);
-#undef SET_DATA_TABLE
+# undef SET_DATA_TABLE
 
     return TRUE;
 }
@@ -311,78 +312,86 @@ rhdGetAtombiosDataTable(ScrnInfoPtr pScrn, unsigned char *base,
     return TRUE;
 }
 
-typedef enum {
-    FB_BASE_VRAM,
-    FB_BASE_RAM,
-    FB_BASE_INVALID,
-    FB_BASE_ATOM_INVALID = FB_BASE_INVALID,
-    FB_BASE_NONE
-} rhdFbBaseAllocStatus;
-
-static rhdFbBaseAllocStatus
-rhdAtomBIOSSetFbBase(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, Bool TryHard)
+static Bool
+rhdBIOSGetFbBaseAndSize(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, unsigned int *base, unsigned int *size)
 {
     AtomBIOSArg data;
+    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
+	== ATOM_SUCCESS) {
+	if (data.val == 0) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM "
+		       "scratch space size invalid\n", __func__);
+	    return FALSE;
+	}
+	*size = (int)data.val;
+    } else
+	return FALSE;
+    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
+	== ATOM_SUCCESS) {
+	if (data.val == 0)
+	    return FALSE;
+	*base = (int)data.val;
+    }
+}
+
+/*
+ * Uses videoRam form ScrnInfoRec.
+ */
+static Bool
+rhdAtomBIOSAllocateFbScratch(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle,
+		     unsigned *start, unsigned int *size)
+{
     unsigned int fb_base = 0;
     unsigned int fb_size = 0;
     handle->scratchBase = NULL;
     handle->fbBase = 0;
-    
-    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_SIZE, &data)
-	== ATOM_SUCCESS) {
-	fb_size = data.val * 1024; /* convert to bytes */
-	if (fb_size)
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS requests %ikB"
-		       " of VRAM scratch space\n",fb_size);
-	else {
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM "
-		       "scratch space size invalid\n", __func__);
-	    if (!TryHard)
-		return FB_BASE_ATOM_INVALID;
-	    /* default in case values are not filled in yet */
-	    fb_size = 20 * 1024;
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, " default to: %i\n",fb_size);
-	}
-    }
-    if (RHDAtomBIOSFunc(pScrn, handle, GET_FW_FB_START, &data)
-	== ATOM_SUCCESS) {
-	fb_base = data.val;
+
+    if (rhdBIOSGetFbBaseAndSize(pScrn, handle, &fb_base, &fb_size)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS requests %ikB"
+		   " of VRAM scratch space\n",fb_size);
+	fb_size *= 1024; /* convert to bytes */
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch base: 0x%x\n",
 		   fb_base);
     } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM scratch "
-		   "size invalid\n",__func__);
-	fb_base = 0;
+	    fb_size = 20 * 1024;
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, " default to: %i\n",fb_size);
     }
-    if (fb_base && fb_size && pScrn->videoRam) {
-	int videoRam = pScrn->videoRam * 1024;
+#if 1
+    if (fb_base && fb_size && *size) {
 	/* 4k align */
 	fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0);
-	if ((fb_base + fb_size) > videoRam) {
+	if ((fb_base + fb_size) > (*start + *size)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		       "%s: FW FB scratch area %i (size: %i)"
-		       " extends beyond framebuffer size %i\n",
-		       __func__, fb_base, fb_size, videoRam);
-	} else if ((fb_base + fb_size) < videoRam) {
+		       " extends beyond available framebuffer size %i\n",
+		       __func__, fb_base, fb_size, *size);
+	} else if ((fb_base + fb_size) < (*start + *size)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		       "%s: FW FB scratch area not located "
 		       "at the end of VRAM. Scratch End: "
 		       "0x%x VRAM End: 0x%x\n", __func__,
 		       (unsigned int)(fb_base + fb_size),
-		       videoRam);
+		       *size);
+	} else if (fb_base < *start) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "%s: FW FB scratch area extends below "
+		       "the base of the free VRAM: 0x%x Base: 0x%x\n",
+		       __func__, (unsigned int)(fb_base), *start);
 	} else {
+	    *size -= fb_size;
 	    handle->fbBase = fb_base;
-	    return FB_BASE_VRAM;
+	    return TRUE;
 	}
     }
+#endif
     if (!handle->fbBase) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		   "Cannot get VRAM scratch space. "
 		   "Allocating in main memory instead\n");
 	handle->scratchBase = xcalloc(fb_size,1);
-	return FB_BASE_RAM;
+	return TRUE;
     }
-    return FB_BASE_NONE;
+    return FALSE;
 }
 
 static Bool
@@ -394,9 +403,9 @@ rhdASICInit(atomBIOSHandlePtr handle)
 
     asicInit.sASICInitClocks.ulDefaultEngineClock = 70000;  /* in 10 Khz */
     asicInit.sASICInitClocks.ulDefaultMemoryClock = 70000;  /* in 10 Khz */
-    data.execp.dataSpace = NULL;
-    data.execp.index = 0x0;
-    data.execp.pspace = &asicInit;
+    data.exec.dataSpace = NULL;
+    data.exec.index = 0x0;
+    data.exec.pspace = &asicInit;
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
     if (RHDAtomBIOSFunc(pScrn, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
@@ -414,6 +423,7 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     unsigned char *ptr;
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle = NULL;
+    unsigned int dummy;
 
     RHDFUNC(pScrn);
 
@@ -484,34 +494,15 @@ rhdInitAtomBIOS(ScrnInfoPtr pScrn)
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = pScrn->scrnIndex;
     handle->PciTag = rhdPtr->PciTag;
-    switch (rhdAtomBIOSSetFbBase(pScrn, handle, FALSE)) {
-	case FB_BASE_ATOM_INVALID:
-	    /*
-	     * If the AtomBIOS table data is invalid we try to run ASIC init
-	     * to init the tables.
-	     */
-	    
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "AtomBIOS VRAM scratch space info"
-		       " invalid. Trying AsicInit.\n");
-	    if (rhdASICInit(handle)) {
-		if (rhdAtomBIOSSetFbBase(pScrn, handle, FALSE) >= FB_BASE_INVALID) {
-		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			       "%s: Cannot allocate FB scratch area\n",__func__);
-		}
-	    } else {
-		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			   "%s: AsicInit failed. Won't be able to obtain in VRAM "
-			   "FB scratch space\n",__func__);
-		if (!rhdAtomBIOSSetFbBase(pScrn, handle, TRUE)) {
-		    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			       "%s: No way to allocate FB scratch area\n",__func__);
-		}
-	    }
-	    break;
-	default:
+    /* Try to find out if BIOS has been posted (either by system or int10 */
+    if (!rhdBIOSGetFbBaseAndSize(pScrn, handle, &dummy, &dummy)) {
+	/* run AsicInit */
+	if (!rhdASICInit(handle)) 
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		       "%s: Cannot set FB scratch area\n",__func__);
+		       "%s: AsicInit failed. Won't be able to obtain in VRAM "
+		       "FB scratch space\n",__func__);
     }
+    
     return handle;
 
  error1:
@@ -804,25 +795,42 @@ RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
     AtomBiosResult ret = ATOM_NOT_IMPLEMENTED;
     CARD32 val;
 
+# define do_return(x) { \
+        if (func < sizeof(AtomBIOSFuncStr)) \
+	  xf86DrvMsgVerb(pScrn->scrnIndex, (x == ATOM_SUCCESS) ? 7 : 1,	\
+		           (x == ATOM_SUCCESS) ? X_INFO : X_WARNING,	\
+		           "Call to %s %s\n", AtomBIOSFuncStr[func], \
+		           (x == ATOM_SUCCESS) ? "succeeded" : "FAILED"); \
+	    return (x); \
+    }
     RHDFUNC(pScrn);
+    assert (sizeof(AtomBIOSQueryStr) == (FUNC_END - ATOM_QUERY_FUNCS + 1));
 
     if (func == ATOMBIOS_INIT) {
 	if (!(data->atomp = rhdInitAtomBIOS(pScrn)))
-	    return ATOM_FAILED;
-	return ATOM_SUCCESS;
+	    do_return(ATOM_FAILED);
+	do_return(ATOM_SUCCESS);
     }
     if (!handle)
-	return ATOM_FAILED;
+	do_return(ATOM_FAILED);
+    if (func == ATOMBIOS_ALLOCATE_FB_SCRATCH) {
+        if (rhdAtomBIOSAllocateFbScratch( pScrn, handle, &data->fb.start, &data->fb.size)) {
+	    do_return(ATOM_SUCCESS);
+	} else {
+	    do_return(ATOM_FAILED);
+	}
+    }
     if (func <= ATOMBIOS_TEARDOWN) {
 	rhdTearDownAtomBIOS(pScrn, handle);
-	return ATOM_SUCCESS;
+	do_return(ATOM_SUCCESS);
     }
     if (func == ATOMBIOS_EXEC) {
-	if (!rhdAtomExec(handle, data->execp.index,
-			 data->execp.pspace, data->execp.dataSpace))
-	    return ATOM_FAILED;
-	else
-	    return ATOM_SUCCESS;
+	if (!rhdAtomExec(handle, data->exec.index,
+			 data->exec.pspace, data->exec.dataSpace)) {
+	    do_return(ATOM_FAILED);
+	} else {
+	    do_return(ATOM_SUCCESS);
+	}
     } else if (func >= ATOM_QUERY_FUNCS && func < ATOM_VRAM_QUERIES) {
 	ret = rhdAtomBIOSFirmwareInfoQuery(pScrn, handle, func, &val);
 	data->val = val;
@@ -841,8 +849,9 @@ RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS],
 		   ret == ATOM_FAILED ? "failed" : "not implemented");
     return ret;
-}
 
+}
+    
 VOID*
 CailAllocateMemory(VOID *CAIL,UINT16 size)
 {
@@ -1037,9 +1046,9 @@ rhdTestAtomBIOS(ScrnInfoPtr pScrn)
     i2cData.usStatus = 128;
     i2cData.ucSlaveAddr = 0xA0;
     
-    data.execp.dataSpace = (void*)&space;
-    data.execp.index = 0x36;
-    data.execp.pspace = &i2cData;
+    data.exec.dataSpace = (void*)&space;
+    data.exec.index = 0x36;
+    data.exec.pspace = &i2cData;
     
     for (i = 0; i < 4; i++) {
 	i2cData.ucLineNumber = i;
@@ -1067,3 +1076,32 @@ rhdTestAsicInit(ScrnInfoPtr pScrn)
 {
     return rhdASICInit(RHDPTR(pScrn)->atomBIOS);
 }
+
+#else /* ATOM_BIOS */
+
+AtomBiosResult
+RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
+		AtomBIOSArgPtr data)
+{
+    assert (sizeof(AtomBIOSQueryStr) == (FUNC_END - ATOM_QUERY_FUNCS + 1));
+    
+    if (func < ATOM_QUERY_FUNCS) {
+	if (func >= 0 && func < sizeof(AtomBIOSFuncStr))
+	    xf86DrvMsgVerb(pScrn->scrnIndex, 5, X_WARNING,
+			   "AtomBIOS support not available, cannot execute %s\n",
+			   AtomBIOSFuncStr[func]);
+	else
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,"Invalid AtomBIOS func %x\n",func);
+    } else {
+	
+	if (func < FUNC_END)
+	    xf86DrvMsgVerb(pScrn->scrnIndex, 5, X_WARNING,
+			    "AtomBIOS not available, cannot get %s\n",
+			   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS]);
+	else
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Invalid AtomBIOS query %x\n",func);
+    }
+    return ATOM_NOT_IMPLEMENTED;
+}
+
+#endif /* ATOM_BIOS */

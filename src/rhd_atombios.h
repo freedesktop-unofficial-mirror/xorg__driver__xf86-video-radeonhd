@@ -32,6 +32,7 @@ typedef enum {
     ATOMBIOS_INIT,
     ATOMBIOS_TEARDOWN,
     ATOMBIOS_EXEC,
+    ATOMBIOS_ALLOCATE_FB_SCRATCH,
     ATOM_QUERY_FUNCS = 0x1000,
     GET_DEFAULT_ENGINE_CLOCK = ATOM_QUERY_FUNCS,
     GET_DEFAULT_MEMORY_CLOCK,
@@ -63,14 +64,21 @@ typedef struct {
     int index;
     pointer pspace;
     pointer *dataSpace;
-} AtomExec, AtomExecPtr;
+} AtomExec, *AtomExecPtr;
+
+typedef struct {
+    unsigned int start;
+    unsigned int size;
+} AtomFb, *AtomFbPtr;
 
 typedef union
 {
     CARD32 val;
+  
     pointer ptr;
     atomBIOSHandlePtr atomp;
-    AtomExecPtr execp;
+    AtomExec exec;
+    AtomFb fb;
 } AtomBIOSArg, *AtomBIOSArgPtr;
 
 

@@ -239,8 +239,9 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
     RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
+#ifdef ATOM_BIOS
     RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_TEARDOWN, NULL);
-
+#endif
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -313,7 +314,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDPtr rhdPtr;
     EntityInfoPtr pEnt = NULL;
     Bool ret = FALSE;
-    AtomBIOSArg atomBiosArg;
     RHDI2CDataArg i2cArg;
 
     RHDOpt tmpOpt;
@@ -453,11 +453,44 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
-    rhdMapFB(rhdPtr);
-    if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
-	== ATOM_SUCCESS) {
-	rhdPtr->atomBIOS = atomBiosArg.ptr;
-	/* for testing functions */
+#ifdef ATOM_BIOS
+    {
+	AtomBIOSArg atomBiosArg;
+
+	if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
+	    == ATOM_SUCCESS) {
+	    rhdPtr->atomBIOS = atomBiosArg.ptr;
+	}
+    }
+#endif
+
+    /* We can use a register which is programmed by the BIOS to find out the
+       size of our framebuffer */
+    if (!pScrn->videoRam) {
+	pScrn->videoRam = rhdGetVideoRamSize(rhdPtr);
+	if (!pScrn->videoRam) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
+	    goto error1;
+	}
+    }
+        xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
+               pScrn->videoRam);
+
+    rhdPtr->FbFreeStart = 0;
+    rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
+
+#ifdef ATOM_BIOS
+    if (rhdPtr->atomBIOS) { 	/* for testing functions */
+	
+        AtomBIOSArg atomBiosArg;
+	
+        atomBiosArg.fb.start = rhdPtr->FbFreeStart;
+        atomBiosArg.fb.size = rhdPtr->FbFreeSize;
+        if (RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_ALLOCATE_FB_SCRATCH,
+			  &atomBiosArg) == ATOM_SUCCESS) {
+	    rhdPtr->FbFreeStart = atomBiosArg.fb.start;
+	    rhdPtr->FbFreeSize = atomBiosArg.fb.size;
+	}
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
 			&atomBiosArg);
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
@@ -475,23 +508,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
 	rhdTestAtomBIOS(pScrn);
-    } 
-    /* We can use a register which is programmed by the BIOS to find otu the
-       size of our framebuffer */
-    if (!pScrn->videoRam) {
-	pScrn->videoRam = rhdGetVideoRamSize(rhdPtr);
-	if (!pScrn->videoRam) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No Video RAM detected.\n");
-	    goto error1;
-	}
     }
-
-    xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
-               pScrn->videoRam);
-
-    rhdPtr->FbFreeStart = 0;
-    rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
-
+#endif
     {/* Take off our cursors: move to some cursor structure init. */
 	int size = RHD_FB_CHUNK(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
 
@@ -532,7 +550,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Pick anything for now */
     if (!rhdModeLayoutSelect(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
-	goto error2;
+	goto error1;
     }
     rhdModeLayoutPrint(rhdPtr);
 
@@ -553,7 +571,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rgb zeros = {0, 0, 0};
 
 	if (!xf86SetWeight(pScrn, zeros, zeros)) {
-	    goto error2;
+	    goto error1;
 	} else {
 	    /* XXX check that weight returned is supported */
 	    ;
@@ -561,14 +579,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     if (!xf86SetDefaultVisual(pScrn, -1)) {
-	goto error2;
+	goto error1;
     } else {
         /* We don't currently support DirectColor at > 8bpp */
         if (pScrn->depth > 8 && pScrn->defaultVisual != TrueColor) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Given default visual"
                        " (%s) is not supported at depth %d\n",
                        xf86GetVisualName(pScrn->defaultVisual), pScrn->depth);
-	    goto error2;
+	    goto error1;
         }
     }
 
@@ -577,7 +595,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
         /* @@@ */
 	if (!xf86SetGamma(pScrn, zeros)) {
-	    goto error2;
+	    goto error1;
 	}
     }
 
@@ -588,13 +606,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
         if (!RHDGetVirtualFromConfig(pScrn)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Unable to find valid framebuffer dimensions\n");
-	    goto error2;
+	    goto error1;
 	}
 
     Modes = RHDModesPoolCreate(pScrn, FALSE);
     if (!Modes) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
-	goto error2;
+	goto error1;
     }
 
     if (!pScrn->virtualX || !pScrn->virtualY)
@@ -611,22 +629,20 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86SetDpi(pScrn, 0, 0);
 
     if (xf86LoadSubModule(pScrn, "fb") == NULL) {
-	goto error2;
+	goto error1;
     }
 
     if (!xf86LoadSubModule(pScrn, "xaa")) {
-	goto error2;
+	goto error1;
     }
 
     if (!rhdPtr->swCursor.val.bool) {
 	if (!xf86LoadSubModule(pScrn, "ramdac")) {
-	    goto error2;
+	    goto error1;
 	}
     }
     ret = TRUE;
 
- error2:
-    rhdUnmapFB(rhdPtr);
  error1:
     rhdUnmapMMIO(rhdPtr);
  error0:
@@ -1496,22 +1512,30 @@ static void
 rhdTestDDC(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    xf86MonPtr monitor;
     RHDI2CDataArg data;
-
+    Bool done = FALSE;
+    
     int i = 0;
-    while (1) {
+    while (!done) {
 	data.i = i++;
-	if (RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_GETBUS, &data)
-	    == RHD_I2C_SUCCESS) {
-	    if ((monitor
-		 = xf86DoEDID_DDC2(pScrn->scrnIndex, data.i2cBusPtr))) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on %s\n:",
-			   data.i2cBusPtr->BusName);
-		xf86PrintEDID(monitor);
-	    }
-	} else
-	    break;
+	switch (RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_DDC, &data)) {
+	    case RHD_I2C_SUCCESS:
+		if (data.monitor) {
+		    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on line %i:\n",
+			       i - 1);
+		    xf86PrintEDID(data.monitor);
+		} else {
+		    xf86DrvMsgVerb(pScrn->scrnIndex, 7,X_INFO,
+				   "No DDC data found on line %i\n",i - 1);
+		}
+		break;
+	    case RHD_I2C_NOLINE:
+		done = TRUE;
+		break;
+	    default:
+		xf86DrvMsgVerb(pScrn->scrnIndex, 7,X_INFO, "No DDC line %i found.\n",data.i);
+		break;
+	}
     }
 }
 

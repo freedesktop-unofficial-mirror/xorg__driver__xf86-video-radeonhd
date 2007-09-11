@@ -55,6 +55,26 @@ if test "x$MONREC_HAS_REDUCED" = xyes; then
         AC_DEFINE(MONREC_HAS_REDUCED, 1, [MonRec has member reducedblanking])
 fi
 
+AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
+                                  [Disable AtomBIOS support [[default=no]]]),
+              [do_atombios="$enableval"],
+              [do_atombios=yes])
+
+AC_CHECK_FILE([src/AtomBios/includes/atombios.h],
+              [have_atombios="yes"], [have_atombios="no"])
+
+AC_MSG_CHECKING([whether to include for AtomBIOS])
+if test "$have_atombios" = yes -a \
+	"$do_atombios" = yes; then
+	support_atombios="yes"
+        AC_DEFINE(ATOM_BIOS, 1, [Add support for AtomBIOS tables and code])
+else
+	support_atombios="no"
+fi
+AC_MSG_RESULT([$support_atombios])
+
+AM_CONDITIONAL(ATOM_BIOS, test x$support_atombios = xyes)
+
 # libraries checks.
 
 AC_SUBST([XORG_CFLAGS])

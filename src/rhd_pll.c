@@ -364,6 +364,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
 
     /* Retrieve the maximum internal PLL frequency */
     InMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
+#ifdef ATOM_BIOS
     if (rhdPtr->atomBIOS) {
 	ret = RHDAtomBIOSFunc(xf86Screens[rhdPtr->scrnIndex], rhdPtr->atomBIOS,
 			      GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &arg);
@@ -379,7 +380,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     } else
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Failed to retrieve the maximum"
 		   " internal PLL clock from ATOM.\n");
-
+#endif
     /* keep the defaults */
     RefClock = RHD_PLL_DEFAULT_REFERENCE;
     InMin = RHD_PLL_DEFAULT_PLLOUT_MIN;

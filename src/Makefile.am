@@ -19,9 +19,9 @@ radeonhd_drv_la_SOURCES = \
 	rhd_pll.c \
 	rhd_tmds.c \
 	rhd_vga.c \
+	rhd_atombios.h \
 	rhd.h \
 	rhd_i2c.h \
-	rhd_atombios.h \
 	rhd_crtc.h \
 	rhd_connector.h \
 	rhd_cursor.h \
@@ -30,8 +30,14 @@ radeonhd_drv_la_SOURCES = \
 	rhd_output.h \
 	rhd_pll.h \
 	rhd_regs.h \
-	rhd_vga.h \
+	rhd_vga.h
+
+if ATOM_BIOS
+radeonhd_drv_la_SOURCES += \
 	rhd_atomwrapper.h
+endif
+
+if ATOM_BIOS
 
 noinst_LTLIBRARIES = libatom.la
 libatom_la_CFLAGS = $(AM_CFLAGS) -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_FUNCTIONS
@@ -56,3 +62,5 @@ libatom_la_SOURCES = \
 INCLUDES = -I./AtomBios/includes
 
 radeonhd_drv_la_LIBADD = libatom.la
+
+endif
