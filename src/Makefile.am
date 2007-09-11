@@ -14,6 +14,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_helper.c \
 	rhd_id.c \
 	rhd_lut.c \
+	rhd_lvtma.c \
 	rhd_modes.c \
 	rhd_output.c \
 	rhd_pll.c \

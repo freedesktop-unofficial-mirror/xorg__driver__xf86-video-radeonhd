@@ -74,5 +74,6 @@ void RHDOutputsDestroy(RHDPtr rhdPtr);
 struct rhd_Output *RHDDACAInit(RHDPtr rhdPtr);
 struct rhd_Output *RHDDACBInit(RHDPtr rhdPtr);
 struct rhd_Output *RHDTMDSAInit(RHDPtr rhdPtr);
+struct rhd_Output *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 
 #endif /* _RHD_OUTPUT_H */

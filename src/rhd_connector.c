@@ -178,6 +178,10 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
 		    Output = RHDTMDSAInit(rhdPtr);
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
+		case RHD_OUTPUT_LVTMA:
+		    Output = RHDLVTMAInit(rhdPtr,  Card->Connectors[i].Type);
+		    RHDOutputAdd(rhdPtr, Output);
+		    break;
 		default:
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			       "%s: unhandled output id: %d\n", __func__,

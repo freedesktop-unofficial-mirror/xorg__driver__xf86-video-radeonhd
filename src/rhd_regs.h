@@ -230,6 +230,22 @@ enum {
     DACB_COMPARATOR_ENABLE         = 0x7A5C,
     DACB_COMPARATOR_OUTPUT         = 0x7A60,
 
+    /* LVTMA */
+    LVTMA_CNTL                     = 0x7A80,
+    LVTMA_SOURCE_SELECT            = 0x7A84,
+    LVTMA_BIT_DEPTH_CONTROL        = 0x7A94,
+    LVTMA_DATA_SYNCHRONIZATION     = 0x7AD8,
+    LVTMA_PWRSEQ_REF_DIV           = 0x7AE4,
+    LVTMA_PWRSEQ_DELAY1            = 0x7AE8,
+    LVTMA_PWRSEQ_DELAY2            = 0x7AEC,
+    LVTMA_PWRSEQ_CNTL              = 0x7AF0,
+    LVTMA_PWRSEQ_STATE             = 0x7AF4,
+    LVTMA_LVDS_DATA_CNTL           = 0x7AFC,
+    LVTMA_MODE                     = 0x7B00,
+    LVTMA_TRANSMITTER_ENABLE       = 0x7B04,
+    LVTMA_MACRO_CONTROL            = 0x7B0C,
+    LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
+
     /* I2C */
     DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
     DC_I2C_ARBITRATION             = 0x7D34,  /* (RW) */
