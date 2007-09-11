@@ -11,11 +11,13 @@ radeonhd_drv_la_SOURCES = \
 	rhd_cursor.c \
 	rhd_dac.c \
 	rhd_driver.c \
+	rhd_edid.c \
 	rhd_helper.c \
 	rhd_id.c \
 	rhd_lut.c \
 	rhd_lvtma.c \
 	rhd_modes.c \
+	rhd_monitor.c \
 	rhd_output.c \
 	rhd_pll.c \
 	rhd_tmds.c \
@@ -28,6 +30,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_cursor.h \
 	rhd_lut.h \
 	rhd_modes.h \
+	rhd_monitor.h \
 	rhd_output.h \
 	rhd_pll.h \
 	rhd_regs.h \

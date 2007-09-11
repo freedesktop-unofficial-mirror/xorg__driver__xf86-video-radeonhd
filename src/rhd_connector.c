@@ -35,6 +35,10 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
+#include "rhd_monitor.h"
+
+#include "xf86i2c.h"
+#include "rhd_i2c.h"
 
 /*
  *
@@ -135,6 +139,18 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
 	Connector->Type = Card->Connectors[i].Type;
 	Connector->Name = Card->Connectors[i].Name;
 
+	/* Get the DDC bus of this connector */
+	if (Card->Connectors[i].DDC != RHD_DDC_NONE) {
+	    RHDI2CDataArg data;
+	    int ret;
+
+	    data.i = Card->Connectors[i].DDC;
+	    ret = RHDI2CFunc(xf86Screens[rhdPtr->scrnIndex],
+			     rhdPtr->I2C, RHD_I2C_GETBUS, &data);
+	    if (ret == RHD_I2C_SUCCESS)
+		Connector->DDC = data.i2cBusPtr;
+	}
+
 	/* attach HPD */
 	switch(Card->Connectors[i].HPD) {
 	case RHD_HPD_0:
@@ -202,9 +218,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
 	    }
 	}
 
-	/* attach DDC bus */
-
-	/* attach Monitor from EDID, Config or default */
+	Connector->Monitor = RHDMonitorInit(Connector);
 
 	rhdPtr->Connector[j] = Connector;
 	j++;
@@ -221,13 +235,17 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
 void
 RHDConnectorsDestroy(RHDPtr rhdPtr)
 {
+    struct rhdConnector *Connector;
     int i;
 
     RHDFUNC(rhdPtr);
 
-    for (i = 0; i < RHD_CONNECTORS_MAX; i++)
-	if (rhdPtr->Connector[i])
-	    xfree(rhdPtr->Connector[i]);
-
-        /* free HPD */
+    for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
+	Connector = rhdPtr->Connector[i];
+	if (Connector) {
+	    if (Connector->Monitor)
+		RHDMonitorDestroy(Connector->Monitor);
+	    xfree(Connector);
+	}
+    }
 }

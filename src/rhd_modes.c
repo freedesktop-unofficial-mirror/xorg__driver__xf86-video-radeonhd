@@ -27,12 +27,15 @@
 #endif
 
 #include "xf86.h"
+#include "xf86DDC.h"
 
 #include "rhd.h"
 #include "rhd_crtc.h"
 #include "rhd_pll.h"
 #include "rhd_output.h"
 #include "rhd_modes.h"
+#include "rhd_connector.h"
+#include "rhd_monitor.h"
 
 /*
  * Define a set of own mode errors.
@@ -336,8 +339,11 @@ add(char **p, char *new)
     strcat(*p, new);
 }
 
+/*
+ *
+ */
 void
-rhdPrintModeline(int scrnIndex, DisplayModePtr mode)
+RHDPrintModeline(DisplayModePtr mode)
 {
     char tmp[256];
     char *flags = xnfcalloc(1, 1);
@@ -363,12 +369,11 @@ rhdPrintModeline(int scrnIndex, DisplayModePtr mode)
 #if 0
     if (mode->Flags & V_CLKDIV2) add(&flags, "vclk/2");
 #endif
-    xf86DrvMsgVerb(scrnIndex, X_INFO, 7,
-		   "Modeline \"%s\"  %6.2f  %i %i %i %i  %i %i %i %i%s\n",
-		   mode->name, mode->Clock/1000., mode->HDisplay,
-		   mode->HSyncStart, mode->HSyncEnd, mode->HTotal,
-		   mode->VDisplay, mode->VSyncStart, mode->VSyncEnd,
-		   mode->VTotal, flags);
+    xf86Msg(X_NONE, "Modeline \"%s\"  %6.2f  %i %i %i %i  %i %i %i %i%s\n",
+	    mode->name, mode->Clock/1000.,
+	    mode->HDisplay, mode->HSyncStart, mode->HSyncEnd, mode->HTotal,
+	    mode->VDisplay, mode->VSyncStart, mode->VSyncEnd, mode->VTotal,
+	    flags);
     xfree(flags);
 }
 
@@ -376,7 +381,7 @@ rhdPrintModeline(int scrnIndex, DisplayModePtr mode)
  * xf86Mode.c should have a some more DisplayModePtr list handling.
  */
 DisplayModePtr
-rhdModesAdd(DisplayModePtr Modes, DisplayModePtr Additions)
+RHDModesAdd(DisplayModePtr Modes, DisplayModePtr Additions)
 {
     if (!Modes) {
         if (Additions)
@@ -401,7 +406,7 @@ rhdModesAdd(DisplayModePtr Modes, DisplayModePtr Additions)
 /*
  *
  */
-DisplayModePtr
+static DisplayModePtr
 rhdModeDelete(DisplayModePtr Modes, DisplayModePtr Delete)
 {
     DisplayModePtr Next, Previous;
@@ -447,7 +452,7 @@ rhdModeDelete(DisplayModePtr Modes, DisplayModePtr Delete)
  *
  */
 DisplayModePtr
-rhdModeCopy(DisplayModePtr Mode)
+RHDModeCopy(DisplayModePtr Mode)
 {
     DisplayModePtr New;
 
@@ -468,7 +473,7 @@ rhdModeCopy(DisplayModePtr Mode)
 /*
  *
  */
-void
+static void
 rhdModesDestroy(DisplayModePtr Modes)
 {
     DisplayModePtr mode = Modes, next;
@@ -640,43 +645,39 @@ rhdModeCrtcSanity(DisplayModePtr Mode)
 }
 
 /*
- * Does the common checks, and then passes on the Mode to the Outputs
- * own validation.
+ *
  */
 static int
-rhdModeValidateMonitor(MonPtr Monitor, DisplayModePtr Mode)
+rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 {
     int i;
 
-    for (i = 0; i < Monitor->nHsync; i++)
-        if ((Mode->HSync >= (Monitor->hsync[i].lo * (1.0 - SYNC_TOLERANCE))) &&
-            (Mode->HSync <= (Monitor->hsync[i].hi * (1.0 + SYNC_TOLERANCE))))
+    for (i = 0; i < Monitor->numHSync; i++)
+        if ((Mode->HSync >= (Monitor->HSync[i].lo * (1.0 - SYNC_TOLERANCE))) &&
+            (Mode->HSync <= (Monitor->HSync[i].hi * (1.0 + SYNC_TOLERANCE))))
             break;
-    if (Monitor->nHsync && (i == Monitor->nHsync))
+    if (Monitor->numHSync && (i == Monitor->numHSync))
         return MODE_HSYNC;
 
-    for (i = 0; i < Monitor->nVrefresh; i++)
-        if ((Mode->VRefresh >= (Monitor->vrefresh[i].lo * (1.0 - SYNC_TOLERANCE))) &&
-            (Mode->VRefresh <= (Monitor->vrefresh[i].hi * (1.0 + SYNC_TOLERANCE))))
+    for (i = 0; i < Monitor->numVRefresh; i++)
+        if ((Mode->VRefresh >= (Monitor->VRefresh[i].lo * (1.0 - SYNC_TOLERANCE))) &&
+            (Mode->VRefresh <= (Monitor->VRefresh[i].hi * (1.0 + SYNC_TOLERANCE))))
             break;
-    if (Monitor->nVrefresh && (i == Monitor->nVrefresh))
+    if (Monitor->numVRefresh && (i == Monitor->numVRefresh))
         return MODE_VSYNC;
 
-#if 0
-    if (Monitor->MaxClock && (Mode->SynthClock > Monitor->MaxClock))
+    if (Monitor->Bandwidth &&
+	(Mode->SynthClock > (Monitor->Bandwidth * (1 + SYNC_TOLERANCE))))
         return MODE_CLOCK_HIGH;
-#endif
 
     /* Is the horizontal blanking a bit lowish? */
-    if ((Mode->CrtcHDisplay * 5 / 4) > Mode->CrtcHTotal) {
+    if (((Mode->CrtcHDisplay * 5 / 4) & ~0x07) > Mode->CrtcHTotal) {
         /* is this a cvt -r Mode, and only a cvt -r Mode? */
         if (((Mode->CrtcHTotal - Mode->CrtcHDisplay) == 160) &&
             ((Mode->CrtcHSyncEnd - Mode->CrtcHDisplay) == 80) &&
             ((Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) == 32) &&
             ((Mode->CrtcVSyncStart - Mode->CrtcVDisplay) == 3)) {
-#ifdef MONREC_HAS_REDUCED
-            if (!Monitor->reducedblanking)
-#endif
+            if (!Monitor->ReducedAllowed)
                 return MODE_NO_REDUCED;
         } else if ((Mode->CrtcHDisplay * 1.10) > Mode->CrtcHTotal)
             return MODE_HSYNC_NARROW;
@@ -736,8 +737,17 @@ rhdModeValidateCrtc(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
 
         for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
             if (Output->Active && (Output->Crtc == Crtc)) {
+		/* Check the output */
                 Status = Output->ModeValid(Output, Mode);
                 if (Status != MODE_OK)
+                    return Status;
+                if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+                    break; /* restart. */
+
+		/* Check the monitor attached to this output */
+		if (Output->Connector && Output->Connector->Monitor)
+		    Status = rhdMonitorValid(Output->Connector->Monitor, Mode);
+		if (Status != MODE_OK)
                     return Status;
                 if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
                     break; /* restart. */
@@ -780,11 +790,6 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 	if (Status != MODE_OK)
 	    return Status;
     }
-
-    /* should be per Crtc and per connector */
-    Status = rhdModeValidateMonitor(pScrn->confScreen->monitor, Mode);
-    if (Status != MODE_OK)
-	return Status;
 
     /* Did we set up virtual resolution already? */
     if ((pScrn->virtualX > 0) && (pScrn->virtualY > 0)) {
@@ -1065,7 +1070,7 @@ rhdModeCreateFromName(ScrnInfoPtr pScrn, char *name, Bool Silent)
         return Mode;
     rhdModesDestroy(Mode);
 
-#if 0
+#if 0 /* noscale mode */
     /* Now see if we have fixed modes */
     for (i = 0; i < 2; i++) {
         Crtc = rhdPtr->Crtc[i];
@@ -1073,7 +1078,7 @@ rhdModeCreateFromName(ScrnInfoPtr pScrn, char *name, Bool Silent)
         if (!Crtc->Active || !Crtc->FixedMode)
             continue;
 
-        Mode = rhdModeCopy(Crtc->FixedMode);
+        Mode = RHDModeCopy(Crtc->FixedMode);
         xfree(Mode->name);
         Mode->name = xnfstrdup(name);
         Mode->type = M_T_USERDEF;
@@ -1107,11 +1112,11 @@ rhdModesListValidateAndCopy(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent
     int Status;
 
     for (Check = Modes; Check; Check = Check->next) {
-	Mode = rhdModeCopy(Check);
+	Mode = RHDModeCopy(Check);
 
 	Status = rhdModeValidate(pScrn, Mode);
 	if (Status == MODE_OK)
-	    Keepers = rhdModesAdd(Keepers, Mode);
+	    Keepers = RHDModesAdd(Keepers, Mode);
 	else {
 	    if (!Silent)
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
@@ -1132,17 +1137,62 @@ rhdModesListValidateAndCopy(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent
 static DisplayModePtr
 rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 {
-    /* RHDPtr rhdPtr = RHDPTR(pScrn); */
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     DisplayModePtr Keepers = NULL, Modes;
+    struct rhd_Crtc *Crtc;
+    struct rhd_Output *Output;
+    int i;
+
+    /* Cycle through our monitors list, and find a fixed mode one */
+    for (i = 0; i < 2; i++) {
+	Crtc = rhdPtr->Crtc[i];
+	for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+	    if (Output->Active && (Output->Crtc == Crtc)) {
+		if (Output->Connector && Output->Connector->Monitor
+		    && Output->Connector->Monitor->UseFixedModes) {
+		    Modes = Output->Connector->Monitor->Modes;
+		    if (!Silent && Modes)
+			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Fixed"
+				   " Modes from Monitor \"%s\" on \"%s\"\n",
+				   Output->Connector->Monitor->Name,
+				   Output->Connector->Name);
+
+		    Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);
+		    Keepers = RHDModesAdd(Keepers, Modes);
+		    return Keepers;
+		}
+	    }
+	}
+    }
 
     /* First Pass, X's own Modes. */
-    if (!Silent && pScrn->confScreen->monitor->Modes)
+    Modes = pScrn->confScreen->monitor->Modes;
+    if (!Silent && Modes)
         xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes from the "
-		   "configured Monitor: %s\n", pScrn->confScreen->monitor->id);
-    Modes = rhdModesListValidateAndCopy(pScrn, pScrn->confScreen->monitor->Modes, Silent);
-    Keepers = rhdModesAdd(Keepers, Modes);
+		   "configured Monitor: \"%s\"\n",
+		   pScrn->confScreen->monitor->id);
+    Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);
+    Keepers = RHDModesAdd(Keepers, Modes);
 
-    /* Here we would cycles through our actual monitors list */
+    /* Cycle through our actual monitors list */
+    for (i = 0; i < 2; i++) {
+	Crtc = rhdPtr->Crtc[i];
+	for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+	    if (Output->Active && (Output->Crtc == Crtc)) {
+		if (Output->Connector && Output->Connector->Monitor) {
+		    Modes = Output->Connector->Monitor->Modes;
+		    if (!Silent && Modes)
+			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes "
+				   "from Monitor \"%s\" on \"%s\"\n",
+				   Output->Connector->Monitor->Name,
+				   Output->Connector->Name);
+
+		    Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);
+		    Keepers = RHDModesAdd(Keepers, Modes);
+		}
+	    }
+	}
+    }
 
     return Keepers;
 }
@@ -1183,7 +1233,7 @@ RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent)
                 Temp = rhdModeCreateFromName(pScrn, ModeNames[i], Silent);
 
             if (Temp)
-                Pool = rhdModesAdd(Pool, Temp);
+                Pool = RHDModesAdd(Pool, Temp);
         }
 
         rhdModesDestroy(List);
@@ -1204,7 +1254,7 @@ RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent)
             Temp = rhdModesGrabBestRefresh(&TempList);
             rhdModesDestroy(TempList);
 
-            Pool = rhdModesAdd(Pool, Temp);
+            Pool = RHDModesAdd(Pool, Temp);
         }
 
         /* Sort our list */
@@ -1216,7 +1266,7 @@ RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent)
 
         TempList = rhdModesSortOnSize(TempList);
 
-        Pool = rhdModesAdd(Pool, TempList);
+        Pool = RHDModesAdd(Pool, TempList);
     }
 
     return Pool;

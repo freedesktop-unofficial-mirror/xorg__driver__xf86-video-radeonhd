@@ -22,29 +22,36 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _RHD_MODES_H
-#define _RHD_MODES_H
+#ifndef _RHD_MONITOR_H
+#define _RHD_MONITOR_H
 
-/*
- * In case this isn't in xf86str.h yet.
- */
-#ifndef M_T_PREFERRED
-#define M_T_PREFERRED 0x08
+struct rhdMonitor {
+    int scrnIndex;
+
+    char *Name;
+
+    int numHSync; /* default: 0 */
+    range HSync[MAX_HSYNC];
+    int numVRefresh; /* default: 0 */
+    range VRefresh[MAX_VREFRESH];
+    int Bandwidth; /* default 0 */
+
+    Bool ReducedAllowed;
+
+    Bool UseFixedModes;
+    DisplayModePtr Modes; /* default: NULL */
+};
+
+
+#ifdef _RHD_CONNECTOR_H
+struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);
 #endif
-#ifndef M_T_DRIVER
-#define M_T_DRIVER 0x40
+
+void RHDMonitorDestroy(struct rhdMonitor *Monitor);
+int RHDMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode);
+
+#ifdef XF86_DDC_H
+void RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID);
 #endif
 
-DisplayModePtr RHDCVTMode(int HDisplay, int VDisplay, float VRefresh,
-			  Bool Reduced, Bool Interlaced);
-void RHDPrintModeline(DisplayModePtr mode);
-DisplayModePtr RHDModesAdd(DisplayModePtr Modes, DisplayModePtr Additions);
-
-DisplayModePtr RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent);
-void RHDModesAttach(ScrnInfoPtr pScrn, DisplayModePtr Modes);
-DisplayModePtr RHDModeCopy(DisplayModePtr Mode);
-
-Bool RHDGetVirtualFromConfig(ScrnInfoPtr pScrn);
-void RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent);
-
-#endif /* _RHD_MODES_H */
+#endif /* _RHD_MONITOR_H */

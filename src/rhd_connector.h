@@ -52,7 +52,7 @@ struct rhdConnector {
     CARD8 Type;
     char *Name;
 
-    /* Add actual DDC bus pointer here */
+    struct _I2CBusRec *DDC;
 
     /* HPD handling here */
     int  HPDMask;
@@ -61,6 +61,7 @@ struct rhdConnector {
 
     /* Add rhdMonitor pointer here. */
     /* This is created either from default, config or from EDID */
+    struct rhdMonitor *Monitor;
 
     /* Point back to our Outputs, so we can handle sensing better */
     struct rhd_Output *Output[2];
