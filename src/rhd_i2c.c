@@ -35,7 +35,6 @@
 #include "rhd_i2c.h"
 #include "rhd_regs.h"
 
-#define I2C_LINES 4
 typedef struct _rhdI2CRec
 {
     CARD16 prescale;
@@ -159,7 +158,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 	RHDRegWrite(I2CPtr, 0x7d3c, prescale << 16 | nWrite << 8 | 0x01);
 	RHDRegMask(I2CPtr, 0x7d40, 0x30 << 24, 0xff << 24);
 
-	RHDRegWrite(I2CPtr, 0x7d44, slave); 
+	RHDRegWrite(I2CPtr, 0x7d44, slave);
 
 	while (nWrite--)
 	    RHDRegWrite(I2CPtr, 0x7d44, *WriteBuffer++);
@@ -167,7 +166,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 	RHDRegMask(I2CPtr, 0x7d38, 0x3, 0xff);
 	RHDRegMask(I2CPtr, 0x7d30, 0x8, 0xff);
 
-	if ((ret = rhdI2CStatusR500(I2CPtr))) 
+	if ((ret = rhdI2CStatusR500(I2CPtr)))
 	    RHDRegMask(I2CPtr, 0x7d30, 0x1, 0xff);
 	else
 	    ret = FALSE;
@@ -512,6 +511,7 @@ rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
     if (line >= I2C_LINES || !I2CList[line])
 	return FALSE;
 
+    line &= 0xFE;
     if ((dev = xf86CreateI2CDevRec())) {
 	dev->SlaveAddr = slave;
 	dev->pI2CBus = I2CList[line];
@@ -522,6 +522,21 @@ rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
 	xf86DestroyI2CDevRec(dev, TRUE);
     }
     return ret;
+}
+
+RHDI2CResult
+rhdI2CScanBus(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
+{
+
+    int i;
+
+    for (i = 0; i < 128; i++) {
+	if (rhdI2CProbeAddress(pScrn, I2CList, line, i << 2))
+	    slaves[i >> 6] |= 1 << (i & 0x1F);
+	else
+	    slaves[i >> 6] &= ~(1 << (i & 0x1F));
+    }
+    return RHD_I2C_SUCCESS;
 }
 
 RHDI2CResult
@@ -536,17 +551,22 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	else
 	    return RHD_I2C_SUCCESS;
     }
-    if (func == RHD_I2C_GETBUS) {
-	if (datap->i >= I2C_LINES || !I2CList[datap->i])
+    if (func == RHD_I2C_DDC) {
+	if (datap->i >= I2C_LINES)
+	    return RHD_I2C_NOLINE;
+	if (!I2CList[datap->i])
 	    return RHD_I2C_FAILED;
-
-	datap->i2cBusPtr = I2CList[datap->i];
+	datap->monitor = xf86DoEDID_DDC2(pScrn->scrnIndex, I2CList[datap->i]);
 	return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_PROBE_ADDR) {
 	return rhdI2CProbeAddress(pScrn, I2CList,
 				  datap->target.line,
 				  datap->target.slave);
+    }
+    if (func == RHD_I2C_SCANBUS) {
+	return rhdI2CScanBus(pScrn, I2CList, datap->scanbus.line,
+			     datap->scanbus.slaves);
     }
     if (func == RHD_I2C_TEARDOWN) {
 	if (I2CList)
@@ -555,3 +575,4 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
     }
     return RHD_I2C_FAILED;
 }
+
