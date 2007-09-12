@@ -43,7 +43,7 @@
 /*
  *
  */
-struct rhd_HPD {
+struct rhdHPD {
     Bool Stored;
     CARD32 StoreMask;
     CARD32 StoreEnable;
@@ -55,7 +55,7 @@ struct rhd_HPD {
 void
 RHDHPDSave(RHDPtr rhdPtr)
 {
-    struct rhd_HPD *hpd = rhdPtr->HPD;
+    struct rhdHPD *hpd = rhdPtr->HPD;
 
     RHDFUNC(rhdPtr);
 
@@ -71,7 +71,7 @@ RHDHPDSave(RHDPtr rhdPtr)
 void
 RHDHPDRestore(RHDPtr rhdPtr)
 {
-    struct rhd_HPD *hpd = rhdPtr->HPD;
+    struct rhdHPD *hpd = rhdPtr->HPD;
 
     RHDFUNC(rhdPtr);
 
@@ -111,16 +111,16 @@ RHDHPDCheck(struct rhdConnector *Connector)
  *
  */
 Bool
-RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
+RHDConnectorsInit(RHDPtr rhdPtr, struct rhdcard *Card)
 {
     struct rhdConnector *Connector;
-    struct rhd_Output *Output;
+    struct rhdOutput *Output;
     int i, j, k, l;
 
     RHDFUNC(rhdPtr);
 
     /* Init HPD */
-    rhdPtr->HPD = xnfcalloc(sizeof(struct rhd_HPD), 1);
+    rhdPtr->HPD = xnfcalloc(sizeof(struct rhdHPD), 1);
 
     RHDHPDSave(rhdPtr);
     RHDHPDSet(rhdPtr);

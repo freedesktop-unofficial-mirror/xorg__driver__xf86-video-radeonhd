@@ -41,7 +41,7 @@
 #include "rhd_output.h"
 #include "rhd_regs.h"
 
-struct rhd_TMDS_Private {
+struct rhdTMDSPrivate {
     Bool Stored;
 
     CARD32 StoreControl;
@@ -61,7 +61,7 @@ struct rhd_TMDS_Private {
  *
  */
 static Bool
-TMDSASense(struct rhd_Output *Output, int Type)
+TMDSASense(struct rhdOutput *Output, int Type)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[Output->scrnIndex]);
     CARD32 Enable, Control, Detect;
@@ -99,7 +99,7 @@ TMDSASense(struct rhd_Output *Output, int Type)
  *
  */
 static ModeStatus
-TMDSAModeValid(struct rhd_Output *Output, DisplayModePtr Mode)
+TMDSAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
@@ -186,7 +186,7 @@ TMDSAVoltageControl(RHDPtr rhdPtr)
  *
  */
 static void
-TMDSASet(struct rhd_Output *Output)
+TMDSASet(struct rhdOutput *Output)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[Output->scrnIndex]);
 
@@ -257,7 +257,7 @@ TMDSASet(struct rhd_Output *Output)
  *
  */
 static void
-TMDSAPower(struct rhd_Output *Output, int Power)
+TMDSAPower(struct rhdOutput *Output, int Power)
 {
     RHDFUNC(Output);
 
@@ -287,10 +287,10 @@ TMDSAPower(struct rhd_Output *Output, int Power)
  *
  */
 static void
-TMDSASave(struct rhd_Output *Output)
+TMDSASave(struct rhdOutput *Output)
 {
     int ChipSet = RHDPTR(xf86Screens[Output->scrnIndex])->ChipSet;
-    struct rhd_TMDS_Private *Private = (struct rhd_TMDS_Private *) Output->Private;
+    struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -320,10 +320,10 @@ TMDSASave(struct rhd_Output *Output)
  *
  */
 static void
-TMDSARestore(struct rhd_Output *Output)
+TMDSARestore(struct rhdOutput *Output)
 {
     int ChipSet = RHDPTR(xf86Screens[Output->scrnIndex])->ChipSet;
-    struct rhd_TMDS_Private *Private = (struct rhd_TMDS_Private *) Output->Private;
+    struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -357,7 +357,7 @@ TMDSARestore(struct rhd_Output *Output)
  *
  */
 static void
-TMDSADestroy(struct rhd_Output *Output)
+TMDSADestroy(struct rhdOutput *Output)
 {
     RHDFUNC(Output);
 
@@ -371,15 +371,15 @@ TMDSADestroy(struct rhd_Output *Output)
 /*
  *
  */
-struct rhd_Output *
+struct rhdOutput *
 RHDTMDSAInit(RHDPtr rhdPtr)
 {
-    struct rhd_Output *Output;
-    struct rhd_DAC_Private *Private;
+    struct rhdOutput *Output;
+    struct rhdTMDSPrivate *Private;
 
     RHDFUNC(rhdPtr);
 
-    Output = xnfcalloc(sizeof(struct rhd_Output), 1);
+    Output = xnfcalloc(sizeof(struct rhdOutput), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
     Output->Name = "TMDS A";
@@ -393,7 +393,7 @@ RHDTMDSAInit(RHDPtr rhdPtr)
     Output->Restore = TMDSARestore;
     Output->Destroy = TMDSADestroy;
 
-    Private = xnfcalloc(sizeof(struct rhd_TMDS_Private), 1);
+    Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
     Output->Private = Private;
 
     return Output;

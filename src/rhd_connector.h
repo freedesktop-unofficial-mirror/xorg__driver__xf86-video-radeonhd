@@ -64,10 +64,10 @@ struct rhdConnector {
     struct rhdMonitor *Monitor;
 
     /* Point back to our Outputs, so we can handle sensing better */
-    struct rhd_Output *Output[2];
+    struct rhdOutput *Output[2];
 };
 
-Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card);
+Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdcard *Card);
 void RHDHPDSave(RHDPtr rhdPtr);
 void RHDHPDRestore(RHDPtr rhdPtr);
 void RHDConnectorsDestroy(RHDPtr rhdPtr);

@@ -25,7 +25,7 @@
 #ifndef _RHD_VGA_H
 #define _RHD_VGA_H
 
-struct rhd_VGA {
+struct rhdVGA {
     Bool Stored;
 
     CARD32 FBOffset;

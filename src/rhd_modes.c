@@ -690,7 +690,7 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
  *
  */
 static int
-rhdModeValidateCrtc(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
+rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -706,7 +706,7 @@ rhdModeValidateCrtc(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
 
     /* We don't want to loop around this forever */
     for (i = 10; i; i--) {
-        struct rhd_Output *Output;
+        struct rhdOutput *Output;
 
         Mode->CrtcHAdjusted = FALSE;
         Mode->CrtcVAdjusted = FALSE;
@@ -771,7 +771,7 @@ static int
 rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
     int Status;
     int i;
 
@@ -1139,8 +1139,8 @@ rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     DisplayModePtr Keepers = NULL, Modes;
-    struct rhd_Crtc *Crtc;
-    struct rhd_Output *Output;
+    struct rhdCrtc *Crtc;
+    struct rhdOutput *Output;
     int i;
 
     /* Cycle through our monitors list, and find a fixed mode one */
@@ -1302,7 +1302,7 @@ Bool
 RHDGetVirtualFromConfig(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc1 = rhdPtr->Crtc[0], *Crtc2 = rhdPtr->Crtc[1];
+    struct rhdCrtc *Crtc1 = rhdPtr->Crtc[0], *Crtc2 = rhdPtr->Crtc[1];
     CARD32 VirtualX = pScrn->display->virtualX;
     CARD32 VirtualY = pScrn->display->virtualY;
     CARD32 Pitch1, Pitch2;
@@ -1338,7 +1338,7 @@ void
 RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc1 = rhdPtr->Crtc[0], *Crtc2 = rhdPtr->Crtc[1];
+    struct rhdCrtc *Crtc1 = rhdPtr->Crtc[0], *Crtc2 = rhdPtr->Crtc[1];
     DisplayModePtr Mode, Next;
     CARD32 VirtualX = 0;
     CARD32 VirtualY = 0;

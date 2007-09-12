@@ -42,7 +42,7 @@
 #include "rhd_connector.h"
 #include "rhd_regs.h"
 
-struct rhd_LVTMA_Private {
+struct rhdLVTMAPrivate {
     Bool DualLink;
     Bool LVDS24Bit;
     Bool FPDI; /* LDI otherwise */
@@ -76,7 +76,7 @@ struct rhd_LVTMA_Private {
  *
  */
 static ModeStatus
-LVDSModeValid(struct rhd_Output *Output, DisplayModePtr Mode)
+LVDSModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
@@ -87,9 +87,9 @@ LVDSModeValid(struct rhd_Output *Output, DisplayModePtr Mode)
  *
  */
 static void
-LVDSSet(struct rhd_Output *Output)
+LVDSSet(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -166,9 +166,9 @@ LVDSSet(struct rhd_Output *Output)
  *
  */
 static void
-LVDSPWRSEQInit(struct rhd_Output *Output)
+LVDSPWRSEQInit(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
     CARD32 tmp = 0;
 
     tmp = (Private->PowerDigToDE * 10) >> 2;
@@ -193,9 +193,9 @@ LVDSPWRSEQInit(struct rhd_Output *Output)
  *
  */
 static void
-LVDSEnable(struct rhd_Output *Output)
+LVDSEnable(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
     CARD32 tmp = 0;
     int i;
 
@@ -236,9 +236,9 @@ LVDSEnable(struct rhd_Output *Output)
  *
  */
 static void
-LVDSDisable(struct rhd_Output *Output)
+LVDSDisable(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
     CARD32 tmp = 0;
     int i;
 
@@ -273,7 +273,7 @@ LVDSDisable(struct rhd_Output *Output)
  *
  */
 static void
-LVDSShutdown(struct rhd_Output *Output)
+LVDSShutdown(struct rhdOutput *Output)
 {
     RHDFUNC(Output);
 
@@ -290,7 +290,7 @@ LVDSShutdown(struct rhd_Output *Output)
  *
  */
 static void
-LVDSPower(struct rhd_Output *Output, int Power)
+LVDSPower(struct rhdOutput *Output, int Power)
 {
     RHDFUNC(Output);
 
@@ -314,9 +314,9 @@ LVDSPower(struct rhd_Output *Output, int Power)
  *
  */
 static void
-LVTMASave(struct rhd_Output *Output)
+LVTMASave(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -343,9 +343,9 @@ LVTMASave(struct rhd_Output *Output)
  * Currently it's a dumb register dump.
  */
 static void
-LVTMARestore(struct rhd_Output *Output)
+LVTMARestore(struct rhdOutput *Output)
 {
-    struct rhd_LVTMA_Private *Private = (struct rhd_LVTMA_Private *) Output->Private;
+    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -375,7 +375,7 @@ LVTMARestore(struct rhd_Output *Output)
  *
  */
 static void
-LVTMADestroy(struct rhd_Output *Output)
+LVTMADestroy(struct rhdOutput *Output)
 {
     RHDFUNC(Output);
 
@@ -389,11 +389,11 @@ LVTMADestroy(struct rhd_Output *Output)
 /*
  *
  */
-struct rhd_Output *
+struct rhdOutput *
 RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 {
-    struct rhd_Output *Output;
-    struct rhd_LVTMA_Private *Private;
+    struct rhdOutput *Output;
+    struct rhdLVTMAPrivate *Private;
 
     RHDFUNC(rhdPtr);
 
@@ -410,7 +410,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	return NULL;
     }
 
-    Output = xnfcalloc(sizeof(struct rhd_Output), 1);
+    Output = xnfcalloc(sizeof(struct rhdOutput), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
     Output->Name = "LVDS/TMDS";
@@ -425,7 +425,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output->Restore = LVTMARestore;
     Output->Destroy = LVTMADestroy;
 
-    Private = xnfcalloc(sizeof(struct rhd_LVTMA_Private), 1);
+    Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
 
     /* TODO: Retrieve from atombios */
     Private->PowerDigToDE = 0x03;

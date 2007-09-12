@@ -56,7 +56,7 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
-struct rhd_card {
+struct rhdcard {
     CARD16 device;
     CARD16 card_vendor;
     CARD16 card_device;
@@ -108,7 +108,7 @@ typedef struct RHDRec {
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
     int			entityIndex;
-    struct rhd_card     *Card;
+    struct rhdcard     *Card;
 
     OptionInfoPtr       Options;
     RHDOpt              noAccel;
@@ -148,9 +148,9 @@ typedef struct RHDRec {
      */
     unsigned char*	BIOSCopy;
 
-    struct rhd_VGA      *VGA; /* VGA compatibility HW */
-    struct rhd_Crtc     *Crtc[2];
-    struct rhd_PLL      *PLLs[2]; /* Pixelclock PLLs */
+    struct rhdVGA      *VGA; /* VGA compatibility HW */
+    struct rhdCrtc     *Crtc[2];
+    struct rhdPLL      *PLLs[2]; /* Pixelclock PLLs */
 
     struct rhdLUTStore  *LUTStore;
     struct rhdLUT       *LUT[2];
@@ -158,10 +158,10 @@ typedef struct RHDRec {
     /* List of output devices:
      * we can go up to 5: DACA, DACB, TMDS, shared LVDS/TMDS, DVO.
      * Will also include displayport when this happens. */
-    struct rhd_Output   *Outputs;
+    struct rhdOutput   *Outputs;
 
     struct rhdConnector *Connector[RHD_CONNECTORS_MAX];
-    struct rhd_HPD      *HPD; /* Hot plug detect subsystem */
+    struct rhdHPD      *HPD; /* Hot plug detect subsystem */
 
 } RHDRec, *RHDPtr;
 

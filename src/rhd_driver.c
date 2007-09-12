@@ -137,7 +137,7 @@ extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
 void RHDIdentify(int flags);
 Bool RHDChipExperimental(ScrnInfoPtr pScrn);
-struct rhd_card *RHDCardIdentify(ScrnInfoPtr pScrn);
+struct rhdcard *RHDCardIdentify(ScrnInfoPtr pScrn);
 
 /* keep accross drivers */
 static int pix24bpp = 0;
@@ -917,7 +917,7 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
 
     Crtc = rhdPtr->Crtc[0];
     if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
@@ -937,8 +937,8 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 			     int flags)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Output *Output;
-    struct rhd_Crtc *Crtc1, *Crtc2;
+    struct rhdOutput *Output;
+    struct rhdCrtc *Crtc1, *Crtc2;
 
     if (!pScrn->vtSema)
 	return;
@@ -992,7 +992,7 @@ RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
 	       VisualPtr pVisual)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
 
     Crtc = rhdPtr->Crtc[0];
     if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active)
@@ -1131,7 +1131,7 @@ rhdUnmapFB(RHDPtr rhdPtr)
 static Bool
 rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 {
-    struct rhd_Output *Output;
+    struct rhdOutput *Output;
     struct rhdConnector *Connector;
     Bool Found = FALSE;
     int i = 0, j;
@@ -1237,8 +1237,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 static void
 rhdModeLayoutPrint(RHDPtr rhdPtr)
 {
-    struct rhd_Crtc *Crtc;
-    struct rhd_Output *Output;
+    struct rhdCrtc *Crtc;
+    struct rhdOutput *Output;
     Bool Found;
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Listing modesetting layout:\n\n");
@@ -1321,7 +1321,7 @@ static void
 rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
 
     RHDFUNC(rhdPtr);
 

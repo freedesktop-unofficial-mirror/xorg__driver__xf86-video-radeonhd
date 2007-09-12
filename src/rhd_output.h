@@ -37,8 +37,8 @@
  * This structure should deal with everything output related.
  *
  */
-struct rhd_Output {
-    struct rhd_Output *Next;
+struct rhdOutput {
+    struct rhdOutput *Next;
 
     int scrnIndex;
 
@@ -47,23 +47,23 @@ struct rhd_Output {
 
     Bool Active;
 
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
     struct rhdConnector *Connector;
 
-    Bool (*Sense) (struct rhd_Output *Output, int Type);
-    ModeStatus (*ModeValid) (struct rhd_Output *Output, DisplayModePtr Mode);
-    void (*Mode) (struct rhd_Output *Output);
-    void (*Power) (struct rhd_Output *Output, int Power);
-    void (*Save) (struct rhd_Output *Output);
-    void (*Restore) (struct rhd_Output *Output);
-    void (*Destroy) (struct rhd_Output *Output);
+    Bool (*Sense) (struct rhdOutput *Output, int Type);
+    ModeStatus (*ModeValid) (struct rhdOutput *Output, DisplayModePtr Mode);
+    void (*Mode) (struct rhdOutput *Output);
+    void (*Power) (struct rhdOutput *Output, int Power);
+    void (*Save) (struct rhdOutput *Output);
+    void (*Restore) (struct rhdOutput *Output);
+    void (*Destroy) (struct rhdOutput *Output);
 
     /* Output Private data */
     void *Private;
 };
 
-void RHDOutputAdd(RHDPtr rhdPtr, struct rhd_Output *Output);
-void RHDOutputsMode(RHDPtr rhdPtr, struct rhd_Crtc *Crtc);
+void RHDOutputAdd(RHDPtr rhdPtr, struct rhdOutput *Output);
+void RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc);
 void RHDOutputsPower(RHDPtr rhdPtr, int Power);
 void RHDOutputsShutdownInactive(RHDPtr rhdPtr);
 void RHDOutputsSave(RHDPtr rhdPtr);
@@ -71,9 +71,9 @@ void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
 
 /* output local functions. */
-struct rhd_Output *RHDDACAInit(RHDPtr rhdPtr);
-struct rhd_Output *RHDDACBInit(RHDPtr rhdPtr);
-struct rhd_Output *RHDTMDSAInit(RHDPtr rhdPtr);
-struct rhd_Output *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
+struct rhdOutput *RHDDACAInit(RHDPtr rhdPtr);
+struct rhdOutput *RHDDACBInit(RHDPtr rhdPtr);
+struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
+struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 
 #endif /* _RHD_OUTPUT_H */

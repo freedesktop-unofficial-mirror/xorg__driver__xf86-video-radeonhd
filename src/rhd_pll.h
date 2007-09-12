@@ -25,7 +25,7 @@
 #ifndef _RHD_PLL_H
 #define _RHD_PLL_H
 
-struct rhd_PLL {
+struct rhdPLL {
     int scrnIndex;
 
 #define PLL_NAME_PLL1 "PLL 1"
@@ -48,13 +48,13 @@ struct rhd_PLL {
     CARD32 OutMin;
     CARD32 OutMax;
 
-    ModeStatus (*Valid) (struct rhd_PLL *PLL, CARD32 Clock);
-    void (*Set) (struct rhd_PLL *PLL, CARD16 ReferenceDivider,
+    ModeStatus (*Valid) (struct rhdPLL *PLL, CARD32 Clock);
+    void (*Set) (struct rhdPLL *PLL, CARD16 ReferenceDivider,
 		 CARD16 FeedbackDivider, CARD8 FeedbackDividerFraction,
 		 CARD8 PostDivider);
-    void (*Power) (struct rhd_PLL *PLL, int Power);
-    void (*Save) (struct rhd_PLL *PLL);
-    void (*Restore) (struct rhd_PLL *PLL);
+    void (*Power) (struct rhdPLL *PLL, int Power);
+    void (*Save) (struct rhdPLL *PLL);
+    void (*Restore) (struct rhdPLL *PLL);
 
     /* For save/restore */
     Bool Stored;
@@ -66,9 +66,9 @@ struct rhd_PLL {
 };
 
 void RHDPLLsInit(RHDPtr rhdPtr);
-ModeStatus RHDPLLValid(struct rhd_PLL *PLL, CARD32 Clock);
-void RHDPLLSet(struct rhd_PLL *PLL, CARD32 Clock);
-void RHDPLLPower(struct rhd_PLL *PLL, int Power);
+ModeStatus RHDPLLValid(struct rhdPLL *PLL, CARD32 Clock);
+void RHDPLLSet(struct rhdPLL *PLL, CARD32 Clock);
+void RHDPLLPower(struct rhdPLL *PLL, int Power);
 void RHDPLLsPowerAll(RHDPtr rhdPtr, int Power);
 void RHDPLLsShutdownInactive(RHDPtr rhdPtr);
 void RHDPLLsSave(RHDPtr rhdPtr);

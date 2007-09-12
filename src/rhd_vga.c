@@ -38,7 +38,7 @@
 void
 RHDVGAInit(RHDPtr rhdPtr)
 {
-    struct rhd_VGA *VGA;
+    struct rhdVGA *VGA;
 
     RHDFUNC(rhdPtr);
 
@@ -51,7 +51,7 @@ RHDVGAInit(RHDPtr rhdPtr)
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Detected VGA mode.\n");
 
-    VGA = xnfcalloc(sizeof(struct rhd_VGA), 1);
+    VGA = xnfcalloc(sizeof(struct rhdVGA), 1);
     VGA->Stored = FALSE;
 
     rhdPtr->VGA = VGA;
@@ -64,7 +64,7 @@ void
 RHDVGASave(RHDPtr rhdPtr)
 {
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
-    struct rhd_VGA *VGA = rhdPtr->VGA;
+    struct rhdVGA *VGA = rhdPtr->VGA;
 
     RHDFUNC(rhdPtr);
 
@@ -115,7 +115,7 @@ RHDVGASave(RHDPtr rhdPtr)
 void
 RHDVGARestore(RHDPtr rhdPtr)
 {
-    struct rhd_VGA *VGA = rhdPtr->VGA;
+    struct rhdVGA *VGA = rhdPtr->VGA;
 
     RHDFUNC(rhdPtr);
 
@@ -160,7 +160,7 @@ RHDVGADisable(RHDPtr rhdPtr)
 void
 RHDVGADestroy(RHDPtr rhdPtr)
 {
-    struct rhd_VGA *VGA = rhdPtr->VGA;
+    struct rhdVGA *VGA = rhdPtr->VGA;
 
     RHDFUNC(rhdPtr);
 

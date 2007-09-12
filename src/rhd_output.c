@@ -33,9 +33,9 @@
 #include "rhd_crtc.h"
 
 void
-RHDOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
+RHDOutputAdd(RHDPtr rhdPtr, struct rhdOutput *New)
 {
-    struct rhd_Output *Last = rhdPtr->Outputs;
+    struct rhdOutput *Last = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -55,9 +55,9 @@ RHDOutputAdd(RHDPtr rhdPtr, struct rhd_Output *New)
  *
  */
 void
-RHDOutputsMode(RHDPtr rhdPtr, struct rhd_Crtc *Crtc)
+RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs;
+    struct rhdOutput *Output = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -75,7 +75,7 @@ RHDOutputsMode(RHDPtr rhdPtr, struct rhd_Crtc *Crtc)
 void
 RHDOutputsPower(RHDPtr rhdPtr, int Power)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs;
+    struct rhdOutput *Output = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -93,7 +93,7 @@ RHDOutputsPower(RHDPtr rhdPtr, int Power)
 void
 RHDOutputsShutdownInactive(RHDPtr rhdPtr)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs;
+    struct rhdOutput *Output = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -113,7 +113,7 @@ RHDOutputsShutdownInactive(RHDPtr rhdPtr)
 void
 RHDOutputsSave(RHDPtr rhdPtr)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs;
+    struct rhdOutput *Output = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -131,7 +131,7 @@ RHDOutputsSave(RHDPtr rhdPtr)
 void
 RHDOutputsRestore(RHDPtr rhdPtr)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs;
+    struct rhdOutput *Output = rhdPtr->Outputs;
 
     RHDFUNC(rhdPtr);
 
@@ -149,7 +149,7 @@ RHDOutputsRestore(RHDPtr rhdPtr)
 void
 RHDOutputsDestroy(RHDPtr rhdPtr)
 {
-    struct rhd_Output *Output = rhdPtr->Outputs, *Next;
+    struct rhdOutput *Output = rhdPtr->Outputs, *Next;
 
     RHDFUNC(rhdPtr);
 

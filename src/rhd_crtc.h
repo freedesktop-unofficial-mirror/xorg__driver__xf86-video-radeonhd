@@ -25,7 +25,7 @@
 #ifndef _RHD_CRTC_H
 #define _RHD_CRTC_H
 
-struct rhd_Crtc {
+struct rhdCrtc {
     int scrnIndex;
 
     char *Name;
@@ -42,30 +42,30 @@ struct rhd_Crtc {
     int Height;
     int X, Y; /* Current frame */
 
-    struct rhd_PLL *PLL; /* Currently attached PLL */
+    struct rhdPLL *PLL; /* Currently attached PLL */
     struct rhdLUT *LUT; /* Currently attached LUT */
 
     DisplayModePtr CurrentMode;
     DisplayModePtr Modes; /* Cycle through these */
 
-    ModeStatus (*FBValid) (struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height,
+    ModeStatus (*FBValid) (struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height,
 			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
-    void (*FBSet) (struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width,
+    void (*FBSet) (struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width,
 		   CARD16 Height, int bpp, CARD32 Offset);
 
-    ModeStatus (*ModeValid) (struct rhd_Crtc *Crtc, DisplayModePtr Mode);
-    void (*ModeSet) (struct rhd_Crtc *Crtc, DisplayModePtr Mode);
+    ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
+    void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
 
-    void (*PLLSelect) (struct rhd_Crtc *Crtc, struct rhd_PLL *PLL);
-    void (*LUTSelect) (struct rhd_Crtc *Crtc, struct rhdLUT *LUT);
+    void (*PLLSelect) (struct rhdCrtc *Crtc, struct rhdPLL *PLL);
+    void (*LUTSelect) (struct rhdCrtc *Crtc, struct rhdLUT *LUT);
 
-    void (*FrameSet) (struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y);
+    void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 
-    void (*Power) (struct rhd_Crtc *Crtc, int Power);
+    void (*Power) (struct rhdCrtc *Crtc, int Power);
 
-    struct rhd_Crtc_Store *Store;
-    void (*Save) (struct rhd_Crtc *Crtc);
-    void (*Restore) (struct rhd_Crtc *Crtc);
+    struct rhdCrtcStore *Store;
+    void (*Save) (struct rhdCrtc *Crtc);
+    void (*Restore) (struct rhdCrtc *Crtc);
 
     /* Gamma, scaling */
 };

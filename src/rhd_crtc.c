@@ -40,7 +40,7 @@
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
 
-struct rhd_Crtc_Store {
+struct rhdCrtcStore {
     CARD32 GrphEnable;
     CARD32 GrphControl;
     CARD32 GrphXStart;
@@ -84,7 +84,7 @@ struct rhd_Crtc_Store {
  * If MODE_OK is returned and pPitch is not NULL, it is set.
  */
 static ModeStatus
-DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
+DxFBValid(struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
 	  CARD32 Offset, CARD32 Size, CARD32 *pPitch)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
@@ -156,7 +156,7 @@ DxFBValid(struct rhd_Crtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
  *
  */
 static void
-DxFBSet(struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
+DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
 	int bpp, CARD32 Offset)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[Crtc->scrnIndex]);
@@ -213,7 +213,7 @@ DxFBSet(struct rhd_Crtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
  *
  */
 static ModeStatus
-DxModeValid(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
+DxModeValid(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     CARD32 tmp;
 
@@ -272,7 +272,7 @@ DxModeValid(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
  *
  */
 static void
-DxModeSet(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
+DxModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     CARD16 BlankStart, BlankEnd;
     CARD16 RegOff;
@@ -332,7 +332,7 @@ DxModeSet(struct rhd_Crtc *Crtc, DisplayModePtr Mode)
  *
  */
 static void
-D1PLLSelect(struct rhd_Crtc *Crtc, struct rhd_PLL *PLL)
+D1PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
 {
     RHDFUNC(Crtc);
 
@@ -344,7 +344,7 @@ D1PLLSelect(struct rhd_Crtc *Crtc, struct rhd_PLL *PLL)
  *
  */
 static void
-D2PLLSelect(struct rhd_Crtc *Crtc, struct rhd_PLL *PLL)
+D2PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
 {
     RHDFUNC(Crtc);
 
@@ -356,7 +356,7 @@ D2PLLSelect(struct rhd_Crtc *Crtc, struct rhd_PLL *PLL)
  *
  */
 static void
-D1LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
+D1LUTSelect(struct rhdCrtc *Crtc, struct rhdLUT *LUT)
 {
     RHDFUNC(Crtc);
 
@@ -368,7 +368,7 @@ D1LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
  *
  */
 static void
-D2LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
+D2LUTSelect(struct rhdCrtc *Crtc, struct rhdLUT *LUT)
 {
     RHDFUNC(Crtc);
 
@@ -380,7 +380,7 @@ D2LUTSelect(struct rhd_Crtc *Crtc, struct rhdLUT *LUT)
  *
  */
 static void
-D1ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
+D1ViewPortStart(struct rhdCrtc *Crtc, CARD16 X, CARD16 Y)
 {
     RHDFUNC(Crtc);
 
@@ -402,7 +402,7 @@ D1ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
  *
  */
 static void
-D2ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
+D2ViewPortStart(struct rhdCrtc *Crtc, CARD16 X, CARD16 Y)
 {
     RHDFUNC(Crtc);
 
@@ -423,7 +423,7 @@ D2ViewPortStart(struct rhd_Crtc *Crtc, CARD16 X, CARD16 Y)
  *
  */
 static void
-D1CRTCDisable(struct rhd_Crtc *Crtc)
+D1CRTCDisable(struct rhdCrtc *Crtc)
 {
     if (RHDRegRead(Crtc, D1CRTC_CONTROL) & 1) {
 	CARD32 Control = RHDRegRead(Crtc, D1CRTC_CONTROL);
@@ -446,7 +446,7 @@ D1CRTCDisable(struct rhd_Crtc *Crtc)
  *
  */
 static void
-D2CRTCDisable(struct rhd_Crtc *Crtc)
+D2CRTCDisable(struct rhdCrtc *Crtc)
 {
     if (RHDRegRead(Crtc, D2CRTC_CONTROL) & 1) {
 	CARD32 Control = RHDRegRead(Crtc, D2CRTC_CONTROL);
@@ -469,7 +469,7 @@ D2CRTCDisable(struct rhd_Crtc *Crtc)
  *
  */
 static void
-D1Power(struct rhd_Crtc *Crtc, int Power)
+D1Power(struct rhdCrtc *Crtc, int Power)
 {
     RHDFUNC(Crtc);
 
@@ -500,7 +500,7 @@ D1Power(struct rhd_Crtc *Crtc, int Power)
  *
  */
 static void
-D2Power(struct rhd_Crtc *Crtc, int Power)
+D2Power(struct rhdCrtc *Crtc, int Power)
 {
     RHDFUNC(Crtc);
 
@@ -531,9 +531,9 @@ D2Power(struct rhd_Crtc *Crtc, int Power)
  *
  */
 static void
-DxSave(struct rhd_Crtc *Crtc)
+DxSave(struct rhdCrtc *Crtc)
 {
-    struct rhd_Crtc_Store *Store;
+    struct rhdCrtcStore *Store;
     CARD16 RegOff;
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
@@ -544,7 +544,7 @@ DxSave(struct rhd_Crtc *Crtc)
 	RegOff = D2_REG_OFFSET;
 
     if (!Crtc->Store)
-	Store = xnfcalloc(sizeof(struct rhd_Crtc_Store), 1);
+	Store = xnfcalloc(sizeof(struct rhdCrtcStore), 1);
     else
 	Store = Crtc->Store;
 
@@ -603,9 +603,9 @@ DxSave(struct rhd_Crtc *Crtc)
  *
  */
 static void
-DxRestore(struct rhd_Crtc *Crtc)
+DxRestore(struct rhdCrtc *Crtc)
 {
-    struct rhd_Crtc_Store *Store = Crtc->Store;
+    struct rhdCrtcStore *Store = Crtc->Store;
     CARD16 RegOff;
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
@@ -677,7 +677,7 @@ DxRestore(struct rhd_Crtc *Crtc)
 void
 RHDCRTCDestroy(RHDPtr rhdPtr)
 {
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
 
     RHDFUNC(rhdPtr);
 
@@ -702,11 +702,11 @@ RHDCRTCDestroy(RHDPtr rhdPtr)
 void
 RHDCRTCInit(RHDPtr rhdPtr)
 {
-    struct rhd_Crtc *Crtc;
+    struct rhdCrtc *Crtc;
 
     RHDFUNC(rhdPtr);
 
-    Crtc = xnfcalloc(sizeof(struct rhd_Crtc), 1);
+    Crtc = xnfcalloc(sizeof(struct rhdCrtc), 1);
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 1";
     Crtc->Id = RHD_CRTC_1;
@@ -726,7 +726,7 @@ RHDCRTCInit(RHDPtr rhdPtr)
 
     rhdPtr->Crtc[0] = Crtc;
 
-    Crtc = xnfcalloc(sizeof(struct rhd_Crtc), 1);
+    Crtc = xnfcalloc(sizeof(struct rhdCrtc), 1);
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 2";
     Crtc->Id = RHD_CRTC_2;

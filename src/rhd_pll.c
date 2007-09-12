@@ -43,7 +43,7 @@
  *
  */
 static ModeStatus
-PLLValid(struct rhd_PLL *PLL, CARD32 Clock)
+PLLValid(struct rhdPLL *PLL, CARD32 Clock)
 {
     RHDFUNC(PLL);
 
@@ -60,7 +60,7 @@ PLLValid(struct rhd_PLL *PLL, CARD32 Clock)
  *
  */
 static void
-PLL1Calibrate(struct rhd_PLL *PLL)
+PLL1Calibrate(struct rhdPLL *PLL)
 {
     int i;
 
@@ -89,7 +89,7 @@ PLL1Calibrate(struct rhd_PLL *PLL)
  *
  */
 static void
-PLL2Calibrate(struct rhd_PLL *PLL)
+PLL2Calibrate(struct rhdPLL *PLL)
 {
     int i;
 
@@ -118,7 +118,7 @@ PLL2Calibrate(struct rhd_PLL *PLL)
  *
  */
 static void
-PLL1Power(struct rhd_PLL *PLL, int Power)
+PLL1Power(struct rhdPLL *PLL, int Power)
 {
     RHDFUNC(PLL);
 
@@ -154,7 +154,7 @@ PLL1Power(struct rhd_PLL *PLL, int Power)
  *
  */
 static void
-PLL2Power(struct rhd_PLL *PLL, int Power)
+PLL2Power(struct rhdPLL *PLL, int Power)
 {
     RHDFUNC(PLL);
 
@@ -190,7 +190,7 @@ PLL2Power(struct rhd_PLL *PLL, int Power)
  *
  */
 static void
-PLL1Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
+PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
 {
     RHDFUNC(PLL);
@@ -241,7 +241,7 @@ PLL1Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
  *
  */
 static void
-PLL2Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
+PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
 {
     RHDFUNC(PLL);
@@ -292,7 +292,7 @@ PLL2Set(struct rhd_PLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
  *
  */
 static void
-PLL1Save(struct rhd_PLL *PLL)
+PLL1Save(struct rhdPLL *PLL)
 {
     RHDFUNC(PLL);
 
@@ -309,7 +309,7 @@ PLL1Save(struct rhd_PLL *PLL)
  *
  */
 static void
-PLL2Save(struct rhd_PLL *PLL)
+PLL2Save(struct rhdPLL *PLL)
 {
     RHDFUNC(PLL);
 
@@ -323,7 +323,7 @@ PLL2Save(struct rhd_PLL *PLL)
 }
 
 static void
-PLLRestore(struct rhd_PLL *PLL)
+PLLRestore(struct rhdPLL *PLL)
 {
     RHDFUNC(PLL);
 
@@ -355,7 +355,7 @@ PLLRestore(struct rhd_PLL *PLL)
 void
 RHDPLLsInit(RHDPtr rhdPtr)
 {
-    struct rhd_PLL *PLL;
+    struct rhdPLL *PLL;
     CARD32 RefClock, InMin, InMax, OutMin, OutMax;
     AtomBIOSArg arg;
     int ret;
@@ -388,7 +388,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     OutMax = RHD_PLL_DEFAULT_MAX;
 
     /* PLL1 */
-    PLL = (struct rhd_PLL *) xnfcalloc(sizeof(struct rhd_PLL), 1);
+    PLL = (struct rhdPLL *) xnfcalloc(sizeof(struct rhdPLL), 1);
 
     PLL->scrnIndex = rhdPtr->scrnIndex;
     PLL->Name = PLL_NAME_PLL1;
@@ -409,7 +409,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     rhdPtr->PLLs[0] = PLL;
 
     /* PLL2 */
-    PLL = (struct rhd_PLL *) xnfcalloc(sizeof(struct rhd_PLL), 1);
+    PLL = (struct rhdPLL *) xnfcalloc(sizeof(struct rhdPLL), 1);
 
     PLL->scrnIndex = rhdPtr->scrnIndex;
     PLL->Name = PLL_NAME_PLL2;
@@ -434,7 +434,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
  *
  */
 ModeStatus
-RHDPLLValid(struct rhd_PLL *PLL, CARD32 Clock)
+RHDPLLValid(struct rhdPLL *PLL, CARD32 Clock)
 {
     RHDFUNC(PLL);
 
@@ -454,7 +454,7 @@ RHDPLLValid(struct rhd_PLL *PLL, CARD32 Clock)
  * Calculate the PLL parameters for a given dotclock.
  */
 static Bool
-PLLCalculate(struct rhd_PLL *PLL, CARD32 PixelClock,
+PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	     CARD16 *RefDivider, CARD16 *FBDivider, CARD8 *PostDivider)
 {
 /* limited by the number of bits available */
@@ -520,7 +520,7 @@ PLLCalculate(struct rhd_PLL *PLL, CARD32 PixelClock,
  *
  */
 void
-RHDPLLSet(struct rhd_PLL *PLL, CARD32 Clock)
+RHDPLLSet(struct rhdPLL *PLL, CARD32 Clock)
 {
     CARD16 RefDivider = 0, FBDivider = 0;
     CARD8 PostDivider = 0;
@@ -542,7 +542,7 @@ RHDPLLSet(struct rhd_PLL *PLL, CARD32 Clock)
  *
  */
 void
-RHDPLLPower(struct rhd_PLL *PLL, int Power)
+RHDPLLPower(struct rhdPLL *PLL, int Power)
 {
     RHDFUNC(PLL);
 
@@ -556,7 +556,7 @@ RHDPLLPower(struct rhd_PLL *PLL, int Power)
 void
 RHDPLLsPowerAll(RHDPtr rhdPtr, int Power)
 {
-    struct rhd_PLL *PLL;
+    struct rhdPLL *PLL;
 
     RHDFUNC(rhdPtr);
 
@@ -575,7 +575,7 @@ RHDPLLsPowerAll(RHDPtr rhdPtr, int Power)
 void
 RHDPLLsShutdownInactive(RHDPtr rhdPtr)
 {
-    struct rhd_PLL *PLL;
+    struct rhdPLL *PLL;
 
     RHDFUNC(rhdPtr);
 
@@ -594,7 +594,7 @@ RHDPLLsShutdownInactive(RHDPtr rhdPtr)
 void
 RHDPLLsSave(RHDPtr rhdPtr)
 {
-    struct rhd_PLL *PLL;
+    struct rhdPLL *PLL;
 
     RHDFUNC(rhdPtr);
 
@@ -613,7 +613,7 @@ RHDPLLsSave(RHDPtr rhdPtr)
 void
 RHDPLLsRestore(RHDPtr rhdPtr)
 {
-    struct rhd_PLL *PLL;
+    struct rhdPLL *PLL;
 
     RHDFUNC(rhdPtr);
 

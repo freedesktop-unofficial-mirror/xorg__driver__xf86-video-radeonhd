@@ -260,7 +260,7 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
  * - connector mapping.
  *
  */
-static struct rhd_card
+static struct rhdcard
 rhdCards[] =
 {
     /* 0x7100 : R520 : Radeon X1800 */
@@ -381,7 +381,7 @@ rhdCards[] =
 /*
  *
  */
-struct rhd_card *
+struct rhdcard *
 RHDCardIdentify(ScrnInfoPtr pScrn)
 {
     pciVideoPtr Pci = RHDPTR(pScrn)->PciInfo;

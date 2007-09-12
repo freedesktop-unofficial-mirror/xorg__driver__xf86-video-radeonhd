@@ -155,7 +155,7 @@ uploadCursorImage(RHDPtr rhdPtr, int offset, int width, int height, CARD32 *img)
 /* TRUE if any portion of cursor is visible on Crtc.
  * x/y: top left cursor image pos (-hotspot) */
 static int
-cursorVisible(RHDPtr rhdPtr, struct rhd_Crtc *Crtc, int x, int y)
+cursorVisible(RHDPtr rhdPtr, struct rhdCrtc *Crtc, int x, int y)
 {
     return (Crtc->Active                        &&
 	    x >= Crtc->X - rhdPtr->CursorWidth  &&
@@ -204,7 +204,7 @@ rhdShowCursor(ScrnInfoPtr pScrn)
     int i;
 
     for (i = 0; i < 2; i++) {
-	struct rhd_Crtc *Crtc = rhdPtr->Crtc[i];
+	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 	lockCursor  (rhdPtr, REG_CUR_OFFSET(i));
 	if (cursorVisible (rhdPtr, Crtc, rhdPtr->CursorX, rhdPtr->CursorY)) {
 	    enableCursor(rhdPtr, REG_CUR_OFFSET(i));
