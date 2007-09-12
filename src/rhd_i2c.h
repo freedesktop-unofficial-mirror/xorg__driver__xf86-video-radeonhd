@@ -34,6 +34,7 @@ typedef enum {
     RHD_I2C_DDC,
     RHD_I2C_PROBE_ADDR,
     RHD_I2C_SCANBUS,
+    RHD_I2C_GETBUS,
     RHD_I2C_TEARDOWN
 } RHDi2cFunc;
 
@@ -51,6 +52,7 @@ typedef union
     CARD32 slaves[4];
     } scanbus;
     xf86MonPtr monitor;
+    I2CBusPtr i2cBusPtr;
 } RHDI2CDataArg, *RHDI2CDataArgPtr;
 
 typedef enum {
@@ -60,6 +62,6 @@ typedef enum {
 } RHDI2CResult;
 
 RHDI2CResult
-RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
+RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 			RHDI2CDataArgPtr data);
 #endif

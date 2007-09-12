@@ -83,11 +83,11 @@ typedef union
 
 
 extern AtomBiosResult
-RHDAtomBIOSFunc(ScrnInfoPtr pScrn, atomBIOSHandlePtr handle, AtomBiosFunc func,
+RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
 /* only for testing */
-void rhdTestAtomBIOS(ScrnInfoPtr pScrn);
-Bool rhdTestAsicInit(ScrnInfoPtr pScrn);
+void rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS);
+Bool rhdTestAsicInit(atomBIOSHandlePtr atomBIOS);
 
 #endif /*  RHD_ATOMBIOS_H_ */

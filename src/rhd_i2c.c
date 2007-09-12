@@ -501,19 +501,22 @@ rhdInitI2C(int scrnIndex)
     return NULL;
 }
 
-Bool
-rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
+RHDI2CResult
+rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
 		   int line, CARD8 slave)
 {
     I2CDevPtr dev;
     int ret = FALSE;
+    char *name = "I2CProbe";
+    
+    if (line >= I2C_LINES)
+	return RHD_I2C_NOLINE;
+    if (!I2CList[line])
+	return RHD_I2C_FAILED;
 
-    if (line >= I2C_LINES || !I2CList[line])
-	return FALSE;
-
-    line &= 0xFE;
     if ((dev = xf86CreateI2CDevRec())) {
-	dev->SlaveAddr = slave;
+	dev->SlaveAddr = slave & 0xFE;
+	dev->DevName = name;
 	dev->pI2CBus = I2CList[line];
 
 	if (xf86I2CDevInit(dev))
@@ -525,13 +528,18 @@ rhdI2CProbeAddress(ScrnInfoPtr pScrn, I2CBusPtr *I2CList,
 }
 
 RHDI2CResult
-rhdI2CScanBus(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
+rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 {
-
     int i;
 
-    for (i = 0; i < 128; i++) {
-	if (rhdI2CProbeAddress(pScrn, I2CList, line, i << 2))
+    if (line >= I2C_LINES)
+	return RHD_I2C_NOLINE;
+    if (!I2CList[line])
+	return RHD_I2C_FAILED;
+
+    /* don't probe reserved addresses */
+    for (i = 0x8; i < 0x78; i++) {
+	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1))
 	    slaves[i >> 6] |= 1 << (i & 0x1F);
 	else
 	    slaves[i >> 6] &= ~(1 << (i & 0x1F));
@@ -540,13 +548,13 @@ rhdI2CScanBus(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 }
 
 RHDI2CResult
-RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
+RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	   RHDI2CDataArgPtr datap)
 {
-    RHDFUNC(pScrn)
+    RHDFUNCI(scrnIndex)
 
     if (func == RHD_I2C_INIT) {
-	if (!(datap->I2CBusList = rhdInitI2C(pScrn->scrnIndex)))
+	if (!(datap->I2CBusList = rhdInitI2C(scrnIndex)))
 	    return RHD_I2C_FAILED;
 	else
 	    return RHD_I2C_SUCCESS;
@@ -556,17 +564,25 @@ RHDI2CFunc(ScrnInfoPtr pScrn, I2CBusPtr *I2CList, RHDi2cFunc func,
 	    return RHD_I2C_NOLINE;
 	if (!I2CList[datap->i])
 	    return RHD_I2C_FAILED;
-	datap->monitor = xf86DoEDID_DDC2(pScrn->scrnIndex, I2CList[datap->i]);
+	datap->monitor = xf86DoEDID_DDC2(scrnIndex, I2CList[datap->i]);
 	return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_PROBE_ADDR) {
-	return rhdI2CProbeAddress(pScrn, I2CList,
+	return rhdI2CProbeAddress(scrnIndex, I2CList,
 				  datap->target.line,
 				  datap->target.slave);
     }
     if (func == RHD_I2C_SCANBUS) {
-	return rhdI2CScanBus(pScrn, I2CList, datap->scanbus.line,
+	return rhdI2CScanBus(scrnIndex, I2CList, datap->scanbus.line,
 			     datap->scanbus.slaves);
+    }
+    if (func == RHD_I2C_GETBUS) {
+	if (datap->i >= I2C_LINES)
+	    return RHD_I2C_NOLINE;
+	if (!I2CList[datap->i])
+	    return RHD_I2C_FAILED;
+	datap->i2cBusPtr = I2CList[datap->i];
+	return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_TEARDOWN) {
 	if (I2CList)

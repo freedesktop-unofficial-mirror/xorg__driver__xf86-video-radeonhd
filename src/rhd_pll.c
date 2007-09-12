@@ -366,7 +366,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     InMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
 #ifdef ATOM_BIOS
     if (rhdPtr->atomBIOS) {
-	ret = RHDAtomBIOSFunc(xf86Screens[rhdPtr->scrnIndex], rhdPtr->atomBIOS,
+	ret = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			      GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &arg);
 	if (ret == ATOM_SUCCESS) {
 	    if (arg.val) {

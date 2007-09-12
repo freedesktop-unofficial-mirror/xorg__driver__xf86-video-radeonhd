@@ -156,7 +156,8 @@ typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
     OPTION_PCI_BURST,
-    OPTION_EXPERIMENTAL
+    OPTION_EXPERIMENTAL,
+    OPTION_PROBE_I2C
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -164,6 +165,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
     { OPTION_EXPERIMENTAL, "experimental",	OPTV_BOOLEAN,   {0}, FALSE },
+    { OPTION_PROBE_I2C, "probe_i2c",	OPTV_BOOLEAN,	{0}, FALSE },
     { -1,               NULL,           OPTV_NONE,	{0}, FALSE }
 };
 
@@ -238,9 +240,10 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
-    RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
+    RHDI2CFunc(pScrn->scrnIndex, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
 #ifdef ATOM_BIOS
-    RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_TEARDOWN, NULL);
+    RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
+		    ATOMBIOS_TEARDOWN, NULL);
 #endif
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
@@ -457,7 +460,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     {
 	AtomBIOSArg atomBiosArg;
 
-	if (RHDAtomBIOSFunc(pScrn, NULL, ATOMBIOS_INIT, &atomBiosArg) 
+	if (RHDAtomBIOSFunc(pScrn->scrnIndex, NULL, ATOMBIOS_INIT, &atomBiosArg)
 	    == ATOM_SUCCESS) {
 	    rhdPtr->atomBIOS = atomBiosArg.ptr;
 	}
@@ -481,33 +484,33 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
 #ifdef ATOM_BIOS
     if (rhdPtr->atomBIOS) { 	/* for testing functions */
-	
+
         AtomBIOSArg atomBiosArg;
-	
+
         atomBiosArg.fb.start = rhdPtr->FbFreeStart;
         atomBiosArg.fb.size = rhdPtr->FbFreeSize;
-        if (RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, ATOMBIOS_ALLOCATE_FB_SCRATCH,
+        if (RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, ATOMBIOS_ALLOCATE_FB_SCRATCH,
 			  &atomBiosArg) == ATOM_SUCCESS) {
 	    rhdPtr->FbFreeStart = atomBiosArg.fb.start;
 	    rhdPtr->FbFreeSize = atomBiosArg.fb.size;
 	}
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
 			&atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
 			&atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			    GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			    GET_MAX_PIXEL_CLK, &atomBiosArg);
-	RHDAtomBIOSFunc(pScrn, rhdPtr->atomBIOS,
+	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
-	rhdTestAtomBIOS(pScrn);
+	rhdTestAtomBIOS(rhdPtr->atomBIOS);
     }
 #endif
     {/* Take off our cursors: move to some cursor structure init. */
@@ -523,8 +526,25 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->FbFreeSize -= size;
     }
     if (xf86LoadSubModule(pScrn, "i2c")) {
-	if (RHDI2CFunc(pScrn, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
+	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
+	    RhdGetOptValBool(rhdPtr->Options, OPTION_PROBE_I2C, &tmpOpt,
+			     FALSE);
+	    if (tmpOpt.val.bool) {
+		RHDI2CDataArg data;
+		int line = 0;
+		data.scanbus.line = line++;
+		while (RHDI2CFunc(pScrn->scrnIndex,
+				  rhdPtr->I2C, RHD_I2C_SCANBUS, &data) != RHD_I2C_NOLINE) {
+		    int i,j;
+		    for (i = 0; i < 4; i++)
+			for (j = 0; j < 32; j++) {
+			    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "I2C Bus at slave address "
+				       "%i found on line %i\n",(i * 32 + j) << 1, data.scanbus.line);
+			}
+		    data.scanbus.line = line++;
+		}
+	    }
 	    if (xf86LoadSubModule(pScrn, "ddc")) {
 		rhdTestDDC(pScrn);
 	    } else
@@ -1087,7 +1107,7 @@ static void
 rhdUnmapFB(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
-    
+
     if (!rhdPtr->FbBase)
 	return;
 
@@ -1464,7 +1484,7 @@ RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size)
     int i,j;
     char *c = (char *)start;
     char line[256];
-    
+
     for (j = 0; j <= (size >> 4); j++) {
 	char *cur = line;
 	char *d = c;
@@ -1514,11 +1534,11 @@ rhdTestDDC(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     RHDI2CDataArg data;
     Bool done = FALSE;
-    
+
     int i = 0;
     while (!done) {
 	data.i = i++;
-	switch (RHDI2CFunc(pScrn, rhdPtr->I2C, RHD_I2C_DDC, &data)) {
+	switch (RHDI2CFunc(pScrn->scrnIndex, rhdPtr->I2C, RHD_I2C_DDC, &data)) {
 	    case RHD_I2C_SUCCESS:
 		if (data.monitor) {
 		    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on line %i:\n",

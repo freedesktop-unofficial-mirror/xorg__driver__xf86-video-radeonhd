@@ -145,7 +145,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhd_card *Card)
 	    int ret;
 
 	    data.i = Card->Connectors[i].DDC;
-	    ret = RHDI2CFunc(xf86Screens[rhdPtr->scrnIndex],
+	    ret = RHDI2CFunc(rhdPtr->scrnIndex,
 			     rhdPtr->I2C, RHD_I2C_GETBUS, &data);
 	    if (ret == RHD_I2C_SUCCESS)
 		Connector->DDC = data.i2cBusPtr;
