@@ -124,8 +124,9 @@ LVDSSet(struct rhd_Output *Output)
 	/* enable temporal bit depth reduction */
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x00010000, 0x00010000);
     } else
-#endif
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
+#endif
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x01010100, 0x01010101);
 
     /* reset the temporal dithering */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x04000000, 0x04000000);
