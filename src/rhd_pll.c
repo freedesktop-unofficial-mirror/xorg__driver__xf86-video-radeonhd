@@ -467,13 +467,13 @@ PLLCalculate(struct rhd_PLL *PLL, CARD32 PixelClock,
 
     Ratio = ((float) PixelClock) / ((float) PLL->RefClock);
 
-    for (PostDiv = POST_DIV_LIMIT - 1; PostDiv > 1; PostDiv--) {
+    for (PostDiv = 2; PostDiv < POST_DIV_LIMIT; PostDiv++) {
 	CARD32 PLLIn = PixelClock * PostDiv;
 
 	if (PLLIn < PLL->InMin)
-	    break;
-	if (PLLIn > PLL->InMax)
 	    continue;
+	if (PLLIn > PLL->InMax)
+	    break;
 
 	for (RefDiv = 1; RefDiv < REF_DIV_LIMIT; RefDiv++) {
 	    int Diff;

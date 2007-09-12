@@ -271,7 +271,8 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
                            Monitor->Name);
 
 	    if (!Monitor->Bandwidth)
-		Monitor->Bandwidth = EDID->det_mon[i].section.ranges.max_clock;
+		Monitor->Bandwidth =
+		    EDID->det_mon[i].section.ranges.max_clock * 1000;
 
             break;
         case DT:
