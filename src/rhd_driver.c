@@ -120,7 +120,7 @@ static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(RHDPtr rhdPtr);
 static void     rhdRestore(RHDPtr rhdPtr);
-static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
+static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
@@ -157,7 +157,8 @@ typedef enum {
     OPTION_SW_CURSOR,
     OPTION_PCI_BURST,
     OPTION_EXPERIMENTAL,
-    OPTION_PROBE_I2C
+    OPTION_PROBE_I2C,
+    OPTION_IGNORECONNECTOR
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -166,6 +167,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
     { OPTION_EXPERIMENTAL, "experimental",	OPTV_BOOLEAN,   {0}, FALSE },
     { OPTION_PROBE_I2C, "probe_i2c",	OPTV_BOOLEAN,	{0}, FALSE },
+    { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR, {0}, FALSE },
     { -1,               NULL,           OPTV_NONE,	{0}, FALSE }
 };
 
@@ -510,7 +512,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 			    GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
-	rhdTestAtomBIOS(rhdPtr->atomBIOS);
+	rhdTestAtomBIOS(rhdPtr->scrnIndex, rhdPtr->atomBIOS);
     }
 #endif
     {/* Take off our cursors: move to some cursor structure init. */
@@ -567,10 +569,17 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    /* Pick anything for now */
-    if (!rhdModeLayoutSelect(rhdPtr)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to detect a connected monitor\n");
-	goto error1;
+    {
+	char *ignore;
+
+	ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
+
+	/* Pick anything for now */
+	if (!rhdModeLayoutSelect(rhdPtr, ignore)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Failed to detect a connected monitor\n");
+	    goto error1;
+	}
     }
     rhdModeLayoutPrint(rhdPtr);
 
@@ -1120,7 +1129,7 @@ rhdUnmapFB(RHDPtr rhdPtr)
  *
  */
 static Bool
-rhdModeLayoutSelect(RHDPtr rhdPtr)
+rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 {
     struct rhd_Output *Output;
     struct rhdConnector *Connector;
@@ -1149,6 +1158,12 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 
 	if (!Connector)
 	    continue;
+
+	if (ignore && !strcasecmp(Connector->Name, ignore)) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		       "Skipping connector \"%s\"\n", ignore);
+	    continue;
+	}
 
 	if (Connector->HPDCheck) {
 	    if (Connector->HPDCheck(Connector)) {

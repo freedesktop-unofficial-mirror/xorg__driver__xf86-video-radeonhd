@@ -332,6 +332,7 @@ rhdBIOSGetFbBaseAndSize(int scrnIndex, atomBIOSHandlePtr handle, unsigned int *b
 	    return FALSE;
 	*base = (int)data.val;
     }
+    return TRUE;
 }
 
 /*
@@ -406,12 +407,12 @@ rhdASICInit(atomBIOSHandlePtr handle)
     data.exec.index = 0x0;
     data.exec.pspace = &asicInit;
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
-    if (RHDAtomBIOSFunc(scrnIndex, handle,
+    if (RHDAtomBIOSFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Successful\n");
 	return TRUE;
     }
-    xf86DrvMsg(scrnIndex, X_INFO, "ASIC_INIT Failed\n");
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Failed\n");
     return FALSE;
 }
 
