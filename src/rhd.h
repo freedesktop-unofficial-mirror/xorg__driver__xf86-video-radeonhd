@@ -88,6 +88,7 @@ struct rhdcard {
 
 typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBIOSHandle *atomBIOSHandlePtr;
+typedef struct _rhdShadowRec *rhdShadowPtr;
 
 typedef struct _RHDopt {
     Bool set;
@@ -114,7 +115,7 @@ typedef struct RHDRec {
     RHDOpt              noAccel;
     RHDOpt              swCursor;
     RHDOpt              onPciBurst;
-
+    RHDOpt		shadowFB;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbIntAddress; /* card internal address of FB */
@@ -163,6 +164,7 @@ typedef struct RHDRec {
     struct rhdConnector *Connector[RHD_CONNECTORS_MAX];
     struct rhdHPD      *HPD; /* Hot plug detect subsystem */
 
+    rhdShadowPtr	shadowPtr;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

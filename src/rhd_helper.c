@@ -1,3 +1,27 @@
+/*
+ * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007  Egbert Eich   <eich@novell.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "xf86.h"
 #include "rhd.h"
 
@@ -66,4 +90,44 @@ RhdGetOptValString(const OptionInfoRec *table, int token,
         optp->val.string = def;
     } else
 	optp->set = TRUE;
+}
+
+
+void
+RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size)
+{
+    int i,j;
+    char *c = (char *)start;
+    char line[256];
+
+    for (j = 0; j <= (size >> 4); j++) {
+	char *cur = line;
+	char *d = c;
+	int k = size < 16 ? size : 16;
+	for (i = 0; i < k; i++)
+	    cur += xf86snprintf(cur,4,"%2.2x ",(unsigned char) (*(c++)));
+	c = d;
+	for (i = 0; i < k; i++) {
+	    cur += xf86snprintf(cur,2,"%c",((((CARD8)(*c)) > 32)
+				&& (((CARD8)(*c)) < 128)) ?
+				(unsigned char) (*(c)): '.');
+	    c++;
+	}
+	xf86DrvMsg(scrnIndex,X_INFO,"%s\n",line);
+    }
+}
+
+
+/*
+ * X should have something like this itself.
+ * Also used by the RHDFUNC macro.
+ */
+void
+RHDDebug(int scrnIndex, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_DEBUG, format, ap);
+    va_end(ap);
 }

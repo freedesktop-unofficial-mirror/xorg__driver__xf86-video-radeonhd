@@ -94,6 +94,7 @@
 #include "rhd_modes.h"
 #include "rhd_lut.h"
 #include "rhd_i2c.h"
+#include "rhd_shadow.h"
 
 /* ??? */
 #include "servermd.h"
@@ -157,6 +158,7 @@ typedef enum {
     OPTION_SW_CURSOR,
     OPTION_PCI_BURST,
     OPTION_EXPERIMENTAL,
+    OPTION_SHADOWFB,
     OPTION_PROBE_I2C,
     OPTION_IGNORECONNECTOR
 } RHDOpts;
@@ -166,6 +168,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
     { OPTION_EXPERIMENTAL, "experimental",	OPTV_BOOLEAN,   {0}, FALSE },
+    { OPTION_SHADOWFB, "shadowfb", OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_PROBE_I2C, "probe_i2c",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR, {0}, FALSE },
     { -1,               NULL,           OPTV_NONE,	{0}, FALSE }
@@ -249,6 +252,8 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 		    ATOMBIOS_TEARDOWN, NULL);
 #endif
+    RHDShadowDestroy(rhdPtr);
+    
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -662,6 +667,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     }
+
+    RHDShadowPreInit(pScrn);
+    
     ret = TRUE;
 
  error1:
@@ -729,11 +737,13 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* @@@ do shadow stuff here */
 
     /* init fb */
-    ret = fbScreenInit(pScreen,
-		       (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
-		       pScrn->virtualX, pScrn->virtualY,
-		       pScrn->xDpi, pScrn->yDpi,
-		       pScrn->displayWidth, pScrn->bitsPerPixel);
+    ret = RHDShadowScreenInit(pScreen);
+    if (!ret)
+	ret = fbScreenInit(pScreen,
+			   (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
+			   pScrn->virtualX, pScrn->virtualY,
+			   pScrn->xDpi, pScrn->yDpi,
+			   pScrn->displayWidth, pScrn->bitsPerPixel);
     if (!ret)
 	return FALSE;
     if (pScrn->depth > 8) {
@@ -755,6 +765,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
 
+    if (!RHDShadowSetup(pScreen))
+	return FALSE;
+    
     xf86SetBlackWhitePixels(pScreen);
 
     /* initialize memory manager.*/
@@ -837,10 +850,11 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
         if (rhdPtr->CursorInfo)
 	    rhdHideCursor(pScrn);
 	rhdRestore(rhdPtr);
-
-	rhdUnmapFB(rhdPtr);
-	rhdUnmapMMIO(rhdPtr);
     }
+
+    RHDShadowCloseScreen(pScreen);
+    rhdUnmapFB(rhdPtr);
+    rhdUnmapMMIO(rhdPtr);
 
     /* @@@ deacllocate any data structures that are rhdPtr private here */
     if (rhdPtr->CursorInfo) {
@@ -1476,43 +1490,6 @@ _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
 }
 
 /*
- * X should have something like this itself.
- * Also used by the RHDFUNC macro.
- */
-void
-RHDDebug(int scrnIndex, const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_DEBUG, format, ap);
-    va_end(ap);
-}
-
-void
-RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size)
-{
-    int i,j;
-    char *c = (char *)start;
-    char line[256];
-
-    for (j = 0; j <= (size >> 4); j++) {
-	char *cur = line;
-	char *d = c;
-	int k = size < 16 ? size : 16;
-	for (i = 0; i < k; i++)
-	    cur += xf86snprintf(cur,4,"%2.2x ",(unsigned char) (*(c++)));
-	c = d;
-	for (i = 0; i < k; i++) {
-	    cur += xf86snprintf(cur,2,"%c",((((CARD8)(*c)) > 32)
-				&& (((CARD8)(*c)) < 128)) ?
-				(unsigned char) (*(c)): '.');
-	    c++;
-	}
-	xf86DrvMsg(scrnIndex,X_INFO,"%s\n",line);
-    }
-}
-/*
  * breakout functions
  */
 static void
@@ -1532,6 +1509,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, &rhdPtr->swCursor,
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_PCI_BURST, &rhdPtr->onPciBurst,
+		     FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
 		     FALSE);
 }
 

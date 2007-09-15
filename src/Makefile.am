@@ -22,6 +22,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_pll.c \
 	rhd_tmds.c \
 	rhd_vga.c \
+	rhd_shadow.c \
 	rhd_atombios.h \
 	rhd.h \
 	rhd_i2c.h \
@@ -34,7 +35,8 @@ radeonhd_drv_la_SOURCES = \
 	rhd_output.h \
 	rhd_pll.h \
 	rhd_regs.h \
-	rhd_vga.h
+	rhd_vga.h \
+	rhd_shadow.h
 
 if ATOM_BIOS
 radeonhd_drv_la_SOURCES += \

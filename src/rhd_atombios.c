@@ -1033,7 +1033,7 @@ CailWritePLL(VOID *CAIL, ULONG Address,ULONG Data)
 }
 
 void
-rhdTestAtomBIOS(int scrnIndex, atomBIOSHandlePtr atomBIOS)
+rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS)
 {
     READ_EDID_FROM_HW_I2C_DATA_PARAMETERS i2cData;
     AtomBIOSArg data;
@@ -1051,19 +1051,19 @@ rhdTestAtomBIOS(int scrnIndex, atomBIOSHandlePtr atomBIOS)
     
     for (i = 0; i < 4; i++) {
 	i2cData.ucLineNumber = i;
-	if (RHDAtomBIOSFunc(scrnIndex, atomBIOS, ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	if (RHDAtomBIOSFunc(atomBIOS->scrnIndex, atomBIOS, ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	    int j;
 	    CARD8 chksum = 0;
-	    xf86DrvMsg(scrnIndex, X_INFO,"%s: I2C channel %i STATUS: %x\n",
+	    xf86DrvMsg(atomBIOS->scrnIndex, X_INFO,"%s: I2C channel %i STATUS: %x\n",
 		       __func__,i,i2cData.usStatus);
 	    /* read good ? */
 	    if ((i2cData.usStatus >> 8) == HW_ASSISTED_I2C_STATUS_SUCCESS) {
 		/* checksum good? */
 		if (!(i2cData.usStatus & 0xff)) {
-		    RhdDebugDump(scrnIndex, space, 128);
+		    RhdDebugDump(atomBIOS->scrnIndex, space, 128);
 		    for (j = 0; j < 128; j++)
 			chksum += space[i];
-		    xf86DrvMsg(scrnIndex, X_INFO, "DDC Checksum: %i\n",chksum);
+		    xf86DrvMsg(atomBIOS->scrnIndex, X_INFO, "DDC Checksum: %i\n",chksum);
 		}
 	    }
 	}
