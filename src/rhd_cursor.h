@@ -28,7 +28,44 @@
 #define MAX_CURSOR_WIDTH  64
 #define MAX_CURSOR_HEIGHT 64
 
-Bool RHDCursorInit(ScreenPtr pScreen);
+/*
+ *
+ */
+struct rhdCursor
+{
+    int scrnIndex;
+
+    int RegOffset;
+
+    int Width;
+    int Height;
+    int Base;
+
+    int X;
+    int Y;
+
+    void (*Lock) (struct rhdCursor *Cursor, Bool Lock);
+    void (*Enable) (struct rhdCursor *Cursor, Bool Enable);
+    void (*Position) (struct rhdCursor *Cursor,
+		      CARD32 x, CARD32 y, CARD32 hotx, CARD32 hoty);
+    void (*Set) (struct rhdCursor *Cursor);
+    void (*Load) (struct rhdCursor *Cursor, CARD32 *img);
+    void (*Save) (struct rhdCursor *Cursor);
+    void (*Restore) (struct rhdCursor *Cursor);
+
+    Bool Stored;
+
+    CARD32 StorePosition;
+    CARD32 StoreHotSpot;
+    CARD32 StoreAddress;
+    CARD32 StoreSize;
+
+    /* Store pixmap */
+};
+
+void RHDCursorsInit(RHDPtr rhdPtr);
+void RHDCursorsDestroy(RHDPtr rhdPtr);
+Bool RHDxf86InitCursor(ScreenPtr pScreen);
 void rhdShowCursor(ScrnInfoPtr);
 void rhdHideCursor(ScrnInfoPtr);
 

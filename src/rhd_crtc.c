@@ -675,32 +675,7 @@ DxRestore(struct rhdCrtc *Crtc)
  *
  */
 void
-RHDCRTCDestroy(RHDPtr rhdPtr)
-{
-    struct rhdCrtc *Crtc;
-
-    RHDFUNC(rhdPtr);
-
-    Crtc = rhdPtr->Crtc[0];
-    if (Crtc) {
-	if (Crtc->Store)
-	    xfree(Crtc->Store);
-	xfree(Crtc);
-    }
-
-    Crtc = rhdPtr->Crtc[1];
-    if (Crtc) {
-	if (Crtc->Store)
-	    xfree(Crtc->Store);
-	xfree(Crtc);
-    }
-}
-
-/*
- *
- */
-void
-RHDCRTCInit(RHDPtr rhdPtr)
+RHDCrtcsInit(RHDPtr rhdPtr)
 {
     struct rhdCrtc *Crtc;
 
@@ -745,4 +720,29 @@ RHDCRTCInit(RHDPtr rhdPtr)
     Crtc->Restore = DxRestore;
 
     rhdPtr->Crtc[1] = Crtc;
+}
+
+/*
+ *
+ */
+void
+RHDCrtcsDestroy(RHDPtr rhdPtr)
+{
+    struct rhdCrtc *Crtc;
+
+    RHDFUNC(rhdPtr);
+
+    Crtc = rhdPtr->Crtc[0];
+    if (Crtc) {
+	if (Crtc->Store)
+	    xfree(Crtc->Store);
+	xfree(Crtc);
+    }
+
+    Crtc = rhdPtr->Crtc[1];
+    if (Crtc) {
+	if (Crtc->Store)
+	    xfree(Crtc->Store);
+	xfree(Crtc);
+    }
 }

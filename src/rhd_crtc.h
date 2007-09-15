@@ -44,6 +44,7 @@ struct rhdCrtc {
 
     struct rhdPLL *PLL; /* Currently attached PLL */
     struct rhdLUT *LUT; /* Currently attached LUT */
+    struct rhdCursor *Cursor; /* Fixed to the MODE engine */
 
     DisplayModePtr CurrentMode;
     DisplayModePtr Modes; /* Cycle through these */
@@ -70,7 +71,7 @@ struct rhdCrtc {
     /* Gamma, scaling */
 };
 
-void RHDCRTCInit(RHDPtr rhdPtr);
-void RHDCRTCDestroy(RHDPtr rhdPtr);
+void RHDCrtcsInit(RHDPtr rhdPtr);
+void RHDCrtcsDestroy(RHDPtr rhdPtr);
 
 #endif /* _RHD_CRTC_H */

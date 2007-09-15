@@ -242,6 +242,8 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
+    RHDCursorsDestroy(rhdPtr);
+    RHDCrtcsDestroy(rhdPtr);
     RHDI2CFunc(pScrn->scrnIndex, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
 #ifdef ATOM_BIOS
     RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
@@ -515,18 +517,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdTestAtomBIOS(rhdPtr->scrnIndex, rhdPtr->atomBIOS);
     }
 #endif
-    {/* Take off our cursors: move to some cursor structure init. */
-	int size = RHD_FB_CHUNK(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
 
-	/* I love a bit of a challenge, so move start instead of end */
-	rhdPtr->D1CursorOffset = rhdPtr->FbFreeStart;
-	rhdPtr->FbFreeStart += size;
-	rhdPtr->FbFreeSize -= size;
-
-	rhdPtr->D2CursorOffset = rhdPtr->FbFreeStart;
-	rhdPtr->FbFreeStart += size;
-	rhdPtr->FbFreeSize -= size;
-    }
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
@@ -559,9 +550,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
 
-    RHDCRTCInit(rhdPtr);
+    RHDCrtcsInit(rhdPtr);
     RHDPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
+    RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
 
     if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -793,7 +785,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* Inititalize HW cursor */
     if (!rhdPtr->swCursor.val.bool)
-        if (!RHDCursorInit(pScreen))
+        if (!RHDxf86InitCursor(pScreen))
             xf86DrvMsg(scrnIndex, X_ERROR,
                        "Hardware cursor initialization failed\n");
 
