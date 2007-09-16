@@ -401,8 +401,14 @@ rhdASICInit(atomBIOSHandlePtr handle)
     ASIC_INIT_PS_ALLOCATION asicInit;
     AtomBIOSArg data;
 
-    asicInit.sASICInitClocks.ulDefaultEngineClock = 70000;  /* in 10 Khz */
-    asicInit.sASICInitClocks.ulDefaultMemoryClock = 70000;  /* in 10 Khz */
+    RHDAtomBIOSFunc(handle->scrnIndex, handle,
+		    GET_DEFAULT_ENGINE_CLOCK,
+		    &data);
+    asicInit.sASICInitClocks.ulDefaultEngineClock = data.val;  /* in 10 Khz */
+    RHDAtomBIOSFunc(handle->scrnIndex, handle,
+		    GET_DEFAULT_MEMORY_CLOCK,
+		    &data);
+    asicInit.sASICInitClocks.ulDefaultMemoryClock = data.val;  /* in 10 Khz */
     data.exec.dataSpace = NULL;
     data.exec.index = 0x0;
     data.exec.pspace = &asicInit;
