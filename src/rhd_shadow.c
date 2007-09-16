@@ -61,10 +61,10 @@ rhdShadowWindow(ScreenPtr pScreen, CARD32 row, CARD32 offset, int mode,
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(pScrn);
-
+    
+    *size = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
     return ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbFreeStart
-	    + row * pScrn->displayWidth * (pScrn->bitsPerPixel >> 3)
-	    + offset);
+	    + row * (*size) + offset);
 }
 
 static Bool
@@ -74,15 +74,17 @@ rhdShadowCreateScreenResources(ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     rhdShadowPtr shadowPtr = rhdPtr->shadowPtr;
     Bool ret;
-    
+    shadowUpdateProc update;
+
     RHDFUNC(pScrn);
-    
+
+    update = shadowUpdatePackedWeak();
     pScreen->CreateScreenResources = shadowPtr->CreateScreenResources;
     ret = pScreen->CreateScreenResources(pScreen);
     pScreen->CreateScreenResources = rhdShadowCreateScreenResources;
 
     shadowAdd(pScreen, pScreen->GetScreenPixmap(pScreen),
-	      shadowUpdatePackedWeak,
+	      update,
 	      rhdShadowWindow, 0, 0);
 
     return ret;
@@ -129,7 +131,7 @@ RHDShadowSetup(ScreenPtr pScreen)
 
     RHDFUNC(pScrn);
 
-    if (!shadowPtr || shadowPtr->shadow)
+    if (!shadowPtr || !shadowPtr->shadow)
 	return TRUE;
     
     if (!shadowSetup(pScreen))
