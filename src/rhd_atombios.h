@@ -87,7 +87,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
 /* only for testing */
-void rhdTestAtomBIOS(int scrnIndex, atomBIOSHandlePtr atomBIOS);
+void rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS);
 Bool rhdTestAsicInit(atomBIOSHandlePtr atomBIOS);
 
 #endif /*  RHD_ATOMBIOS_H_ */

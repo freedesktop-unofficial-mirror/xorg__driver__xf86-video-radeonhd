@@ -519,7 +519,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 			    GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBIOSFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
-	rhdTestAtomBIOS(rhdPtr->scrnIndex, rhdPtr->atomBIOS);
+	rhdTestAtomBIOS(rhdPtr->atomBIOS);
     }
 #endif
 
