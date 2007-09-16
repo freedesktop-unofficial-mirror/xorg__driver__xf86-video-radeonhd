@@ -49,7 +49,7 @@ RHDShadowPreInit(ScrnInfoPtr pScrn)
     }
     if (!(rhdPtr->shadowPtr = (rhdShadowPtr)xalloc(sizeof(rhdShadowRec))))
 	return FALSE;
-    
+
     return TRUE;
 }
 
@@ -61,7 +61,7 @@ rhdShadowWindow(ScreenPtr pScreen, CARD32 row, CARD32 offset, int mode,
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(pScrn);
-    
+
     *size = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
     return ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbFreeStart
 	    + row * (*size) + offset);
@@ -133,10 +133,10 @@ RHDShadowSetup(ScreenPtr pScreen)
 
     if (!shadowPtr || !shadowPtr->shadow)
 	return TRUE;
-    
+
     if (!shadowSetup(pScreen))
 	return FALSE;
-    
+
     shadowPtr->CreateScreenResources = pScreen->CreateScreenResources;
     pScreen->CreateScreenResources = rhdShadowCreateScreenResources;
 

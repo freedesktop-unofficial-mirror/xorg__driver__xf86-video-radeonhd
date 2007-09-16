@@ -505,7 +505,7 @@ rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
     I2CDevPtr dev;
     int ret = FALSE;
     char *name = "I2CProbe";
-    
+
     if (line >= I2C_LINES)
 	return RHD_I2C_NOLINE;
     if (!I2CList[line])
@@ -536,7 +536,7 @@ rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 
     /* don't probe reserved addresses */
     for (i = 0x8; i < 0x78; i++) {
-	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1)) 
+	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1))
 	    slaves[i >> 5] |= 1 << (i & 0x1F);
 	else
 	    slaves[i >> 5] &= ~(1 << (i & 0x1F));

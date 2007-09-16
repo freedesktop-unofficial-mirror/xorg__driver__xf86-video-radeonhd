@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* #define ATOM_ASIC_INIT */
+#define ATOM_ASIC_INIT
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -253,7 +253,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 		    ATOMBIOS_TEARDOWN, NULL);
 #endif
     RHDShadowDestroy(rhdPtr);
-    
+
     xfree(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -535,11 +535,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		while (RHDI2CFunc(pScrn->scrnIndex,
 				  rhdPtr->I2C, RHD_I2C_SCANBUS, &data) != RHD_I2C_NOLINE) {
 		    int i,j;
-		    for (i = 0; i < 4; i++)
+		    for (i = 0; i < 4; i++) {
 			for (j = 0; j < 32; j++) {
-			    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "I2C Bus at slave address "
-				       "%i found on line %i\n",(i * 32 + j) << 1, data.scanbus.line);
+			    if (data.scanbus.slaves[i] & (1 << j))
+				xf86DrvMsg(pScrn->scrnIndex, X_INFO, "I2C Bus at slave address "
+					   "%x found on line %i\n",(i * 32 + j) << 1, data.scanbus.line);
 			}
+		    }
 		    data.scanbus.line = line++;
 		}
 	    }
@@ -669,7 +671,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     RHDShadowPreInit(pScrn);
-    
+
     ret = TRUE;
 
  error1:
@@ -767,7 +769,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     if (!RHDShadowSetup(pScreen))
 	return FALSE;
-    
+
     xf86SetBlackWhitePixels(pScreen);
 
     /* initialize memory manager.*/

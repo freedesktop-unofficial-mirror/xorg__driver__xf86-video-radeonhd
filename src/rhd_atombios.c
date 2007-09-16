@@ -430,7 +430,7 @@ rhdInitAtomBIOS(int scrnIndex)
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle = NULL;
     unsigned int dummy;
-    
+
     RHDFUNCI(scrnIndex);
 
     if (rhdPtr->BIOSCopy) {
@@ -503,12 +503,12 @@ rhdInitAtomBIOS(int scrnIndex)
     /* Try to find out if BIOS has been posted (either by system or int10 */
     if (!rhdBIOSGetFbBaseAndSize(scrnIndex, handle, &dummy, &dummy)) {
 	/* run AsicInit */
-	if (!rhdASICInit(handle)) 
+	if (!rhdASICInit(handle))
 	    xf86DrvMsg(scrnIndex, X_WARNING,
 		       "%s: AsicInit failed. Won't be able to obtain in VRAM "
 		       "FB scratch space\n",__func__);
     }
-    
+
     return handle;
 
  error1:
@@ -857,7 +857,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
     return ret;
 
 }
-    
+
 VOID*
 CailAllocateMemory(VOID *CAIL,UINT16 size)
 {
@@ -911,7 +911,7 @@ CailReadFBData(VOID* CAIL, UINT32 index)
     UINT32 ret;
 
     CAILFUNC(CAIL);
-    
+
     if (((atomBIOSHandlePtr)CAIL)->fbBase) {
 	CARD8 *FBBase = (CARD8*)
 	    RHDPTR(xf86Screens[((atomBIOSHandlePtr)CAIL)->scrnIndex])->FbBase;
@@ -949,7 +949,7 @@ ULONG
 CailReadMC(VOID *CAIL, ULONG Address)
 {
     ULONG ret;
-    
+
     CAILFUNC(CAIL);
 
     ret = RHDReadMC(((atomBIOSHandlePtr)CAIL), Address);
@@ -1045,16 +1045,16 @@ rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS)
     AtomBIOSArg data;
     int i;
     unsigned char *space;
-    
+
     i2cData.usPrescale = 0x7fff;
     i2cData.usVRAMAddress = 0;
     i2cData.usStatus = 128;
     i2cData.ucSlaveAddr = 0xA0;
-    
+
     data.exec.dataSpace = (void*)&space;
     data.exec.index = 0x36;
     data.exec.pspace = &i2cData;
-    
+
     for (i = 0; i < 4; i++) {
 	i2cData.ucLineNumber = i;
 	if (RHDAtomBIOSFunc(atomBIOS->scrnIndex, atomBIOS, ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
@@ -1089,7 +1089,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		AtomBIOSArgPtr data)
 {
     assert (sizeof(AtomBIOSQueryStr) == (FUNC_END - ATOM_QUERY_FUNCS + 1));
-    
+
     if (func < ATOM_QUERY_FUNCS) {
 	if (func >= 0 && func < sizeof(AtomBIOSFuncStr))
 	    xf86DrvMsgVerb(scrnIndex, 5, X_WARNING,
@@ -1098,7 +1098,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	else
 	    xf86DrvMsg(scrnIndex, X_ERROR,"Invalid AtomBIOS func %x\n",func);
     } else {
-	
+
 	if (func < FUNC_END)
 	    xf86DrvMsgVerb(scrnIndex, 5, X_WARNING,
 			    "AtomBIOS not available, cannot get %s\n",
