@@ -113,7 +113,7 @@ rhdI2CStatusR500(I2CBusPtr I2CPtr)
     RHDFUNC(I2CPtr)
 
     while (count-- != 0) {
-	usleep (1000);
+	usleep (10);
 	if (((RHDRegRead(I2CPtr, 0x7d30)) & 0x08) != 0)
 	    continue;
 	res = RHDRegRead(I2CPtr, 0x7d30);
@@ -249,22 +249,21 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 static Bool
 rhdI2CStatusR600(I2CBusPtr I2CPtr)
 {
-    int count = 0x1388;
+    int count = 500;
     volatile CARD32 val;
 
     RHDFUNC(I2CPtr)
 
     while (--count) {
 
-	usleep(1000);
+	usleep(10);
 	val = RHDRegRead(I2CPtr, DC_I2C_SW_STATUS);
 	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
 	if (val & DC_I2C_SW_DONE)
 	    break;
     }
     regOR(I2CPtr, DC_I2C_INTERRUPT_CONTROL, DC_I2C_SW_DONE_ACK);
-
-    if (!count || (val & 0x7b3))
+    if (!count || (val & (DC_I2C_SW_STOPPED_ON_NACK | DC_I2C_SW_NACK0 | DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
 }
@@ -348,9 +347,8 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     } else if (nRead > 0) {
 	trans = TRANS_READ;
     } else {
-	xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR,
-		   "%s recieved empty I2C WriteRead request\n",__func__);
-	return FALSE;
+	/* for bus probing */
+	trans = TRANS_WRITE;
     }
     if (slave & 0xff00) {
 	xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR,
@@ -406,9 +404,8 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     }
 
     RHDRegMask(I2CPtr, DC_I2C_CONTROL, 0x2, 0xff);
-    usleep(1000);
+    usleep(10);
     RHDRegWrite(I2CPtr, DC_I2C_CONTROL, 0);
-
     return ret;
 }
 
@@ -539,10 +536,10 @@ rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 
     /* don't probe reserved addresses */
     for (i = 0x8; i < 0x78; i++) {
-	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1))
-	    slaves[i >> 6] |= 1 << (i & 0x1F);
+	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1)) 
+	    slaves[i >> 5] |= 1 << (i & 0x1F);
 	else
-	    slaves[i >> 6] &= ~(1 << (i & 0x1F));
+	    slaves[i >> 5] &= ~(1 << (i & 0x1F));
     }
     return RHD_I2C_SUCCESS;
 }
