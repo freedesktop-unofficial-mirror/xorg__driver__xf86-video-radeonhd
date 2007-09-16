@@ -474,6 +474,17 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    rhdPtr->atomBIOS = atomBiosArg.ptr;
 	}
     }
+#else
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "**************************************************\n");
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "** Code has been built without AtomBIOS support **\n");
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "** this may seriously affect the functionality ***\n");
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "**              of this driver                 ***\n");
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "**************************************************\n");
 #endif
 
     /* We can use a register which is programmed by the BIOS to find out the
