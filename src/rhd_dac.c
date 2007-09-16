@@ -215,7 +215,7 @@ DACModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     if (Mode->Clock < 20000)
 	return MODE_CLOCK_LOW;
 
-    if (Mode->Clock > 165000)
+    if (Mode->Clock > 400000)
 	return MODE_CLOCK_HIGH;
 
     return MODE_OK;

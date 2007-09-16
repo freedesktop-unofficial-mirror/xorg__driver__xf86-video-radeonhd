@@ -1317,6 +1317,10 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 
     RHDFUNC(rhdPtr);
 
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Setting up \"%s\" (%dx%d@%3.1fHz)\n",
+	       mode->name, mode->CrtcHDisplay, mode->CrtcVDisplay,
+	       mode->VRefresh);
+
     pScrn->vtSema = TRUE;
 
     /* no active outputs == no mess */

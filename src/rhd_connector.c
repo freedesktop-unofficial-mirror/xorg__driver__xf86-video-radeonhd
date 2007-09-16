@@ -129,9 +129,9 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdcard *Card)
 	if (Card->Connectors[i].Type == RHD_CONNECTOR_NONE)
 	    continue;
 
-	RHDDebug(rhdPtr->scrnIndex, "%s: %d (%s) type %d, hpd %d\n", __func__,
-		 i, Card->Connectors[i].Name, Card->Connectors[i].Type,
-		 Card->Connectors[i].HPD);
+	RHDDebug(rhdPtr->scrnIndex, "%s: %d (%s) type %d, ddc %d, hpd %d\n",
+		 __func__, i, Card->Connectors[i].Name, Card->Connectors[i].Type,
+		 Card->Connectors[i].DDC, Card->Connectors[i].HPD);
 
 	Connector = xnfcalloc(sizeof(struct rhdConnector), 1);
 

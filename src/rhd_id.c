@@ -227,30 +227,59 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
  * There are, after all, a limited number of possibilities at the moment.
  */
 
-#define VGA_A_DVI_BB1 { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_NONE, RHD_HPD_NONE, \
-                           { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
-	                {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_NONE, RHD_HPD_1, \
-                           { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
+#define VGA_A0_DVI_BB10 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_1, RHD_HPD_0, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_AA0_DVI_BB1 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
-                                    { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}, \
-	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
-                                  { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
+#define VGA_A0_DVI_BB11 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_1, RHD_HPD_1, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_BA0_DVI_AB1 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_0, \
-                                    { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}, \
-	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_1, \
-                                  { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
+#define VGA_B1_DVI_AA00 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_0, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
 
-#define DVI_BB1_DVI_AA0 { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_NONE, RHD_HPD_1, \
-                                  { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}, \
-	                        {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_NONE, RHD_HPD_0, \
-                                  { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
+#define VGA_B1_DVI_AB01 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_1, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
 
-#define PANEL_A_VGA_A { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_1, RHD_HPD_NONE, \
-                           { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
-                        {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
-                           { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
+#define VGA_B1_DVI_AB00 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_0, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_AA00_DVI_BB11 \
+  { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_0, RHD_HPD_0, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_1, RHD_HPD_1, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_BA10_DVI_AB01 \
+  { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_1, RHD_HPD_0, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_0, RHD_HPD_1, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
+
+#define DVI_BB11_DVI_AA00 \
+  { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_1, RHD_HPD_1, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_0, RHD_HPD_0, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
+
+#define PANEL_A1_VGA_A0 \
+  { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
 /*
  * List of pci subsystem / card ids.
@@ -268,7 +297,7 @@ rhdCards[] =
     /* 0x7102 : M58 : Mobility Radeon X1800 */
     /* 0x7103 : M58 : Mobility FireGL V7200 */
     /* 0x7104 : R520 : FireGL V7200 */
-    { 0x7104, 0x1002, 0x0B32, "ATI FireGL V7200 RH", DVI_BA0_DVI_AB1 },
+    { 0x7104, 0x1002, 0x0B32, "ATI FireGL V7200 RH", DVI_BA10_DVI_AB01 },
     /* 0x7105 : R520 : FireGL V5300 */
     /* 0x7106 : M58 : Mobility FireGL V7100 */
     /* 0x7108 : R520 : Radeon X1800 */
@@ -283,9 +312,9 @@ rhdCards[] =
     /* 0x7143 : RV515 : Radeon X1550 */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
     /* 0x7146 : RV515 : Radeon X1300 */
-    { 0x7146, 0x174B, 0x0470, "Sapphire X1300" },
+    { 0x7146, 0x174B, 0x0470, "Sapphire X1300", VGA_B1_DVI_AB01 },
     /* 0x7147 : RV505 : Radeon X1550 */
-    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", VGA_A_DVI_BB1 },
+    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", VGA_A0_DVI_BB11 },
     /* 0x7149 : M52 : Mobility Radeon X1300 */
     /* 0x714A : M52 : Mobility Radeon X1300 */
     /* 0x714B : M52 : Mobility Radeon X1300 */
@@ -293,7 +322,7 @@ rhdCards[] =
     /* 0x714D : RV515 : Radeon X1300 */
     /* 0x714E : RV515 : Radeon X1300 PCI */
     /* 0x7152 : RV515 : FireGL V3300 */
-    { 0x7152, 0x1002, 0x0B02, "ATI FireGL V3300" },
+    { 0x7152, 0x1002, 0x0B02, "ATI FireGL V3300", DVI_BB11_DVI_AA00 },
     /* 0x7153 : RV515 : FireGL V3350 */
     /* 0x715E : RV515 : Radeon X1300 */
     /* 0x715F : RV515 : Radeon X1550 64-bit */
@@ -314,19 +343,19 @@ rhdCards[] =
     /* 0x719F : RV515 : Radeon X1550 64-bit */
     /* 0x71C0 : RV530 : Radeon X1600 */
     /* 0x71C1 : RV535 : Radeon X1650 Pro */
-    { 0x71C1, 0x174B, 0x0840, "Sapphire X1650 Pro", DVI_AA0_DVI_BB1 },
+    { 0x71C1, 0x174B, 0x0840, "Sapphire X1650 Pro", DVI_AA00_DVI_BB11 },
     /* 0x71C2 : RV530 : Radeon X1600 Pro */
-    { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro" },
+    { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro", VGA_B1_DVI_AA00 },
     /* 0x71C3 : RV535 : Radeon X1300 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
-    { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_A_VGA_A },
+    { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_A1_VGA_A0 },
     /* 0x71C6 : RV530 : Radeon X1600 */
     /* 0x71C7 : RV535 : Radeon X1650 */
     /* 0x71CD : RV530 : Radeon X1600 */
     /* 0x71CE : RV530 : Radeon X1600 Pro / Radeon X1300 XT */
     /* 0x71D2 : RV530 : FireGL V3400 */
-    { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", DVI_BB1_DVI_AA0 },
+    { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", DVI_BB11_DVI_AA00 },
     /* 0x71D4 : M56 : Mobility FireGL V5250 */
     /* 0x71D5 : M56 : Mobility Radeon X1700 */
     /* 0x71D6 : M56 : Mobility Radeon X1700 XT */
@@ -342,7 +371,7 @@ rhdCards[] =
     /* 0x7247 : R580 : Radeon X1900 */
     /* 0x7248 : R580 : Radeon X1900 */
     /* 0x7249 : R580 : Radeon X1900 XTX */
-    { 0x7249, 0x1002, 0x0B12, "ATI Radeon X1900 XTX", DVI_BA0_DVI_AB1 },
+    { 0x7249, 0x1002, 0x0B12, "ATI Radeon X1900 XTX", DVI_BA10_DVI_AB01 },
     /* 0x724A : R580 : Radeon X1900 */
     /* 0x724B : R580 : Radeon X1900 */
     /* 0x724C : R580 : Radeon X1900 */
@@ -350,31 +379,31 @@ rhdCards[] =
     /* 0x724E : R580 : FireStream 2U */
     /* 0x724F : R580 : Radeon X1900 */
     /* 0x7280 : RV570 : Radeon X1950 Pro */
-    { 0x7280, 0x174B, 0xE190, "Sapphire X1950 Pro" },
+    { 0x7280, 0x174B, 0xE190, "Sapphire X1950 Pro", DVI_BA10_DVI_AB01 },
     /* 0x7284 : M58 : Mobility Radeon X1900 */
     /* 0x7288 : RV570 : Radeon X1950 GT */
-    { 0x7288, 0x174B, 0xE190, "Sapphire X1950 GT" },
+    { 0x7288, 0x174B, 0xE190, "Sapphire X1950 GT", DVI_BA10_DVI_AB01 },
     /* 0x7291 : R580 : Radeon X1650 */
     /* 0x7293 : R580 : Radeon X1650 */
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 (M) */
     /* 0x9400 : R600 : Radeon HD 2900 XT */
-    { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT", DVI_BB1_DVI_AA0 },
+    { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT", DVI_BB11_DVI_AA00 },
     /* 0x9401 : R600 : Radeon HD 2900 XT */
     /* 0x9402 : R600 : Radeon HD 2900 XT */
     /* 0x9403 : R600 : Radeon HD 2900 XT */
     /* 0x94C1 : RV610 : Radeon HD 2400 XT */
-    { 0x94C1, 0x174B, 0xE390, "Sapphire HD 2400 XT" },
+    { 0x94C1, 0x174B, 0xE390, "Sapphire HD 2400 XT", VGA_B1_DVI_AB00},
     /* 0x94C3 : RV610 : Radeon HD 2400 Pro */
-    { 0x94C3, 0x174B, 0xE370, "Sapphire HD 2400 Pro" },
+    { 0x94C3, 0x174B, 0xE370, "Sapphire HD 2400 Pro", VGA_A0_DVI_BB10 },
     /* 0x94C8 : M72 : Mobility Radeon HD 2400 XT */
     /* 0x94C9 : M72 : Mobility Radeon HD 2400 */
     /* 0x9581 : M76 : Mobility Radeon HD 2600 */
     /* 0x9583 : M76 : Mobility Radeon HD 2600 XT */
     /* 0x9588 : RV630 : Radeon HD 2600 XT */
-    { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT", DVI_BA0_DVI_AB1 },
+    { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT", DVI_BA10_DVI_AB01 },
     /* 0x9589 : RV630 : Radeon HD 2600 Pro */
-    { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA0_DVI_AB1 },
+    { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA10_DVI_AB01 },
     { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
 };
 
