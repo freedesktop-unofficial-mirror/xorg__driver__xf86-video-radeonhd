@@ -51,6 +51,8 @@ RHDShadowPreInit(ScrnInfoPtr pScrn)
     if (!(rhdPtr->shadowPtr = (rhdShadowPtr)xalloc(sizeof(rhdShadowRec))))
 	return FALSE;
 
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Using ShadowFB\n");
+
     return TRUE;
 }
 
