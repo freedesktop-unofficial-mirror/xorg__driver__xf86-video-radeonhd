@@ -2,6 +2,7 @@
  * Copyright 2007  Egbert Eich   <eich@novell.com>
  * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -61,13 +62,29 @@ char *AtomBIOSFuncStr[] = {
 #ifdef ATOM_BIOS
 # include "rhd_atomwrapper.h"
 # include "xf86int10.h"
-# define INT32 INT32
-# include "CD_Common_Types.h"
+# ifdef ATOM_BIOS_PARSER
+#  define INT32 INT32
+#  include "CD_Common_Types.h"
+# else
+#  ifndef ULONG 
+typedef unsigned int ULONG;
+#   define ULONG ULONG
+#  endif
+#  ifndef UCHAR
+typedef unsigned char UCHAR;
+#   define UCHAR UCHAR
+#  endif
+#  ifndef USHORT 
+typedef unsigned short USHORT;
+#   define USHORT USHORT
+#  endif
+# endif
 
 # include "atombios.h"
 
 # define LOG_CAIL LOG_DEBUG + 1
 
+#ifdef ATOM_BIOS_PARSER
 static void
 CailDebug(int scrnIndex, const char *format, ...)
 {
@@ -77,6 +94,7 @@ CailDebug(int scrnIndex, const char *format, ...)
     xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_CAIL, format, ap);
     va_end(ap);
 }
+#endif
 
 # define CAILFUNC(ptr) \
   CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
@@ -357,7 +375,6 @@ rhdAtomBIOSAllocateFbScratch(int scrnIndex, atomBIOSHandlePtr handle,
 	    fb_size = 20 * 1024;
 	    xf86DrvMsg(scrnIndex, X_INFO, " default to: %i\n",fb_size);
     }
-#if 1
     if (fb_base && fb_size && *size) {
 	/* 4k align */
 	fb_size = (fb_size & ~(CARD32)0xfff) + ((fb_size & 0xfff) ? 1 : 0);
@@ -384,7 +401,7 @@ rhdAtomBIOSAllocateFbScratch(int scrnIndex, atomBIOSHandlePtr handle,
 	    return TRUE;
 	}
     }
-#endif
+
     if (!handle->fbBase) {
 	xf86DrvMsg(scrnIndex, X_INFO,
 		   "Cannot get VRAM scratch space. "
@@ -395,6 +412,7 @@ rhdAtomBIOSAllocateFbScratch(int scrnIndex, atomBIOSHandlePtr handle,
     return FALSE;
 }
 
+# ifdef ATOM_BIOS_PARSER
 static Bool
 rhdASICInit(atomBIOSHandlePtr handle)
 {
@@ -421,6 +439,7 @@ rhdASICInit(atomBIOSHandlePtr handle)
     xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Failed\n");
     return FALSE;
 }
+# endif
 
 static atomBIOSHandlePtr
 rhdInitAtomBIOS(int scrnIndex)
@@ -500,6 +519,7 @@ rhdInitAtomBIOS(int scrnIndex)
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = scrnIndex;
     handle->PciTag = rhdPtr->PciTag;
+# if ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
     if (!rhdBIOSGetFbBaseAndSize(scrnIndex, handle, &dummy, &dummy)) {
 	/* run AsicInit */
@@ -508,7 +528,7 @@ rhdInitAtomBIOS(int scrnIndex)
 		       "%s: AsicInit failed. Won't be able to obtain in VRAM "
 		       "FB scratch space\n",__func__);
     }
-
+# endif
     return handle;
 
  error1:
@@ -761,6 +781,7 @@ rhdAtomBIOSFirmwareInfoQuery(int scrnIndex, atomBIOSHandlePtr handle,
     return ATOM_SUCCESS;
 }
 
+# ifdef ATOM_BIOS_PARSER
 static Bool
 rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSpace)
 {
@@ -793,6 +814,7 @@ rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSp
 
     return (ret) ? TRUE : FALSE;
 }
+# endif
 
 AtomBiosResult
 RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
@@ -830,6 +852,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	rhdTearDownAtomBIOS(scrnIndex, handle);
 	do_return(ATOM_SUCCESS);
     }
+# ifdef ATOM_BIOS_PARSER
     if (func == ATOMBIOS_EXEC) {
 	if (!rhdAtomExec(handle, data->exec.index,
 			 data->exec.pspace, data->exec.dataSpace)) {
@@ -837,7 +860,9 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	} else {
 	    do_return(ATOM_SUCCESS);
 	}
-    } else if (func >= ATOM_QUERY_FUNCS && func < ATOM_VRAM_QUERIES) {
+    } else
+# endif
+	if (func >= ATOM_QUERY_FUNCS && func < ATOM_VRAM_QUERIES) {
 	ret = rhdAtomBIOSFirmwareInfoQuery(scrnIndex, handle, func, &val);
 	data->val = val;
     } else if (func >= ATOM_VRAM_QUERIES && func < FUNC_END) {
@@ -858,6 +883,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 
 }
 
+# ifdef ATOM_BIOS_PARSER
 VOID*
 CailAllocateMemory(VOID *CAIL,UINT16 size)
 {
@@ -1074,12 +1100,7 @@ rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS)
 	}
     }
 }
-
-Bool
-rhdTestAsicInit(atomBIOSHandlePtr atomBIOS)
-{
-    return rhdASICInit(atomBIOS);
-}
+# endif
 
 #else /* ATOM_BIOS */
 

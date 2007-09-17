@@ -68,20 +68,43 @@ AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
               [do_atombios="$enableval"],
               [do_atombios=yes])
 
-AC_CHECK_FILE([src/AtomBios/includes/atombios.h],
-              [have_atombios="yes"], [have_atombios="no"])
+AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios-parser],
+                                  [Disable AtomBIOS support [[default=no]]]),
+              [do_atombios_parser="$enableval"],
+              [do_atombios_parser=yes])
 
-AC_MSG_CHECKING([whether to include for AtomBIOS])
-if test "$have_atombios" = yes -a \
+AC_CHECK_FILE([src/AtomBios/includes/atombios.h],
+              [have_atombios_h="yes"], [have_atombios_h="no"])
+
+AC_CHECK_FILE([src/AtomBios/includes/Decoder.h],
+              [have_atombios_parser="yes"], [have_atombios_parser="no"])
+
+AC_MSG_CHECKING([whether to include AtomBIOS])
+if test "$have_atombios_h" = yes -a \
 	"$do_atombios" = yes; then
 	support_atombios="yes"
-        AC_DEFINE(ATOM_BIOS, 1, [Add support for AtomBIOS tables and code])
+        AC_DEFINE(ATOM_BIOS, 1, [Add support for AtomBIOS tables])
 else
 	support_atombios="no"
 fi
+
 AC_MSG_RESULT([$support_atombios])
 
+AC_MSG_CHECKING([whether to include AtomBIOS parser])
+if test "$support_atombios" = yes -a \
+	"$do_atombios_parser" = yes -a \
+	"$have_atombios_parser" = yes; then
+	support_atombios_parser="yes"
+        AC_DEFINE(ATOM_BIOS_PARSER, 1, [Add support for AtomBIOS code])
+else
+	support_atombios_parser="no"
+fi
+
+AC_MSG_RESULT([$support_atombios_parser])
+
 AM_CONDITIONAL(ATOM_BIOS, test x$support_atombios = xyes)
+
+AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 
 # libraries checks.
 

@@ -40,10 +40,18 @@ radeonhd_drv_la_SOURCES = \
 
 if ATOM_BIOS
 radeonhd_drv_la_SOURCES += \
+	atombios.h
+
+INCLUDES = -I./AtomBios/includes
+
+endif
+
+if ATOM_BIOS_PARSER
+radeonhd_drv_la_SOURCES += \
 	rhd_atomwrapper.h
 endif
 
-if ATOM_BIOS
+if ATOM_BIOS_PARSER
 
 noinst_LTLIBRARIES = libatom.la
 libatom_la_CFLAGS = $(AM_CFLAGS) -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_FUNCTIONS
@@ -64,8 +72,6 @@ libatom_la_SOURCES = \
 	AtomBios/include/CD_Structs.h \
 	AtomBios/include/Decoder.h \
 	AtomBios/include/regsdef.h
-
-INCLUDES = -I./AtomBios/includes
 
 radeonhd_drv_la_LIBADD = libatom.la
 
