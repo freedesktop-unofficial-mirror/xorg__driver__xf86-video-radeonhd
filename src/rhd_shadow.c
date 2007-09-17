@@ -60,8 +60,6 @@ rhdShadowWindow(ScreenPtr pScreen, CARD32 row, CARD32 offset, int mode,
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    RHDFUNC(pScrn);
-
     *size = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
     return ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbFreeStart
 	    + row * (*size) + offset);
@@ -152,6 +150,9 @@ RHDShadowCloseScreen(ScreenPtr pScreen)
 
     RHDFUNC(pScrn);
 
+    if (!shadowPtr)
+	return TRUE;
+
     xfree(shadowPtr->shadow);
     shadowPtr->shadow = NULL;
 
@@ -161,6 +162,8 @@ RHDShadowCloseScreen(ScreenPtr pScreen)
 void
 RHDShadowDestroy(RHDPtr rhdPtr)
 {
+    RHDFUNC(rhdPtr);
+
     if (rhdPtr->shadowPtr) {
 	xfree(rhdPtr->shadowPtr);
 	rhdPtr->shadowPtr = NULL;

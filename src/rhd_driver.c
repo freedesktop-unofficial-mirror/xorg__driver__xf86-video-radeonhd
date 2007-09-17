@@ -1543,7 +1543,7 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValBool(rhdPtr->Options, OPTION_PCI_BURST, &rhdPtr->onPciBurst,
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
-		     FALSE);
+		     TRUE);
 }
 
 /*
