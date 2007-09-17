@@ -218,8 +218,6 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdcard *Card)
 	    }
 	}
 
-	Connector->Monitor = RHDMonitorInit(Connector);
-
 	rhdPtr->Connector[j] = Connector;
 	j++;
     }

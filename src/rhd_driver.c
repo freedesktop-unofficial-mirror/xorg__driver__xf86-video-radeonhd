@@ -90,6 +90,7 @@
 #include "rhd_pll.h"
 #include "rhd_vga.h"
 #include "rhd_connector.h"
+#include "rhd_monitor.h"
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
 #include "rhd_lut.h"
@@ -591,6 +592,22 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     }
+
+    rhdPtr->ConfigMonitor = RHDConfigMonitor(pScrn->confScreen->monitor);
+    if (!rhdPtr->ConfigMonitor) {
+	int i;
+
+	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
+	    if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
+		break;
+
+	if (i == RHD_CONNECTORS_MAX) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		       "No monitor information found. Attaching default.\n");
+	    rhdPtr->ConfigMonitor = RHDDefaultMonitor(pScrn->scrnIndex);
+	}
+    }
+
     rhdModeLayoutPrint(rhdPtr);
 
     /* @@@ rgb bits boilerplate */
@@ -1240,6 +1257,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 	    Found = TRUE;
 
 	    Output->Active = TRUE;
+
+	    Output->Connector->Monitor = RHDMonitorInit(Output->Connector);
 
 	    Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
 	    j++;

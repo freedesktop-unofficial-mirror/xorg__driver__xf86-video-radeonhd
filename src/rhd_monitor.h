@@ -42,13 +42,14 @@ struct rhdMonitor {
     DisplayModePtr Modes; /* default: NULL */
 };
 
+struct rhdMonitor *RHDConfigMonitor(MonPtr Config);
+struct rhdMonitor *RHDDefaultMonitor(int scrnIndex);
 
 #ifdef _RHD_CONNECTOR_H
 struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);
 #endif
 
 void RHDMonitorDestroy(struct rhdMonitor *Monitor);
-int RHDMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode);
 
 #ifdef XF86_DDC_H
 void RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID);

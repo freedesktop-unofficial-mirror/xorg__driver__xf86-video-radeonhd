@@ -647,6 +647,59 @@ rhdModeCrtcSanity(DisplayModePtr Mode)
 /*
  *
  */
+static Bool
+rhdMonitorFixedValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
+{
+    DisplayModePtr Fixed;
+
+    xf86DrvMsg(Monitor->scrnIndex, X_INFO, "%s: tested mode:", __func__);
+    RHDPrintModeline(Mode);
+
+    for (Fixed = Monitor->Modes; Fixed; Fixed = Fixed->next) {
+	 xf86DrvMsg(Monitor->scrnIndex, X_INFO, "%s: fixed mode:", __func__);
+	 RHDPrintModeline(Mode);
+
+	if ((Mode->Flags != Fixed->Flags) ||
+	    (Mode->Clock != Fixed->Clock) ||
+	    (Mode->SynthClock != Fixed->Clock))
+	    continue;
+
+	if ((Mode->HDisplay > Fixed->HDisplay) ||
+	    (Mode->VDisplay > Fixed->VDisplay))
+	    continue;
+
+	if ((Mode->HSyncStart != Fixed->HSyncStart) ||
+	    (Mode->HSyncEnd != Fixed->HSyncEnd))
+	    continue;
+
+	if ((Mode->VSyncStart != Fixed->VSyncStart) ||
+	    (Mode->VSyncEnd != Fixed->VSyncEnd))
+	    continue;
+
+	if ((Mode->CrtcHDisplay > Fixed->HDisplay) ||
+	    (Mode->CrtcVDisplay > Fixed->VDisplay))
+	    continue;
+
+	if ((Mode->CrtcHBlankStart != Fixed->HDisplay) ||
+	    (Mode->CrtcHSyncStart != Fixed->HSyncStart) ||
+	    (Mode->CrtcHSyncEnd != Fixed->HSyncEnd) ||
+	    (Mode->CrtcHBlankEnd != Fixed->HTotal))
+	    continue;
+
+	if ((Mode->CrtcVBlankStart != Fixed->VDisplay) ||
+	    (Mode->CrtcVSyncStart != Fixed->VSyncStart) ||
+	    (Mode->CrtcVSyncEnd != Fixed->VSyncEnd) ||
+	    (Mode->CrtcVBlankEnd != Fixed->VTotal))
+	    continue;
+
+	return TRUE;
+    }
+
+    return FALSE;
+}
+/*
+ *
+ */
 static int
 rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 {
@@ -683,7 +736,10 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
             return MODE_HSYNC_NARROW;
     }
 
-    return MODE_OK;
+    if (Monitor->UseFixedModes && !rhdMonitorFixedValid(Monitor, Mode))
+	return MODE_FIXED;
+    else
+	return MODE_OK;
 }
 
 /*
@@ -781,12 +837,21 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 
     rhdModeFillOutCrtcValues(Mode);
 
+    /* now let our modesetting tree have its say */
     for (i = 0; i < 2; i++) {
         Crtc = rhdPtr->Crtc[i];
         if (!Crtc->Active)
             continue;
 
 	Status = rhdModeValidateCrtc(Crtc, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+    }
+
+    /* throw them at the configured monitor, so that the inadequate
+     * conf file at least has some influence. */
+    if (rhdPtr->ConfigMonitor) {
+	Status = rhdMonitorValid(rhdPtr->ConfigMonitor, Mode);
 	if (Status != MODE_OK)
 	    return Status;
     }
@@ -1165,14 +1230,16 @@ rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 	}
     }
 
-    /* First Pass, X's own Modes. */
-    Modes = pScrn->confScreen->monitor->Modes;
-    if (!Silent && Modes)
-        xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes from the "
-		   "configured Monitor: \"%s\"\n",
-		   pScrn->confScreen->monitor->id);
-    Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);
-    Keepers = RHDModesAdd(Keepers, Modes);
+    if (rhdPtr->ConfigMonitor) {
+	/* First Pass, X's own Modes. */
+	Modes = rhdPtr->ConfigMonitor->Modes;
+	if (!Silent && Modes)
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Modes from the "
+		       "configured Monitor: \"%s\"\n",
+		       pScrn->confScreen->monitor->id);
+	Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);
+	Keepers = RHDModesAdd(Keepers, Modes);
+    }
 
     /* Cycle through our actual monitors list */
     for (i = 0; i < 2; i++) {

@@ -133,10 +133,6 @@ typedef struct RHDRec {
     struct rhd_Cursor_Bits     *CursorBits; /* ARGB if NULL */
     CARD32              CursorColor0, CursorColor1;
     CARD32             *CursorImage;
-    int                 CursorWidth,  CursorHeight;
-    int                 CursorX,      CursorY;
-    unsigned int        D1CursorOffset;
-    unsigned int        D2CursorOffset;
 
     CloseScreenProcPtr  CloseScreen;
 
@@ -163,6 +159,9 @@ typedef struct RHDRec {
 
     struct rhdConnector *Connector[RHD_CONNECTORS_MAX];
     struct rhdHPD      *HPD; /* Hot plug detect subsystem */
+
+    /* don't ignore the Monitor section of the conf file */
+    struct rhdMonitor  *ConfigMonitor;
 
     rhdShadowPtr	shadowPtr;
 } RHDRec, *RHDPtr;
