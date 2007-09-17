@@ -189,12 +189,15 @@ RHDMonitorInit(struct rhdConnector *Connector)
     RHDFUNC(Connector);
 
     /* TODO: We might want to use panel resolution from atombios in future */
-    if (Connector->DDC)
+    if (!Connector->DDC)
 	return NULL;
 
     EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
-    if (!EDID)
+    if (!EDID) {
+	xf86DrvMsg(Connector->scrnIndex, X_INFO,
+		   "No EDID data found on connector \"%s\"\n", Connector->Name);
 	return NULL;
+    }
 
     /* superfluous now */
     /* We need some stuff out of atombios first */
