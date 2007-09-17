@@ -23,7 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#define ATOM_ASIC_INIT
+#ifdef ATOM_BIOS_PASER
+# define ATOM_ASIC_INIT
+#endif
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
