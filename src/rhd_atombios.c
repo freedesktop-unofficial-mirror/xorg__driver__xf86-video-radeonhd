@@ -880,9 +880,8 @@ CailDelayMicroSeconds(VOID *CAIL, UINT32 delay)
     CAILFUNC(CAIL);
 
     usleep(delay);
-#if 0
-    xf86DrvMsg(((atomBIOSHandlePtr)CAIL)->scrnIndex,X_INFO,"Delay %i usec\n",delay);
-#endif
+
+    DEBUGP(xf86DrvMsg(((atomBIOSHandlePtr)CAIL)->scrnIndex,X_INFO,"Delay %i usec\n",delay));
 }
 
 UINT32

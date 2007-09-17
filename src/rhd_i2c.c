@@ -117,7 +117,7 @@ rhdI2CStatusR500(I2CBusPtr I2CPtr)
 	if (((RHDRegRead(I2CPtr, 0x7d30)) & 0x08) != 0)
 	    continue;
 	res = RHDRegRead(I2CPtr, 0x7d30);
-	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)res,count);
+	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)res,count);
 	if (res & 0x1)
 	    return TRUE;
 	else
@@ -258,7 +258,7 @@ rhdI2CStatusR600(I2CBusPtr I2CPtr)
 
 	usleep(10);
 	val = RHDRegRead(I2CPtr, DC_I2C_SW_STATUS);
-	RHDDebug(I2CPtr->scrnIndex,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
 	if (val & DC_I2C_SW_DONE)
 	    break;
     }

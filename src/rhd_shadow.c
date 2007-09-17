@@ -1,3 +1,4 @@
+#define RHD_DEBUG
 /*
  * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
@@ -60,6 +61,8 @@ rhdShadowWindow(ScreenPtr pScreen, CARD32 row, CARD32 offset, int mode,
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    DEBUGP(RHDDebugVerb(pScrn->scrnIndex, 1, "FUNCTION: %s row: %i\n",__func__,row));
+    
     *size = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
     return ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbFreeStart
 	    + row * (*size) + offset);
