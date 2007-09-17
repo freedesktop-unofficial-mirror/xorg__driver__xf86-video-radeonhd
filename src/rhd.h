@@ -64,13 +64,21 @@ struct rhdcard {
 
 #define RHD_CONNECTORS_MAX 4
     /* Four bytes in TYPE/DDC layout: see rhd_connector.h */
-    struct {
+    struct Connectors {
 	CARD8 Type;
 	char *Name;
 	CARD8 DDC;
 	CARD8 HPD;
 	CARD8 Output[2];
     } Connectors[RHD_CONNECTORS_MAX];
+
+    struct Lvds {
+	CARD16 PowerRefDiv;
+	CARD16 BlonRefDiv;
+	CARD16 PowerDigToDE;
+	CARD16 PowerDEToBL;
+	CARD16 OffDelay;
+    } Lvds;
 };
 
 /* Just define where which PCI BAR lives for now. Will deal with different

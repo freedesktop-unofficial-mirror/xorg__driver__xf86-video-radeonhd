@@ -50,6 +50,9 @@ struct rhdLVTMAPrivate {
 
     CARD32 MacroControl;
 
+    /* Power timing for LVDS */
+    CARD16 PowerRefDiv;
+    CARD16 BlonRefDiv;
     CARD16 PowerDigToDE;
     CARD16 PowerDEToBL;
     CARD16 OffDelay;
@@ -180,7 +183,8 @@ LVDSPWRSEQInit(struct rhdOutput *Output)
     RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 16, 0x00FF0000);
 
     RHDRegWrite(Output, LVTMA_PWRSEQ_DELAY2, Private->OffDelay >> 2);
-    RHDRegMask(Output, LVTMA_PWRSEQ_REF_DIV, 0x00000F9F, 0x0000FFFF);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_REF_DIV,
+		Private->PowerRefDiv | (Private->BlonRefDiv << 16));
 
     /* Enable power sequencer and allow it to override everything */
     RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0x0000000D, 0x0000000D);
@@ -427,10 +431,12 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
     Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
 
-    /* TODO: Retrieve from atombios */
-    Private->PowerDigToDE = 0x03;
-    Private->PowerDEToBL = 0x19;
-    Private->OffDelay = 0x1F4;
+    /* TODO: Retrieve from atombios -- impossible for all */
+    Private->PowerDigToDE = rhdPtr->Card->Lvds.PowerDigToDE;
+    Private->PowerDEToBL = rhdPtr->Card->Lvds.PowerDEToBL;
+    Private->OffDelay = rhdPtr->Card->Lvds.OffDelay;
+    Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
+    Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
 
     /* Not in atombios tables afaik */
     Private->TXClockPattern = 0x0063;
