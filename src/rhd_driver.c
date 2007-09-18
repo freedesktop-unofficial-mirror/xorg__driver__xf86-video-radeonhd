@@ -436,7 +436,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "This hardware is marked as EXPERIMENTAL.\n\t"
 		   "It could be harmful to try to use this driver on this card.\n\t"
-		   "To help rectify this, please send your X log to MAILINGLIST.\n");
+		   "To help rectify this, please send your X log to\n\t\t"
+		   "radeonhd_at_opensuse.org.\n\t"
+		   "or file a bug for the radeonhd component\n\t"
+		   "of the X.Org product at bugs.freedesktop.org."
+	    );
 
 	RhdGetOptValBool(rhdPtr->Options, OPTION_EXPERIMENTAL, &tmpOpt, FALSE);
 	if (!tmpOpt.val.bool)
@@ -456,7 +460,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (!rhdPtr->Card) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Cannot map connectors on an unknown card!\n"
-		   "To help rectify this, please send your X log to MAILINGLIST.\n");
+		   "To help rectify this, please send your X log to\n\t\t"
+		   "radeonhd_at_opensuse.org.\n\t"
+		   "or file a bug for the radeonhd component\n\t"
+		   "of the X.Org product at bugs.freedesktop.org."
+	    );
 	goto error0;
     }
 
