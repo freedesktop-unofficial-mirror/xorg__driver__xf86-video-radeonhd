@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef ATOM_BIOS_PASER
+#ifdef ATOM_BIOS_PARSER
 # define ATOM_ASIC_INIT
 #endif
 #ifdef HAVE_CONFIG_H
