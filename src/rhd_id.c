@@ -290,6 +290,12 @@ RHDChipExperimental(ScrnInfoPtr pScrn)
     {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
+#define PANEL_A2_VGA_A0 \
+  { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_2, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
+
 /*
  * List of pci subsystem / card ids.
  *
@@ -358,10 +364,10 @@ rhdCards[] =
     /* 0x71C3 : RV535 : Radeon X1300 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
     { 0x71C4, 0x17AA, 0x2007, "Lenovo Davinci 1.0 SIT", PANEL_A_VGA_A0,
-                              { 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
+                              { 1400, 1050, 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
     { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_A1_VGA_A0,
-                              { 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
+                              {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
     /* 0x71C6 : RV530 : Radeon X1600 */
     /* 0x71C7 : RV535 : Radeon X1650 */
     /* 0x71CD : RV530 : Radeon X1600 */
@@ -369,8 +375,8 @@ rhdCards[] =
     /* 0x71D2 : RV530 : FireGL V3400 */
     { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", DVI_BB11_DVI_AA00 },
     /* 0x71D4 : M56 : Mobility FireGL V5250 */
-    { 0x71D4, 0x17AA, 0x20A4, "Lenovo T60p", PANEL_A1_VGA_A0,
-                              { 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
+    { 0x71D4, 0x17AA, 0x20A4, "Lenovo T60p", PANEL_A2_VGA_A0,
+                              {    0,    0, 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
     /* 0x71D5 : M56 : Mobility Radeon X1700 */
     /* 0x71D6 : M56 : Mobility Radeon X1700 XT */
     /* 0x71DA : RV530 : FireGL V5200 */

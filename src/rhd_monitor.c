@@ -233,6 +233,51 @@ RHDMonitorInit(struct rhdConnector *Connector)
 /*
  *
  */
+struct rhdMonitor *
+RHDMonitorPanelInit(int scrnIndex, int HDisplay, int VDisplay)
+{
+    struct rhdMonitor *Monitor;
+    DisplayModePtr Mode;
+
+    RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__);
+
+    if (!HDisplay && !VDisplay)
+	return NULL;
+
+    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
+
+    Monitor->scrnIndex = scrnIndex;
+
+    {
+        char  Name[256];
+        Name[0] = 0;
+
+        snprintf(Name, 256, "%dx%d Panel", HDisplay, VDisplay);
+        Monitor->Name = xnfstrdup(Name);
+    }
+
+    Mode = RHDCVTMode(HDisplay, VDisplay, 0, TRUE, 0);
+
+    Monitor->Modes = Mode;
+
+    Monitor->numHSync = 1;
+    Monitor->HSync[0].lo = Mode->HSync;
+    Monitor->HSync[0].hi = Mode->HSync;
+
+    Monitor->numVRefresh = 1;
+    Monitor->VRefresh[0].lo = Mode->VRefresh;
+    Monitor->VRefresh[0].hi = Mode->VRefresh;
+
+    Monitor->ReducedAllowed = TRUE;
+
+    Monitor->Bandwidth = Mode->Clock;
+
+    return Monitor;
+}
+
+/*
+ *
+ */
 void
 RHDMonitorDestroy(struct rhdMonitor *Monitor)
 {

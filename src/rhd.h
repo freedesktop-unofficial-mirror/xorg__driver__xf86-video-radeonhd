@@ -74,6 +74,8 @@ struct rhdcard {
     } Connectors[RHD_CONNECTORS_MAX];
 
     struct Lvds {
+	CARD16 HDisplay;
+	CARD16 VDisplay;
 	CARD16 PowerRefDiv;
 	CARD16 BlonRefDiv;
 	CARD16 PowerDigToDE;

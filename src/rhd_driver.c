@@ -1259,12 +1259,31 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
     j = 0;
     for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 	if (Output->Connector) {
+	    struct rhdMonitor *Monitor = NULL;
+
 	    Found = TRUE;
 
 	    Output->Active = TRUE;
 
-	    Output->Connector->Monitor = RHDMonitorInit(Output->Connector);
+	    Connector = Output->Connector;
 
+	    if (Connector->Type != RHD_CONNECTOR_PANEL)
+		Monitor = RHDMonitorInit(Connector);
+	    else {
+		if (Connector->DDC)
+		    Monitor = RHDMonitorInit(Connector);
+		if (!Monitor)
+		    Monitor = RHDMonitorPanelInit(rhdPtr->scrnIndex,
+						  rhdPtr->Card->Lvds.HDisplay,
+						  rhdPtr->Card->Lvds.VDisplay);
+		if (!Monitor) {
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach"
+			       " monitor to connector \"%s\"", Connector->Name);
+		    Output->Active = FALSE;
+		}
+	    }
+
+	    Connector->Monitor = Monitor;
 	    Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
 	    j++;
 
