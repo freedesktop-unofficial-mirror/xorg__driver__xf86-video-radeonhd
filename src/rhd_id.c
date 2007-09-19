@@ -338,6 +338,7 @@ rhdCards[] =
                               {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
     /* 0x71C6 : RV530 : Radeon X1600 */
     /* 0x71C7 : RV535 : Radeon X1650 */
+    { 0x71C7, 0x1043, 0x01B6, "Asus EAX1650 Silent", VGA_A0_DVI_BB10 },
     /* 0x71CD : RV530 : Radeon X1600 */
     /* 0x71CE : RV530 : Radeon X1600 Pro / Radeon X1300 XT */
     /* 0x71D2 : RV530 : FireGL V3400 */
