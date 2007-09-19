@@ -292,6 +292,8 @@ rhdCards[] =
     /* 0x7145 : M54 : Mobility Radeon X1400 */
     { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", PANEL_A2_VGA_A0,
                               {    0,    0, 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
+    { 0x7145, 0x17AA, 0x202A, "Lenovo Thinkpad Z61m", PANEL_A2_VGA_A0,
+                              {    0,    0, 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
     /* 0x7146 : RV515 : Radeon X1300 */
     { 0x7146, 0x174B, 0x0470, "Sapphire X1300", VGA_B1_DVI_AB01 },
     /* 0x7147 : RV505 : Radeon X1550 */
