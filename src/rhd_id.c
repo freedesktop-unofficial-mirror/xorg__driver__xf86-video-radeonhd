@@ -371,6 +371,7 @@ rhdCards[] =
     /* 0x724F : R580 : Radeon X1900 */
     /* 0x7280 : RV570 : Radeon X1950 Pro */
     { 0x7280, 0x174B, 0xE190, "Sapphire X1950 Pro", DVI_BA10_DVI_AB01 },
+    { 0x7280, 0x18BC, 0x2870, "GeCube X1950 Pro", DVI_BA10_DVI_AB01 },
     /* 0x7284 : M58 : Mobility Radeon X1900 */
     /* 0x7288 : RV570 : Radeon X1950 GT */
     { 0x7288, 0x174B, 0xE190, "Sapphire X1950 GT", DVI_BA10_DVI_AB01 },
