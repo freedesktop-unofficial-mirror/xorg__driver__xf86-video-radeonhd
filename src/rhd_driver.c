@@ -141,7 +141,6 @@ static void rhdTestDDC(ScrnInfoPtr pScrn);
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
 void RHDIdentify(int flags);
-Bool RHDChipExperimental(ScrnInfoPtr pScrn);
 struct rhdcard *RHDCardIdentify(ScrnInfoPtr pScrn);
 
 /* keep accross drivers */
@@ -161,7 +160,6 @@ typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
     OPTION_PCI_BURST,
-    OPTION_EXPERIMENTAL,
     OPTION_SHADOWFB,
     OPTION_PROBE_I2C,
     OPTION_IGNORECONNECTOR
@@ -171,7 +169,6 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,	"NoAccel",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
-    { OPTION_EXPERIMENTAL, "experimental",	OPTV_BOOLEAN,   {0}, FALSE },
     { OPTION_SHADOWFB, "shadowfb", OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_PROBE_I2C, "probe_i2c",	OPTV_BOOLEAN,	{0}, FALSE },
     { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR, {0}, FALSE },
@@ -430,22 +427,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86PrintDepthBpp(pScrn);
 
     rhdProcessOptions(pScrn);
-
-    /* Check whether we should accept this hardware already */
-    if (RHDChipExperimental(pScrn)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "This hardware is marked as EXPERIMENTAL.\n\t"
-		   "It could be harmful to try to use this driver on this card.\n\t"
-		   "To help rectify this, please send your X log to\n\t\t"
-		   "radeonhd_at_opensuse.org.\n\t"
-		   "or file a bug for the radeonhd component\n\t"
-		   "of the X.Org product at bugs.freedesktop.org."
-	    );
-
-	RhdGetOptValBool(rhdPtr->Options, OPTION_EXPERIMENTAL, &tmpOpt, FALSE);
-	if (!tmpOpt.val.bool)
-	    goto error0;
-    }
 
     /* Now check whether we know this card */
     rhdPtr->Card = RHDCardIdentify(pScrn);

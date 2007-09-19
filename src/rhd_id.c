@@ -190,42 +190,6 @@ RHDIdentify(int flags)
 }
 
 /*
- * This is for use during the testing phase and early driver release.
- *
- * If anyone has a device that isn't part of the SUSE Products hardware pool,
- * then we want to know about it ASAP so we can get some further information
- * and do some further testing.
- */
-Bool
-RHDChipExperimental(ScrnInfoPtr pScrn)
-{
-    switch (RHDPTR(pScrn)->PciInfo->chipType) {
-    case 0x7104:
-    case 0x7146:
-    case 0x7147:
-    case 0x7152:
-    case 0x71C1:
-    case 0x71C2:
-    case 0x71C4:
-    case 0x71C5:
-    case 0x71D2:
-    case 0x71D4:
-    case 0x7249:
-    case 0x7280:
-    case 0x7288:
-    case 0x9400:
-    case 0x94C1:
-    case 0x94C3:
-    case 0x9588:
-    case 0x9589:
-	/* Known and tested PCI IDs, which is a pathetically short list. */
-	return FALSE;
-    default:
-	return TRUE;
-    }
-}
-
-/*
  * Some macros to help us make connector tables less messy.
  * There are, after all, a limited number of possibilities at the moment.
  */
