@@ -1,7 +1,8 @@
 *~
 *.la
 *.lo
-Makefile
+./Makefile
+src/Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
