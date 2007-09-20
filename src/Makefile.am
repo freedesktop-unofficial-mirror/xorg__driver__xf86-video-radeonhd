@@ -63,15 +63,15 @@ libatom_la_SOURCES = \
 	AtomBios/CD_Operations.c \
 	AtomBios/Decoder.c \
 	AtomBios/hwserv_drv.c \
-	AtomBios/include/atombios.h \
-	AtomBios/include/CD_binding.h \
-	AtomBios/include/CD_Common_Types.h \
-	AtomBios/include/CD_Definitions.h \
-	AtomBios/include/CD_hw_services.h \
-	AtomBios/include/CD_Opcodes.h \
-	AtomBios/include/CD_Structs.h \
-	AtomBios/include/Decoder.h \
-	AtomBios/include/regsdef.h
+	AtomBios/includes/atombios.h \
+	AtomBios/includes/CD_binding.h \
+	AtomBios/includes/CD_Common_Types.h \
+	AtomBios/includes/CD_Definitions.h \
+	AtomBios/includes/CD_hw_services.h \
+	AtomBios/includes/CD_Opcodes.h \
+	AtomBios/includes/CD_Structs.h \
+	AtomBios/includes/Decoder.h \
+	AtomBios/includes/regsdef.h
 
 radeonhd_drv_la_LIBADD = libatom.la
 
