@@ -254,6 +254,12 @@ RHDIdentify(int flags)
     {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
+#define PANEL_B1_VGA_A2 \
+  { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_2, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
+
 #define PANEL_B2_VGA_A0 \
   { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_2, RHD_HPD_NONE, \
        { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
@@ -297,6 +303,8 @@ rhdCards[] =
     /* 0x7142 : RV515 : Radeon X1300/X1550 */
     /* 0x7143 : RV515 : Radeon X1550 */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
+    { 0x7145, 0x1179, 0xFF10, "Toshiba A100-773", PANEL_B1_VGA_A2,
+                              {    0,    0, 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
     { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", PANEL_B2_VGA_A0,
                               {    0,    0, 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
     { 0x7145, 0x17AA, 0x202A, "Lenovo Thinkpad Z61m", PANEL_B2_VGA_A0,
