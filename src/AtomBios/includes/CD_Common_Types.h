@@ -51,8 +51,7 @@ Revision History:
 		typedef unsigned int uint32_t;
 		typedef int int32_t;
 	#else
-#error
-typedef unsigned long	    uint32_t;
+		typedef unsigned long	    uint32_t;
 		typedef signed long         int32_t;
 	#endif
 		typedef unsigned char       uint8_t;
