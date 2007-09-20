@@ -42,7 +42,7 @@ if ATOM_BIOS
 radeonhd_drv_la_SOURCES += \
 	atombios.h
 
-INCLUDES = -I./AtomBios/includes
+INCLUDES = -I$(srcdir)/AtomBios/includes
 
 endif
 

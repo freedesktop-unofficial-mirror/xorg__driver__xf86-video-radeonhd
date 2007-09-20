@@ -73,10 +73,10 @@ AC_ARG_ENABLE(atombios-parser, AC_HELP_STRING([--disable-atombios-parser],
               [do_atombios_parser="$enableval"],
               [do_atombios_parser=yes])
 
-AC_CHECK_FILE([src/AtomBios/includes/atombios.h],
+AC_CHECK_FILE([${srcdir}/src/AtomBios/includes/atombios.h],
               [have_atombios_h="yes"], [have_atombios_h="no"])
 
-AC_CHECK_FILE([src/AtomBios/includes/Decoder.h],
+AC_CHECK_FILE([${srcdir}/src/AtomBios/includes/Decoder.h],
               [have_atombios_parser="yes"], [have_atombios_parser="no"])
 
 AC_MSG_CHECKING([whether to include AtomBIOS])
