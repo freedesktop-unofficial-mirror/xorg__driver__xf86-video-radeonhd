@@ -444,7 +444,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   "To help rectify this, please send your X log to\n\t\t"
 		   "radeonhd_at_opensuse.org.\n\t"
 		   "or file a bug for the radeonhd component\n\t"
-		   "of the X.Org product at bugs.freedesktop.org."
+		   "of the X.Org product at bugs.freedesktop.org.\n"
 	    );
 	goto error0;
     }
