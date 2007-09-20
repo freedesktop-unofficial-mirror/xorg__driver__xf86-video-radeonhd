@@ -35,7 +35,7 @@
 #define RHD_PATCHLEVEL    1
 
 enum RHD_CHIPSETS {
-    RHD_UNKOWN = 0,
+    RHD_UNKNOWN = 0,
     RHD_RV505,
     RHD_RV515,
     RHD_R520,
