@@ -1267,7 +1267,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 						  rhdPtr->Card->Lvds.VDisplay);
 		if (!Monitor) {
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach"
-			       " monitor to connector \"%s\"", Connector->Name);
+			       " monitor to connector \"%s\"\n", Connector->Name);
 		    Output->Active = FALSE;
 		}
 	    }
