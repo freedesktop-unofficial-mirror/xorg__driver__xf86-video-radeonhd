@@ -63,12 +63,12 @@ if test "x$MONREC_HAS_BANDWIDTH" = xyes; then
         AC_DEFINE(MONREC_HAS_BANDWIDTH, 1, [MonRec has member maxPixClock])
 fi
 
-AC_ARG_ENABLE(atombios-parser, AC_HELP_STRING([--disable-atombios],
+AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
                                   [Disable AtomBIOS support [[default=no]]]),
               [do_atombios="$enableval"],
               [do_atombios=yes])
 
-AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios-parser],
+AC_ARG_ENABLE(atombios-parser, AC_HELP_STRING([--disable-atombios-parser],
                                   [Disable AtomBIOS support [[default=no]]]),
               [do_atombios_parser="$enableval"],
               [do_atombios_parser=yes])
