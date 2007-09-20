@@ -63,6 +63,8 @@ char *AtomBIOSFuncStr[] = {
 # include "rhd_atomwrapper.h"
 # include "xf86int10.h"
 # ifdef ATOM_BIOS_PARSER
+#  define INT8 INT8
+#  define INT16 INT16
 #  define INT32 INT32
 #  include "CD_Common_Types.h"
 # else
