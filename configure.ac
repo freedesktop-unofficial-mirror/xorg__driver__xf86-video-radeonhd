@@ -69,7 +69,7 @@ AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
               [do_atombios=yes])
 
 AC_ARG_ENABLE(atombios-parser, AC_HELP_STRING([--disable-atombios-parser],
-                                  [Disable AtomBIOS support [[default=no]]]),
+                                  [Disable AtomBIOS parser support [[default=no]]]),
               [do_atombios_parser="$enableval"],
               [do_atombios_parser=yes])
 
