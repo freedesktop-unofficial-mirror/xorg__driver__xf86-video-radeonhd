@@ -47,11 +47,12 @@ Revision History:
 	//    typedef __int64             int64_t;
 		typedef unsigned __int32    uint32_t;
 		typedef __int32             int32_t;
-#elif defined (linux)
+#elif defined (linux) || defined (__NetBSD__)
 		typedef unsigned int uint32_t;
 		typedef int int32_t;
 	#else
-		typedef unsigned long	    uint32_t;
+#error
+typedef unsigned long	    uint32_t;
 		typedef signed long         int32_t;
 	#endif
 		typedef unsigned char       uint8_t;
