@@ -30,6 +30,8 @@
 
 #include <stdio.h>
 #include <sys/io.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -37,9 +39,15 @@
 #include <pci/pci.h>
 #include <unistd.h>
 
-#define Bool int
+typedef int Bool;
 #define FALSE 0
 #define TRUE 1
+typedef unsigned char CARD8;
+typedef unsigned short CARD16;
+typedef unsigned int CARD32;
+#define VBIOS_BASE 0xC0000
+#define VBIOS_MAXSIZE 0x10000
+#define DEV_MEM "/dev/mem"
 
 /* Some register names */
 enum {
@@ -135,21 +143,25 @@ enum {
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
 
+typedef enum _chipType {
+    RHD_R500 = 1,
+    RHD_R600
+} chipType;
 
 /* for RHD_R500/R600 */
-char ChipType;
+chipType ChipType;
 
 /*
  * Match pci ids against data and some callbacks
  */
-struct rhd_device {
-    unsigned short vendor;
-    unsigned short device;
-    unsigned char bar;
+struct RHDDevice {
+    CARD16 vendor;
+    CARD16 device;
+    int bar;
 #define RHD_R500 1
 #define RHD_R600 2
-    unsigned char type;
-} rhd_devices[] = {
+    chipType type;
+} rhdDevices[] = {
 
     { 0x1002, 0x7100, 2, RHD_R500},
     { 0x1002, 0x7101, 2, RHD_R500},
@@ -251,7 +263,7 @@ struct rhd_device {
  *
  */
 static struct pci_dev *
-device_locate(struct pci_dev *devices, int bus, int dev, int func)
+DeviceLocate(struct pci_dev *devices, int bus, int dev, int func)
 {
     struct pci_dev *device;
 
@@ -265,15 +277,15 @@ device_locate(struct pci_dev *devices, int bus, int dev, int func)
 /*
  *
  */
-static struct rhd_device *
-device_match(struct pci_dev *device)
+static struct RHDDevice *
+DeviceMatch(struct pci_dev *device)
 {
     int i;
 
-    for (i = 0; rhd_devices[i].vendor; i++)
-	if ((rhd_devices[i].vendor == device->vendor_id) &&
-	    (rhd_devices[i].device == device->device_id))
-	    return (rhd_devices + i);
+    for (i = 0; rhdDevices[i].vendor; i++)
+	if ((rhdDevices[i].vendor == device->vendor_id) &&
+	    (rhdDevices[i].device == device->device_id))
+	    return (rhdDevices + i);
 
     return NULL;
 }
@@ -282,15 +294,15 @@ device_match(struct pci_dev *device)
  *
  */
 static void *
-map_bar(struct pci_dev *device, int io_bar, int dev_mem)
+MapBar(struct pci_dev *device, int ioBar, int devMem)
 {
     void *map;
 
-    if (!device->base_addr[io_bar] || !device->size[io_bar])
+    if (!device->base_addr[ioBar] || !device->size[ioBar])
 	return NULL;
 
-    map = mmap(0, device->size[io_bar], PROT_WRITE | PROT_READ, MAP_SHARED,
-	       dev_mem, device->base_addr[io_bar]);
+    map = mmap(0, device->size[ioBar], PROT_WRITE | PROT_READ, MAP_SHARED,
+	       devMem, device->base_addr[ioBar]);
     /* printf("Mapped IO at 0x%08llX (BAR %1d: 0x%08llX)\n",
        device->base_addr[io_bar], io_bar, device->size[io_bar]); */
 
@@ -300,28 +312,28 @@ map_bar(struct pci_dev *device, int io_bar, int dev_mem)
 /*
  *
  */
-unsigned int
+CARD32
 RegRead(void *map, int offset)
 {
-    return *(volatile unsigned int *)((unsigned char *) map + offset);
+    return *(volatile CARD32 *)((CARD8 *) map + offset);
 }
 
 /*
  *
  */
 void
-RegWrite(void *map, int offset, unsigned int value)
+RegWrite(void *map, int offset, CARD32 value)
 {
-    *(volatile unsigned int *)((unsigned char *) map + offset) = value;
+    *(volatile CARD32 *)((CARD8 *) map + offset) = value;
 }
 
 /*
  *
  */
 void
-RegMask(void *map, int offset, unsigned int value, unsigned int mask)
+RegMask(void *map, int offset, CARD32 value, CARD32 mask)
 {
-    unsigned int tmp;
+    CARD32 tmp;
 
     tmp = RegRead(map, offset);
     tmp &= ~mask;
@@ -338,16 +350,16 @@ HPDReport(void *map)
     int HPD = RegRead(map, DC_GPIO_HPD_Y);
 
     printf("  HotPlug:");
-    if (!(HPD & 0x00101) && !((ChipType == RHD_R600) && (HPD & 0x10000)))
+    if (!(HPD & 0x0101) && !((ChipType == RHD_R600) && (HPD & 0x00010000)))
 	printf(" RHD_HPD_NONE ");
     else {
-	if (HPD & 0x00001)
+	if (HPD & 0x1)
 	    printf(" RHD_HPD_0");
 
-	if (HPD & 0x00100)
+	if (HPD & 0x100)
 	    printf(" RHD_HPD_1");
 
-	if ((ChipType == RHD_R600) && (HPD & 0x10000))
+	if ((ChipType == RHD_R600) && (HPD & 0x00010000))
 	    printf(" RHD_HPD_2");
     }
     printf("\n");
@@ -359,8 +371,8 @@ HPDReport(void *map)
 static Bool
 DACALoadDetect(void *map)
 {
-    unsigned int CompEnable, Control1, Control2, DetectControl, Enable;
-    unsigned char ret;
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
 
     CompEnable = RegRead(map, DACA_COMPARATOR_ENABLE);
     Control1 = RegRead(map, DACA_CONTROL1);
@@ -369,17 +381,17 @@ DACALoadDetect(void *map)
     Enable = RegRead(map, DACA_ENABLE);
 
     RegWrite(map, DACA_ENABLE, 1);
-    RegMask(map, DACA_AUTODETECT_CONTROL, 0, 0x00000003);
-    RegMask(map, DACA_CONTROL2, 0, 0x00000001);
+    RegMask(map, DACA_AUTODETECT_CONTROL, 0, 0x3);
+    RegMask(map, DACA_CONTROL2, 0, 0x1);
 
-    RegMask(map, DACA_CONTROL2, 0, 0x00000100);
+    RegMask(map, DACA_CONTROL2, 0, 0x100);
 
     RegWrite(map, DACA_FORCE_DATA, 0);
-    RegMask(map, DACA_CONTROL2, 0x00000001, 0x0000001);
+    RegMask(map, DACA_CONTROL2, 0x1, 0x1);
 
     RegMask(map, DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
     RegWrite(map, DACA_CONTROL1, 0x00050802);
-    RegMask(map, DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    RegMask(map, DACA_POWERDOWN, 0, 0x1); /* Shut down Bandgap Voltage Reference Power */
     usleep(5);
 
     RegMask(map, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
@@ -392,7 +404,7 @@ DACALoadDetect(void *map)
 
     RegMask(map, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
 
-    RegMask(map, DACA_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    RegMask(map, DACA_COMPARATOR_ENABLE, 0x100, 0x100);
     usleep(100);
 
     /* Get RGB detect values
@@ -403,9 +415,9 @@ DACALoadDetect(void *map)
 
     RegMask(map, DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
     RegWrite(map, DACA_CONTROL1, Control1);
-    RegMask(map, DACA_CONTROL2, Control2, 0x000001FF);
-    RegMask(map, DACA_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
-    RegMask(map, DACA_ENABLE, Enable, 0x000000FF);
+    RegMask(map, DACA_CONTROL2, Control2, 0x1FF);
+    RegMask(map, DACA_AUTODETECT_CONTROL, DetectControl, 0xFF);
+    RegMask(map, DACA_ENABLE, Enable, 0xFF);
 
     return (ret & 0x07);
 }
@@ -416,8 +428,8 @@ DACALoadDetect(void *map)
 static Bool
 DACBLoadDetect(void *map)
 {
-    unsigned int CompEnable, Control1, Control2, DetectControl, Enable;
-    unsigned char ret;
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8  ret;
 
     CompEnable = RegRead(map, DACB_COMPARATOR_ENABLE);
     Control1 = RegRead(map, DACB_CONTROL1);
@@ -426,17 +438,17 @@ DACBLoadDetect(void *map)
     Enable = RegRead(map, DACB_ENABLE);
 
     RegWrite(map, DACB_ENABLE, 1);
-    RegMask(map, DACB_AUTODETECT_CONTROL, 0, 0x00000003);
-    RegMask(map, DACB_CONTROL2, 0, 0x00000001);
+    RegMask(map, DACB_AUTODETECT_CONTROL, 0, 0x3);
+    RegMask(map, DACB_CONTROL2, 0, 0x1);
 
-    RegMask(map, DACB_CONTROL2, 0, 0x00000100);
+    RegMask(map, DACB_CONTROL2, 0, 0x100);
 
     RegWrite(map, DACB_FORCE_DATA, 0);
-    RegMask(map, DACB_CONTROL2, 0x00000001, 0x0000001);
+    RegMask(map, DACB_CONTROL2, 0x1, 0x1);
 
     RegMask(map, DACB_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
-    RegWrite(map, DACB_CONTROL1, 0x00050802);
-    RegMask(map, DACB_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    RegWrite(map, DACB_CONTROL1, 0x50802);
+    RegMask(map, DACB_POWERDOWN, 0, 0x1); /* Shut down Bandgap Voltage Reference Power */
     usleep(5);
 
     RegMask(map, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
@@ -449,20 +461,21 @@ DACBLoadDetect(void *map)
 
     RegMask(map, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
 
-    RegMask(map, DACB_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    RegMask(map, DACB_COMPARATOR_ENABLE, 0x100, 0x100);
     usleep(100);
 
-    /* Get RGB detect values
+    /*
+     * Get RGB detect values
      * If only G is detected, we could have a monochrome monitor,
      * but we don't bother with this at the moment.
      */
     ret = (RegRead(map, DACB_COMPARATOR_OUTPUT) & 0x0E) >> 1;
 
-    RegMask(map, DACB_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RegMask(map, DACB_COMPARATOR_ENABLE, CompEnable, 0xFFFFFF);
     RegWrite(map, DACB_CONTROL1, Control1);
-    RegMask(map, DACB_CONTROL2, Control2, 0x000001FF);
-    RegMask(map, DACB_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
-    RegMask(map, DACB_ENABLE, Enable, 0x000000FF);
+    RegMask(map, DACB_CONTROL2, Control2, 0x1FF);
+    RegMask(map, DACB_AUTODETECT_CONTROL, DetectControl, 0xFF);
+    RegMask(map, DACB_ENABLE, Enable, 0xFF);
 
     return (ret & 0x07);
 }
@@ -473,7 +486,7 @@ DACBLoadDetect(void *map)
 static Bool
 TMDSALoadDetect(void *map)
 {
-    unsigned int Enable, Control, Detect;
+    CARD32 Enable, Control, Detect;
     Bool ret;
 
     Enable = RegRead(map, TMDSA_TRANSMITTER_ENABLE);
@@ -482,14 +495,14 @@ TMDSALoadDetect(void *map)
 
     /* r500 needs a tiny bit more work :) */
     if (ChipType < RHD_R600) {
-	RegMask(map, TMDSA_TRANSMITTER_ENABLE, 0x00000003, 0x00000003);
-	RegMask(map, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000003);
+	RegMask(map, TMDSA_TRANSMITTER_ENABLE, 0x3, 0x3);
+	RegMask(map, TMDSA_TRANSMITTER_CONTROL, 0x1, 0x3);
     }
 
-    RegMask(map, TMDSA_LOAD_DETECT, 0x00000001, 0x00000001);
+    RegMask(map, TMDSA_LOAD_DETECT, 0x1, 0x1);
     usleep(1);
-    ret = RegRead(map, TMDSA_LOAD_DETECT) & 0x00000010;
-    RegMask(map, TMDSA_LOAD_DETECT, Detect, 0x00000001);
+    ret = RegRead(map, TMDSA_LOAD_DETECT) & 0x10;
+    RegMask(map, TMDSA_LOAD_DETECT, Detect, 0x1);
 
     if (ChipType < RHD_R600) {
 	RegWrite(map, TMDSA_TRANSMITTER_ENABLE, Enable);
@@ -591,13 +604,13 @@ enum {
 };
 
 #define EDID_SLAVE 0xA0
-#define I2C_ENGINE_RATE 0x3FF
+#define I2C_SPEED 0x3FF
 
 /*
  *
  */
 static Bool
-R600I2CSetupStatus(void *map, int channel, int speed)
+R6xxI2CSetupStatus(void *map, int channel)
 {
     channel &= 0xf;
 
@@ -606,7 +619,7 @@ R600I2CSetupStatus(void *map, int channel, int speed)
 	RegMask(map, DC_GPIO_DDC1_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC1_SPEED, (speed << 16) | 2,
+	RegMask(map, DC_I2C_DDC1_SPEED, (I2C_SPEED << 16) | 2,
 		0xFFFF00FF);
 	RegWrite(map, DC_I2C_DDC1_SETUP, 0x30000000);
 	break;
@@ -614,7 +627,7 @@ R600I2CSetupStatus(void *map, int channel, int speed)
 	RegMask(map, DC_GPIO_DDC2_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC2_SPEED, (speed << 16) | 2,
+	RegMask(map, DC_I2C_DDC2_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, DC_I2C_DDC2_SETUP, 0x30000000);
 	break;
@@ -622,7 +635,7 @@ R600I2CSetupStatus(void *map, int channel, int speed)
 	RegMask(map, DC_GPIO_DDC3_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC3_SPEED, (speed << 16) | 2,
+	RegMask(map, DC_I2C_DDC3_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, DC_I2C_DDC3_SETUP, 0x30000000);
 	break;
@@ -630,7 +643,7 @@ R600I2CSetupStatus(void *map, int channel, int speed)
 	RegMask(map, DC_GPIO_DDC4_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC4_SPEED, (speed << 16) | 2,
+	RegMask(map, DC_I2C_DDC4_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, DC_I2C_DDC4_SETUP, 0x30000000);
 	break;
@@ -638,7 +651,7 @@ R600I2CSetupStatus(void *map, int channel, int speed)
 	return FALSE;
     }
     RegWrite(map, DC_I2C_CONTROL, channel << 8);
-    RegMask(map, DC_I2C_INTERRUPT_CONTROL, 0x00000002, 0x00000002);
+    RegMask(map, DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
     RegMask(map, DC_I2C_ARBITRATION, 0, 0x00);
     return TRUE;
 }
@@ -647,22 +660,23 @@ R600I2CSetupStatus(void *map, int channel, int speed)
  *
  */
 static Bool
-R600I2CStatus(void *map)
+R6xxI2CStatus(void *map)
 {
     int count = 0x1388;
-    unsigned int val;
+    CARD32 val;
 
     while (--count) {
 
 	usleep(1000);
-	val = RegRead(map, DC_I2C_SW_STATUS);
 
+   	val = RegRead(map, DC_I2C_SW_STATUS);
 	if (val & DC_I2C_SW_DONE)
 	    break;
     }
-    RegMask(map, DC_I2C_INTERRUPT_CONTROL, DC_I2C_SW_DONE_ACK, DC_I2C_SW_DONE_ACK);
+    RegMask(map, DC_I2C_INTERRUPT_CONTROL, DC_I2C_SW_DONE_ACK,
+	    DC_I2C_SW_DONE_ACK);
 
-    if (!count || (val & 0x7b3))
+    if (!count || (val & 0x07b3))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
 }
@@ -671,25 +685,26 @@ R600I2CStatus(void *map)
  *
  */
 static Bool
-R600DDCProbe(void *map, int Channel)
+R6xxDDCProbe(void *map, int Channel)
 {
     Bool ret = FALSE;
+    CARD32 data;
 
-    if (!R600I2CSetupStatus(map, Channel, I2C_ENGINE_RATE))
+    if (!R6xxI2CSetupStatus(map, Channel))
 	return FALSE;
 
-    RegMask(map, DC_I2C_CONTROL, 0, 0x00300000);
+    RegMask(map, DC_I2C_CONTROL, 0, 0x00300000); /* 1 Transaction */
 
-    /* 1 Transaction */
     RegMask(map, DC_I2C_TRANSACTION0, /* only slave */
 	    DC_I2C_STOP_ON_NACK0 | DC_I2C_START0
-	    | DC_I2C_STOP0 | (0 << 16), 0xffffff);
+	    | DC_I2C_STOP0 | (0 << 16), 0x00ffffff);
 
-    RegWrite(map, DC_I2C_DATA,
-	     DC_I2C_INDEX_WRITE | ( EDID_SLAVE << 8 ) | (0 << 16));
+    data = DC_I2C_INDEX_WRITE | ( EDID_SLAVE << 8 ) | (0 << 16);
+	RegWrite(map, DC_I2C_DATA, data);
+
     RegMask(map, DC_I2C_CONTROL, DC_I2C_GO, DC_I2C_GO);
 
-    ret = R600I2CStatus(map);
+    ret = R6xxI2CStatus(map);
 
     RegMask(map, DC_I2C_CONTROL, 0x2, 0xff);
     usleep(1000);
@@ -713,10 +728,10 @@ enum {
  *
  */
 static Bool
-R500I2CStatus(void *map)
+R5xxI2CStatus(void *map)
 {
     int count = 32;
-    unsigned int res;
+    CARD32 res;
 
     while (count-- != 0) {
 	usleep (1000);
@@ -724,7 +739,6 @@ R500I2CStatus(void *map)
 	if (((RegRead(map, R5XX_DC_I2C_STATUS1)) & 0x08) != 0)
 	    continue;
 	res = RegRead(map, R5XX_DC_I2C_STATUS1);
-
 	if (res & 0x1)
 	    return TRUE;
 	else
@@ -739,17 +753,17 @@ R500I2CStatus(void *map)
  *
  */
 static Bool
-R500DDCProbe(void *map, int Channel)
+R5xxDDCProbe(void *map, int Channel)
 {
-    Bool ret;
-    unsigned int SaveControl1, save_494;
+    Bool ret = FALSE;
+    CARD32 SaveControl1, save_494;
 
-    RegMask(map, 0x28, 0x00000200, 0x00000200);
+    RegMask(map, 0x28, 0x200, 0x200);
 
     SaveControl1 = RegRead(map, R5XX_DC_I2C_CONTROL1);
     save_494 = RegRead(map, 0x494);
+    RegMask(map, 0x494, 1, 1);
 
-    RegMask(map, 0x494, 1, 1); /* ???? */
     RegMask(map, R5XX_DC_I2C_ARBITRATION, 1, 1);
 
     RegMask(map, R5XX_DC_I2C_STATUS1, 0x7, 0xff);
@@ -757,16 +771,16 @@ R500DDCProbe(void *map, int Channel)
     RegWrite(map, R5XX_DC_I2C_RESET, 0);
 
     RegMask(map, R5XX_DC_I2C_CONTROL1,
-	    (Channel & 0x0f) << 16 | 0x100, 0xff0100);
-    RegWrite(map, R5XX_DC_I2C_CONTROL2, I2C_ENGINE_RATE << 16 | 0x101);
+	    (Channel & 0x0f) << 16 | 0x100, 0x00ff0100);
+    RegWrite(map, R5XX_DC_I2C_CONTROL2, I2C_SPEED << 16 | 0x101);
     RegMask(map, R5XX_DC_I2C_CONTROL3, 0x30 << 24, 0xff << 24);
 
     RegWrite(map, R5XX_DC_I2C_DATA, EDID_SLAVE);  /* slave */
-    RegWrite(map, R5XX_DC_I2C_DATA, 0);  /* slave */
+    RegWrite(map, R5XX_DC_I2C_DATA, 0);
 
     RegMask(map, R5XX_DC_I2C_CONTROL1, 0x3, 0xff);
     RegMask(map, R5XX_DC_I2C_STATUS1, 0x8, 0xff);
-    ret = R500I2CStatus(map);
+    ret = R5xxI2CStatus(map);
 
     RegMask(map, R5XX_DC_I2C_STATUS1, 0x07, 0xff);
     RegMask(map, R5XX_DC_I2C_RESET, 0x01, 0xff);
@@ -776,7 +790,7 @@ R500DDCProbe(void *map, int Channel)
 
     RegWrite(map, R5XX_DC_I2C_CONTROL1, SaveControl1);
     RegWrite(map, 0x494, save_494);
-    RegMask(map, 0x28, 0, 0x00000200);
+    RegMask(map, 0x28, 0, 0x200);
 
     return ret;
 }
@@ -787,10 +801,14 @@ R500DDCProbe(void *map, int Channel)
 static Bool
 DDCProbe(void *map, int Channel)
 {
-    if (ChipType == RHD_R600)
-	return R600DDCProbe(map, Channel);
-    else
-	return R500DDCProbe(map, Channel);
+    switch (ChipType) {
+	case RHD_R500:
+	    return R5xxDDCProbe(map, Channel);
+	case RHD_R600:
+	    return R6xxDDCProbe(map, Channel);
+	default:
+	    return FALSE;
+    }
 }
 
 /*
@@ -839,15 +857,15 @@ LVDSReport(void *map)
 	return;
     }
 
-    if (!(RegRead(map, LVTMA_CNTL) & 0x00000001) &&
-	(RegRead(map, LVTMA_MODE) & 0x00000001))
+    if (!(RegRead(map, LVTMA_CNTL) & 0x1) &&
+	(RegRead(map, LVTMA_MODE) & 0x1))
 	return;
 
     printf("  LVDS Info:\n");
 
     DualLink = RegRead(map, LVTMA_CNTL) & 0x01000000;
-    Bits24 = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
-    Fpdi = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+    Bits24 = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x1;
+    Fpdi = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x1;
 
     printf("\t%dbits, %s link, %s Panel found.\n",
 	   Bits24 ? 24 : 18,
@@ -855,8 +873,8 @@ LVDSReport(void *map)
 	   Fpdi ? "FPDI" : "LDI");
 
     printf("\tPower Timing: 0x%03X, 0x%03X, 0x%02X, 0x%02X, 0x%03X\n",
-	   RegRead(map, LVTMA_PWRSEQ_REF_DIV) & 0x00000FFF,
-	   (RegRead(map, LVTMA_PWRSEQ_REF_DIV) >> 16) & 0x00000FFF,
+	   RegRead(map, LVTMA_PWRSEQ_REF_DIV) & 0xFFF,
+	   (RegRead(map, LVTMA_PWRSEQ_REF_DIV) >> 16) & 0xFFF,
 	   ((RegRead(map, LVTMA_PWRSEQ_DELAY1) & 0xFF) * 2 + 1) / 5,
 	   (((RegRead(map, LVTMA_PWRSEQ_DELAY1) >> 8) & 0xFF) * 2 + 1)/ 5,
 	   (RegRead(map, LVTMA_PWRSEQ_DELAY2) & 0xFFF) << 2);
@@ -869,21 +887,104 @@ LVDSReport(void *map)
 /*
  *
  */
+Bool
+WriteToFile(char *name, unsigned char *buffer, int size)
+
+{
+    int fd = open(name, O_CREAT | O_TRUNC | O_WRONLY,S_IRUSR | S_IWUSR);
+    int ct = 0;
+
+    if (fd < 0) {
+	fprintf(stderr,"Cannot open file %s: %s\n",name,strerror(errno));
+	goto error;
+    } else {
+	while (1) {
+	    int ret = write(fd, buffer + ct, size - ct);
+	    if (ret < 0) {
+		if (errno == EAGAIN || errno == EINVAL)
+		    continue;
+		else {
+		    fprintf(stderr,"Cannot write output file: %s\n",
+			    strerror(errno));
+		    close (fd);
+		    goto error;
+		}
+	    } else {
+		ct += ret;
+		if (ct == size)
+		    break;
+	    }
+	}
+	close (fd);
+	return TRUE;
+    }
+    error:
+	return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+GetVBIOS(char *name)
+{
+    int size, i;
+    unsigned char *rombase;
+    char chksm = 0;
+    int saved_errno;
+    int fd;
+    
+    if ((fd = open(DEV_MEM, O_RDONLY)) < 0) {
+	fprintf(stderr,"Cannot open " DEV_MEM " (%s),\n",strerror(errno));
+	return FALSE;
+    }
+    rombase = mmap((caddr_t)0, VBIOS_MAXSIZE, PROT_READ, MAP_SHARED, fd,
+		   VBIOS_BASE);
+    saved_errno = errno;
+
+    close (fd);
+    
+    if (rombase == MAP_FAILED) {
+	fprintf(stderr,"Cannot map (0x%08x:0x%x) (%s)\n",VBIOS_BASE,
+		 VBIOS_MAXSIZE,
+		 strerror(saved_errno));
+	return FALSE;
+    }
+
+    if (rombase[0] != 0x55 || rombase[1] != 0xaa) {
+	fprintf(stderr,"No BIOS Signature found!\n");
+    } else {
+	size = rombase[2] * 512;
+	for (i = 0; i < size; i++) {
+	    chksm += rombase[i];
+	}
+	if (chksm)
+	    fprintf(stderr,"Warning: VBIOS chksum incorrect!\n");
+    }
+    return WriteToFile(name, rombase, size);
+}
+
+/*
+ *
+ */
 int
 main(int argc, char *argv[])
 {
     struct pci_dev *device;
-    struct pci_access *pci_access;
-    struct rhd_device *rhd_device;
-    int dev_mem;
+    struct pci_access *pciAccess;
+    struct RHDDevice *rhdDevice;
+    int devMem;
     void *io;
-    unsigned int bus, dev, func;
+    int bus, dev, func;
     int ret;
-
+    int saved_errno;
+    Bool dumpBios, deviceSet;
+    int i;
+    
     /* init libpci */
-    pci_access = pci_alloc();
-    pci_init(pci_access);
-    pci_scan_bus(pci_access);
+    pciAccess = pci_alloc();
+    pci_init(pciAccess);
+    pci_scan_bus(pciAccess);
 
     if (argc < 2) {
 	fprintf(stderr, "Missing argument: please provide a PCI tag "
@@ -891,38 +992,62 @@ main(int argc, char *argv[])
 	return 1;
     }
 
-    ret = sscanf(argv[1], "%x:%x.%x", &bus, &dev, &func);
-    if (ret != 3) {
-	ret = sscanf(argv[1], "%x:%x:%x", &bus, &dev, &func);
-	if (ret != 3) {
-	    ret = sscanf(argv[1], "%d:%d.%d", &bus, &dev, &func);
-	    if (ret != 3)
-		ret = sscanf(argv[1], "%d:%d:%d", &bus, &dev, &func);
+    for (i = 1; i < argc; i++) {
+	if (!strncmp("-d",argv[i],3)) {
+	    dumpBios = TRUE;
+	} else {
+	    ret = sscanf(argv[i], "%x:%x.%x", &bus, &dev, &func);
+	    if (ret != 3) {
+		ret = sscanf(argv[i], "%x:%x:%x", &bus, &dev, &func);
+		if (ret != 3) {
+		    ret = sscanf(argv[i], "%d:%d.%d", &bus, &dev, &func);
+		    if (ret != 3)
+			ret = sscanf(argv[i], "%d:%d:%d", &bus, &dev, &func);
+		}
+	    }
+	    if (ret != 3) {
+		fprintf(stderr, "Unable to parse the PCI tag argument (%s)."
+			" Please use: bus:dev.func\n", argv[i]);
+		return 1;
+	    }
+	    deviceSet = TRUE;
 	}
     }
 
-    if (ret != 3) {
-	fprintf(stderr, "Unable to parse the PCI tag argument (%s)."
-		" Please use: bus:dev.func\n", argv[1]);
-	return 1;
+    if (deviceSet) {
+	/* find our toy */
+	device = DeviceLocate(pciAccess->devices, bus, dev, func);
+	if (!device) {
+	    fprintf(stderr, "Unable to find PCI device at %02X:%02X.%02X.\n",
+		    bus, dev, func);
+	    return 1;
+	}
+
+	rhdDevice = DeviceMatch(device);
+	if (!rhdDevice) {
+	    fprintf(stderr,
+		    "Unknown device: 0x%04X:0x%04X (%02X:%02X.%02X).\n",
+		    device->vendor_id, device->device_id, bus, dev, func);
+	    return 1;
+	}
     }
 
-    /* find our toy */
-    device = device_locate(pci_access->devices, bus, dev, func);
-    if (!device) {
-	fprintf(stderr, "Unable to find PCI device at %02X:%02X.%02X.\n",
-		bus, dev, func);
-	return 1;
+    if (dumpBios) {
+	char name[1024] = "posted.vga.rom";
+	
+	if (deviceSet) {
+	    snprintf(name, 1023, "%04X.%04X.%04X.vga.rom",
+		     device->device_id,
+		     pci_read_word(device, PCI_SUBSYSTEM_VENDOR_ID),
+		     pci_read_word(device, PCI_SUBSYSTEM_ID));
+	}
+	GetVBIOS(name);
     }
 
-    rhd_device = device_match(device);
-    if (!rhd_device) {
-	fprintf(stderr, "Unknown device: 0x%04X:0x%04X (%02X:%02X.%02X).\n",
-		device->vendor_id, device->device_id, bus, dev, func);
-	return 1;
-    }
-
-    if (rhd_device->bar > 5) {
+    if (!deviceSet)
+	return 0;
+    
+    if (rhdDevice->bar > 5) {
 	fprintf(stderr, "Program error: No acceptable BAR defined for this device.\n");
 	return 1;
     }
@@ -932,21 +1057,23 @@ main(int argc, char *argv[])
 	   pci_read_word(device, PCI_SUBSYSTEM_ID),
 	   device->bus, device->dev, device->func);
 
-    /* make sure we can actually read /dev/mem before we do anything else */
-    dev_mem = open("/dev/mem", O_RDWR);
-    if (dev_mem < 0) {
-	fprintf(stderr, "Unable to open /dev/mem: %s.\n", strerror(errno));
+    /* make sure we can actually read DEV_MEM before we do anything else */
+    devMem = open(DEV_MEM, O_RDWR);
+    if (devMem < 0) {
+	fprintf(stderr, "Unable to open "DEV_MEM": %s.\n", strerror(errno));
 	return errno;
     }
 
-    /* find the G-Spot */
-    io = map_bar(device, rhd_device->bar, dev_mem);
+    io = MapBar(device, rhdDevice->bar, devMem);
+    saved_errno = errno;
+    close (devMem);
     if (!io) {
-	fprintf(stderr, "Unable to map IO memory.\n");
+	fprintf(stderr, "Unable to map IO memory: %s.\n",
+		strerror(saved_errno));
 	return 1;
     }
-
-    ChipType = rhd_device->type;
+    
+    ChipType = rhdDevice->type;
 
     LoadReport(io);
     HPDReport(io);
