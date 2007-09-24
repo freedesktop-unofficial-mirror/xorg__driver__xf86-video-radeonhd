@@ -353,6 +353,8 @@ rhdCards[] =
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
     { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_B1_VGA_A0,
                               {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
+    { 0x71C5, 0x1043, 0x10B2, "Asus Z96j", PANEL_B_VGA_A0,
+                              {    0,    0, 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
     { 0x71C5, 0x106B, 0x0080, "Macbook Pro 2,2", PANEL_B2_DVI_AA00,
                               {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
     /* 0x71C6 : RV530 : Radeon X1600 */
