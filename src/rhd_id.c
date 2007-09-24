@@ -318,6 +318,13 @@ RHDIdentify(int flags)
     {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_0, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
 
+#define PANEL_B2_VGA_A0_DVI_A10 \
+  { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_2, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-D", RHD_DDC_1, RHD_HPD_0, \
+       { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE}}}
 
 /*
  * List of pci subsystem / card ids.
@@ -351,7 +358,7 @@ rhdCards[] =
     /* 0x7143 : RV505 : Radeon X1550 */
     /* 0x7144 : M54 : M54-GL */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
-    { 0x7145, 0x1179, 0xFF10, "Toshiba A100-773", PANEL_B1_VGA_A2,
+    { 0x7145, 0x1179, 0xFF10, "Toshiba Satellite A100-773", PANEL_B1_VGA_A2,
                               {    0,    0, 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
     { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", PANEL_B2_VGA_A0,
                               {    0,    0, 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
@@ -364,6 +371,8 @@ rhdCards[] =
     /* 0x7149 : M52 : Mobility Radeon X1300 */
     { 0x7149, 0x1028, 0x2003, "Dell Inspiron E1505", PANEL_B_VGA_A0,
                               {    0,    0, 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
+    { 0x7149, 0x17AA, 0x2005, "Lenovo Thinkpad T60 (2008)", PANEL_B2_VGA_A0_DVI_A10,
+                              {    0,    0, 0xF9F, 0x00F, 0x04, 0x19, 0x0A8 }},
     /* 0x714A : M52 : Mobility Radeon X1300 */
     /* 0x714B : M52 : Mobility Radeon X1300 */
     /* 0x714C : M52 : Mobility Radeon X1300 */
