@@ -36,24 +36,40 @@
 
 enum RHD_CHIPSETS {
     RHD_UNKNOWN = 0,
+    /* R500 */
     RHD_RV505,
     RHD_RV515,
+    RHD_RV516,
     RHD_R520,
     RHD_RV530,
     RHD_RV535,
+    RHD_RV550,
+    RHD_RV560,
     RHD_RV570,
     RHD_R580,
+    /* R500 Mobility */
     RHD_M52,
     RHD_M54,
     RHD_M56,
     RHD_M58,
+    RHD_M62,
+    RHD_M64,
+    RHD_M66,
+    RHD_M68,
     RHD_M71,
-    RHD_M72,
-    RHD_M76,
+    /* R500 integrated */
+    RHD_RS600,
     RHD_RS690,
+    RHD_RS740,
+    /* R600 */
     RHD_R600,
     RHD_RV610,
     RHD_RV630,
+    /* R600 Mobility */
+    RHD_M72,
+    RHD_M74,
+    RHD_M76,
+    /* R600 integrated */
     RHD_CHIP_END
 };
 

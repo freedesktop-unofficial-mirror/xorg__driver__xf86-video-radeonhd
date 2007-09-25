@@ -409,9 +409,10 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	return NULL;
     }
 
-    if (rhdPtr->ChipSet != RHD_M56) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: any other device than the"
-		   " M56 is still unsupported.\n", __func__);
+    if (rhdPtr->ChipSet != RHD_M56 &&
+        rhdPtr->ChipSet != RHD_M66) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: any other device than"
+		   " M56/M66 is still unsupported.\n", __func__);
 	return NULL;
     }
 
