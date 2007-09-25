@@ -91,8 +91,10 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_R520,  0x710E, RES_SHARED_VGA }, /* FireGL V7300 */
     { RHD_R520,  0x710F, RES_SHARED_VGA }, /* FireGL V7350 */
     { RHD_RV515, 0x7140, RES_SHARED_VGA }, /* Radeon X1600 */
+    { RHD_RV505, 0x7141, RES_SHARED_VGA }, /* RV505 */
     { RHD_RV515, 0x7142, RES_SHARED_VGA }, /* Radeon X1300/X1550 */
     { RHD_RV505, 0x7143, RES_SHARED_VGA }, /* Radeon X1550 */
+    { RHD_M54,   0x7144, RES_SHARED_VGA }, /* M54-GL */
     { RHD_M54,   0x7145, RES_SHARED_VGA }, /* Mobility Radeon X1400 */
     { RHD_RV515, 0x7146, RES_SHARED_VGA }, /* Radeon X1300/X1550 */
     { RHD_RV505, 0x7147, RES_SHARED_VGA }, /* Radeon X1550 64-bit */
@@ -102,6 +104,8 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_M52,   0x714C, RES_SHARED_VGA }, /* Mobility Radeon X1300 */
     { RHD_RV515, 0x714D, RES_SHARED_VGA }, /* Radeon X1300 */
     { RHD_RV515, 0x714E, RES_SHARED_VGA }, /* Radeon X1300 */
+    { RHD_RV505, 0x714F, RES_SHARED_VGA }, /* RV505 */
+    { RHD_RV505, 0x7151, RES_SHARED_VGA }, /* RV505 */
     { RHD_RV515, 0x7152, RES_SHARED_VGA }, /* FireGL V3300 */
     { RHD_RV515, 0x7153, RES_SHARED_VGA }, /* FireGL V3350 */
     { RHD_RV515, 0x715E, RES_SHARED_VGA }, /* Radeon X1300 */
@@ -137,6 +141,7 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_M66,   0x71D6, RES_SHARED_VGA }, /* Mobility Radeon X1700 XT */
     { RHD_RV530, 0x71DA, RES_SHARED_VGA }, /* FireGL V5200 */
     { RHD_M66,   0x71DE, RES_SHARED_VGA }, /* Mobility Radeon X1700 */
+    { RHD_RV550, 0x7200, RES_SHARED_VGA }, /*  Radeon X2300HD  */
     { RHD_M71,   0x7210, RES_SHARED_VGA }, /* Mobility Radeon HD 2300 */
     { RHD_M71,   0x7211, RES_SHARED_VGA }, /* Mobility Radeon HD 2300 */
     { RHD_R580,  0x7240, RES_SHARED_VGA }, /* Radeon X1950 */
@@ -154,24 +159,49 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_R580,  0x724E, RES_SHARED_VGA }, /* AMD Stream Processor */
     { RHD_R580,  0x724F, RES_SHARED_VGA }, /* Radeon X1900 */
     { RHD_RV570, 0x7280, RES_SHARED_VGA }, /* Radeon X1950 */
+    { RHD_RV560, 0x7281, RES_SHARED_VGA }, /* RV560 */
+    { RHD_RV560, 0x7283, RES_SHARED_VGA }, /* RV560 */
     { RHD_M68,   0x7284, RES_SHARED_VGA }, /* Mobility Radeon X1900 */
+    { RHD_RV560, 0x7287, RES_SHARED_VGA }, /* RV560 */
     { RHD_RV570, 0x7288, RES_SHARED_VGA }, /* Radeon X1950 GT */
+    { RHD_RV570, 0x7289, RES_SHARED_VGA }, /* RV570 */
+    { RHD_RV570, 0x728B, RES_SHARED_VGA }, /* RV570 */
+    { RHD_RV570, 0x728C, RES_SHARED_VGA }, /* ATI FireGL V7400  */
+    { RHD_RV560, 0x7290, RES_SHARED_VGA }, /* RV560 */
     { RHD_RV560, 0x7291, RES_SHARED_VGA }, /* Radeon X1650 */
     { RHD_RV560, 0x7293, RES_SHARED_VGA }, /* Radeon X1650 */
+    { RHD_RV560, 0x7297, RES_SHARED_VGA }, /* RV560 */
     { RHD_RS690, 0x791E, RES_SHARED_VGA }, /* Radeon X1200 */
     { RHD_RS690, 0x791F, RES_SHARED_VGA }, /* Radeon X1200 */
+    { RHD_RS600, 0x793F, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
+    { RHD_RS600, 0x7941, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
+    { RHD_RS600, 0x7942, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
+    { RHD_RS740, 0x796C, RES_SHARED_VGA }, /* RS740 */
+    { RHD_RS740, 0x796D, RES_SHARED_VGA }, /* RS740M */
+    { RHD_RS740, 0x796E, RES_SHARED_VGA }, /* RS740 */
+    { RHD_RS740, 0x796F, RES_SHARED_VGA }, /* RS740M */
     { RHD_R600,  0x9400, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9401, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9402, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9403, RES_SHARED_VGA }, /* Radeon HD 2900 Pro */
+    { RHD_RV610, 0x94C0, RES_SHARED_VGA }, /* RV610 */
     { RHD_RV610, 0x94C1, RES_SHARED_VGA }, /* Radeon HD 2400 XT */
     { RHD_RV610, 0x94C3, RES_SHARED_VGA }, /* Radeon HD 2400 Pro */
+    { RHD_RV610, 0x94C4, RES_SHARED_VGA }, /* ATI Radeon HD 2400 PRO AGP */
+    { RHD_RV610, 0x94C6, RES_SHARED_VGA }, /* RV610 */
+    { RHD_RV610, 0x94C7, RES_SHARED_VGA }, /* ATI Radeon HD 2350 */
     { RHD_M74,   0x94C8, RES_SHARED_VGA }, /* Mobility Radeon HD 2400 XT */
     { RHD_M72,   0x94C9, RES_SHARED_VGA }, /* Mobility Radeon HD 2400 */
+    { RHD_M72,   0x94CB, RES_SHARED_VGA }, /* ATI RADEON E2400 */
+    { RHD_RV630, 0x9580, RES_SHARED_VGA }, /* RV630 */
     { RHD_M76,   0x9581, RES_SHARED_VGA }, /* Mobility Radeon HD 2600 */
     { RHD_M76,   0x9583, RES_SHARED_VGA }, /* Mobility Radeon HD 2600 XT */
+    { RHD_RV630, 0x9586, RES_SHARED_VGA }, /* ATI Radeon HD 2600 XT AGP */
+    { RHD_RV630, 0x9587, RES_SHARED_VGA }, /* ATI Radeon HD 2600 Pro AGP */
     { RHD_RV630, 0x9588, RES_SHARED_VGA }, /* Radeon HD 2600 XT */
     { RHD_RV630, 0x9589, RES_SHARED_VGA }, /* Radeon HD 2600 Pro */
+    { RHD_RV630, 0x958A, RES_SHARED_VGA }, /* Gemini RV630 */
+    { RHD_M76,   0x958B, RES_SHARED_VGA }, /* Gemini ATI Mobility Radeon HD 2600 XT */
     { -1,	 -1,     RES_UNDEFINED }
 };
 
@@ -316,8 +346,10 @@ rhdCards[] =
     /* 0x710E : R520 : FireGL V7300 */
     /* 0x710F : R520 : FireGL V7350 */
     /* 0x7140 : RV515 : Radeon X1600 */
+    /* 0x7141 : RV505 : RV505 */
     /* 0x7142 : RV515 : Radeon X1300/X1550 */
     /* 0x7143 : RV505 : Radeon X1550 */
+    /* 0x7144 : M54 : M54-GL */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
     { 0x7145, 0x1179, 0xFF10, "Toshiba A100-773", PANEL_B1_VGA_A2,
                               {    0,    0, 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
@@ -337,6 +369,8 @@ rhdCards[] =
     /* 0x714C : M52 : Mobility Radeon X1300 */
     /* 0x714D : RV515 : Radeon X1300 */
     /* 0x714E : RV515 : Radeon X1300 */
+    /* 0x714F : RV505 : RV505 */
+    /* 0x7151 : RV505 : RV505 */
     /* 0x7152 : RV515 : FireGL V3300 */
     { 0x7152, 0x1002, 0x0B02, "ATI FireGL V3300", DVI_BB11_DVI_AA00 },
     /* 0x7153 : RV515 : FireGL V3350 */
@@ -387,6 +421,7 @@ rhdCards[] =
     /* 0x71D6 : M66 : Mobility Radeon X1700 XT */
     /* 0x71DA : RV530 : FireGL V5200 */
     /* 0x71DE : M66 : Mobility Radeon X1700 */
+    /* 0x7200 : RV550 : Radeon X2300HD */
     /* 0x7210 : M71 : Mobility Radeon HD 2300 */
     /* 0x7211 : M71 : Mobility Radeon HD 2300 */
     /* 0x7240 : R580 : Radeon X1950 */
@@ -407,30 +442,55 @@ rhdCards[] =
     /* 0x7280 : RV570 : Radeon X1950 */
     { 0x7280, 0x174B, 0xE190, "Sapphire X1950 Pro", DVI_BA10_DVI_AB01 },
     { 0x7280, 0x18BC, 0x2870, "GeCube X1950 Pro", DVI_BA10_DVI_AB01 },
+    /* 0x7281 : RV560 : RV560 */
+    /* 0x7283 : RV560 : RV560 */
     /* 0x7284 : M68 : Mobility Radeon X1900 */
+    /* 0x7287 : RV560 : RV560 */
     /* 0x7288 : RV570 : Radeon X1950 GT */
     { 0x7288, 0x174B, 0xE190, "Sapphire X1950 GT", DVI_BA10_DVI_AB01 },
+    /* 0x7289 : RV570 : RV570 */
+    /* 0x728B : RV570 : RV570 */
+    /* 0x728C : RV570 : ATI FireGL V7400 */
+    /* 0x7290 : RV560 : RV560 */
     /* 0x7291 : RV560 : Radeon X1650 */
     /* 0x7293 : RV560 : Radeon X1650 */
+    /* 0x7297 : RV560 : RV560 */
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 */
+    /* 0x793F : RS600 : ATI Radeon Xpress 1200 Series */
+    /* 0x7941 : RS600 : ATI Radeon Xpress 1200 Series */
+    /* 0x7942 : RS600 : ATI Radeon Xpress 1200 Series */
+    /* 0x796C : RS740 : RS740 */
+    /* 0x796D : RS740 : RS740M */
+    /* 0x796E : RS740 : RS740 */
+    /* 0x796F : RS740 : RS740M */
     /* 0x9400 : R600 : Radeon HD 2900 XT */
     { 0x9400, 0x1002, 0x3142, "Sapphire HD 2900 XT", DVI_BB11_DVI_AA00 },
     /* 0x9401 : R600 : Radeon HD 2900 XT */
     /* 0x9402 : R600 : Radeon HD 2900 XT */
     /* 0x9403 : R600 : Radeon HD 2900 Pro */
+    /* 0x94C0 : RV610 : RV610 */
     /* 0x94C1 : RV610 : Radeon HD 2400 XT */
     { 0x94C1, 0x174B, 0xE390, "Sapphire HD 2400 XT", VGA_B1_DVI_AB00},
     /* 0x94C3 : RV610 : Radeon HD 2400 Pro */
     { 0x94C3, 0x174B, 0xE370, "Sapphire HD 2400 Pro", VGA_A0_DVI_BB10 },
+    /* 0x94C4 : RV610 : ATI Radeon HD 2400 PRO AGP  */
+    /* 0x94C6 : RV610 : RV610  */
+    /* 0x94C7 : RV610 : ATI Radeon HD 2350 */
     /* 0x94C8 : M74 : Mobility Radeon HD 2400 XT */
     /* 0x94C9 : M72 : Mobility Radeon HD 2400 */
+    /* 0x94CB : M72 : ATI RADEON E2400 */
+    /* 0x9580 : RV630 : RV630 */
     /* 0x9581 : M76 : Mobility Radeon HD 2600 */
     /* 0x9583 : M76 : Mobility Radeon HD 2600 XT */
+    /* 0x9586 : RV630 : ATI Radeon HD 2600 XT AGP */
+    /* 0x9587 : RV630 : ATI Radeon HD 2600 Pro AGP */
     /* 0x9588 : RV630 : Radeon HD 2600 XT */
     { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT", DVI_BA10_DVI_AB01 },
     /* 0x9589 : RV630 : Radeon HD 2600 Pro */
     { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA10_DVI_AB01 },
+    /* 0x958A : RV630 : Gemini RV630 */
+    /* 0x958B : M76 : Gemini ATI Mobility Radeon HD 2600 XT */
     { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
 };
 
