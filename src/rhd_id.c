@@ -213,25 +213,36 @@ RHDIdentify(int flags)
 {
     xf86Msg(X_INFO, "%s: X driver for the following AMD GPG (ATI) graphics devices:\n", RHD_NAME);
     xf86Msg(X_NONE, "\t"
-	    "RV505  : Radeon X1550.\n\t"
-	    "RV515  : Radeon X1300, X1550, X1600; FireGL V3300, V3350; FireMV 2250.\n\t"
-	    "R520   : Radeon X1800; FireGL V5300, V7200, V7300, V7350\n\t"
-	    "RV530  : Radeon X1300 XT, X1600; FireGL V3400, V5200.\n\t"
+	    "RV505  : Radeon X1550, X1550 64bit.\n\t"
+	    "RV515  : Radeon X1300, X1550, X1600; FireGL V3300, V3350.\n\t"
+	    "RV516  : Radeon X1300, X1550, X1550 64-bit, X1600; FireMV 2250.\n\t"
+	    "R520   : Radeon X1800; FireGL V5300, V7200, V7300, V7350.\n\t"
+	    "RV530  : Radeon X1300 XT, X1600, X1600 Pro, X1650; FireGL V3400, V5200.\n\t"
 	    "RV535  : Radeon X1300, X1650.\n\t"
-	    "RV570  : Radeon X1950 Pro/GT.\n\t"
-	    "R580   : Radeon X1650, X1900, X1950, FireStream 2U.\n\t"
-	    "R600   : Radeon HD 2900 XT.\n\t"
-	    "RV610  : Radeon HD 2400 Pro/XT.\n\t"
-	    "RV630  : Radeon HD 2600 Pro/XT.\n");
+	    "RV550  : Radeon X2300 HD.\n\t"
+	    "RV560  : Radeon X1650.\n\t"
+	    "RV570  : Radeon X1950, X1950 GT; FireGL V7400.\n\t"
+	    "R580   : Radeon X1900, X1950; AMD Stream Processor.\n\t"
+	    "R600   : Radeon HD 2900 Pro/XT.\n");
     xf86Msg(X_NONE, "\t"
-	    "M52    : Mobility Radeon X1300, X1350.\n\t"
-	    "M54    : Mobility Radeon X1400, X1450, X2300.\n\t"
-	    "M56    : Mobility Radeon X1600, X1700; Mobility FireGL V5200, V5250.\n\t"
-	    "M58    : Mobility Radeon X1800, X1900; Mobility FireGL V7100, V7200\n\t"
+	    "RV610  : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP.\n\t"
+	    "RV630  : Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630.\n\t"
+	    "M52    : Mobility Radeon X1300.\n\t"
+	    "M54    : Mobility Radeon X1400; M54-GL.\n\t"
+	    "M56    : Mobility Radeon X1600; Mobility FireGL V5200.\n\t"
+	    "M58    : Mobility Radeon X1800, X1800 XT; Mobility FireGL V7100, V7200.\n\t"
+	    "M62    : Mobility Radeon X1350.\n\t"
+	    "M64    : Mobility Radeon X1450, X2300.\n\t"
+	    "M66    : Mobility Radeon X1700, X1700 XT; FireGL V5250.\n\t"
+	    "M68    : Mobility Radeon X1900.\n");
+    xf86Msg(X_NONE, "\t"
 	    "M71    : Mobility Radeon HD 2300.\n\t"
-	    "M72    : Mobility Radeon HD 2400.\n\t"
-	    "M76    : Mobility Radeon HD 2600.\n\t"
-	    "RS690  : Radeon X1200.\n");
+	    "M72    : Mobility Radeon HD 2400; Radeon E2400.\n\t"
+	    "M74    : Mobility Radeon HD 2400 XT.\n\t"
+	    "M76    : Mobility Radeon HD 2600; (Gemini ATI) Mobility Radeon HD 2600 XT.\n\t"
+	    "RS600  : Radeon Xpress 1200.\n\t"
+	    "RS690  : Radeon X1200.\n\t"
+	    "RS740  : RS740, RS740M\n");
     xf86Msg(X_NONE, "\n");
 }
 
