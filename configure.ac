@@ -47,6 +47,9 @@ sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 # Header files checks.
 AC_HEADER_STDC
 
+SAVED_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $XORG_CFLAGS"
+
 # Check whether MonRec has a reducedblanking member.
 AC_CHECK_MEMBER([MonRec.reducedblanking],
          [MONREC_HAS_REDUCED=yes], [MONREC_HAS_REDUCED=no],
@@ -62,6 +65,8 @@ AC_CHECK_MEMBER([MonRec.maxPixClock],
 if test "x$MONREC_HAS_BANDWIDTH" = xyes; then
         AC_DEFINE(MONREC_HAS_BANDWIDTH, 1, [MonRec has member maxPixClock])
 fi
+
+CFLAGS="$SAVED_CFLAGS"
 
 AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
                                   [Disable AtomBIOS support [[default=no]]]),
