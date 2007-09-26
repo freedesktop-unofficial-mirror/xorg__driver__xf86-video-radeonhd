@@ -1,0 +1,8 @@
+#include <Server.tmpl>
+
+#define IHaveSubdirs
+
+SUBDIRS = src
+
+MakeSubdirs($(SUBDIRS))
+ForceSubdirs($(SUBDIRS))

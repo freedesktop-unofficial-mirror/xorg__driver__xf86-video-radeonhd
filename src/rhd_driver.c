@@ -146,6 +146,11 @@ struct rhdcard *RHDCardIdentify(ScrnInfoPtr pScrn);
 /* keep accross drivers */
 static int pix24bpp = 0;
 
+/* required for older X.Org releases */
+#ifndef _X_EXPORT
+#define _X_EXPORT
+#endif
+
 _X_EXPORT DriverRec RADEONHD = {
     RHD_VERSION,
     RHD_DRIVER_NAME,
