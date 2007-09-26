@@ -822,8 +822,11 @@ DDCReport(void *map)
     Chan0 = DDCProbe(map, 0);
     Chan1 = DDCProbe(map, 1);
     Chan2 = DDCProbe(map, 2);
-    Chan3 = DDCProbe(map, 3);
-
+    if (ChipType > RHD_R500)
+	Chan3 = DDCProbe(map, 3);
+    else
+	Chan3 = FALSE;
+    
     printf("  DDC:");
     if (!Chan0 && !Chan1 && !Chan2 && !Chan3)
 	printf(" RHD_DDC_NONE ");
@@ -933,7 +936,7 @@ GetVBIOS(char *name)
     char chksm = 0;
     int saved_errno;
     int fd;
-    
+
     if ((fd = open(DEV_MEM, O_RDONLY)) < 0) {
 	fprintf(stderr,"Cannot open " DEV_MEM " (%s),\n",strerror(errno));
 	return FALSE;
@@ -943,7 +946,7 @@ GetVBIOS(char *name)
     saved_errno = errno;
 
     close (fd);
-    
+
     if (rombase == MAP_FAILED) {
 	fprintf(stderr,"Cannot map (0x%08x:0x%x) (%s)\n",VBIOS_BASE,
 		 VBIOS_MAXSIZE,
@@ -980,7 +983,7 @@ main(int argc, char *argv[])
     int saved_errno;
     Bool dumpBios, deviceSet;
     int i;
-    
+
     /* init libpci */
     pciAccess = pci_alloc();
     pci_init(pciAccess);
@@ -1034,7 +1037,7 @@ main(int argc, char *argv[])
 
     if (dumpBios) {
 	char name[1024] = "posted.vga.rom";
-	
+
 	if (deviceSet) {
 	    snprintf(name, 1023, "%04X.%04X.%04X.vga.rom",
 		     device->device_id,
@@ -1046,7 +1049,7 @@ main(int argc, char *argv[])
 
     if (!deviceSet)
 	return 0;
-    
+
     if (rhdDevice->bar > 5) {
 	fprintf(stderr, "Program error: No acceptable BAR defined for this device.\n");
 	return 1;
@@ -1072,7 +1075,7 @@ main(int argc, char *argv[])
 		strerror(saved_errno));
 	return 1;
     }
-    
+
     ChipType = rhdDevice->type;
 
     LoadReport(io);
