@@ -514,8 +514,9 @@ RHDCardIdentify(ScrnInfoPtr pScrn)
 	       Pci->chipType, Pci->subsysVendor, Pci->subsysCard);
     xf86Msg(X_NONE, "\t"
 	    "Your card might not work or might not work optimally.\n\t"
-	    "To rectify this, please contact MAILINGLIST.\n\t"
-	    "Include your X log and the full name of the device.\n");
+	    "To rectify this, please contact radeonhd@opensuse.org.\n\t"
+	    "Include your X log, the full name of the device\n\t"
+	    "and the conntest (found in utils/conntest) output.\n");
 
     return NULL;
 }
