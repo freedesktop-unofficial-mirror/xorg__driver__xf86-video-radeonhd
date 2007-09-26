@@ -546,7 +546,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		while (RHDI2CFunc(pScrn->scrnIndex,
 				  rhdPtr->I2C, RHD_I2C_SCANBUS, &data) != RHD_I2C_NOLINE) {
 		    int i,j;
-		    for (i = 0; i < 4; i++) {
+		    for (i = 0; i < rhdPtr->ChipSet < RHD_R600 ? 3 : 4; i++) {
 			for (j = 0; j < 32; j++) {
 			    if (data.scanbus.slaves[i] & (1 << j))
 				xf86DrvMsg(pScrn->scrnIndex, X_INFO, "I2C Bus at slave address "

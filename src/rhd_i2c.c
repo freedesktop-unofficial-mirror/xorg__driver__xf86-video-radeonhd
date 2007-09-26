@@ -303,7 +303,7 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 
 /* R6xx */
 static Bool
-rhdI2CStatusR600(I2CBusPtr I2CPtr)
+rhdR6xxI2CStatus(I2CBusPtr I2CPtr)
 {
     int count = 500;
     volatile CARD32 val;
@@ -318,7 +318,8 @@ rhdI2CStatusR600(I2CBusPtr I2CPtr)
 	if (val & R6_DC_I2C_SW_DONE)
 	    break;
     }
-    regOR(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK);
+    RHDRegMask(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK,
+	       R6_DC_I2C_SW_DONE_ACK);
     if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
@@ -371,7 +372,7 @@ rhd6xxI2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	    return FALSE;
     }
     RHDRegWrite(I2CPtr, R6_DC_I2C_CONTROL, line << 8);
-    regOR(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, 0x2);
+    RHDRegMask(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
     RHDRegMask(I2CPtr, R6_DC_I2C_ARBITRATION, 0, 0x00);
     return TRUE;
 }
@@ -415,7 +416,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     if (!rhd6xxI2CSetupStatus(I2CPtr, line,  prescale))
 	return FALSE;
 
-    regOR(I2CPtr, R6_DC_I2C_CONTROL,
+    regOr(I2CPtr, R6_DC_I2C_CONTROL,
 	  (trans == TRANS_WRITE_READ ? 1 : 0) << 20); /* 2 Transactions */
     RHDRegMask(I2CPtr, R6_DC_I2C_TRANSACTION0,
 	       R6_DC_I2C_STOP_ON_NACK0
@@ -448,7 +449,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     }
     /* Go! */
     regOR(I2CPtr, R6_DC_I2C_CONTROL, R6_DC_I2C_GO);
-    if (rhdI2CStatusR600(I2CPtr)) {
+    if (rhdR6xxI2CStatus(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
 	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, R6_DC_I2C_INDEX_WRITE
 		    | R6_DC_I2C_DATA_RW  | /* index++ */3 << 16);
