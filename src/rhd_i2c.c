@@ -104,7 +104,7 @@ enum _rhdR6xxI2CBits {
     R6_DC_I2C_SW_REQ        = (0x1 << 18)
 };
 
-enum _rhdRyxxI2CBits {
+enum _rhdR5xxI2CBits {
  /* R5_DC_I2C_STATUS1 */
     R5_DC_I2C_DONE	 = (0x1 << 0),
     R5_DC_I2C_NACK	 = (0x1 << 1),
