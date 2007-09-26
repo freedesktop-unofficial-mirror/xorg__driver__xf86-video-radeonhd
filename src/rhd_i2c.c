@@ -160,7 +160,8 @@ rhd5xxI2CStatus(I2CBusPtr I2CPtr)
 	if (((RHDRegRead(I2CPtr, R5_DC_I2C_STATUS1)) & R5_DC_I2C_GO) != 0)
 	    continue;
 	res = RHDRegRead(I2CPtr, R5_DC_I2C_STATUS1);
-	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)res,count);
+	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",
+		     (unsigned int)res,count);
 	if (res & R5_DC_I2C_DONE)
 	    return TRUE;
 	else
@@ -260,10 +261,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 static Bool
 rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *ReadBuffer, int nRead)
 {
-
-    /* The following is a kludge which will go away
-     * once we have full knowledge on how to program
-     * this chip.
+    /*
      * Since the transaction buffer can only hold
      * 15 bytes (+ the slave address) we bail out
      * on every transaction that is bigger unless
