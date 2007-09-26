@@ -44,69 +44,111 @@ typedef struct _rhdI2CRec
     I2CBusPtr i2cPtr[I2C_LINES];
 } rhdI2CRec;
 
-enum {
-    /* DC_I2C_TRANSACTION0 */
-    DC_I2C_RW0   = (0x1 << 0),
-    DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
-    DC_I2C_ACK_ON_READ0  = (0x1 << 9),
-    DC_I2C_START0        = (0x1 << 12),
-    DC_I2C_STOP0         = (0x1 << 13),
-    DC_I2C_COUNT0        = (0xff << 16),
-    /* DC_I2C_TRANSACTION1 */
-    DC_I2C_RW1   = (0x1 << 0),
-    DC_I2C_STOP_ON_NACK1         = (0x1 << 8),
-    DC_I2C_ACK_ON_READ1  = (0x1 << 9),
-    DC_I2C_START1        = (0x1 << 12),
-    DC_I2C_STOP1         = (0x1 << 13),
-    DC_I2C_COUNT1        = (0xff << 16),
-    /* DC_I2C_DATA */
-    DC_I2C_DATA_RW       = (0x1 << 0),
-    DC_I2C_DATA_BIT      = (0xff << 8),
-    DC_I2C_INDEX         = (0xff << 16),
-    DC_I2C_INDEX_WRITE   = (0x1 << 31),
-    /* DC_I2C_CONTROL */
-    DC_I2C_GO    = (0x1 << 0),
-    DC_I2C_SOFT_RESET    = (0x1 << 1),
-    DC_I2C_SEND_RESET    = (0x1 << 2),
-    DC_I2C_SW_STATUS_RESET       = (0x1 << 3),
-    DC_I2C_SDVO_EN       = (0x1 << 4),
-    DC_I2C_SDVO_ADDR_SEL         = (0x1 << 6),
-    DC_I2C_DDC_SELECT    = (0x7 << 8),
-    DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
-    DC_I2C_SW_DONE_INT   = (0x1 << 0),
-    DC_I2C_SW_DONE_ACK   = (0x1 << 1),
-    DC_I2C_SW_DONE_MASK  = (0x1 << 2),
-    DC_I2C_DDC1_HW_DONE_INT      = (0x1 << 4),
-    DC_I2C_DDC1_HW_DONE_ACK      = (0x1 << 5),
-    DC_I2C_DDC1_HW_DONE_MASK     = (0x1 << 6),
-    DC_I2C_DDC2_HW_DONE_INT      = (0x1 << 8),
-    DC_I2C_DDC2_HW_DONE_ACK      = (0x1 << 9),
-    DC_I2C_DDC2_HW_DONE_MASK     = (0x1 << 10),
-    DC_I2C_DDC3_HW_DONE_INT      = (0x1 << 12),
-    DC_I2C_DDC3_HW_DONE_ACK      = (0x1 << 13),
-    DC_I2C_DDC3_HW_DONE_MASK     = (0x1 << 14),
-    DC_I2C_DDC4_HW_DONE_INT      = (0x1 << 16),
-    DC_I2C_DDC4_HW_DONE_ACK      = (0x1 << 17),
-    DC_I2C_DDC4_HW_DONE_MASK     = (0x1 << 18),
-    /* DC_I2C_SW_STATUS */
-    DC_I2C_SW_STATUS_BIT         = (0x3 << 0),
-    DC_I2C_SW_DONE       = (0x1 << 2),
-    DC_I2C_SW_ABORTED    = (0x1 << 4),
-    DC_I2C_SW_TIMEOUT    = (0x1 << 5),
-    DC_I2C_SW_INTERRUPTED        = (0x1 << 6),
-    DC_I2C_SW_BUFFER_OVERFLOW    = (0x1 << 7),
-    DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
-    DC_I2C_SW_SDVO_NACK  = (0x1 << 10),
-    DC_I2C_SW_NACK0      = (0x1 << 12),
-    DC_I2C_SW_NACK1      = (0x1 << 13),
-    DC_I2C_SW_NACK2      = (0x1 << 14),
-    DC_I2C_SW_NACK3      = (0x1 << 15),
-    DC_I2C_SW_REQ        = (0x1 << 18)
+enum _rhdR6xxI2CBits {
+    /* R6_DC_I2C_TRANSACTION0 */
+    R6_DC_I2C_RW0   = (0x1 << 0),
+    R6_DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
+    R6_DC_I2C_ACK_ON_READ0  = (0x1 << 9),
+    R6_DC_I2C_START0        = (0x1 << 12),
+    R6_DC_I2C_STOP0         = (0x1 << 13),
+    R6_DC_I2C_COUNT0        = (0xff << 16),
+    /* R6_DC_I2C_TRANSACTION1 */
+    R6_DC_I2C_RW1   = (0x1 << 0),
+    R6_DC_I2C_STOP_ON_NACK1         = (0x1 << 8),
+    R6_DC_I2C_ACK_ON_READ1  = (0x1 << 9),
+    R6_DC_I2C_START1        = (0x1 << 12),
+    R6_DC_I2C_STOP1         = (0x1 << 13),
+    R6_DC_I2C_COUNT1        = (0xff << 16),
+    /* R6_DC_I2C_DATA */
+    R6_DC_I2C_DATA_RW       = (0x1 << 0),
+    R6_DC_I2C_DATA_BIT      = (0xff << 8),
+    R6_DC_I2C_INDEX         = (0xff << 16),
+    R6_DC_I2C_INDEX_WRITE   = (0x1 << 31),
+    /* R6_DC_I2C_CONTROL */
+    R6_DC_I2C_GO    = (0x1 << 0),
+    R6_DC_I2C_SOFT_RESET    = (0x1 << 1),
+    R6_DC_I2C_SEND_RESET    = (0x1 << 2),
+    R6_DC_I2C_SW_STATUS_RESET       = (0x1 << 3),
+    R6_DC_I2C_SDVO_EN       = (0x1 << 4),
+    R6_DC_I2C_SDVO_ADDR_SEL         = (0x1 << 6),
+    R6_DC_I2C_DDC_SELECT    = (0x7 << 8),
+    R6_DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
+    R6_DC_I2C_SW_DONE_INT   = (0x1 << 0),
+    R6_DC_I2C_SW_DONE_ACK   = (0x1 << 1),
+    R6_DC_I2C_SW_DONE_MASK  = (0x1 << 2),
+    R6_DC_I2C_DDC1_HW_DONE_INT      = (0x1 << 4),
+    R6_DC_I2C_DDC1_HW_DONE_ACK      = (0x1 << 5),
+    R6_DC_I2C_DDC1_HW_DONE_MASK     = (0x1 << 6),
+    R6_DC_I2C_DDC2_HW_DONE_INT      = (0x1 << 8),
+    R6_DC_I2C_DDC2_HW_DONE_ACK      = (0x1 << 9),
+    R6_DC_I2C_DDC2_HW_DONE_MASK     = (0x1 << 10),
+    R6_DC_I2C_DDC3_HW_DONE_INT      = (0x1 << 12),
+    R6_DC_I2C_DDC3_HW_DONE_ACK      = (0x1 << 13),
+    R6_DC_I2C_DDC3_HW_DONE_MASK     = (0x1 << 14),
+    R6_DC_I2C_DDC4_HW_DONE_INT      = (0x1 << 16),
+    R6_DC_I2C_DDC4_HW_DONE_ACK      = (0x1 << 17),
+    R6_DC_I2C_DDC4_HW_DONE_MASK     = (0x1 << 18),
+    /* R6_DC_I2C_SW_STATUS */
+    R6_DC_I2C_SW_STATUS_BIT         = (0x3 << 0),
+    R6_DC_I2C_SW_DONE       = (0x1 << 2),
+    R6_DC_I2C_SW_ABORTED    = (0x1 << 4),
+    R6_DC_I2C_SW_TIMEOUT    = (0x1 << 5),
+    R6_DC_I2C_SW_INTERRUPTED        = (0x1 << 6),
+    R6_DC_I2C_SW_BUFFER_OVERFLOW    = (0x1 << 7),
+    R6_DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
+    R6_DC_I2C_SW_SDVO_NACK  = (0x1 << 10),
+    R6_DC_I2C_SW_NACK0      = (0x1 << 12),
+    R6_DC_I2C_SW_NACK1      = (0x1 << 13),
+    R6_DC_I2C_SW_NACK2      = (0x1 << 14),
+    R6_DC_I2C_SW_NACK3      = (0x1 << 15),
+    R6_DC_I2C_SW_REQ        = (0x1 << 18)
+};
+
+enum _rhdRyxxI2CBits {
+ /* R5_DC_I2C_STATUS1 */
+    R5_DC_I2C_DONE	 = (0x1 << 0),
+    R5_DC_I2C_NACK	 = (0x1 << 1),
+    R5_DC_I2C_HALT	 = (0x1 << 2),
+    R5_DC_I2C_GO	 = (0x1 << 3),
+ /* R5_DC_I2C_RESET */
+    R5_DC_I2C_SOFT_RESET	 = (0x1 << 0),
+    R5_DC_I2C_ABORT	 = (0x1 << 8),
+ /* R5_DC_I2C_CONTROL1 */
+    R5_DC_I2C_START	 = (0x1 << 0),
+    R5_DC_I2C_STOP	 = (0x1 << 1),
+    R5_DC_I2C_RECEIVE	 = (0x1 << 2),
+    R5_DC_I2C_EN	 = (0x1 << 8),
+    R5_DC_I2C_PIN_SELECT	 = (0x3 << 16),
+ /* R5_DC_I2C_CONTROL2 */
+    R5_DC_I2C_ADDR_COUNT	 = (0x7 << 0),
+    R5_DC_I2C_DATA_COUNT	 = (0xf << 8),
+    R5_DC_I2C_PRESCALE_LOWER	 = (0xff << 16),
+    R5_DC_I2C_PRESCALE_UPPER	 = (0xff << 24),
+ /* R5_DC_I2C_CONTROL3 */
+    R5_DC_I2C_DATA_DRIVE_EN	 = (0x1 << 0),
+    R5_DC_I2C_DATA_DRIVE_SEL	 = (0x1 << 1),
+    R5_DC_I2C_CLK_DRIVE_EN	 = (0x1 << 7),
+    R5_DC_I2C_RD_INTRA_BYTE_DELAY	 = (0xff << 8),
+    R5_DC_I2C_WR_INTRA_BYTE_DELAY	 = (0xff << 16),
+    R5_DC_I2C_TIME_LIMIT	 = (0xff << 24),
+ /* R5_DC_I2C_DATA */
+    R5_DC_I2C_DATA_BIT	 = (0xff << 0),
+ /* R5_DC_I2C_INTERRUPT_CONTROL */
+    R5_DC_I2C_INTERRUPT_STATUS	 = (0x1 << 0),
+    R5_DC_I2C_INTERRUPT_AK	 = (0x1 << 8),
+    R5_DC_I2C_INTERRUPT_ENABLE	 = (0x1 << 16),
+ /* R5_DC_I2C_ARBITRATION */
+    R5_DC_I2C_SW_WANTS_TO_USE_I2C	 = (0x1 << 0),
+    R5_DC_I2C_SW_CAN_USE_I2C	 = (0x1 << 1),
+    R5_DC_I2C_SW_DONE_USING_I2C	 = (0x1 << 8),
+    R5_DC_I2C_HW_NEEDS_I2C	 = (0x1 << 9),
+    R5_DC_I2C_ABORT_HDCP_I2C	 = (0x1 << 16),
+    R5_DC_I2C_HW_USING_I2C	 = (0x1 << 17)
 };
 
 /* R5xx */
 static Bool
-rhdI2CStatusR500(I2CBusPtr I2CPtr)
+rhd5xxI2CStatus(I2CBusPtr I2CPtr)
 {
     int count = 32;
     CARD32 res;
@@ -115,16 +157,16 @@ rhdI2CStatusR500(I2CBusPtr I2CPtr)
 
     while (count-- != 0) {
 	usleep (10);
-	if (((RHDRegRead(I2CPtr, 0x7d30)) & 0x08) != 0)
+	if (((RHDRegRead(I2CPtr, R5_DC_I2C_STATUS1)) & R5_DC_I2C_GO) != 0)
 	    continue;
-	res = RHDRegRead(I2CPtr, 0x7d30);
+	res = RHDRegRead(I2CPtr, R5_DC_I2C_STATUS1);
 	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)res,count);
-	if (res & 0x1)
+	if (res & R5_DC_I2C_DONE)
 	    return TRUE;
 	else
 	    return FALSE;
     }
-    RHDRegMask(I2CPtr, 0x7d34, 0x1 << 8, 0xff00);
+    RHDRegMask(I2CPtr, R5_DC_I2C_RESET, R5_DC_I2C_ABORT, 0xff00);
     return FALSE;
 }
 
@@ -137,65 +179,78 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     I2CBusPtr I2CPtr = i2cDevPtr->pI2CBus;
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
-    CARD32 save_7d38, save_494;
+    CARD32 save_I2C_CONTROL1, save_494;
     CARD32  tmp32;
     Bool ret = TRUE;
 
     RHDFUNC(i2cDevPtr->pI2CBus)
 
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
-    save_7d38 = RHDRegRead(I2CPtr, 0x7d38);
+    save_I2C_CONTROL1 = RHDRegRead(I2CPtr, R5_DC_I2C_CONTROL1);
     save_494 = RHDRegRead(I2CPtr, 0x494);
     RHDRegMask(I2CPtr, 0x494, 1, 1);
-    RHDRegMask(I2CPtr, 0x7d50, 1, 1);
+    RHDRegMask(I2CPtr, R5_DC_I2C_ARBITRATION,
+	       R5_DC_I2C_SW_WANTS_TO_USE_I2C,
+	       R5_DC_I2C_SW_WANTS_TO_USE_I2C);
 
-    RHDRegMask(I2CPtr, 0x7d30, 0x7, 0xff);
-    RHDRegMask(I2CPtr, 0x7d34, 0x1, 0xffff);
-    RHDRegWrite(I2CPtr, 0x7d34, 0);
+    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE
+	       | R5_DC_I2C_NACK
+	       | R5_DC_I2C_HALT, 0xff);
+    RHDRegMask(I2CPtr, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xffff);
+    RHDRegWrite(I2CPtr, R5_DC_I2C_RESET, 0);
 
-    RHDRegMask(I2CPtr, 0x7d38, (line  & 0x0f) << 16 | 0x100, 0xff0100);
+    RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
+	       (line  & 0x0f) << 16 | R5_DC_I2C_EN,
+	       R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
 
     if (nWrite) {
-	RHDRegWrite(I2CPtr, 0x7d3c, prescale << 16 | nWrite << 8 | 0x01);
-	RHDRegMask(I2CPtr, 0x7d40, 0x30 << 24, 0xff << 24);
+	RHDRegWrite(I2CPtr, R5_DC_I2C_CONTROL2,
+		    prescale << 16 | nWrite << 8 | 0x01); /* addr_cnt: 1 */
+	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL3,
+		   0x30 << 24, 0xff << 24); /* time limit 30 */
 
-	RHDRegWrite(I2CPtr, 0x7d44, slave);
+	RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, slave);
 
 	while (nWrite--)
-	    RHDRegWrite(I2CPtr, 0x7d44, *WriteBuffer++);
+	    RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, *WriteBuffer++);
 
-	RHDRegMask(I2CPtr, 0x7d38, 0x3, 0xff);
-	RHDRegMask(I2CPtr, 0x7d30, 0x8, 0xff);
+	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
+		   R5_DC_I2C_START | R5_DC_I2C_STOP, 0xff);
+	RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
 
-	if ((ret = rhdI2CStatusR500(I2CPtr)))
-	    RHDRegMask(I2CPtr, 0x7d30, 0x1, 0xff);
+	if ((ret = rhd5xxI2CStatus(I2CPtr)))
+	    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1,R5_DC_I2C_DONE, 0xff);
 	else
 	    ret = FALSE;
     }
     if (ret && nRead) {
 
-	RHDRegWrite(I2CPtr, 0x7d44, slave | 1); /*slave*/
-	RHDRegWrite(I2CPtr, 0x7d3c, prescale << 16 | nRead << 8 | 0x01);
+	RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, slave | 1); /*slave*/
+	RHDRegWrite(I2CPtr, R5_DC_I2C_CONTROL2,
+		    prescale << 16 | nRead << 8 | 0x01); /* addr_cnt: 1 */
 
-	RHDRegMask(I2CPtr, 0x7d38, 0x7, 0xff);
-	RHDRegMask(I2CPtr, 0x7d30, 0x8, 0xff);
-	if ((ret = rhdI2CStatusR500(I2CPtr))) {
-	    RHDRegMask(I2CPtr, 0x7d30, 0x1, 0xff);
+	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
+		   R5_DC_I2C_START | R5_DC_I2C_STOP | R5_DC_I2C_RECEIVE, 0xff);
+	RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
+	if ((ret = rhd5xxI2CStatus(I2CPtr))) {
+	    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE, 0xff);
 	    while (nRead--) {
-		*(ReadBuffer++) = (CARD8)RHDRegRead(I2CPtr, 0x7d44);
+		*(ReadBuffer++) = (CARD8)RHDRegRead(I2CPtr, R5_DC_I2C_DATA);
 	    }
 	} else
 	    ret = FALSE;
     }
 
-    RHDRegMask(I2CPtr, 0x7d30,0x07,0xff);
-    RHDRegMask(I2CPtr, 0x7d34,0x01,0xff);
-    RHDRegWrite(I2CPtr,0x7d34,0);
+    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1,
+	       R5_DC_I2C_DONE | R5_DC_I2C_NACK | R5_DC_I2C_HALT, 0xff);
+    RHDRegMask(I2CPtr, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xff);
+    RHDRegWrite(I2CPtr,R5_DC_I2C_RESET, 0);
 
-    RHDRegMask(I2CPtr,0x7d50,0x100,0xff00);
+    RHDRegMask(I2CPtr,R5_DC_I2C_ARBITRATION,
+	       R5_DC_I2C_SW_DONE_USING_I2C, 0xff00);
 
-    RHDRegWrite(I2CPtr,0x7d38,save_7d38);
-    RHDRegWrite(I2CPtr,0x494,save_494);
+    RHDRegWrite(I2CPtr,R5_DC_I2C_CONTROL1, save_I2C_CONTROL1);
+    RHDRegWrite(I2CPtr,0x494, save_494);
     tmp32 = RHDRegRead(I2CPtr,0x28);
     RHDRegWrite(I2CPtr,0x28, tmp32 & 0xfffffdff);
 
@@ -258,19 +313,19 @@ rhdI2CStatusR600(I2CBusPtr I2CPtr)
     while (--count) {
 
 	usleep(10);
-	val = RHDRegRead(I2CPtr, DC_I2C_SW_STATUS);
+	val = RHDRegRead(I2CPtr, R6_DC_I2C_SW_STATUS);
 	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
-	if (val & DC_I2C_SW_DONE)
+	if (val & R6_DC_I2C_SW_DONE)
 	    break;
     }
-    regOR(I2CPtr, DC_I2C_INTERRUPT_CONTROL, DC_I2C_SW_DONE_ACK);
-    if (!count || (val & (DC_I2C_SW_STOPPED_ON_NACK | DC_I2C_SW_NACK0 | DC_I2C_SW_NACK1 | 0x3)))
+    regOR(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK);
+    if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
 }
 
 static Bool
-rhdI2CSetupStatusR600(I2CBusPtr I2CPtr, int line, int prescale)
+rhd6xxI2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
     line &= 0xf;
 
@@ -278,36 +333,36 @@ rhdI2CSetupStatusR600(I2CBusPtr I2CPtr, int line, int prescale)
 
     switch (line) {
 	case 0:
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC1_MASK, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC1_A, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC1_EN, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_I2C_DDC1_SPEED, (prescale << 16) | 2,
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC1_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC1_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC1_EN, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_I2C_DDC1_SPEED, (prescale << 16) | 2,
 		       0xffff00ff);
-	    RHDRegWrite(I2CPtr, DC_I2C_DDC1_SETUP, 0x30000000);
+	    RHDRegWrite(I2CPtr, R6_DC_I2C_DDC1_SETUP, 0x30000000);
 	    break;
 	case 1:
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC2_MASK, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC2_A, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC2_EN, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_I2C_DDC2_SPEED, (prescale << 16) | 2,
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC2_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC2_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC2_EN, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_I2C_DDC2_SPEED, (prescale << 16) | 2,
 		       0xffff00ff);
-	    RHDRegWrite(I2CPtr, DC_I2C_DDC2_SETUP, 0x30000000);
+	    RHDRegWrite(I2CPtr, R6_DC_I2C_DDC2_SETUP, 0x30000000);
 	    break;
 	case 2:
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC3_MASK, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC3_A, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC3_EN, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_I2C_DDC3_SPEED, (prescale << 16) | 2,
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC3_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC3_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC3_EN, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_I2C_DDC3_SPEED, (prescale << 16) | 2,
 		       0xffff00ff);
-	    RHDRegWrite(I2CPtr, DC_I2C_DDC3_SETUP, 0x30000000);
+	    RHDRegWrite(I2CPtr, R6_DC_I2C_DDC3_SETUP, 0x30000000);
 	    break;
 	case 3:
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC4_MASK, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC4_A, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_GPIO_DDC4_EN, 0x0, 0xffff);
-	    RHDRegMask(I2CPtr, DC_I2C_DDC4_SPEED, (prescale << 16) | 2,
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC4_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC4_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC4_EN, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_I2C_DDC4_SPEED, (prescale << 16) | 2,
 		       0xffff00ff);
-	    RHDRegWrite(I2CPtr, DC_I2C_DDC4_SETUP, 0x30000000);
+	    RHDRegWrite(I2CPtr, R6_DC_I2C_DDC4_SETUP, 0x30000000);
 	    break;
 	default:
 	    xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR,
@@ -315,9 +370,9 @@ rhdI2CSetupStatusR600(I2CBusPtr I2CPtr, int line, int prescale)
 		       __func__,line);
 	    return FALSE;
     }
-    RHDRegWrite(I2CPtr, DC_I2C_CONTROL, line << 8);
-    regOR(I2CPtr, DC_I2C_INTERRUPT_CONTROL, 0x2);
-    RHDRegMask(I2CPtr, DC_I2C_ARBITRATION, 0, 0x00);
+    RHDRegWrite(I2CPtr, R6_DC_I2C_CONTROL, line << 8);
+    regOR(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, 0x2);
+    RHDRegMask(I2CPtr, R6_DC_I2C_ARBITRATION, 0, 0x00);
     return TRUE;
 }
 
@@ -357,56 +412,56 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 	return FALSE;
     }
 
-    if (!rhdI2CSetupStatusR600(I2CPtr, line,  prescale))
+    if (!rhd6xxI2CSetupStatus(I2CPtr, line,  prescale))
 	return FALSE;
 
-    regOR(I2CPtr, DC_I2C_CONTROL,
+    regOR(I2CPtr, R6_DC_I2C_CONTROL,
 	  (trans == TRANS_WRITE_READ ? 1 : 0) << 20); /* 2 Transactions */
-    RHDRegMask(I2CPtr, DC_I2C_TRANSACTION0,
-	       DC_I2C_STOP_ON_NACK0
-	       | (trans == TRANS_READ ? DC_I2C_RW0 : 0)
-	       | DC_I2C_START0
-	       | (trans == TRANS_WRITE_READ ? 0 : DC_I2C_STOP0 )
+    RHDRegMask(I2CPtr, R6_DC_I2C_TRANSACTION0,
+	       R6_DC_I2C_STOP_ON_NACK0
+	       | (trans == TRANS_READ ? R6_DC_I2C_RW0 : 0)
+	       | R6_DC_I2C_START0
+	       | (trans == TRANS_WRITE_READ ? 0 : R6_DC_I2C_STOP0 )
 	       | ((trans == TRANS_READ ? nRead : nWrite)  << 16),
 	       0xffffff);
     if (trans == TRANS_WRITE_READ)
-	RHDRegMask(I2CPtr, DC_I2C_TRANSACTION1,
+	RHDRegMask(I2CPtr, R6_DC_I2C_TRANSACTION1,
 		   nRead << 16
-		   | DC_I2C_RW1
-		   | DC_I2C_START1
-		   | DC_I2C_STOP1,
+		   | R6_DC_I2C_RW1
+		   | R6_DC_I2C_START1
+		   | R6_DC_I2C_STOP1,
 		   0xffffff); /* <bytes> read */
 
-    data = DC_I2C_INDEX_WRITE
+    data = R6_DC_I2C_INDEX_WRITE
 	| (((slave & 0xfe) | (trans == TRANS_READ ? 1 : 0)) << 8 )
 	| (0 << 16);
-    RHDRegWrite(I2CPtr, DC_I2C_DATA, data);
+    RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
-	    data = DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) | (index++ << 16);
-	    RHDRegWrite(I2CPtr, DC_I2C_DATA, data);
+	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) | (index++ << 16);
+	    RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
 	}
     }
     if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
-	data = DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (index++ << 16);
-	RHDRegWrite(I2CPtr, DC_I2C_DATA, data);
+	data = R6_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (index++ << 16);
+	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     }
     /* Go! */
-    regOR(I2CPtr, DC_I2C_CONTROL, DC_I2C_GO);
+    regOR(I2CPtr, R6_DC_I2C_CONTROL, R6_DC_I2C_GO);
     if (rhdI2CStatusR600(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
-	RHDRegWrite(I2CPtr, DC_I2C_DATA, DC_I2C_INDEX_WRITE
-		    | DC_I2C_DATA_RW  | /* index++ */3 << 16);
+	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, R6_DC_I2C_INDEX_WRITE
+		    | R6_DC_I2C_DATA_RW  | /* index++ */3 << 16);
 	while (nRead--) {
-	    data = RHDRegRead(I2CPtr, DC_I2C_DATA);
+	    data = RHDRegRead(I2CPtr, R6_DC_I2C_DATA);
 	    *(ReadBuffer++) = (data >> 8) & 0xff;
 	}
 	ret = TRUE;
     }
 
-    RHDRegMask(I2CPtr, DC_I2C_CONTROL, 0x2, 0xff);
+    RHDRegMask(I2CPtr, R6_DC_I2C_CONTROL, 0x2, 0xff);
     usleep(10);
-    RHDRegWrite(I2CPtr, DC_I2C_CONTROL, 0);
+    RHDRegWrite(I2CPtr, R6_DC_I2C_CONTROL, 0);
     return ret;
 }
 

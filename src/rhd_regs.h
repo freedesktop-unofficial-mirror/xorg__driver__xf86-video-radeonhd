@@ -247,44 +247,61 @@ enum {
     LVTMA_MACRO_CONTROL            = 0x7B0C,
     LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
 
-    /* I2C */
-    DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
-    DC_I2C_ARBITRATION             = 0x7D34,  /* (RW) */
-    DC_I2C_INTERRUPT_CONTROL       = 0x7D38,  /* (RW) */
-    DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) */
-    DC_I2C_DDC1_SPEED              = 0x7D4C,  /* (RW) */
-    DC_I2C_DDC1_SETUP              = 0x7D50,  /* (RW) */
-    DC_I2C_DDC2_SPEED              = 0x7D54,  /* (RW) */
-    DC_I2C_DDC2_SETUP              = 0x7D58,  /* (RW) */
-    DC_I2C_DDC3_SPEED              = 0x7D5C,  /* (RW) */
-    DC_I2C_DDC3_SETUP              = 0x7D60,  /* (RW) */
-    DC_I2C_TRANSACTION0            = 0x7D64,  /* (RW) */
-    DC_I2C_TRANSACTION1            = 0x7D68,  /* (RW) */
-    DC_I2C_DATA                    = 0x7D74,  /* (RW) */
-    DC_I2C_DDC4_SPEED              = 0x7DB4,  /* (RW) */
-    DC_I2C_DDC4_SETUP              = 0x7DBC,  /* (RW) */
-    DC_GPIO_DDC4_MASK              = 0x7E00,  /* (RW) */
-    DC_GPIO_DDC4_A                 = 0x7E04,  /* (RW) */
-    DC_GPIO_DDC4_EN                = 0x7E08,  /* (RW) */
-    DC_GPIO_DDC1_MASK              = 0x7E40,  /* (RW) */
-    DC_GPIO_DDC1_A                 = 0x7E44,  /* (RW) */
-    DC_GPIO_DDC1_EN                = 0x7E48,  /* (RW) */
-    DC_GPIO_DDC1_Y                 = 0x7E4C,  /* (RW) */
-    DC_GPIO_DDC2_MASK              = 0x7E50,  /* (RW) */
-    DC_GPIO_DDC2_A                 = 0x7E54,  /* (RW) */
-    DC_GPIO_DDC2_EN                = 0x7E58,  /* (RW) */
-    DC_GPIO_DDC2_Y                 = 0x7E5C,  /* (RW) */
-    DC_GPIO_DDC3_MASK              = 0x7E60,  /* (RW) */
-    DC_GPIO_DDC3_A                 = 0x7E64,  /* (RW) */
-    DC_GPIO_DDC3_EN                = 0x7E68,  /* (RW) */
-    DC_GPIO_DDC3_Y                 = 0x7E6C,  /* (RW) */
-
+    /* I2C in separate enum */
+    
     /* HPD */
     DC_GPIO_HPD_MASK               = 0x7E90,
     DC_GPIO_HPD_A                  = 0x7E94,
     DC_GPIO_HPD_EN                 = 0x7E98,
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
+
+enum _r5xxRegs {
+    /* I2C */
+    R5_DC_I2C_STATUS1 	=	0x7D30,  /* (RW) */
+    R5_DC_I2C_RESET 	=	0x7D34,  /* (RW) */
+    R5_DC_I2C_CONTROL1 	=	0x7D38,  /* (RW) */
+    R5_DC_I2C_CONTROL2 	=	0x7D3C,  /* (RW) */
+    R5_DC_I2C_CONTROL3 	=	0x7D40,  /* (RW) */
+    R5_DC_I2C_DATA 	=	0x7D44,  /* (RW) */
+    R5_DC_I2C_INTERRUPT_CONTROL 	=	0x7D48,  /* (RW) */
+    R5_DC_I2C_ARBITRATION 	=	0x7D50  /* (RW) */
+};
+
+enum _r6xxRegs {
+    /* I2C */
+    R6_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
+    R6_DC_I2C_ARBITRATION		   = 0x7D34,  /* (RW) */
+    R6_DC_I2C_INTERRUPT_CONTROL	   = 0x7D38,  /* (RW) */
+    R6_DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) */
+    R6_DC_I2C_DDC1_SPEED              = 0x7D4C,  /* (RW) */
+    R6_DC_I2C_DDC1_SETUP              = 0x7D50,  /* (RW) */
+    R6_DC_I2C_DDC2_SPEED              = 0x7D54,  /* (RW) */
+    R6_DC_I2C_DDC2_SETUP              = 0x7D58,  /* (RW) */
+    R6_DC_I2C_DDC3_SPEED              = 0x7D5C,  /* (RW) */
+    R6_DC_I2C_DDC3_SETUP              = 0x7D60,  /* (RW) */
+    R6_DC_I2C_TRANSACTION0            = 0x7D64,  /* (RW) */
+    R6_DC_I2C_TRANSACTION1            = 0x7D68,  /* (RW) */
+    R6_DC_I2C_DATA			   = 0x7D74,  /* (RW) */
+    R6_DC_I2C_DDC4_SPEED              = 0x7DB4,  /* (RW) */
+    R6_DC_I2C_DDC4_SETUP              = 0x7DBC,  /* (RW) */
+    R6_DC_GPIO_DDC4_MASK              = 0x7E00,  /* (RW) */
+    R6_DC_GPIO_DDC4_A                 = 0x7E04,  /* (RW) */
+    R6_DC_GPIO_DDC4_EN                = 0x7E08,  /* (RW) */
+    R6_DC_GPIO_DDC1_MASK              = 0x7E40,  /* (RW) */
+    R6_DC_GPIO_DDC1_A                 = 0x7E44,  /* (RW) */
+    R6_DC_GPIO_DDC1_EN                = 0x7E48,  /* (RW) */
+    R6_DC_GPIO_DDC1_Y                 = 0x7E4C,  /* (RW) */
+    R6_DC_GPIO_DDC2_MASK              = 0x7E50,  /* (RW) */
+    R6_DC_GPIO_DDC2_A                 = 0x7E54,  /* (RW) */
+    R6_DC_GPIO_DDC2_EN                = 0x7E58,  /* (RW) */
+    R6_DC_GPIO_DDC2_Y                 = 0x7E5C,  /* (RW) */
+    R6_DC_GPIO_DDC3_MASK              = 0x7E60,  /* (RW) */
+    R6_DC_GPIO_DDC3_A                 = 0x7E64,  /* (RW) */
+    R6_DC_GPIO_DDC3_EN                = 0x7E68,  /* (RW) */
+    R6_DC_GPIO_DDC3_Y                 = 0x7E6C  /* (RW) */
+};
+
 
 enum {
     /* CLOCK_CNTL_INDEX */
@@ -310,5 +327,6 @@ enum {
     /* MC_IND_DATA */
 #define MC_IND_DATA_BIT  0xffffffff
 };
+
 
 #endif /* _RHD_REGS_H */
