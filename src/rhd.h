@@ -222,8 +222,6 @@ CARD32 _RHDReadMC(int scrnIndex, CARD16 offset);
 void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
 #define RHDWriteMC(ptr,offset,value) _RHDWriteMC((ptr)->scrnIndex,(offset),(value))
 
-#define regOR(handle, offset, value) RHDRegMask((handle), (offset), (value), (value))
-
 /* Extra debugging verbosity: decimates gdb usage */
 
 /* __func__ is really nice, but not universal */

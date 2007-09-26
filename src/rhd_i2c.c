@@ -413,9 +413,9 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 
     if (!rhd6xxI2CSetupStatus(I2CPtr, line,  prescale))
 	return FALSE;
-
-    regOr(I2CPtr, R6_DC_I2C_CONTROL,
-	  (trans == TRANS_WRITE_READ ? 1 : 0) << 20); /* 2 Transactions */
+    
+    RHDRegMask(I2CPtr, R6_DC_I2C_CONTROL, (trans == TRANS_WRITE_READ)
+	       ? (1 << 20) : 0, R6_DC_I2C_TRANSACTION_COUNT); /* 2 or 1 Transaction */
     RHDRegMask(I2CPtr, R6_DC_I2C_TRANSACTION0,
 	       R6_DC_I2C_STOP_ON_NACK0
 	       | (trans == TRANS_READ ? R6_DC_I2C_RW0 : 0)
@@ -446,7 +446,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     }
     /* Go! */
-    regOR(I2CPtr, R6_DC_I2C_CONTROL, R6_DC_I2C_GO);
+    RHDRegMask(I2CPtr, R6_DC_I2C_CONTROL, R6_DC_I2C_GO, R6_DC_I2C_GO);
     if (rhdR6xxI2CStatus(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
 	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, R6_DC_I2C_INDEX_WRITE
