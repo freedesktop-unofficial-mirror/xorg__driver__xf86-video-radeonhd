@@ -50,8 +50,6 @@ struct rhdMonitor *RHDDefaultMonitor(int scrnIndex);
 struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);
 #endif
 
-struct rhdMonitor *RHDMonitorPanelInit(int scrnIndex, int HDisplay, int VDisplay);
-
 void RHDMonitorDestroy(struct rhdMonitor *Monitor);
 
 #ifdef XF86_DDC_H

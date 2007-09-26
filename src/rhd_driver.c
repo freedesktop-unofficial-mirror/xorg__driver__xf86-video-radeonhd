@@ -1266,10 +1266,6 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 	    else {
 		if (Connector->DDC)
 		    Monitor = RHDMonitorInit(Connector);
-		if (!Monitor)
-		    Monitor = RHDMonitorPanelInit(rhdPtr->scrnIndex,
-						  rhdPtr->Card->Lvds.HDisplay,
-						  rhdPtr->Card->Lvds.VDisplay);
 		if (!Monitor) {
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach"
 			       " monitor to connector \"%s\"\n", Connector->Name);
