@@ -414,8 +414,10 @@ rhdCards[] =
                               {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
     { 0x71C5, 0x1043, 0x10B2, "Asus Z96j", PANEL_B_VGA_A0,
                               {    0,    0, 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
-    { 0x71C5, 0x106B, 0x0080, "Macbook Pro 2,2", PANEL_B2_DVI_AA00,
+    { 0x71C5, 0x106B, 0x0080, "Macbook Pro", PANEL_B2_DVI_AA00,
                               {    0,    0, 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
+    { 0x71C5, 0x1179, 0xFF10, "Toshiba Satellite A100-237", PANEL_B1_VGA_A2,
+                              {    0,    0, 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
     /* 0x71C6 : RV530 : Radeon X1650 */
     /* 0x71C7 : RV535 : Radeon X1650 */
     { 0x71C7, 0x1043, 0x01B6, "Asus EAX1650 Silent", VGA_A0_DVI_BB10 },
