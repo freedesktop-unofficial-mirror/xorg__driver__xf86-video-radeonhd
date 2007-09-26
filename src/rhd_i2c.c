@@ -36,6 +36,8 @@
 #include "rhd_i2c.h"
 #include "rhd_regs.h"
 
+#include "rhd_atombios.h"
+
 typedef struct _rhdI2CRec
 {
     CARD16 prescale;
@@ -486,6 +488,26 @@ rhdTearDownI2C(I2CBusPtr *I2C)
     xfree(I2C);
 }
 
+#define TARGET_HW_I2C_CLOCK 2.5 /*  * 10 kHz */
+static CARD32
+rhdGetI2CPrescale(RHDPtr rhdPtr)
+{
+    AtomBIOSArg atomBiosArg;
+    
+    if (rhdPtr->ChipSet < RHD_R600) {
+	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg);
+	return (0x7F << 8)
+	    + (atomBiosArg.val * 10) / (4 * 127 * TARGET_HW_I2C_CLOCK);
+    } else {
+#if defined M_SPLL_REF_FREQ
+	    return M_SPLL_REF_FREQ * 10/TARGET_HW_I2C_CLOCK;
+#else
+	    return 0x3fff;
+#endif
+    }
+}
+
 static I2CBusPtr *
 rhdInitI2C(int scrnIndex)
 {
@@ -514,7 +536,9 @@ rhdInitI2C(int scrnIndex)
 	 * It nees to be replaced by the proper calculation formula
 	 * once this is available.
 	 */
-	I2C->prescale = 0x3fff;
+	
+	I2C->prescale = rhdGetI2CPrescale(rhdPtr);
+	xf86DrvMsgVerb(scrnIndex, 5, X_INFO, "I2C clock prescale value: %x\n",I2C->prescale);
 	I2C->line = i;
 	if (!(I2CPtr = xf86CreateI2CBusRec())) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
