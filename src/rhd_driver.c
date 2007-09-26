@@ -1255,29 +1255,27 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 	if (Output->Connector) {
 	    struct rhdMonitor *Monitor = NULL;
 
-	    Found = TRUE;
-
-	    Output->Active = TRUE;
-
 	    Connector = Output->Connector;
 
-	    if (Connector->Type != RHD_CONNECTOR_PANEL)
+	    if (Connector->DDC)
 		Monitor = RHDMonitorInit(Connector);
-	    else {
-		if (Connector->DDC)
-		    Monitor = RHDMonitorInit(Connector);
-		if (!Monitor) {
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach"
-			       " monitor to connector \"%s\"\n", Connector->Name);
-		    Output->Active = FALSE;
-		}
+
+	    if (!Monitor && (Connector->Type == RHD_CONNECTOR_PANEL)) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach a"
+			   " monitor to connector \"%s\"\n", Connector->Name);
+		Output->Active = FALSE;
+	    } else {
+		Connector->Monitor = Monitor;
+
+		Output->Active = TRUE;
+
+		Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
+		j++;
+
+		Output->Crtc->Active = TRUE;
+
+		Found = TRUE;
 	    }
-
-	    Connector->Monitor = Monitor;
-	    Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
-	    j++;
-
-	    Output->Crtc->Active = TRUE;
 	}
 
     return Found;

@@ -200,24 +200,12 @@ RHDMonitorInit(struct rhdConnector *Connector)
 	return NULL;
     }
 
-    /* superfluous now */
-    /* We need some stuff out of atombios first */
-    if ((Connector->Type == RHD_CONNECTOR_PANEL) && !EDID) {
-	xf86DrvMsg(Connector->scrnIndex, X_ERROR,
-		   "%s: Cannot handle a panel without EDID yet.\n",
-		   Connector->Name);
-	return NULL;
-    }
-
     Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 
     Monitor->scrnIndex = Connector->scrnIndex;
 
-    /* superfluous check now */
-    if (EDID) {
-	RHDMonitorEDIDSet(Monitor, EDID);
-	xfree(EDID);
-    }
+    RHDMonitorEDIDSet(Monitor, EDID);
+    xfree(EDID);
 
     if (Connector->Type == RHD_CONNECTOR_PANEL)
 	/* Prevent other resolutions on directly connected panels */
