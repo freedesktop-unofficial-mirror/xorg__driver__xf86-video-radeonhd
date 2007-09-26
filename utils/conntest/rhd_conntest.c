@@ -688,7 +688,11 @@ R6xxI2CStatus(void *map)
     RegMask(map, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK,
 	    R6_DC_I2C_SW_DONE_ACK);
 
-    if (!count || (val & 0x07b3))
+#ifdef DEBUG
+	fprintf(stderr, "I2CStatus: %x\n",val);
+#endif
+    if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK 
+			  | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1) & 0x3))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
 }
@@ -783,6 +787,9 @@ R5xxI2CStatus(void *map)
 	     & R5_DC_I2C_GO) != 0)
 	    continue;
 	res = RegRead(map, R5_DC_I2C_STATUS1);
+#ifdef DEBUG
+	fprintf(stderr, "I2CStatus: %x\n",res);
+#endif
 	if (res & R5_DC_I2C_DONE)
 	    return TRUE;
 	else
