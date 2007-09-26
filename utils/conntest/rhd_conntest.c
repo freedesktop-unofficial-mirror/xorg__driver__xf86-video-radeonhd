@@ -107,22 +107,34 @@ enum {
     LVTMA_MACRO_CONTROL            = 0x7B0C,
     LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
 
-       /* I2C */
-    DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
-    DC_I2C_ARBITRATION             = 0x7D34,  /* (RW) */
-    DC_I2C_INTERRUPT_CONTROL       = 0x7D38,  /* (RW) */
-    DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) */
-    DC_I2C_DDC1_SPEED              = 0x7D4C,  /* (RW) */
-    DC_I2C_DDC1_SETUP              = 0x7D50,  /* (RW) */
-    DC_I2C_DDC2_SPEED              = 0x7D54,  /* (RW) */
-    DC_I2C_DDC2_SETUP              = 0x7D58,  /* (RW) */
-    DC_I2C_DDC3_SPEED              = 0x7D5C,  /* (RW) */
-    DC_I2C_DDC3_SETUP              = 0x7D60,  /* (RW) */
-    DC_I2C_TRANSACTION0            = 0x7D64,  /* (RW) */
-    DC_I2C_TRANSACTION1            = 0x7D68,  /* (RW) */
-    DC_I2C_DATA                    = 0x7D74,  /* (RW) */
-    DC_I2C_DDC4_SPEED              = 0x7DB4,  /* (RW) */
-    DC_I2C_DDC4_SETUP              = 0x7DBC,  /* (RW) */
+    /* I2C */
+    /* R5XX */
+    R5_DC_I2C_STATUS1           = 0x7D30,
+    R5_DC_I2C_RESET             = 0x7D34,
+    R5_DC_I2C_CONTROL1          = 0x7D38,
+    R5_DC_I2C_CONTROL2          = 0x7D3C,
+    R5_DC_I2C_CONTROL3          = 0x7D40,
+    R5_DC_I2C_DATA              = 0x7D44,
+    R5_DC_I2C_INTERRUPT_CONTROL = 0x7D48,
+    R5_DC_I2C_ARBITRATION       = 0x7D50,
+
+    /* R6XX */
+    R6_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
+    R6_DC_I2C_ARBITRATION             = 0x7D34,  /* (RW) */
+    R6_DC_I2C_INTERRUPT_CONTROL       = 0x7D38,  /* (RW) */
+    R6_DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) */
+    R6_DC_I2C_DDC1_SPEED              = 0x7D4C,  /* (RW) */
+    R6_DC_I2C_DDC1_SETUP              = 0x7D50,  /* (RW) */
+    R6_DC_I2C_DDC2_SPEED              = 0x7D54,  /* (RW) */
+    R6_DC_I2C_DDC2_SETUP              = 0x7D58,  /* (RW) */
+    R6_DC_I2C_DDC3_SPEED              = 0x7D5C,  /* (RW) */
+    R6_DC_I2C_DDC3_SETUP              = 0x7D60,  /* (RW) */
+    R6_DC_I2C_TRANSACTION0            = 0x7D64,  /* (RW) */
+    R6_DC_I2C_TRANSACTION1            = 0x7D68,  /* (RW) */
+    R6_DC_I2C_DATA                    = 0x7D74,  /* (RW) */
+    R6_DC_I2C_DDC4_SPEED              = 0x7DB4,  /* (RW) */
+    R6_DC_I2C_DDC4_SETUP              = 0x7DBC,  /* (RW) */
+
     DC_GPIO_DDC4_MASK              = 0x7E00,  /* (RW) */
     DC_GPIO_DDC4_A                 = 0x7E04,  /* (RW) */
     DC_GPIO_DDC4_EN                = 0x7E08,  /* (RW) */
@@ -543,64 +555,64 @@ LoadReport(void *map)
 /*
  * R600 DDC defines.
  */
-enum {
-    /* DC_I2C_TRANSACTION0 */
-    DC_I2C_RW0   = (0x1 << 0),
-    DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
-    DC_I2C_ACK_ON_READ0  = (0x1 << 9),
-    DC_I2C_START0        = (0x1 << 12),
-    DC_I2C_STOP0         = (0x1 << 13),
-    DC_I2C_COUNT0        = (0xff << 16),
-    /* DC_I2C_TRANSACTION1 */
-    DC_I2C_RW1   = (0x1 << 0),
-    DC_I2C_STOP_ON_NACK1         = (0x1 << 8),
-    DC_I2C_ACK_ON_READ1  = (0x1 << 9),
-    DC_I2C_START1        = (0x1 << 12),
-    DC_I2C_STOP1         = (0x1 << 13),
-    DC_I2C_COUNT1        = (0xff << 16),
-    /* DC_I2C_DATA */
-    DC_I2C_DATA_RW       = (0x1 << 0),
-    DC_I2C_DATA_BIT      = (0xff << 8),
-    DC_I2C_INDEX         = (0xff << 16),
-    DC_I2C_INDEX_WRITE   = (0x1 << 31),
-    /* DC_I2C_CONTROL */
-    DC_I2C_GO    = (0x1 << 0),
-    DC_I2C_SOFT_RESET    = (0x1 << 1),
-    DC_I2C_SEND_RESET    = (0x1 << 2),
-    DC_I2C_SW_STATUS_RESET       = (0x1 << 3),
-    DC_I2C_SDVO_EN       = (0x1 << 4),
-    DC_I2C_SDVO_ADDR_SEL         = (0x1 << 6),
-    DC_I2C_DDC_SELECT    = (0x7 << 8),
-    DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
-    DC_I2C_SW_DONE_INT   = (0x1 << 0),
-    DC_I2C_SW_DONE_ACK   = (0x1 << 1),
-    DC_I2C_SW_DONE_MASK  = (0x1 << 2),
-    DC_I2C_DDC1_HW_DONE_INT      = (0x1 << 4),
-    DC_I2C_DDC1_HW_DONE_ACK      = (0x1 << 5),
-    DC_I2C_DDC1_HW_DONE_MASK     = (0x1 << 6),
-    DC_I2C_DDC2_HW_DONE_INT      = (0x1 << 8),
-    DC_I2C_DDC2_HW_DONE_ACK      = (0x1 << 9),
-    DC_I2C_DDC2_HW_DONE_MASK     = (0x1 << 10),
-    DC_I2C_DDC3_HW_DONE_INT      = (0x1 << 12),
-    DC_I2C_DDC3_HW_DONE_ACK      = (0x1 << 13),
-    DC_I2C_DDC3_HW_DONE_MASK     = (0x1 << 14),
-    DC_I2C_DDC4_HW_DONE_INT      = (0x1 << 16),
-    DC_I2C_DDC4_HW_DONE_ACK      = (0x1 << 17),
-    DC_I2C_DDC4_HW_DONE_MASK     = (0x1 << 18),
-    /* DC_I2C_SW_STATUS */
-    DC_I2C_SW_STATUS_BIT         = (0x3 << 0),
-    DC_I2C_SW_DONE       = (0x1 << 2),
-    DC_I2C_SW_ABORTED    = (0x1 << 4),
-    DC_I2C_SW_TIMEOUT    = (0x1 << 5),
-    DC_I2C_SW_INTERRUPTED        = (0x1 << 6),
-    DC_I2C_SW_BUFFER_OVERFLOW    = (0x1 << 7),
-    DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
-    DC_I2C_SW_SDVO_NACK  = (0x1 << 10),
-    DC_I2C_SW_NACK0      = (0x1 << 12),
-    DC_I2C_SW_NACK1      = (0x1 << 13),
-    DC_I2C_SW_NACK2      = (0x1 << 14),
-    DC_I2C_SW_NACK3      = (0x1 << 15),
-    DC_I2C_SW_REQ        = (0x1 << 18)
+enum _r6xxI2CBits {
+    /* R6_DC_I2C_TRANSACTION0 */
+    R6_DC_I2C_RW0   = (0x1 << 0),
+    R6_DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
+    R6_DC_I2C_ACK_ON_READ0  = (0x1 << 9),
+    R6_DC_I2C_START0        = (0x1 << 12),
+    R6_DC_I2C_STOP0         = (0x1 << 13),
+    R6_DC_I2C_COUNT0        = (0xff << 16),
+    /* R6_DC_I2C_TRANSACTION1 */
+    R6_DC_I2C_RW1   = (0x1 << 0),
+    R6_DC_I2C_STOP_ON_NACK1         = (0x1 << 8),
+    R6_DC_I2C_ACK_ON_READ1  = (0x1 << 9),
+    R6_DC_I2C_START1        = (0x1 << 12),
+    R6_DC_I2C_STOP1         = (0x1 << 13),
+    R6_DC_I2C_COUNT1        = (0xff << 16),
+    /* R6_DC_I2C_DATA */
+    R6_DC_I2C_DATA_RW       = (0x1 << 0),
+    R6_DC_I2C_DATA_BIT      = (0xff << 8),
+    R6_DC_I2C_INDEX         = (0xff << 16),
+    R6_DC_I2C_INDEX_WRITE   = (0x1 << 31),
+    /* R6_DC_I2C_CONTROL */
+    R6_DC_I2C_GO    = (0x1 << 0),
+    R6_DC_I2C_SOFT_RESET    = (0x1 << 1),
+    R6_DC_I2C_SEND_RESET    = (0x1 << 2),
+    R6_DC_I2C_SW_STATUS_RESET       = (0x1 << 3),
+    R6_DC_I2C_SDVO_EN       = (0x1 << 4),
+    R6_DC_I2C_SDVO_ADDR_SEL         = (0x1 << 6),
+    R6_DC_I2C_DDC_SELECT    = (0x7 << 8),
+    R6_DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
+    R6_DC_I2C_SW_DONE_INT   = (0x1 << 0),
+    R6_DC_I2C_SW_DONE_ACK   = (0x1 << 1),
+    R6_DC_I2C_SW_DONE_MASK  = (0x1 << 2),
+    R6_DC_I2C_DDC1_HW_DONE_INT      = (0x1 << 4),
+    R6_DC_I2C_DDC1_HW_DONE_ACK      = (0x1 << 5),
+    R6_DC_I2C_DDC1_HW_DONE_MASK     = (0x1 << 6),
+    R6_DC_I2C_DDC2_HW_DONE_INT      = (0x1 << 8),
+    R6_DC_I2C_DDC2_HW_DONE_ACK      = (0x1 << 9),
+    R6_DC_I2C_DDC2_HW_DONE_MASK     = (0x1 << 10),
+    R6_DC_I2C_DDC3_HW_DONE_INT      = (0x1 << 12),
+    R6_DC_I2C_DDC3_HW_DONE_ACK      = (0x1 << 13),
+    R6_DC_I2C_DDC3_HW_DONE_MASK     = (0x1 << 14),
+    R6_DC_I2C_DDC4_HW_DONE_INT      = (0x1 << 16),
+    R6_DC_I2C_DDC4_HW_DONE_ACK      = (0x1 << 17),
+    R6_DC_I2C_DDC4_HW_DONE_MASK     = (0x1 << 18),
+    /* R6_DC_I2C_SW_STATUS */
+    R6_DC_I2C_SW_STATUS_BIT         = (0x3 << 0),
+    R6_DC_I2C_SW_DONE       = (0x1 << 2),
+    R6_DC_I2C_SW_ABORTED    = (0x1 << 4),
+    R6_DC_I2C_SW_TIMEOUT    = (0x1 << 5),
+    R6_DC_I2C_SW_INTERRUPTED        = (0x1 << 6),
+    R6_DC_I2C_SW_BUFFER_OVERFLOW    = (0x1 << 7),
+    R6_DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
+    R6_DC_I2C_SW_SDVO_NACK  = (0x1 << 10),
+    R6_DC_I2C_SW_NACK0      = (0x1 << 12),
+    R6_DC_I2C_SW_NACK1      = (0x1 << 13),
+    R6_DC_I2C_SW_NACK2      = (0x1 << 14),
+    R6_DC_I2C_SW_NACK3      = (0x1 << 15),
+    R6_DC_I2C_SW_REQ        = (0x1 << 18)
 };
 
 #define EDID_SLAVE 0xA0
@@ -619,40 +631,40 @@ R6xxI2CSetupStatus(void *map, int channel)
 	RegMask(map, DC_GPIO_DDC1_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC1_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC1_SPEED, (I2C_SPEED << 16) | 2,
 		0xFFFF00FF);
-	RegWrite(map, DC_I2C_DDC1_SETUP, 0x30000000);
+	RegWrite(map, R6_DC_I2C_DDC1_SETUP, 0x30000000);
 	break;
     case 1:
 	RegMask(map, DC_GPIO_DDC2_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC2_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC2_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
-	RegWrite(map, DC_I2C_DDC2_SETUP, 0x30000000);
+	RegWrite(map, R6_DC_I2C_DDC2_SETUP, 0x30000000);
 	break;
     case 2:
 	RegMask(map, DC_GPIO_DDC3_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC3_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC3_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
-	RegWrite(map, DC_I2C_DDC3_SETUP, 0x30000000);
+	RegWrite(map, R6_DC_I2C_DDC3_SETUP, 0x30000000);
 	break;
     case 3:
 	RegMask(map, DC_GPIO_DDC4_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_EN, 0x0, 0xffff);
-	RegMask(map, DC_I2C_DDC4_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC4_SPEED, (I2C_SPEED << 16) | 2,
 		0xffff00ff);
-	RegWrite(map, DC_I2C_DDC4_SETUP, 0x30000000);
+	RegWrite(map, R6_DC_I2C_DDC4_SETUP, 0x30000000);
 	break;
     default:
 	return FALSE;
     }
-    RegWrite(map, DC_I2C_CONTROL, channel << 8);
-    RegMask(map, DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
-    RegMask(map, DC_I2C_ARBITRATION, 0, 0x00);
+    RegWrite(map, R6_DC_I2C_CONTROL, channel << 8);
+    RegMask(map, R6_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
+    RegMask(map, R6_DC_I2C_ARBITRATION, 0, 0x00);
     return TRUE;
 }
 
@@ -669,12 +681,12 @@ R6xxI2CStatus(void *map)
 
 	usleep(1000);
 
-   	val = RegRead(map, DC_I2C_SW_STATUS);
-	if (val & DC_I2C_SW_DONE)
+   	val = RegRead(map, R6_DC_I2C_SW_STATUS);
+	if (val & R6_DC_I2C_SW_DONE)
 	    break;
     }
-    RegMask(map, DC_I2C_INTERRUPT_CONTROL, DC_I2C_SW_DONE_ACK,
-	    DC_I2C_SW_DONE_ACK);
+    RegMask(map, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK,
+	    R6_DC_I2C_SW_DONE_ACK);
 
     if (!count || (val & 0x07b3))
 	return FALSE; /* 2 */
@@ -693,35 +705,66 @@ R6xxDDCProbe(void *map, int Channel)
     if (!R6xxI2CSetupStatus(map, Channel))
 	return FALSE;
 
-    RegMask(map, DC_I2C_CONTROL, 0, 0x00300000); /* 1 Transaction */
+    RegMask(map, R6_DC_I2C_CONTROL, 0, 0x00300000); /* 1 Transaction */
 
-    RegMask(map, DC_I2C_TRANSACTION0, /* only slave */
-	    DC_I2C_STOP_ON_NACK0 | DC_I2C_START0
-	    | DC_I2C_STOP0 | (0 << 16), 0x00ffffff);
+    RegMask(map, R6_DC_I2C_TRANSACTION0, /* only slave */
+	    R6_DC_I2C_STOP_ON_NACK0 | R6_DC_I2C_START0
+	    | R6_DC_I2C_STOP0 | (0 << 16), 0x00ffffff);
 
-    data = DC_I2C_INDEX_WRITE | ( EDID_SLAVE << 8 ) | (0 << 16);
-	RegWrite(map, DC_I2C_DATA, data);
+    data = R6_DC_I2C_INDEX_WRITE | ( EDID_SLAVE << 8 ) | (0 << 16);
+	RegWrite(map, R6_DC_I2C_DATA, data);
 
-    RegMask(map, DC_I2C_CONTROL, DC_I2C_GO, DC_I2C_GO);
+    RegMask(map, R6_DC_I2C_CONTROL, R6_DC_I2C_GO, R6_DC_I2C_GO);
 
     ret = R6xxI2CStatus(map);
 
-    RegMask(map, DC_I2C_CONTROL, 0x2, 0xff);
+    RegMask(map, R6_DC_I2C_CONTROL, 0x2, 0xff);
     usleep(1000);
-    RegWrite(map, DC_I2C_CONTROL, 0);
+    RegWrite(map, R6_DC_I2C_CONTROL, 0);
 
     return ret;
 }
 
-enum {
-    R5XX_DC_I2C_STATUS1           = 0x7D30,
-    R5XX_DC_I2C_RESET             = 0x7D34,
-    R5XX_DC_I2C_CONTROL1          = 0x7D38,
-    R5XX_DC_I2C_CONTROL2          = 0x7D3C,
-    R5XX_DC_I2C_CONTROL3          = 0x7D40,
-    R5XX_DC_I2C_DATA              = 0x7D44,
-    R5XX_DC_I2C_INTERRUPT_CONTROL = 0x7D48,
-    R5XX_DC_I2C_ARBITRATION       = 0x7D50,
+enum _rhdR5xxI2CBits {
+ /* R5_DC_I2C_STATUS1 */
+    R5_DC_I2C_DONE	 = (0x1 << 0),
+    R5_DC_I2C_NACK	 = (0x1 << 1),
+    R5_DC_I2C_HALT	 = (0x1 << 2),
+    R5_DC_I2C_GO	 = (0x1 << 3),
+ /* R5_DC_I2C_RESET */
+    R5_DC_I2C_SOFT_RESET	 = (0x1 << 0),
+    R5_DC_I2C_ABORT	 = (0x1 << 8),
+ /* R5_DC_I2C_CONTROL1 */
+    R5_DC_I2C_START	 = (0x1 << 0),
+    R5_DC_I2C_STOP	 = (0x1 << 1),
+    R5_DC_I2C_RECEIVE	 = (0x1 << 2),
+    R5_DC_I2C_EN	 = (0x1 << 8),
+    R5_DC_I2C_PIN_SELECT	 = (0x3 << 16),
+ /* R5_DC_I2C_CONTROL2 */
+    R5_DC_I2C_ADDR_COUNT	 = (0x7 << 0),
+    R5_DC_I2C_DATA_COUNT	 = (0xf << 8),
+    R5_DC_I2C_PRESCALE_LOWER	 = (0xff << 16),
+    R5_DC_I2C_PRESCALE_UPPER	 = (0xff << 24),
+ /* R5_DC_I2C_CONTROL3 */
+    R5_DC_I2C_DATA_DRIVE_EN	 = (0x1 << 0),
+    R5_DC_I2C_DATA_DRIVE_SEL	 = (0x1 << 1),
+    R5_DC_I2C_CLK_DRIVE_EN	 = (0x1 << 7),
+    R5_DC_I2C_RD_INTRA_BYTE_DELAY	 = (0xff << 8),
+    R5_DC_I2C_WR_INTRA_BYTE_DELAY	 = (0xff << 16),
+    R5_DC_I2C_TIME_LIMIT	 = (0xff << 24),
+ /* R5_DC_I2C_DATA */
+    R5_DC_I2C_DATA_BIT	 = (0xff << 0),
+ /* R5_DC_I2C_INTERRUPT_CONTROL */
+    R5_DC_I2C_INTERRUPT_STATUS	 = (0x1 << 0),
+    R5_DC_I2C_INTERRUPT_AK	 = (0x1 << 8),
+    R5_DC_I2C_INTERRUPT_ENABLE	 = (0x1 << 16),
+ /* R5_DC_I2C_ARBITRATION */
+    R5_DC_I2C_SW_WANTS_TO_USE_I2C	 = (0x1 << 0),
+    R5_DC_I2C_SW_CAN_USE_I2C	 = (0x1 << 1),
+    R5_DC_I2C_SW_DONE_USING_I2C	 = (0x1 << 8),
+    R5_DC_I2C_HW_NEEDS_I2C	 = (0x1 << 9),
+    R5_DC_I2C_ABORT_HDCP_I2C	 = (0x1 << 16),
+    R5_DC_I2C_HW_USING_I2C	 = (0x1 << 17)
 };
 
 /*
@@ -736,16 +779,17 @@ R5xxI2CStatus(void *map)
     while (count-- != 0) {
 	usleep (1000);
 
-	if (((RegRead(map, R5XX_DC_I2C_STATUS1)) & 0x08) != 0)
+	if (((RegRead(map, R5_DC_I2C_STATUS1))
+	     & R5_DC_I2C_GO) != 0)
 	    continue;
-	res = RegRead(map, R5XX_DC_I2C_STATUS1);
-	if (res & 0x1)
+	res = RegRead(map, R5_DC_I2C_STATUS1);
+	if (res & R5_DC_I2C_DONE)
 	    return TRUE;
 	else
 	    return FALSE;
     }
 
-    RegMask(map, R5XX_DC_I2C_RESET, 0x1 << 8, 0xff00);
+    RegMask(map, R5_DC_I2C_RESET, R5_DC_I2C_ABORT, 0xff00);
     return FALSE;
 }
 
@@ -760,35 +804,46 @@ R5xxDDCProbe(void *map, int Channel)
 
     RegMask(map, 0x28, 0x200, 0x200);
 
-    SaveControl1 = RegRead(map, R5XX_DC_I2C_CONTROL1);
+    SaveControl1 = RegRead(map, R5_DC_I2C_CONTROL1);
     save_494 = RegRead(map, 0x494);
     RegMask(map, 0x494, 1, 1);
 
-    RegMask(map, R5XX_DC_I2C_ARBITRATION, 1, 1);
+    RegMask(map, R5_DC_I2C_ARBITRATION, R5_DC_I2C_SW_WANTS_TO_USE_I2C,
+	    R5_DC_I2C_SW_WANTS_TO_USE_I2C);
 
-    RegMask(map, R5XX_DC_I2C_STATUS1, 0x7, 0xff);
-    RegMask(map, R5XX_DC_I2C_RESET, 0x1, 0xffff);
-    RegWrite(map, R5XX_DC_I2C_RESET, 0);
+    RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE
+	       | R5_DC_I2C_NACK
+	       | R5_DC_I2C_HALT, 0xff);
+    RegMask(map, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xffff);
+    RegWrite(map, R5_DC_I2C_RESET, 0);
 
-    RegMask(map, R5XX_DC_I2C_CONTROL1,
-	    (Channel & 0x0f) << 16 | 0x100, 0x00ff0100);
-    RegWrite(map, R5XX_DC_I2C_CONTROL2, I2C_SPEED << 16 | 0x101);
-    RegMask(map, R5XX_DC_I2C_CONTROL3, 0x30 << 24, 0xff << 24);
+    RegMask(map, R5_DC_I2C_CONTROL1,
+	    (Channel & 0x0f) << 16 | R5_DC_I2C_EN,
+	    R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
+    /* addr_count = 1; data_count = 1 */
+    RegWrite(map, R5_DC_I2C_CONTROL2, I2C_SPEED << 16 | 0x101); 
+    /* time limit 30 */
+    RegMask(map, R5_DC_I2C_CONTROL3, 0x30 << 24, 0xff << 24);
 
-    RegWrite(map, R5XX_DC_I2C_DATA, EDID_SLAVE);  /* slave */
-    RegWrite(map, R5XX_DC_I2C_DATA, 0);
+    RegWrite(map, R5_DC_I2C_DATA, EDID_SLAVE);  /* slave */
+    RegWrite(map, R5_DC_I2C_DATA, 0);
 
-    RegMask(map, R5XX_DC_I2C_CONTROL1, 0x3, 0xff);
-    RegMask(map, R5XX_DC_I2C_STATUS1, 0x8, 0xff);
+    RegMask(map, R5_DC_I2C_CONTROL1,
+	    R5_DC_I2C_START | R5_DC_I2C_STOP, 0xff);
+    RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
     ret = R5xxI2CStatus(map);
 
-    RegMask(map, R5XX_DC_I2C_STATUS1, 0x07, 0xff);
-    RegMask(map, R5XX_DC_I2C_RESET, 0x01, 0xff);
-    RegWrite(map,R5XX_DC_I2C_RESET, 0);
+    RegMask(map, R5_DC_I2C_STATUS1,
+	    R5_DC_I2C_DONE
+	    | R5_DC_I2C_NACK
+	    | R5_DC_I2C_HALT, 0xff);
+    RegMask(map, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xff);
+    RegWrite(map,R5_DC_I2C_RESET, 0);
 
-    RegMask(map, R5XX_DC_I2C_ARBITRATION, 0x100, 0xff00);
+    RegMask(map, R5_DC_I2C_ARBITRATION,
+	    R5_DC_I2C_SW_DONE_USING_I2C, 0xff00);
 
-    RegWrite(map, R5XX_DC_I2C_CONTROL1, SaveControl1);
+    RegWrite(map, R5_DC_I2C_CONTROL1, SaveControl1);
     RegWrite(map, 0x494, save_494);
     RegMask(map, 0x28, 0, 0x200);
 
