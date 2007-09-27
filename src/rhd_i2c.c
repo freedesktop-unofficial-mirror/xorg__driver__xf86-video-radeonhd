@@ -152,7 +152,7 @@ enum _rhdR5xxI2CBits {
 static Bool
 rhd5xxI2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 32;
+    int count = 5000;
     CARD32 res;
 
     RHDFUNC(I2CPtr)
@@ -208,28 +208,28 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 
     if (nWrite || !nRead) { /* special case for bus probing */
 	/*
-	 * chip can't just write the slave address without data. 
+	 * chip can't just write the slave address without data.
 	 * Add a dummy byte.
 	 */
 	RHDRegWrite(I2CPtr, R5_DC_I2C_CONTROL2,
-		    prescale << 16 | 
+		    prescale << 16 |
 		    (nWrite ? nWrite : 1) << 8 | 0x01); /* addr_cnt: 1 */
 	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL3,
 		   0x30 << 24, 0xff << 24); /* time limit 30 */
-	
+
 	RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, slave);
-	
+
 	/* Add dummy byte */
 	if (!nWrite)
 	    RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, 0);
 	else
 	    while (nWrite--)
 		RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, *WriteBuffer++);
-	
+
 	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
 		   R5_DC_I2C_START | R5_DC_I2C_STOP, 0xff);
 	RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
-	
+
 	if ((ret = rhd5xxI2CStatus(I2CPtr)))
 	    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1,R5_DC_I2C_DONE, 0xff);
 	else
@@ -315,7 +315,7 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 static Bool
 rhdR6xxI2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 500;
+    int count = 5000;
     volatile CARD32 val;
 
     RHDFUNC(I2CPtr)
@@ -425,7 +425,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 
     if (!rhd6xxI2CSetupStatus(I2CPtr, line,  prescale))
 	return FALSE;
-    
+
     RHDRegMask(I2CPtr, R6_DC_I2C_CONTROL, (trans == TRANS_WRITE_READ)
 	       ? (1 << 20) : 0, R6_DC_I2C_TRANSACTION_COUNT); /* 2 or 1 Transaction */
     RHDRegMask(I2CPtr, R6_DC_I2C_TRANSACTION0,
@@ -449,7 +449,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
-	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) 
+	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
 		| (index++ << 16);
 	    RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
 	}
@@ -506,7 +506,7 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
     AtomBIOSArg atomBiosArg;
     RHDFUNC(rhdPtr);
-    
+
     if (rhdPtr->ChipSet < RHD_R600) {
 	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg);
