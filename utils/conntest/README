@@ -22,11 +22,10 @@ is 1:0.0. lspci happily provides you with this information.
 
 To dump the content of the VBIOS run:
 ./conntest <pci tag> -d
-This will dump the file:
+This will dump the VBIOS to the file:
   <device_id>.<subsystem_vendor_id>.<subsystem_id>.vga.rom
-to the current directory. Should the id information be unavailable the
-it will dump to a file 
-  posted.vga.rom
+to the current directory. Should the id information be unavailable the VBIOS
+will be dumped to the file 'posted.vga.rom'.
 
 Background information:
 -----------------------
