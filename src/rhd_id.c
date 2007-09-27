@@ -431,6 +431,7 @@ rhdCards[] =
     { 0x71C5, 0x1179, 0xFF10, "Toshiba Satellite A100-237", PANEL_B1_VGA_A2,
                               { 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
     /* 0x71C6 : RV530 : Radeon X1650 */
+    { 0x71C6, 0x1462, 0x0400, "MSI RX1650 Pro", DVI_BA10_DVI_AB01 },
     /* 0x71C7 : RV535 : Radeon X1650 */
     { 0x71C7, 0x1043, 0x01B6, "Asus EAX1650 Silent", VGA_A0_DVI_BB10 },
     /* 0x71CD : RV530 : Radeon X1600 */
