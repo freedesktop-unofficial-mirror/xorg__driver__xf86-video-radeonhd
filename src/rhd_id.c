@@ -344,6 +344,7 @@ static struct rhdcard
 rhdCards[] =
 {
     /* 0x7100 : R520 : Radeon X1800 */
+    { 0x7100, 0x1002, 0x0B12, "Powercolor X1800XT", DVI_BA10_DVI_AB01 },
     /* 0x7101 : M58 : Mobility Radeon X1800 XT */
     /* 0x7102 : M58 : Mobility Radeon X1800 */
     /* 0x7103 : M58 : Mobility FireGL V7200 */
