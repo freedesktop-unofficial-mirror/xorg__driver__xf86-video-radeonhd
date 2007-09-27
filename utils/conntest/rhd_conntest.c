@@ -39,6 +39,21 @@
 #include <pci/pci.h>
 #include <unistd.h>
 
+#ifndef ULONG
+typedef unsigned int ULONG;
+# define ULONG ULONG
+#endif
+#ifndef UCHAR
+typedef unsigned char UCHAR;
+# define UCHAR UCHAR
+#endif
+#ifndef USHORT
+typedef unsigned short USHORT;
+# define USHORT USHORT
+#endif
+
+#include "atombios.h"
+
 typedef int Bool;
 #define FALSE 0
 #define TRUE 1
@@ -48,6 +63,7 @@ typedef unsigned int CARD32;
 #define VBIOS_BASE 0xC0000
 #define VBIOS_MAXSIZE 0x10000
 #define DEV_MEM "/dev/mem"
+#define TARGET_HW_I2C_CLOCK 25 /*  kHz */
 
 /* Some register names */
 enum {
@@ -162,6 +178,27 @@ typedef enum _chipType {
 
 /* for RHD_R500/R600 */
 chipType ChipType;
+
+typedef struct _tableVersion
+{
+    CARD8 crev;
+    CARD8 frev;
+} tableVersion;
+
+typedef struct _atomDataTables
+{
+    union {
+        void                            *base;
+        ATOM_FIRMWARE_INFO              *FirmwareInfo;
+        ATOM_FIRMWARE_INFO_V1_2         *FirmwareInfo_V_1_2;
+        ATOM_FIRMWARE_INFO_V1_3         *FirmwareInfo_V_1_3;
+        ATOM_FIRMWARE_INFO_V1_4         *FirmwareInfo_V_1_4;
+    } FirmwareInfo;
+    tableVersion FirmwareInfoVersion;
+} atomDataTables, *atomDataTablesPtr;
+
+atomDataTables AtomData;
+
 
 /*
  * Match pci ids against data and some callbacks
@@ -646,7 +683,6 @@ enum _r6xxI2CBits {
 };
 
 #define EDID_SLAVE 0xA0
-#define I2C_SPEED 0x3FF
 
 /*
  *
@@ -655,13 +691,32 @@ static Bool
 R6xxI2CSetupStatus(void *map, int channel)
 {
     channel &= 0xf;
+    CARD32 clock;
+    CARD16 i2c_speed;
+
+    switch  (AtomData.FirmwareInfoVersion.crev) {
+	case 1:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo->usReferenceClock;
+	    break;
+	case 2:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->usReferenceClock;
+	    break;
+	case 3:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->usReferenceClock;
+	    break;
+	case 4:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->usReferenceClock;
+	    break;
+    }
+
+    i2c_speed = (clock * 10) / TARGET_HW_I2C_CLOCK;
 
     switch (channel) {
     case 0:
 	RegMask(map, DC_GPIO_DDC1_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC1_EN, 0x0, 0xffff);
-	RegMask(map, R6_DC_I2C_DDC1_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC1_SPEED, (i2c_speed << 16) | 2,
 		0xFFFF00FF);
 	RegWrite(map, R6_DC_I2C_DDC1_SETUP, 0x30000000);
 	break;
@@ -669,7 +724,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 	RegMask(map, DC_GPIO_DDC2_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC2_EN, 0x0, 0xffff);
-	RegMask(map, R6_DC_I2C_DDC2_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC2_SPEED, (i2c_speed << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, R6_DC_I2C_DDC2_SETUP, 0x30000000);
 	break;
@@ -677,7 +732,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 	RegMask(map, DC_GPIO_DDC3_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC3_EN, 0x0, 0xffff);
-	RegMask(map, R6_DC_I2C_DDC3_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC3_SPEED, (i2c_speed << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, R6_DC_I2C_DDC3_SETUP, 0x30000000);
 	break;
@@ -685,7 +740,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 	RegMask(map, DC_GPIO_DDC4_MASK, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_A, 0x0, 0xffff);
 	RegMask(map, DC_GPIO_DDC4_EN, 0x0, 0xffff);
-	RegMask(map, R6_DC_I2C_DDC4_SPEED, (I2C_SPEED << 16) | 2,
+	RegMask(map, R6_DC_I2C_DDC4_SPEED, (i2c_speed << 16) | 2,
 		0xffff00ff);
 	RegWrite(map, R6_DC_I2C_DDC4_SETUP, 0x30000000);
 	break;
@@ -721,8 +776,8 @@ R6xxI2CStatus(void *map)
 #ifdef DEBUG
 	fprintf(stderr, "I2CStatus: %x\n",val);
 #endif
-    if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK 
-			  | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1) & 0x3))
+    if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK
+			  | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
 }
@@ -838,6 +893,26 @@ R5xxDDCProbe(void *map, int Channel)
 {
     Bool ret = FALSE;
     CARD32 SaveControl1, save_494;
+    CARD16 prescale;
+    CARD16 clock;
+
+    switch  (AtomData.FirmwareInfoVersion.crev) {
+	case 1:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
+	    break;
+	case 2:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+	    break;
+	case 3:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+	    break;
+	case 4:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+	    break;
+    }
+
+    prescale = (0x7F << 8)
+	+ (clock * 10) / (4 * 127 * TARGET_HW_I2C_CLOCK);
 
     RegMask(map, 0x28, 0x200, 0x200);
 
@@ -858,7 +933,7 @@ R5xxDDCProbe(void *map, int Channel)
 	    (Channel & 0x0f) << 16 | R5_DC_I2C_EN,
 	    R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
     /* addr_count = 1; data_count = 1 */
-    RegWrite(map, R5_DC_I2C_CONTROL2, I2C_SPEED << 16 | 0x101); 
+    RegWrite(map, R5_DC_I2C_CONTROL2, prescale << 16 | 0x101);
     /* time limit 30 */
     RegMask(map, R5_DC_I2C_CONTROL3, 0x30 << 24, 0xff << 24);
 
@@ -918,7 +993,7 @@ DDCReport(void *map)
 	Chan3 = DDCProbe(map, 3);
     else
 	Chan3 = FALSE;
-    
+
     printf("  DDC:");
     if (!Chan0 && !Chan1 && !Chan2 && !Chan3)
 	printf(" RHD_DDC_NONE ");
@@ -1020,10 +1095,10 @@ WriteToFile(char *name, unsigned char *buffer, int size)
 /*
  *
  */
-Bool
-GetVBIOS(char *name)
+unsigned char *
+GetVBIOS(int *size)
 {
-    int size, i;
+    int i;
     unsigned char *rombase;
     char chksm = 0;
     int saved_errno;
@@ -1049,14 +1124,141 @@ GetVBIOS(char *name)
     if (rombase[0] != 0x55 || rombase[1] != 0xaa) {
 	fprintf(stderr,"No BIOS Signature found!\n");
     } else {
-	size = rombase[2] * 512;
-	for (i = 0; i < size; i++) {
+	*size = rombase[2] * 512;
+	for (i = 0; i < *size; i++) {
 	    chksm += rombase[i];
 	}
 	if (chksm)
 	    fprintf(stderr,"Warning: VBIOS chksum incorrect!\n");
     }
-    return WriteToFile(name, rombase, size);
+    return rombase;
+}
+
+/*
+ *
+ */
+void
+FreeVBIOS(unsigned char *rombase, int size)
+{
+    munmap(rombase,size);
+}
+
+/*
+ *
+ */
+static int
+AnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
+{
+    if (hdr->usStructureSize == 0xaa55)
+        return FALSE;
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static int
+AnalyzeRomHdr(unsigned char *rombase,
+              ATOM_ROM_HEADER *hdr,
+              int *data_offset)
+{
+    if (AnalyzeCommonHdr(&hdr->sHeader) == -1) {
+        return FALSE;
+    }
+
+    *data_offset = hdr->usMasterDataTableOffset;
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static int
+AnalyzeRomDataTable(unsigned char *base, int offset,
+                    void *ptr,short *size)
+{
+    ATOM_COMMON_TABLE_HEADER *table = (ATOM_COMMON_TABLE_HEADER *)
+        (base + offset);
+
+   if (!*size || AnalyzeCommonHdr(table) == -1) {
+       if (*size) *size -= 2;
+       *(void **)ptr = NULL;
+       return FALSE;
+   }
+   *size -= 2;
+   *(void **)ptr = (void *)(table);
+   return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+GetAtomBiosTableRevisionAndSize(ATOM_COMMON_TABLE_HEADER *hdr,
+                                   CARD8 *contentRev,
+                                   CARD8 *formatRev,
+                                   short *size)
+{
+    if (!hdr)
+        return FALSE;
+
+    if (contentRev) *contentRev = hdr->ucTableContentRevision;
+    if (formatRev) *formatRev = hdr->ucTableFormatRevision;
+    if (size) *size = (short)hdr->usStructureSize
+                   - sizeof(ATOM_COMMON_TABLE_HEADER);
+    return TRUE;
+}
+
+static Bool
+AnalyzeMasterDataTable(unsigned char *base,
+                       ATOM_MASTER_DATA_TABLE *table)
+{
+    ATOM_MASTER_LIST_OF_DATA_TABLES *data_table =
+        &table->ListOfDataTables;
+    short size;
+
+    if (!AnalyzeCommonHdr(&table->sHeader))
+        return FALSE;
+    if (!GetAtomBiosTableRevisionAndSize(&table->sHeader,NULL,NULL,&size))
+        return FALSE;
+
+    AnalyzeRomDataTable(base,data_table->FirmwareInfo,&(AtomData.FirmwareInfo.base),&size);
+    GetAtomBiosTableRevisionAndSize(AtomData.FirmwareInfo.base,
+                                   &AtomData.FirmwareInfoVersion.crev,
+                                   &AtomData.FirmwareInfoVersion.frev,
+				    NULL);
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+InterpretATOMBIOS(unsigned char *base)
+{
+    int  data_offset;
+    unsigned short atom_romhdr_off =  *(unsigned short*)
+        (base + OFFSET_TO_POINTER_TO_ATOM_ROM_HEADER);
+
+    ATOM_ROM_HEADER *atom_rom_hdr =
+        (ATOM_ROM_HEADER *)(base + atom_romhdr_off);
+    if (memcmp("ATOM",&atom_rom_hdr->uaFirmWareSignature,4)) {
+        fprintf(stderr,"No AtomBios signature found\n");
+        return FALSE;
+    }
+    if (!AnalyzeRomHdr(base, atom_rom_hdr, &data_offset)) {
+        fprintf(stderr, "RomHeader invalid\n");
+        return FALSE;
+    }
+    if (!AnalyzeMasterDataTable(base, (ATOM_MASTER_DATA_TABLE *)
+				   (base + data_offset))) {
+        fprintf(stderr, "ROM Master Table invalid\n");
+        return FALSE;
+    }
+    return TRUE;
 }
 
 /*
@@ -1075,6 +1277,8 @@ main(int argc, char *argv[])
     int saved_errno;
     Bool dumpBios, deviceSet;
     int i;
+    unsigned char *rombase;
+    int size;
 
     /* init libpci */
     pciAccess = pci_alloc();
@@ -1127,6 +1331,12 @@ main(int argc, char *argv[])
 	}
     }
 
+    rombase = GetVBIOS(&size);
+    if (!InterpretATOMBIOS(rombase)) {
+	fprintf(stderr, "Cannot analyze AtomBIOS\n");
+	return 1;
+    }
+
     if (dumpBios) {
 	char name[1024] = "posted.vga.rom";
 
@@ -1136,7 +1346,8 @@ main(int argc, char *argv[])
 		     pci_read_word(device, PCI_SUBSYSTEM_VENDOR_ID),
 		     pci_read_word(device, PCI_SUBSYSTEM_ID));
 	}
-	GetVBIOS(name);
+	WriteToFile(name, rombase, size);
+
     }
 
     if (!deviceSet)
@@ -1175,6 +1386,8 @@ main(int argc, char *argv[])
     DDCReport(io);
 
     LVDSReport(io);
+
+    FreeVBIOS(rombase, size);
 
     return 0;
 }

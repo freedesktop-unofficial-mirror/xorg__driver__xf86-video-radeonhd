@@ -1,5 +1,5 @@
 rhd_conntest: rhd_conntest.c
-	gcc -Wall -o rhd_conntest rhd_conntest.c -lpci -lz
+	gcc -Wall -o rhd_conntest rhd_conntest.c -lpci -lz -I../../src/AtomBios/includes
 
 all: rhd_conntest
 
