@@ -418,7 +418,7 @@ rhdCards[] =
     { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro", VGA_B1_DVI_AA00 },
     /* 0x71C3 : RV535 : Radeon X1600 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
-    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p", PANEL_B_VGA_A0,
+    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p", PANEL_B2_VGA_A0,
                               { 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
     { 0x71C5, 0x103C, 0x30A3, "HP/Compaq nc8430", PANEL_B1_VGA_A0,
