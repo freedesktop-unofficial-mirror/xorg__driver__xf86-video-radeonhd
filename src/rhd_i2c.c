@@ -439,7 +439,8 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
-	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) | (index++ << 16);
+	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 ) 
+		| (index++ << 16);
 	    RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
 	}
     }
@@ -463,6 +464,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     RHDRegMask(I2CPtr, R6_DC_I2C_CONTROL, 0x2, 0xff);
     usleep(10);
     RHDRegWrite(I2CPtr, R6_DC_I2C_CONTROL, 0);
+
     return ret;
 }
 
@@ -488,11 +490,12 @@ rhdTearDownI2C(I2CBusPtr *I2C)
     xfree(I2C);
 }
 
-#define TARGET_HW_I2C_CLOCK 2.5 /*  * 10 kHz */
+#define TARGET_HW_I2C_CLOCK 25 /*  kHz */
 static CARD32
 rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
     AtomBIOSArg atomBiosArg;
+    RHDFUNC(rhdPtr);
     
     if (rhdPtr->ChipSet < RHD_R600) {
 	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
@@ -500,11 +503,9 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 	return (0x7F << 8)
 	    + (atomBiosArg.val * 10) / (4 * 127 * TARGET_HW_I2C_CLOCK);
     } else {
-#if defined M_SPLL_REF_FREQ
-	    return M_SPLL_REF_FREQ * 10/TARGET_HW_I2C_CLOCK;
-#else
-	    return 0x3fff;
-#endif
+	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			GET_REF_CLOCK, &atomBiosArg);
+	    return (atomBiosArg.val * 10) / TARGET_HW_I2C_CLOCK;
     }
 }
 
@@ -536,9 +537,8 @@ rhdInitI2C(int scrnIndex)
 	 * It nees to be replaced by the proper calculation formula
 	 * once this is available.
 	 */
-	
 	I2C->prescale = rhdGetI2CPrescale(rhdPtr);
-	xf86DrvMsgVerb(scrnIndex, 5, X_INFO, "I2C clock prescale value: %x\n",I2C->prescale);
+	xf86DrvMsgVerb(scrnIndex, X_INFO, 5, "I2C clock prescale value: %x\n",I2C->prescale);
 	I2C->line = i;
 	if (!(I2CPtr = xf86CreateI2CBusRec())) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
@@ -600,6 +600,7 @@ rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
 
 	xf86DestroyI2CDevRec(dev, TRUE);
     }
+
     return ret;
 }
 
@@ -620,6 +621,7 @@ rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 	else
 	    slaves[i >> 5] &= ~(1 << (i & 0x1F));
     }
+
     return RHD_I2C_SUCCESS;
 }
 
