@@ -206,26 +206,36 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 	       (line  & 0x0f) << 16 | R5_DC_I2C_EN,
 	       R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
 
-    if (nWrite) {
+    if (nWrite || !nRead) { /* special case for bus probing */
+	/*
+	 * chip can't just write the slave address without data. 
+	 * Add a dummy byte.
+	 */
 	RHDRegWrite(I2CPtr, R5_DC_I2C_CONTROL2,
-		    prescale << 16 | nWrite << 8 | 0x01); /* addr_cnt: 1 */
+		    prescale << 16 | 
+		    (nWrite ? nWrite : 1) << 8 | 0x01); /* addr_cnt: 1 */
 	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL3,
 		   0x30 << 24, 0xff << 24); /* time limit 30 */
-
+	
 	RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, slave);
-
-	while (nWrite--)
-	    RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, *WriteBuffer++);
-
+	
+	/* Add dummy byte */
+	if (!nWrite)
+	    RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, 0);
+	else
+	    while (nWrite--)
+		RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, *WriteBuffer++);
+	
 	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
 		   R5_DC_I2C_START | R5_DC_I2C_STOP, 0xff);
 	RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
-
+	
 	if ((ret = rhd5xxI2CStatus(I2CPtr)))
 	    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1,R5_DC_I2C_DONE, 0xff);
 	else
 	    ret = FALSE;
     }
+
     if (ret && nRead) {
 
 	RHDRegWrite(I2CPtr, R5_DC_I2C_DATA, slave | 1); /*slave*/
