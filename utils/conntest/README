@@ -14,11 +14,19 @@ Run make.
 Usage:
 ------
 
-As root:
+As root run:
 ./conntest <pci tag>
 
 <pci tag> is in the form <bus>:<device>.<function>, the most common position
 is 1:0.0. lspci happily provides you with this information.
+
+To dump the content of the VBIOS run:
+./conntest <pci tag> -d
+This will dump the file:
+  <device_id>.<subsystem_vendor_id>.<subsystem_id>.vga.rom
+to the current directory. Should the id information be unavailable the
+it will dump to a file 
+  posted.vga.rom
 
 Background information:
 -----------------------
