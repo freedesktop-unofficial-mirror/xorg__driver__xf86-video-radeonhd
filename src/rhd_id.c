@@ -57,7 +57,6 @@ SymTabRec RHDChipsets[] = {
     { RHD_M68,   "M68" },
     { RHD_M71,   "M71" },
     /* R500 integrated */
-    { RHD_RS600, "RS600" },
     { RHD_RS690, "RS690" },
     { RHD_RS740, "RS740" },
     /* R600 */
@@ -173,9 +172,6 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_RV560, 0x7297, RES_SHARED_VGA }, /* RV560 */
     { RHD_RS690, 0x791E, RES_SHARED_VGA }, /* Radeon X1200 */
     { RHD_RS690, 0x791F, RES_SHARED_VGA }, /* Radeon X1200 */
-    { RHD_RS600, 0x793F, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
-    { RHD_RS600, 0x7941, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
-    { RHD_RS600, 0x7942, RES_SHARED_VGA }, /* ATI Radeon Xpress 1200 Series */
     { RHD_RS740, 0x796C, RES_SHARED_VGA }, /* RS740 */
     { RHD_RS740, 0x796D, RES_SHARED_VGA }, /* RS740M */
     { RHD_RS740, 0x796E, RES_SHARED_VGA }, /* RS740 */
@@ -240,7 +236,6 @@ RHDIdentify(int flags)
 	    "M72    : Mobility Radeon HD 2400; Radeon E2400.\n\t"
 	    "M74    : Mobility Radeon HD 2400 XT.\n\t"
 	    "M76    : Mobility Radeon HD 2600; (Gemini ATI) Mobility Radeon HD 2600 XT.\n\t"
-	    "RS600  : Radeon Xpress 1200.\n\t"
 	    "RS690  : Radeon X1200.\n\t"
 	    "RS740  : RS740, RS740M\n");
     xf86Msg(X_NONE, "\n");
@@ -485,9 +480,6 @@ rhdCards[] =
     /* 0x7297 : RV560 : RV560 */
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 */
-    /* 0x793F : RS600 : ATI Radeon Xpress 1200 Series */
-    /* 0x7941 : RS600 : ATI Radeon Xpress 1200 Series */
-    /* 0x7942 : RS600 : ATI Radeon Xpress 1200 Series */
     /* 0x796C : RS740 : RS740 */
     /* 0x796D : RS740 : RS740M */
     /* 0x796E : RS740 : RS740 */

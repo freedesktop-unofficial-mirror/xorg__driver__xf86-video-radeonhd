@@ -58,7 +58,6 @@ enum RHD_CHIPSETS {
     RHD_M68,
     RHD_M71,
     /* R500 integrated */
-    RHD_RS600,
     RHD_RS690,
     RHD_RS740,
     /* R600 */
