@@ -510,8 +510,8 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
     if (rhdPtr->ChipSet < RHD_R600) {
 	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg);
-	return (0x7F << 8)
-	    + (atomBiosArg.val * 10) / (4 * 127 * TARGET_HW_I2C_CLOCK);
+	return (0x7f << 8)
+	    + (atomBiosArg.val * 10) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
     } else {
 	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
