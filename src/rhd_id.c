@@ -369,6 +369,8 @@ rhdCards[] =
     /* 0x7143 : RV505 : Radeon X1550 */
     /* 0x7144 : M54 : M54-GL */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
+    { 0x7145, 0x1028, 0x2002, "Dell Inspiron 9400", PANEL_B2_VGA_A0_DVI_A10,
+                              { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
     { 0x7145, 0x1028, 0x2003, "Dell Inspiron 6400", PANEL_B_VGA_A0,
                               { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
     { 0x7145, 0x1179, 0xFF10, "Toshiba Satellite A100-773", PANEL_B1_VGA_A2,
