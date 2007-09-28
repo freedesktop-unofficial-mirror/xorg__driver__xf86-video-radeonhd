@@ -733,7 +733,7 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
             ((Mode->CrtcVSyncStart - Mode->CrtcVDisplay) == 3)) {
             if (!Monitor->ReducedAllowed)
                 return MODE_NO_REDUCED;
-        } else if ((Mode->CrtcHDisplay * 1.10) > Mode->CrtcHTotal)
+        } else if ((Mode->CrtcHDisplay * 11) > (Mode->CrtcHTotal * 10))
             return MODE_HSYNC_NARROW;
     }
 
