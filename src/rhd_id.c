@@ -246,6 +246,12 @@ RHDIdentify(int flags)
  * There are, after all, a limited number of possibilities at the moment.
  */
 
+#define VGA_A0_DVI_BA10 \
+  { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
+    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_1, RHD_HPD_0, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}}
+
 #define VGA_A0_DVI_BB10 \
   { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
@@ -438,6 +444,7 @@ rhdCards[] =
     { 0x71C5, 0x1179, 0xFF10, "Toshiba Satellite A100-237", PANEL_B1_VGA_A2,
                               { 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
     /* 0x71C6 : RV530 : Radeon X1650 */
+    { 0x71C6, 0x174B, 0x0850, "Sapphire X1650 Pro AGP", VGA_A0_DVI_BA10 },
     { 0x71C6, 0x1462, 0x0400, "MSI RX1650 Pro", DVI_BA10_DVI_AB01 },
     /* 0x71C7 : RV535 : Radeon X1650 */
     { 0x71C7, 0x1043, 0x01B6, "Asus EAX1650 Silent", VGA_A0_DVI_BB10 },
