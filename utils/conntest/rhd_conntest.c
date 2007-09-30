@@ -759,7 +759,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 static Bool
 R6xxI2CStatus(void *map)
 {
-    int count = 0x1388;
+    int count = 5000;
     CARD32 val;
 
     while (--count) {
