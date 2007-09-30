@@ -99,6 +99,7 @@
 #include "rhd_lut.h"
 #include "rhd_i2c.h"
 #include "rhd_shadow.h"
+#include "rhd_card.h"
 
 /* ??? */
 #include "servermd.h"
@@ -141,7 +142,7 @@ static void rhdTestDDC(ScrnInfoPtr pScrn);
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
 void RHDIdentify(int flags);
-struct rhdcard *RHDCardIdentify(ScrnInfoPtr pScrn);
+struct rhdCard *RHDCardIdentify(ScrnInfoPtr pScrn);
 
 /* keep accross drivers */
 static int pix24bpp = 0;

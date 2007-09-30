@@ -23,60 +23,33 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _RHD_CONNECTOR_H
-#define _RHD_CONNECTOR_H
+#ifndef _RHD_CARD_H
+#define _RHD_CARD_H
 
-/* so that we can map which is which */
-typedef enum _rhdConnector {
-    RHD_CONNECTOR_NONE  = 0,
-    RHD_CONNECTOR_VGA,
-    RHD_CONNECTOR_DVI,
-    RHD_CONNECTOR_PANEL,
-    RHD_CONNECTOR_TV
-} rhdConnector;
-/* add whatever */
-
-/* map which DDC bus is where */
-typedef enum _rhdDDC {
-    RHD_DDC_0 = 0,
-    RHD_DDC_1,
-    RHD_DDC_2,
-    RHD_DDC_3,
-    RHD_DDC_NONE  = 0xFF
-} rhdDDC;
-
-/* map which HPD plug is used where */
-typedef enum _rhdHPD {
-    RHD_HPD_NONE  = 0,
-    RHD_HPD_0,
-    RHD_HPD_1,
-    RHD_HPD_2
-} rhdHPD;
-
-struct rhdConnector {
-    int scrnIndex;
-
-    CARD8 Type;
+/* Four bytes in TYPE/DDC layout: see rhd_connector.h */
+typedef struct rhdConnectors {
+    rhdConnector Type;
     char *Name;
+    rhdDDC DDC;
+    rhdHPD HPD;
+    rhdOutputType Output[2];
+} rhdConnectorsRec;
 
-    struct _I2CBusRec *DDC;
+struct rhdCard {
+    CARD16 device;
+    CARD16 card_vendor;
+    CARD16 card_device;
+    char *name;
 
-    /* HPD handling here */
-    int  HPDMask;
-    Bool HPDAttached;
-    Bool (*HPDCheck) (struct rhdConnector *Connector);
+    struct rhdConnectors Connectors[RHD_CONNECTORS_MAX];
 
-    /* Add rhdMonitor pointer here. */
-    /* This is created either from default, config or from EDID */
-    struct rhdMonitor *Monitor;
-
-    /* Point back to our Outputs, so we can handle sensing better */
-    struct rhdOutput *Output[2];
+    struct Lvds {
+	CARD16 PowerRefDiv;
+	CARD16 BlonRefDiv;
+	CARD16 PowerDigToDE;
+	CARD16 PowerDEToBL;
+	CARD16 OffDelay;
+    } Lvds;
 };
 
-Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);
-void RHDHPDSave(RHDPtr rhdPtr);
-void RHDHPDRestore(RHDPtr rhdPtr);
-void RHDConnectorsDestroy(RHDPtr rhdPtr);
-
-#endif /* _RHD_CONNECTOR_H */
+#endif /* _RHD_CARD_H */

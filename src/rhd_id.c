@@ -31,8 +31,9 @@
 #include "xf86Resources.h"
 
 #include "rhd.h"
-#include "rhd_connector.h"
 #include "rhd_output.h"
+#include "rhd_connector.h"
+#include "rhd_card.h"
 
 SymTabRec RHDChipsets[] = {
     /* R500 */
@@ -346,7 +347,7 @@ RHDIdentify(int flags)
  * - connector mapping.
  *
  */
-static struct rhdcard
+static struct rhdCard
 rhdCards[] =
 {
     /* 0x7100 : R520 : Radeon X1800 */
@@ -527,7 +528,7 @@ rhdCards[] =
 /*
  *
  */
-struct rhdcard *
+struct rhdCard *
 RHDCardIdentify(ScrnInfoPtr pScrn)
 {
     pciVideoPtr Pci = RHDPTR(pScrn)->PciInfo;

@@ -27,11 +27,13 @@
 #define _RHD_OUTPUT_H
 
 /* Also needed for connector -> output mapping */
-#define RHD_OUTPUT_NONE  0
-#define RHD_OUTPUT_DACA  1
-#define RHD_OUTPUT_DACB  2
-#define RHD_OUTPUT_TMDSA 3
-#define RHD_OUTPUT_LVTMA 4
+typedef enum _rhdOutputType {
+    RHD_OUTPUT_NONE  = 0,
+    RHD_OUTPUT_DACA,
+    RHD_OUTPUT_DACB,
+    RHD_OUTPUT_TMDSA,
+    RHD_OUTPUT_LVTMA
+} rhdOutputType;
 
 /*
  *

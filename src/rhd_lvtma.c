@@ -42,6 +42,7 @@
 #include "rhd_output.h"
 #include "rhd_connector.h"
 #include "rhd_regs.h"
+#include "rhd_card.h"
 
 struct rhdLVTMAPrivate {
     Bool DualLink;

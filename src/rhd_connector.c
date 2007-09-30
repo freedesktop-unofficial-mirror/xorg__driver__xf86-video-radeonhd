@@ -33,10 +33,11 @@
 #include "xf86_ansic.h"
 
 #include "rhd.h"
-#include "rhd_connector.h"
 #include "rhd_output.h"
+#include "rhd_connector.h"
 #include "rhd_regs.h"
 #include "rhd_monitor.h"
+#include "rhd_card.h"
 
 #include "xf86i2c.h"
 #include "rhd_i2c.h"
@@ -112,7 +113,7 @@ RHDHPDCheck(struct rhdConnector *Connector)
  *
  */
 Bool
-RHDConnectorsInit(RHDPtr rhdPtr, struct rhdcard *Card)
+RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 {
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
