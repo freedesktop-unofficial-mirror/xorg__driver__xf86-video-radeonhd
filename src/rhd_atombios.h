@@ -34,6 +34,7 @@ typedef enum {
     ATOMBIOS_TEARDOWN,
     ATOMBIOS_EXEC,
     ATOMBIOS_ALLOCATE_FB_SCRATCH,
+    ATOMBIOS_GET_CONNECTORS,
     ATOM_QUERY_FUNCS = 0x1000,
     GET_DEFAULT_ENGINE_CLOCK = ATOM_QUERY_FUNCS,
     GET_DEFAULT_MEMORY_CLOCK,
@@ -75,7 +76,7 @@ typedef struct {
 typedef union
 {
     CARD32 val;
-  
+
     pointer ptr;
     atomBIOSHandlePtr atomp;
     AtomExec exec;

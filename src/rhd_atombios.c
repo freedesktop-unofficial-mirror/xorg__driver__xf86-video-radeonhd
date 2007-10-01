@@ -32,6 +32,9 @@
 #include "xf86Pci.h"
 #include "rhd.h"
 #include "rhd_atombios.h"
+#include "rhd_output.h"
+#include "rhd_connector.h"
+#include "rhd_card.h"
 
 
 char *AtomBIOSQueryStr[] = {
@@ -785,6 +788,29 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
     return ATOM_SUCCESS;
 }
 
+static rhdConnectorsPtr
+rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle)
+{
+    return NULL;
+}
+
+static rhdConnectorsPtr
+rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle)
+{
+    return NULL;
+}
+
+static rhdConnectorsPtr
+rhdConnectors(atomBIOSHandlePtr handle)
+{
+    rhdConnectorsPtr conp;
+
+    if ((conp = rhdConnectorsFromObjectHeader(handle)))
+	return conp;
+    else
+	return rhdConnectorsFromSupportedDevices(handle);
+}
+
 # ifdef ATOM_BIOS_PARSER
 static Bool
 rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSpace)
@@ -851,9 +877,16 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	    do_return(ATOM_FAILED);
 	}
     }
-    if (func <= ATOMBIOS_TEARDOWN) {
+    if (func == ATOMBIOS_TEARDOWN) {
 	rhdTearDownAtomBIOS(handle);
 	do_return(ATOM_SUCCESS);
+    }
+    if (func == ATOMBIOS_GET_CONNECTORS) {
+	if ((data->ptr = rhdConnectors(handle))) {
+	    do_return(ATOM_SUCCESS);
+	} else {
+	    do_return(ATOM_FAILED);
+	}
     }
 # ifdef ATOM_BIOS_PARSER
     if (func == ATOMBIOS_EXEC) {

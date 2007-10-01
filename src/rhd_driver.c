@@ -452,7 +452,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   "or file a bug for the radeonhd component\n\t"
 		   "of the X.Org product at bugs.freedesktop.org.\n"
 	    );
-	goto error0;
     }
 
     /* We have none of these things yet. */

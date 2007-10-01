@@ -39,6 +39,8 @@
 #include "rhd_monitor.h"
 #include "rhd_card.h"
 
+#include "rhd_atombios.h"
+
 #include "xf86i2c.h"
 #include "rhd_i2c.h"
 
@@ -118,11 +120,22 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
+    AtomBIOSArg data;
 
     RHDFUNC(rhdPtr);
 
     /* Init HPD */
     rhdPtr->HPD = xnfcalloc(sizeof(struct rhdHPD), 1);
+
+#ifdef ATOM_BIOS
+    /* To test the connector table parser we make it the default */
+    if (RHDAtomBIOSFunc(rhdPtr->scrnIndex,
+			rhdPtr->atomBIOS, ATOMBIOS_GET_CONNECTORS, &data) == ATOM_SUCCESS) {
+	Card = data.ptr;
+    }
+#endif
+    if (!Card)
+	return FALSE;
 
     RHDHPDSave(rhdPtr);
     RHDHPDSet(rhdPtr);

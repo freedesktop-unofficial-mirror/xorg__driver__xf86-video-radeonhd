@@ -27,13 +27,13 @@
 #define _RHD_CARD_H
 
 /* Four bytes in TYPE/DDC layout: see rhd_connector.h */
-typedef struct rhdConnectors {
+struct rhdConnectors {
     rhdConnector Type;
     char *Name;
     rhdDDC DDC;
     rhdHPD HPD;
     rhdOutputType Output[2];
-} rhdConnectorsRec;
+};
 
 struct rhdCard {
     CARD16 device;
