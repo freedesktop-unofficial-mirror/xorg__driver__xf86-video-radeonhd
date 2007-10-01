@@ -29,6 +29,7 @@
 /* Also needed for connector -> output mapping */
 typedef enum _rhdOutputType {
     RHD_OUTPUT_NONE  = 0,
+    RHD_OUTPUT_DAC_EXTERNAL = RHD_OUTPUT_NONE,
     RHD_OUTPUT_DACA,
     RHD_OUTPUT_DACB,
     RHD_OUTPUT_TMDSA,

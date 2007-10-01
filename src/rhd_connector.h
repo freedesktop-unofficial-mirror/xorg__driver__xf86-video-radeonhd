@@ -31,6 +31,7 @@ typedef enum _rhdConnector {
     RHD_CONNECTOR_NONE  = 0,
     RHD_CONNECTOR_VGA,
     RHD_CONNECTOR_DVI,
+    RHD_CONNECTOR_DVI_DUAL = RHD_CONNECTOR_DVI,
     RHD_CONNECTOR_PANEL,
     RHD_CONNECTOR_TV
 } rhdConnector;
@@ -42,7 +43,8 @@ typedef enum _rhdDDC {
     RHD_DDC_1,
     RHD_DDC_2,
     RHD_DDC_3,
-    RHD_DDC_NONE  = 0xFF
+    RHD_DDC_NONE  = 0xFF,
+    RHD_DDC_GPIO = RHD_DDC_NONE
 } rhdDDC;
 
 /* map which HPD plug is used where */
@@ -78,5 +80,6 @@ Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);
 void RHDHPDSave(RHDPtr rhdPtr);
 void RHDHPDRestore(RHDPtr rhdPtr);
 void RHDConnectorsDestroy(RHDPtr rhdPtr);
+void RhdPrintConnectorTable(int scrnIndex, struct rhdConnectors *cp);
 
 #endif /* _RHD_CONNECTOR_H */

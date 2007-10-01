@@ -262,3 +262,36 @@ RHDConnectorsDestroy(RHDPtr rhdPtr)
 	}
     }
 }
+
+/*
+ *
+ */
+void
+RhdPrintConnectorTable(int scrnIndex, struct rhdConnectors *cp)
+{
+    int n;
+    static char *c_name[] = 
+	{ "RHD_CONNECTOR_NONE", "RHD_CONNECTOR_VGA", "RHD_CONNECTOR_DVI",
+	  "RHD_CONNECTOR_DVI_DUAL", "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV" 
+	};
+    static char *ddc_name[] = 
+	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
+
+    static char *hpd_name[] =
+	{ "RHD_HPD_NONE", "RHD_HPD_0", "RHD_HPD_1", "RHD_HPD_2" };
+
+    static char *output_name[] = 
+	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",
+	  "RHD_OUTPUT_LVTMA" 
+	};
+    
+    for (n = 0; n < RHD_CONNECTORS_MAX; n++) {
+	if (cp[n].Type == RHD_CONNECTOR_NONE)
+	    break;
+	xf86DrvMsg(scrnIndex, X_INFO, "Connector[%i] {%s, \"%s\", %s %s, { %s, %s } }\n",
+		   n, c_name[cp[n].Type], cp[n].Name,
+		   cp[n].DDC == RHD_DDC_NONE ? "DDC_NONE" : ddc_name[cp[n].DDC],
+		   hpd_name[cp[n].HPD], output_name[cp[n].Output[0]],
+		   output_name[cp[n].Output[0]]);
+    }
+}
