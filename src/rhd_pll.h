@@ -59,11 +59,11 @@ struct rhdPLL {
 
     /* For save/restore */
     Bool Stored;
-    Bool Store_Active;
-    CARD16 Store_RefDivider;
-    CARD16 Store_FBDivider;
-    CARD8 Store_FBDividerFraction;
-    CARD8 Store_PostDivider;
+    Bool StoreActive;
+    CARD32 StoreRefDiv;
+    CARD32 StoreFBDiv;
+    CARD32 StorePostDiv;
+    CARD32 StoreControl;
 };
 
 void RHDPLLsInit(RHDPtr rhdPtr);
