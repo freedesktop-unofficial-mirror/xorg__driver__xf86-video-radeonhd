@@ -61,8 +61,8 @@ SymTabRec RHDChipsets[] = {
     { RHD_RS740, "RS740" },
     /* R600 */
     { RHD_R600,  "R600" },
-    { RHD_RV610, "R610" },
-    { RHD_RV630, "R630" },
+    { RHD_RV610, "RV610" },
+    { RHD_RV630, "RV630" },
     /* R600 Mobility */
     { RHD_M72,   "M72" },
     { RHD_M74,   "M74" },
@@ -294,12 +294,6 @@ RHDIdentify(int flags)
     {RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_0, RHD_HPD_1, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}}
 
-#define DVI_AB01_DVI_BA10 \
-  { { RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_0, RHD_HPD_1, \
-       { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}, \
-    { RHD_CONNECTOR_DVI, "DVI-I 2", RHD_DDC_1, RHD_HPD_0, \
-	{ RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}}
-
 #define DVI_BB11_DVI_AA00 \
   { {RHD_CONNECTOR_DVI, "DVI-I 1", RHD_DDC_1, RHD_HPD_1, \
        { RHD_OUTPUT_DACB, RHD_OUTPUT_LVTMA}}, \
@@ -521,7 +515,7 @@ rhdCards[] =
     /* 0x9586 : RV630 : ATI Radeon HD 2600 XT AGP */
     /* 0x9587 : RV630 : ATI Radeon HD 2600 Pro AGP */
     /* 0x9588 : RV630 : Radeon HD 2600 XT */
-    { 0x9588, 0x1002, 0x2542, "ATI Radeon HD 2600XT DDR4", DVI_AB01_DVI_BA10 },
+    { 0x9588, 0x1002, 0x2542, "ATI Radeon HD 2600XT DDR4", DVI_BA10_DVI_AB01 },
     { 0x9588, 0x174B, 0x2E42, "Sapphire HD 2600 XT", DVI_BA10_DVI_AB01 },
     /* 0x9589 : RV630 : Radeon HD 2600 Pro */
     { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA10_DVI_AB01 },
