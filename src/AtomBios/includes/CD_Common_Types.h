@@ -47,7 +47,7 @@ Revision History:
 	//    typedef __int64             int64_t;
 		typedef unsigned __int32    uint32_t;
 		typedef __int32             int32_t;
-#elif defined (linux) || defined (__NetBSD__) || defined(__sun)
+#elif defined (linux) || defined (__NetBSD__) || defined(__sun) || defined(__OpenBSD__)
 		typedef unsigned int uint32_t;
 		typedef int int32_t;
 	#else
