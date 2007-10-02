@@ -59,7 +59,8 @@ char *AtomBIOSFuncStr[] = {
     "AtomBIOS Init",
     "AtomBIOS Teardown",
     "AtomBIOS Exec",
-    "AtomBIOS Set FB Space"
+    "AtomBIOS Set FB Space",
+    "AtomBIOS GetConnectors"
 };
 
 #ifdef ATOM_BIOS
@@ -1062,7 +1063,8 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
         if (func < sizeof(AtomBIOSFuncStr)) \
 	  xf86DrvMsgVerb(scrnIndex, (x == ATOM_SUCCESS) ? 7 : 1,	\
 		           (x == ATOM_SUCCESS) ? X_INFO : X_WARNING,	\
-		           "Call to %s %s\n", AtomBIOSFuncStr[func], \
+		           "Call to %s %s\n", (func < ATOM_QUERY_FUNCS) \
+                           ? AtomBIOSFuncStr[func] : "AtomBIOSQuery", \
 		           (x == ATOM_SUCCESS) ? "succeeded" : "FAILED"); \
 	    return (x); \
     }
