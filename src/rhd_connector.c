@@ -133,12 +133,12 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     if (RHDAtomBIOSFunc(rhdPtr->scrnIndex,
 			rhdPtr->atomBIOS, ATOMBIOS_GET_CONNECTORS, &data) == ATOM_SUCCESS) {
 	Connectors = data.ptr;
-    }
-#else
-    if (!Card)
-	return FALSE;
+    } else {
+	if (!Card)
+	    return FALSE;
 
-    Connectors = Card->Connectors;
+	Connectors = Card->Connectors;
+    }
 #endif
 
     RHDHPDSave(rhdPtr);
@@ -276,8 +276,8 @@ RhdPrintConnectorTable(int scrnIndex, struct rhdConnectors *cp)
     int n;
     const char *c_name[] =
 	{ "RHD_CONNECTOR_NONE", "RHD_CONNECTOR_VGA", "RHD_CONNECTOR_DVI",
-	  "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV"
-	};
+	  "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV" };
+
     const char *ddc_name[] =
 	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
 
