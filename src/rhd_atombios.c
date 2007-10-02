@@ -104,6 +104,20 @@ CailDebug(int scrnIndex, const char *format, ...)
 # define CAILFUNC(ptr) \
   CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
 
+/*
+ * This works around a bug in atombios.h where
+ * ATOM_MAX_SUPPORTED_DEVICE_INFO is specified incorrectly.
+ */
+
+#define ATOM_MAX_SUPPORTED_DEVICE_INFO_HD (ATOM_DEVICE_RESERVEDF_INDEX+1)
+typedef struct _ATOM_SUPPORTED_DEVICES_INFO_HD
+{
+    ATOM_COMMON_TABLE_HEADER      sHeader;
+    USHORT                        usDeviceSupport;
+    ATOM_CONNECTOR_INFO_I2C       asConnInfo[ATOM_MAX_SUPPORTED_DEVICE_INFO_HD];
+    ATOM_CONNECTOR_INC_SRC_BITMAP asIntSrcInfo[ATOM_MAX_SUPPORTED_DEVICE_INFO_HD];
+} ATOM_SUPPORTED_DEVICES_INFO_HD;
+
 typedef struct _atomDataTables
 {
     unsigned char                       *UtilityPipeLine;
@@ -130,6 +144,7 @@ typedef struct _atomDataTables
         ATOM_SUPPORTED_DEVICES_INFO     *SupportedDevicesInfo;
         ATOM_SUPPORTED_DEVICES_INFO_2   *SupportedDevicesInfo_2;
         ATOM_SUPPORTED_DEVICES_INFO_2d1 *SupportedDevicesInfo_2d1;
+        ATOM_SUPPORTED_DEVICES_INFO_HD  *SupportedDevicesInfo_HD;
     } SupportedDevicesInfo;
     ATOM_GPIO_I2C_INFO                  *GPIO_I2C_Info;
     ATOM_VRAM_USAGE_BY_FIRMWARE         *VRAM_UsageByFirmware;
@@ -788,27 +803,218 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
     return ATOM_SUCCESS;
 }
 
-static rhdConnectorsPtr
-rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle)
+static AtomBiosResult
+rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle, rhdConnectorsPtr *conp)
 {
-    return NULL;
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->Object_Header),
+	    &crev,&frev,NULL)) {
+	return ATOM_NOT_IMPLEMENTED;
+    }
+    if (crev < 2)
+	return ATOM_NOT_IMPLEMENTED;
+
+    return ATOM_FAILED;
 }
 
-static rhdConnectorsPtr
-rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle)
+const static struct
 {
-    return NULL;
+    char *name;
+    rhdConnector con;
+    Bool dual;
+} rhd_connectors[] = {
+    {"NONE", RHD_CONNECTOR_NONE, FALSE },
+    {"VGA", RHD_CONNECTOR_VGA, FALSE },
+    {"DVI-I", RHD_CONNECTOR_DVI, TRUE },
+    {"DVI-D", RHD_CONNECTOR_DVI, FALSE },
+    {"DVI-A", RHD_CONNECTOR_DVI, FALSE },
+    {"SVIDIO", RHD_CONNECTOR_TV, FALSE },
+    {"COMPOSITE", RHD_CONNECTOR_TV, FALSE },
+    {"PANEL", RHD_CONNECTOR_PANEL, FALSE },
+    {"DIGITAL_LINK", RHD_CONNECTOR_NONE, FALSE },
+    {"SCART", RHD_CONNECTOR_TV, FALSE },
+    {"HDMI Type A", RHD_CONNECTOR_NONE, FALSE },
+    {"HDMI Type B", RHD_CONNECTOR_NONE, FALSE },
+    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
+    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
+    {"DVI+DIN", RHD_CONNECTOR_NONE, FALSE }
+};
+
+
+const static struct
+{
+    char *name;
+    rhdOutputType ot;
+} rhd_devices[] = {
+    {"CRT1", RHD_OUTPUT_NONE },
+    {"LCD1", RHD_OUTPUT_LVTMA },
+    {"TV1", RHD_OUTPUT_NONE },
+    {"DFP1", RHD_OUTPUT_TMDSA },
+    {"CRT2", RHD_OUTPUT_NONE },
+    {"LCD2", RHD_OUTPUT_LVTMA },
+    {"TV2", RHD_OUTPUT_NONE },
+    {"DFP2", RHD_OUTPUT_LVTMA },
+    {"CV", RHD_OUTPUT_NONE },
+    {"DFP3", RHD_OUTPUT_LVTMA }
+};
+
+const static rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
+
+const static rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
+				  RHD_OUTPUT_DACB, RHD_OUTPUT_DAC_EXTERNAL };
+
+#define CONNECTOR_LOG_LVL 3
+static AtomBiosResult
+rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *ptr)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    rhdConnectorsPtr cp;
+    struct {
+	rhdOutputType ot;
+	rhdConnector con;
+	rhdDDC ddc;
+	rhdHPD hpd;
+	Bool dual;
+	char *name;
+    } devices[ATOM_MAX_SUPPORTED_DEVICE];
+    int ncon = 0;
+    int n;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    &(atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo->sHeader),
+	    &crev,&frev,NULL)) {
+	return ATOM_NOT_IMPLEMENTED;
+    }
+    if (!(cp = (rhdConnectorsPtr)xcalloc(sizeof(struct rhdConnectors),RHD_CONNECTORS_MAX)))
+	return ATOM_FAILED;
+
+    for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
+	ATOM_CONNECTOR_INFO_I2C ci
+	    = atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo->asConnInfo[n];
+
+	devices[n].con = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].con;
+	if (devices[n].con == RHD_CONNECTOR_NONE) {
+	     devices[n].ot = RHD_OUTPUT_NONE;
+	    continue;
+	}
+
+	devices[n].dual
+	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].dual;
+	devices[n].name
+	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].name;
+
+	xf86DrvMsgVerb(handle->scrnIndex, X_INFO, CONNECTOR_LOG_LVL,
+		       "AtomBIOS Connector[%i]: %s Device: %s ",n,
+		       rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].name,
+		       rhd_devices[n].name);
+
+	if ((devices[n].ot = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
+	     == RHD_OUTPUT_NONE) {
+	    devices[n].ot = rhd_devices[n].ot;
+	}
+	if (ci.sucI2cId.sbfAccess.bfHW_Capable) {
+	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HW DDC %i ",
+			   ci.sucI2cId.sbfAccess.bfI2C_LineMux);
+	    devices[n].ddc = hwddc[ci.sucI2cId.sbfAccess.bfI2C_LineMux];
+	} else if (ci.sucI2cId.sbfAccess.bfI2C_LineMux) {
+	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "GPIO DDC ");
+	    devices[n].ddc = RHD_DDC_GPIO;
+	    /* add support for GPIO line */
+	} else {
+	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO DDC ");
+	    devices[n].ddc = RHD_DDC_NONE;
+	}
+	if (crev > 1) {
+	    ATOM_CONNECTOR_INC_SRC_BITMAP isb
+		= atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo_HD->asIntSrcInfo[n];
+	    switch (isb.ucIntSrcBitmap) {
+		case 0x4:
+		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 1\n");
+		    devices[n].hpd = RHD_HPD_1;
+		    break;
+		case 0xa:
+		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 2\n");
+		    devices[n].hpd = RHD_HPD_2;
+		    break;
+		default:
+		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO HPD\n");
+		    devices[n].hpd = RHD_HPD_NONE;
+		    break;
+	    }
+	} else {
+	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO HPD\n");
+	    devices[n].hpd = RHD_HPD_NONE;
+	}
+    }
+    /* sort devices for connectors */
+    for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
+	int i;
+	if (devices[n].ot == RHD_OUTPUT_NONE)
+	    continue;
+	if (devices[n].con == RHD_CONNECTOR_NONE)
+	    continue;
+	cp[ncon].DDC = devices[n].ddc;
+	cp[ncon].HPD = devices[n].hpd;
+	cp[ncon].Output[0] = devices[n].ot;
+	cp[ncon].Output[1] = RHD_OUTPUT_NONE;
+	cp[ncon].Type = devices[n].con;
+	cp[ncon].Name = devices[n].name;
+	if (devices[n].dual) {
+	    if (devices[n].ddc == RHD_DDC_NONE)
+		xf86DrvMsg(handle->scrnIndex, X_ERROR,
+			   "No DDC channel for device %s found."
+			   " Cannot find matching device.\n",devices[n].name);
+	    else {
+		for (i = n + 1; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
+		    if (!devices[i].dual)
+			continue;
+		    if (devices[n].ddc != devices[i].ddc)
+			continue;
+		    if (((devices[n].ot == RHD_OUTPUT_DACA
+			  || devices[n].ot == RHD_OUTPUT_DACB)
+			 && (devices[i].ot == RHD_OUTPUT_LVTMA
+			     || devices[i].ot == RHD_OUTPUT_TMDSA))
+			|| ((devices[i].ot == RHD_OUTPUT_DACA
+			     || devices[i].ot == RHD_OUTPUT_DACB)
+			    && (devices[n].ot == RHD_OUTPUT_LVTMA
+				|| devices[n].ot == RHD_OUTPUT_TMDSA))) {
+			cp[ncon].Output[1] = devices[i].ot;
+			if (cp[ncon].HPD == RHD_HPD_NONE)
+			    cp[ncon].HPD = devices[i].hpd;
+			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
+		    }
+		}
+	    }
+	}
+
+	if ((++ncon) == RHD_CONNECTORS_MAX)
+	    break;
+    }
+    *ptr = cp;
+
+    RhdPrintConnectorTable(handle->scrnIndex, cp);
+
+    return ATOM_SUCCESS;
 }
 
-static rhdConnectorsPtr
-rhdConnectors(atomBIOSHandlePtr handle)
+static AtomBiosResult
+rhdConnectors(atomBIOSHandlePtr handle, rhdConnectorsPtr *conp)
 {
-    rhdConnectorsPtr conp;
 
-    if ((conp = rhdConnectorsFromObjectHeader(handle)))
-	return conp;
+    if (rhdConnectorsFromObjectHeader(handle,conp) == ATOM_SUCCESS)
+	return ATOM_SUCCESS;
     else
-	return rhdConnectorsFromSupportedDevices(handle);
+	return rhdConnectorsFromSupportedDevices(handle,conp);
 }
 
 # ifdef ATOM_BIOS_PARSER
@@ -882,11 +1088,10 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	do_return(ATOM_SUCCESS);
     }
     if (func == ATOMBIOS_GET_CONNECTORS) {
-	if ((data->ptr = rhdConnectors(handle))) {
-	    do_return(ATOM_SUCCESS);
-	} else {
-	    do_return(ATOM_FAILED);
-	}
+	rhdConnectorsPtr ptr = NULL;
+	ret = rhdConnectors(handle, &ptr);
+	data->ptr = ptr;
+	do_return(ret);
     }
 # ifdef ATOM_BIOS_PARSER
     if (func == ATOMBIOS_EXEC) {

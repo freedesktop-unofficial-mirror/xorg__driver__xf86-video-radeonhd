@@ -117,6 +117,7 @@ RHDHPDCheck(struct rhdConnector *Connector)
 Bool
 RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 {
+    struct rhdConnectors *Connectors;
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
@@ -131,35 +132,38 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     /* To test the connector table parser we make it the default */
     if (RHDAtomBIOSFunc(rhdPtr->scrnIndex,
 			rhdPtr->atomBIOS, ATOMBIOS_GET_CONNECTORS, &data) == ATOM_SUCCESS) {
-	Card = data.ptr;
+	Connectors = data.ptr;
     }
-#endif
+#else
     if (!Card)
 	return FALSE;
+
+    Connectors = Card->Connectors;
+#endif
 
     RHDHPDSave(rhdPtr);
     RHDHPDSet(rhdPtr);
 
     for (i = 0, j = 0; i < RHD_CONNECTORS_MAX; i++) {
-	if (Card->Connectors[i].Type == RHD_CONNECTOR_NONE)
+	if (Connectors[i].Type == RHD_CONNECTOR_NONE)
 	    continue;
 
 	RHDDebug(rhdPtr->scrnIndex, "%s: %d (%s) type %d, ddc %d, hpd %d\n",
-		 __func__, i, Card->Connectors[i].Name, Card->Connectors[i].Type,
-		 Card->Connectors[i].DDC, Card->Connectors[i].HPD);
+		 __func__, i, Connectors[i].Name, Connectors[i].Type,
+		 Connectors[i].DDC, Connectors[i].HPD);
 
 	Connector = xnfcalloc(sizeof(struct rhdConnector), 1);
 
 	Connector->scrnIndex = rhdPtr->scrnIndex;
-	Connector->Type = Card->Connectors[i].Type;
-	Connector->Name = Card->Connectors[i].Name;
+	Connector->Type = Connectors[i].Type;
+	Connector->Name = Connectors[i].Name;
 
 	/* Get the DDC bus of this connector */
-	if (Card->Connectors[i].DDC != RHD_DDC_NONE) {
+	if (Connectors[i].DDC != RHD_DDC_NONE) {
 	    RHDI2CDataArg data;
 	    int ret;
 
-	    data.i = Card->Connectors[i].DDC;
+	    data.i = Connectors[i].DDC;
 	    ret = RHDI2CFunc(rhdPtr->scrnIndex,
 			     rhdPtr->I2C, RHD_I2C_GETBUS, &data);
 	    if (ret == RHD_I2C_SUCCESS)
@@ -167,7 +171,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	}
 
 	/* attach HPD */
-	switch(Card->Connectors[i].HPD) {
+	switch(Connectors[i].HPD) {
 	case RHD_HPD_0:
 	    Connector->HPDMask = 0x00000001;
 	    Connector->HPDCheck = RHDHPDCheck;
@@ -187,16 +191,16 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 
 	/* create Outputs */
 	for (k = 0; k < 2; k++) {
-	    if (Card->Connectors[i].Output[k] == RHD_OUTPUT_NONE)
+	    if (Connectors[i].Output[k] == RHD_OUTPUT_NONE)
 		continue;
 
 	    /* Check whether the output exists already */
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Id == Card->Connectors[i].Output[k])
+		if (Output->Id == Connectors[i].Output[k])
 		    break;
 
 	    if (!Output) {
-		switch (Card->Connectors[i].Output[k]) {
+		switch (Connectors[i].Output[k]) {
 		case RHD_OUTPUT_DACA:
 		    Output = RHDDACAInit(rhdPtr);
 		    RHDOutputAdd(rhdPtr, Output);
@@ -210,13 +214,13 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
 		case RHD_OUTPUT_LVTMA:
-		    Output = RHDLVTMAInit(rhdPtr,  Card->Connectors[i].Type);
+		    Output = RHDLVTMAInit(rhdPtr,  Connectors[i].Type);
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
 		default:
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			       "%s: unhandled output id: %d\n", __func__,
-			       Card->Connectors[i].Output[k]);
+			       Connectors[i].Output[k]);
 		    break;
 		}
 	    }
@@ -270,28 +274,28 @@ void
 RhdPrintConnectorTable(int scrnIndex, struct rhdConnectors *cp)
 {
     int n;
-    static char *c_name[] = 
+    const char *c_name[] =
 	{ "RHD_CONNECTOR_NONE", "RHD_CONNECTOR_VGA", "RHD_CONNECTOR_DVI",
-	  "RHD_CONNECTOR_DVI_DUAL", "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV" 
+	  "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV"
 	};
-    static char *ddc_name[] = 
+    const char *ddc_name[] =
 	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
 
-    static char *hpd_name[] =
+    const char *hpd_name[] =
 	{ "RHD_HPD_NONE", "RHD_HPD_0", "RHD_HPD_1", "RHD_HPD_2" };
 
-    static char *output_name[] = 
+    const char *output_name[] =
 	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",
-	  "RHD_OUTPUT_LVTMA" 
+	  "RHD_OUTPUT_LVTMA"
 	};
-    
+
     for (n = 0; n < RHD_CONNECTORS_MAX; n++) {
 	if (cp[n].Type == RHD_CONNECTOR_NONE)
 	    break;
-	xf86DrvMsg(scrnIndex, X_INFO, "Connector[%i] {%s, \"%s\", %s %s, { %s, %s } }\n",
+	xf86DrvMsg(scrnIndex, X_INFO, "Connector[%i] {%s, \"%s\", %s, %s, { %s, %s } }\n",
 		   n, c_name[cp[n].Type], cp[n].Name,
 		   cp[n].DDC == RHD_DDC_NONE ? "DDC_NONE" : ddc_name[cp[n].DDC],
 		   hpd_name[cp[n].HPD], output_name[cp[n].Output[0]],
-		   output_name[cp[n].Output[0]]);
+		   output_name[cp[n].Output[1]]);
     }
 }
