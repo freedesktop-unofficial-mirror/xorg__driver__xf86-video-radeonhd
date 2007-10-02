@@ -193,6 +193,7 @@ typedef struct _atomBIOSHandle {
     pointer *scratchBase;
     CARD32 fbBase;
     PCITAG PciTag;
+    int BIOSImageSize;
 } atomBIOSHandle;
 
 enum {
@@ -324,7 +325,7 @@ rhdAnalyzeMasterDataTable(unsigned char *base,
 
 static Bool
 rhdGetAtombiosDataTable(int scrnIndex, unsigned char *base,
-                        atomDataTables *atomDataPtr)
+                        atomDataTables *atomDataPtr, int BIOSImageSize)
 {
     int  data_offset;
     unsigned short atom_romhdr_off =  *(unsigned short*)
@@ -332,10 +333,16 @@ rhdGetAtombiosDataTable(int scrnIndex, unsigned char *base,
     ATOM_ROM_HEADER *atom_rom_hdr =
         (ATOM_ROM_HEADER *)(base + atom_romhdr_off);
 
-    RHDFUNCI(scrnIndex)
+    RHDFUNCI(scrnIndex);
+
+    if (atom_romhdr_off + sizeof(ATOM_ROM_HEADER) > BIOSImageSize) {
+	xf86DrvMsg(scrnIndex,X_ERROR,
+		   "%s: AtomROM header extends beyond BIOS image\n",__func__);
+	return FALSE;
+    }
 
     if (memcmp("ATOM",&atom_rom_hdr->uaFirmWareSignature,4)) {
-        xf86DrvMsg(scrnIndex,X_ERROR,"No AtomBios signature found\n");
+        xf86DrvMsg(scrnIndex,X_ERROR,"%s: No AtomBios signature found\n",__func__);
         return FALSE;
     }
     xf86DrvMsg(scrnIndex, X_INFO, "ATOM BIOS Rom: \n");
@@ -343,10 +350,16 @@ rhdGetAtombiosDataTable(int scrnIndex, unsigned char *base,
         xf86DrvMsg(scrnIndex, X_ERROR, "RomHeader invalid\n");
         return FALSE;
     }
+
+    if (data_offset + sizeof (ATOM_MASTER_DATA_TABLE) > BIOSImageSize) {
+	xf86DrvMsg(scrnIndex,X_ERROR,"%s: Atom data table outside of BIOS\n",
+		   __func__);
+    }
+
     if (!rhdAnalyzeMasterDataTable(base, (ATOM_MASTER_DATA_TABLE *)
                               (base + data_offset),
                                 atomDataPtr)) {
-        xf86DrvMsg(scrnIndex, X_ERROR, "ROM Master Table invalid\n");
+        xf86DrvMsg(scrnIndex, X_ERROR, "%s: ROM Master Table invalid\n", __func__);
         return FALSE;
     }
     return TRUE;
@@ -471,6 +484,7 @@ rhdInitAtomBIOS(int scrnIndex)
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle = NULL;
     unsigned int dummy;
+    int BIOSImageSize = 0;
 
     RHDFUNCI(scrnIndex);
 
@@ -478,29 +492,36 @@ rhdInitAtomBIOS(int scrnIndex)
 	xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from INT10\n");
 	ptr = rhdPtr->BIOSCopy;
 	rhdPtr->BIOSCopy = NULL;
+
+	BIOSImageSize = ptr[2] * 512;
+	if (BIOSImageSize > legacyBIOSMax) {
+	    xf86DrvMsg(scrnIndex,X_ERROR,"Invalid BIOS length field\n");
+	    return NULL;
+	}
     } else {
 	if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
-	    int length = 1 << rhdPtr->PciInfo->biosSize;
 	    int read_len;
-	    if (!(ptr = xcalloc(length, 1))) {
+
+	    BIOSImageSize = 1 << rhdPtr->PciInfo->biosSize;
+	    if (!(ptr = xcalloc(BIOSImageSize, 1))) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot allocate %i bytes of memory "
-			   "for BIOS image\n",length);
+			   "for BIOS image\n",BIOSImageSize);
 		return NULL;
 	    }
 	    xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from PCI ROM\n");
 
 	    if ((read_len =
-		 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, ptr, length) < 0)) {
+		 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, ptr, BIOSImageSize) < 0)) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot read BIOS image\n");
 		goto error;
-	    } else if (read_len != length)
+	    } else if (read_len != BIOSImageSize)
 		xf86DrvMsg(scrnIndex,X_WARNING,
 			   "Read only %i of %i bytes of BIOS image\n",
-			   read_len, length);
+			   read_len, BIOSImageSize);
 	} else {
-	    int length, read_len;
+	    int read_len;
 	    unsigned char tmp[32];
 	    xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from legacy VBIOS location\n");
 	    if (xf86ReadBIOS(legacyBIOSLocation, 0, tmp, 32) < 0) {
@@ -508,18 +529,18 @@ rhdInitAtomBIOS(int scrnIndex)
 			   "Cannot obtain POSTed BIOS header\n");
 		return NULL;
 	    }
-	    length = tmp[2] * 512;
-	    if (length > legacyBIOSMax) {
+	    BIOSImageSize = tmp[2] * 512;
+	    if (BIOSImageSize > legacyBIOSMax) {
 		xf86DrvMsg(scrnIndex,X_ERROR,"Invalid BIOS length field\n");
 		return NULL;
 	    }
-	    if (!(ptr = xcalloc(length,1))) {
+	    if (!(ptr = xcalloc(BIOSImageSize,1))) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot allocate %i bytes of memory "
-			   "for BIOS image\n",length);
+			   "for BIOS image\n",BIOSImageSize);
 		return NULL;
 	    }
-	    if ((read_len = xf86ReadBIOS(legacyBIOSLocation, 0, ptr, length)
+	    if ((read_len = xf86ReadBIOS(legacyBIOSLocation, 0, ptr, BIOSImageSize)
 		 < 0)) {
 		xf86DrvMsg(scrnIndex,X_ERROR,"Cannot read POSTed BIOS\n");
 		goto error;
@@ -531,7 +552,7 @@ rhdInitAtomBIOS(int scrnIndex)
 		   "ATOM BIOS data tabes\n");
 	goto error;
     }
-    if (!rhdGetAtombiosDataTable(scrnIndex, ptr, atomDataPtr))
+    if (!rhdGetAtombiosDataTable(scrnIndex, ptr, atomDataPtr,BIOSImageSize))
 	goto error1;
     if (!(handle = xcalloc(sizeof(atomBIOSHandle),1))) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"Cannot allocate memory\n");
@@ -541,6 +562,8 @@ rhdInitAtomBIOS(int scrnIndex)
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = scrnIndex;
     handle->PciTag = rhdPtr->PciTag;
+    handle->BIOSImageSize = BIOSImageSize;
+
 # if ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
     if (!rhdBIOSGetFbBaseAndSize(handle, &dummy, &dummy)) {
@@ -805,90 +828,100 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
     return ATOM_SUCCESS;
 }
 
-const static struct
+#define Clamp(n,max,name) ((n >= max) ? ( \
+     xf86DrvMsg(handle->scrnIndex,X_ERROR,"%s: %s %i exceeds maximum %i\n", \
+		__func__,name,n,max), TRUE) : FALSE)
+
+const static struct _rhd_connector_objs
 {
     char *name;
     rhdConnector con;
 } rhd_connector_objs[] = {
-    { "none", RHD_CONNECTOR_NONE },
-    { "single_link_dvi_i", RHD_CONNECTOR_DVI },
-    { "dual_link_dvi_i", RHD_CONNECTOR_DVI_DUAL },
-    { "single_link_dvi_d", RHD_CONNECTOR_DVI },
-    { "dual_link_dvi_d", RHD_CONNECTOR_DVI_DUAL },
+    { "NONE", RHD_CONNECTOR_NONE },
+    { "SINGLE_LINK_DVI_I", RHD_CONNECTOR_DVI },
+    { "DUAL_LINK_DVI_I", RHD_CONNECTOR_DVI_DUAL },
+    { "SINGLE_LINK_DVI_D", RHD_CONNECTOR_DVI },
+    { "DUAL_LINK_DVI_D", RHD_CONNECTOR_DVI_DUAL },
     { "vga", RHD_CONNECTOR_VGA },
-    { "composite", RHD_CONNECTOR_TV },
-    { "svideo", RHD_CONNECTOR_TV, },
-    { "d_connector", RHD_CONNECTOR_NONE, },
-    { "9pin_din", RHD_CONNECTOR_NONE },
+    { "COMPOSITE", RHD_CONNECTOR_TV },
+    { "SVIDEO", RHD_CONNECTOR_TV, },
+    { "D_CONNECTOR", RHD_CONNECTOR_NONE, },
+    { "9PIN_DIN", RHD_CONNECTOR_NONE },
     { "scart", RHD_CONNECTOR_TV },
-    { "hdmi_type_a", RHD_CONNECTOR_NONE },
-    { "hdmi_type_b", RHD_CONNECTOR_NONE },
-    { "hdmi_type_b", RHD_CONNECTOR_NONE },
-    { "lvds", RHD_CONNECTOR_PANEL },
-    { "7pin_din", RHD_CONNECTOR_TV },
-    { "pcie_connector", RHD_CONNECTOR_NONE },
-    { "crossfire", RHD_CONNECTOR_NONE },
-    { "hardcode_dvi", RHD_CONNECTOR_NONE },
-    { "displayport", RHD_CONNECTOR_NONE}
+    { "HDMI_TYPE_A", RHD_CONNECTOR_NONE },
+    { "HDMI_TYPE_B", RHD_CONNECTOR_NONE },
+    { "HDMI_TYPE_B", RHD_CONNECTOR_NONE },
+    { "LVDS", RHD_CONNECTOR_PANEL },
+    { "7PIN_DIN", RHD_CONNECTOR_TV },
+    { "PCIE_CONNECTOR", RHD_CONNECTOR_NONE },
+    { "CROSSFIRE", RHD_CONNECTOR_NONE },
+    { "HARDCODE_DVI", RHD_CONNECTOR_NONE },
+    { "DISPLAYPORT", RHD_CONNECTOR_NONE}
 };
+const static int n_rhd_connector_objs = sizeof (rhd_connector_objs)/sizeof(struct _rhd_connector_objs);
 
-const static struct
+const static struct _rhd_encoders
 {
     char *name;
     rhdOutputType ot;
 } rhd_encoders[] = {
-    { "none", RHD_OUTPUT_NONE },
-    { "internal_lvds", RHD_OUTPUT_LVDS },
-    { "internal_tmds1", RHD_OUTPUT_TMDSA },
-    { "internal_tmds2", RHD_OUTPUT_TMDSB },
-    { "internal_dac1", RHD_OUTPUT_DACA },
-    { "internal_dac2", RHD_OUTPUT_DACB },
-    { "internal_sdvoa", RHD_OUTPUT_NONE },
-    { "internal_sdvob", RHD_OUTPUT_NONE },
-    { "si170b", RHD_OUTPUT_NONE },
-    { "ch7303", RHD_OUTPUT_NONE },
-    { "ch7301", RHD_OUTPUT_NONE },
-    { "internal_dvo1", RHD_OUTPUT_NONE },
-    { "external_sdvoa", RHD_OUTPUT_NONE },
-    { "external_sdvob", RHD_OUTPUT_NONE },
-    { "titfp513", RHD_OUTPUT_NONE },
-    { "internal_lvtm1", RHD_OUTPUT_LVTMA },
-    { "vt1623", RHD_OUTPUT_NONE },
-    { "hdmi_si1930", RHD_OUTPUT_NONE },
-    { "hdmi_internal", RHD_OUTPUT_NONE },
-    { "internal_kldscp_tmds1", RHD_OUTPUT_TMDSA },
-    { "internal_klscp_dvo1", RHD_OUTPUT_NONE },
-    { "internal_kldscp_dac1", RHD_OUTPUT_DACA },
-    { "internal_kldscp_dac2", RHD_OUTPUT_DACB },
-    { "si178", RHD_OUTPUT_NONE },
-    {"mvpu_fpga", RHD_OUTPUT_NONE },
-    { "internal_ddi", RHD_OUTPUT_NONE },
-    { "vt1625", RHD_OUTPUT_NONE },
-    { "hdmi_si1932", RHD_OUTPUT_NONE },
-    { "an9801", RHD_OUTPUT_NONE },
-    { "dp501",  RHD_OUTPUT_NONE },
+    { "NONE", RHD_OUTPUT_NONE },
+    { "INTERNAL_LVDS", RHD_OUTPUT_LVDS },
+    { "INTERNAL_TMDS1", RHD_OUTPUT_TMDSA },
+    { "INTERNAL_TMDS2", RHD_OUTPUT_TMDSB },
+    { "INTERNAL_DAC1", RHD_OUTPUT_DACA },
+    { "INTERNAL_DAC2", RHD_OUTPUT_DACB },
+    { "INTERNAL_SDVOA", RHD_OUTPUT_NONE },
+    { "INTERNAL_SDVOB", RHD_OUTPUT_NONE },
+    { "SI170B", RHD_OUTPUT_NONE },
+    { "CH7303", RHD_OUTPUT_NONE },
+    { "CH7301", RHD_OUTPUT_NONE },
+    { "INTERNAL_DVO1", RHD_OUTPUT_NONE },
+    { "EXTERNAL_SDVOA", RHD_OUTPUT_NONE },
+    { "EXTERNAL_SDVOB", RHD_OUTPUT_NONE },
+    { "TITFP513", RHD_OUTPUT_NONE },
+    { "INTERNAL_LVTM1", RHD_OUTPUT_LVTMA },
+    { "VT1623", RHD_OUTPUT_NONE },
+    { "HDMI_SI1930", RHD_OUTPUT_NONE },
+    { "HDMI_INTERNAL", RHD_OUTPUT_NONE },
+    { "INTERNAL_KLDSCP_TMDS1", RHD_OUTPUT_TMDSA },
+    { "INTERNAL_KLSCP_DVO1", RHD_OUTPUT_NONE },
+    { "INTERNAL_KLDSCP_DAC1", RHD_OUTPUT_DACA },
+    { "INTERNAL_KLDSCP_DAC2", RHD_OUTPUT_DACB },
+    { "SI178", RHD_OUTPUT_NONE },
+    {"MVPU_FPGA", RHD_OUTPUT_NONE },
+    { "INTERNAL_DDI", RHD_OUTPUT_NONE },
+    { "VT1625", RHD_OUTPUT_NONE },
+    { "HDMI_SI1932", RHD_OUTPUT_NONE },
+    { "AN9801", RHD_OUTPUT_NONE },
+    { "DP501",  RHD_OUTPUT_NONE },
 };
+const static int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 
 /*
  *
  */
 static Bool
-rhdInterpretObjectID(CARD16 id, CARD8 *obj_type, CARD8 *obj_id, CARD8 *num,
-		     char **name)
+rhdInterpretObjectID(atomBIOSHandlePtr handle,
+		     CARD16 id, CARD8 *obj_type, CARD8 *obj_id,
+		     CARD8 *num, char **name)
 {
     *obj_id = (id & OBJECT_ID_MASK) >> OBJECT_ID_SHIFT;
     *num = (id & ENUM_ID_MASK) >> ENUM_ID_SHIFT;
     *obj_type = (id & OBJECT_TYPE_MASK) >> OBJECT_TYPE_SHIFT;
 
+    *name = NULL;
+
     switch (*obj_type) {
 	case GRAPH_OBJECT_TYPE_CONNECTOR:
-	    *name = rhd_connector_objs[*obj_id].name;
+	    if (!Clamp(*obj_id, n_rhd_connector_objs, "obj_id"))
+		*name = rhd_connector_objs[*obj_id].name;
 	    break;
 	case GRAPH_OBJECT_TYPE_ENCODER:
-	    *name = rhd_encoders[*obj_id].name;
+	    if (!Clamp(*obj_id, n_rhd_encoders, "obj_id"))
+		*name = rhd_encoders[*obj_id].name;
 	    break;
 	default:
-	    *name = NULL;
 	    break;
     }
     return TRUE;
@@ -916,9 +949,12 @@ rhdDDCFromI2CRecord(atomBIOSHandlePtr handle,
 	if (Record->ucI2CAddr != 0)
 	    return;
 
-	if (Record->sucI2cId.bfHW_Capable)
+	if (Record->sucI2cId.bfHW_Capable) {
+
 	    *DDC = (rhdDDC)Record->sucI2cId.bfI2C_LineMux;
-	else {
+	    if (*DDC >= RHD_DDC_MAX) *DDC = RHD_DDC_NONE;
+
+	} else {
 	    *DDC = RHD_DDC_GPIO;
 	    /* add GPIO pin parsing */
 	}
@@ -939,6 +975,8 @@ rhdParseGPIOLutForHPD(atomBIOSHandlePtr handle,
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
+
+    *HPD = RHD_HPD_NONE;
 
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    &atomDataPtr->GPIO_Pin_LUT->sHeader, NULL, NULL, NULL)) {
@@ -1005,17 +1043,21 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
     CARD8 crev, frev;
     ATOM_CONNECTOR_OBJECT_TABLE *con_obj;
     rhdConnectorsPtr cp;
+    unsigned long object_header_end;
     int ncon = 0;
     int i,j;
+    short object_header_size;
 
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
+
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    &atomDataPtr->Object_Header->sHeader,
-	    &crev,&frev,NULL)) {
+	    &crev,&frev,&object_header_size)) {
 	return ATOM_NOT_IMPLEMENTED;
     }
+
     if (crev < 2) /* don't bother with anything below rev 2 */
 	return ATOM_NOT_IMPLEMENTED;
 
@@ -1023,38 +1065,70 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 					 RHD_CONNECTORS_MAX)))
 	return ATOM_FAILED;
 
+    object_header_end =
+	atomDataPtr->Object_Header->usConnectorObjectTableOffset
+	+ object_header_size;
+
+    if ((object_header_size > handle->BIOSImageSize)
+	|| (atomDataPtr->Object_Header->usConnectorObjectTableOffset
+	    > handle->BIOSImageSize)
+	|| object_header_end > handle->BIOSImageSize) {
+	xf86DrvMsg(handle->scrnIndex, X_ERROR,
+		   "%s: Object table information is bogus\n",__func__);
+	return ATOM_FAILED;
+    }
+
+    if (((unsigned long)&atomDataPtr->Object_Header->sHeader
+	 + object_header_end) >  ((unsigned long)handle->BIOSBase
+		     + handle->BIOSImageSize)) {
+	xf86DrvMsg(handle->scrnIndex, X_ERROR,
+		   "%s: Object table extends beyond BIOS Image\n",__func__);
+	return ATOM_FAILED;
+    }
+
     con_obj = (ATOM_CONNECTOR_OBJECT_TABLE *)
-	((char *)& atomDataPtr->Object_Header->sHeader +
+	((char *)&atomDataPtr->Object_Header->sHeader +
 	 atomDataPtr->Object_Header->usConnectorObjectTableOffset);
 
     for (i = 0; i < con_obj->ucNumberOfObjects; i++) {
 	ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT *SrcDstTable;
 	ATOM_COMMON_RECORD_HEADER *Record;
+	int record_base;
 	CARD8 obj_type, obj_id, num;
 	char *name;
 	int nout = 0;
 
-	rhdInterpretObjectID(con_obj->asObjects[i].usObjectID,
+	rhdInterpretObjectID(handle, con_obj->asObjects[i].usObjectID,
 			     &obj_type, &obj_id, &num, &name);
 
 	RHDDebug(handle->scrnIndex, "Object: ID: %x name: %s type: %x id: %x\n",
 		 con_obj->asObjects[i].usObjectID,name,obj_type, obj_id);
 
+
 	if (obj_type != GRAPH_OBJECT_TYPE_CONNECTOR)
 	    continue;
-
-	cp[ncon].Type = rhd_connector_objs[obj_id].con;
-	cp[ncon].Name = name;
 
 	SrcDstTable = (ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT *)
 	    ((char *)&atomDataPtr->Object_Header->sHeader
 	     + con_obj->asObjects[i].usSrcDstTableOffset);
 
+	if (con_obj->asObjects[i].usSrcDstTableOffset
+	    + (SrcDstTable->ucNumberOfSrc
+	       * sizeof(ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT))
+	    > handle->BIOSImageSize) {
+	    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: SrcDstTable[%i] extends "
+		       "beyond Object_Header table\n",__func__,i);
+	    continue;
+	}
+
+	cp[ncon].Type = rhd_connector_objs[obj_id].con;
+	cp[ncon].Name = name;
+
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
 	    CARD8 stype, sobj_id, snum;
 	    char *sname;
 
-	    rhdInterpretObjectID(SrcDstTable->usSrcObjectID[j],
+	    rhdInterpretObjectID(handle, SrcDstTable->usSrcObjectID[j],
 				 &stype, &sobj_id, &snum, &sname);
 
 	    RHDDebug(handle->scrnIndex, " * SrcObject: ID: %x name: %s\n",
@@ -1069,7 +1143,17 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 	    ((char *)&atomDataPtr->Object_Header->sHeader
 	     + con_obj->asObjects[i].usRecordOffset);
 
+	record_base = con_obj->asObjects[i].usRecordOffset;
+
 	while (Record->ucRecordType != 0xff) {
+
+	    if ((record_base += Record->ucRecordSize)
+		> object_header_size) {
+		xf86DrvMsg(handle->scrnIndex, X_ERROR,
+			   "%s: Object Records extend beyond Object Table\n",
+			   __func__);
+		break;
+	    }
 
 	    RHDDebug(handle->scrnIndex, " - Record Type: %x\n",
 		     Record->ucRecordType);
@@ -1107,7 +1191,7 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
     return ATOM_SUCCESS;
 }
 
-const static struct
+const static struct _rhd_connectors
 {
     char *name;
     rhdConnector con;
@@ -1129,9 +1213,9 @@ const static struct
     {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
     {"DVI+DIN", RHD_CONNECTOR_NONE, FALSE }
 };
+const static int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_connectors);
 
-
-const static struct
+const static struct _rhd_devices
 {
     char *name;
     rhdOutputType ot;
@@ -1147,11 +1231,16 @@ const static struct
     {"CV", RHD_OUTPUT_NONE },
     {"DFP3", RHD_OUTPUT_LVTMA }
 };
+const static int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
 
 const static rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
+const static int n_hwddc = sizeof(hwddc) / sizeof(rhdDDC);
 
 const static rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
 				  RHD_OUTPUT_DACB, RHD_OUTPUT_DAC_EXTERNAL };
+const static int n_acc_dac = sizeof(acc_dac) / sizeof (rhdOutputType);
+
+
 /*
  *
  */
@@ -1183,18 +1272,24 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	return ATOM_NOT_IMPLEMENTED;
     }
 
-    if (!(cp = (rhdConnectorsPtr)xcalloc(sizeof(struct rhdConnectors),RHD_CONNECTORS_MAX)))
+    if (!(cp = (rhdConnectorsPtr)xcalloc(sizeof(struct rhdConnectors),
+					 RHD_CONNECTORS_MAX)))
 	return ATOM_FAILED;
 
     for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
 	ATOM_CONNECTOR_INFO_I2C ci
 	    = atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo->asConnInfo[n];
 
-	devices[n].con = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].con;
-	if (devices[n].con == RHD_CONNECTOR_NONE) {
-	     devices[n].ot = RHD_OUTPUT_NONE;
+	devices[n].ot = RHD_OUTPUT_NONE;
+
+	if (Clamp(ci.sucConnectorInfo.sbfAccess.bfConnectorType,
+		  n_rhd_connectors, "bfConnectorType"))
 	    continue;
-	}
+
+	devices[n].con
+	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].con;
+	if (devices[n].con == RHD_CONNECTOR_NONE)
+	    continue;
 
 	devices[n].dual
 	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].dual;
@@ -1207,22 +1302,40 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 				      .sbfAccess.bfConnectorType].name,
 		       rhd_devices[n].name);
 
-	if ((devices[n].ot = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
-	     == RHD_OUTPUT_NONE) {
-	    devices[n].ot = rhd_devices[n].ot;
-	}
+	if (!Clamp(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
+		   n_acc_dac, "bfAssociatedDAC")) {
+	    if ((devices[n].ot
+		 = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
+		== RHD_OUTPUT_NONE) {
+		devices[n].ot = rhd_devices[n].ot;
+	    }
+	} else
+	    devices[n].ot = RHD_OUTPUT_NONE;
+
+	xf86ErrorFVerb(CONNECTOR_LOG_LVL, "Output: %x ",devices[n].ot);
 
 	if (ci.sucI2cId.sbfAccess.bfHW_Capable) {
+
 	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HW DDC %i ",
 			   ci.sucI2cId.sbfAccess.bfI2C_LineMux);
-	    devices[n].ddc = hwddc[ci.sucI2cId.sbfAccess.bfI2C_LineMux];
+
+	    if (Clamp(ci.sucI2cId.sbfAccess.bfI2C_LineMux,
+		      n_hwddc, "bfI2C_LineMux"))
+		devices[n].ddc = RHD_DDC_NONE;
+	    else
+		devices[n].ddc = hwddc[ci.sucI2cId.sbfAccess.bfI2C_LineMux];
+
 	} else if (ci.sucI2cId.sbfAccess.bfI2C_LineMux) {
+
 	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "GPIO DDC ");
 	    devices[n].ddc = RHD_DDC_GPIO;
+
 	    /* add support for GPIO line */
 	} else {
+
 	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO DDC ");
 	    devices[n].ddc = RHD_DDC_NONE;
+
 	}
 
 	if (crev > 1) {
