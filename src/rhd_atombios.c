@@ -68,7 +68,7 @@ char *AtomBIOSFuncStr[] = {
 #  define INT32 INT32
 #  include "CD_Common_Types.h"
 # else
-#  ifndef ULONG 
+#  ifndef ULONG
 typedef unsigned int ULONG;
 #   define ULONG ULONG
 #  endif
@@ -76,7 +76,7 @@ typedef unsigned int ULONG;
 typedef unsigned char UCHAR;
 #   define UCHAR UCHAR
 #  endif
-#  ifndef USHORT 
+#  ifndef USHORT
 typedef unsigned short USHORT;
 #   define USHORT USHORT
 #  endif
@@ -302,7 +302,7 @@ rhdAnalyzeMasterDataTable(unsigned char *base,
     return TRUE;
 }
 
-Bool
+static Bool
 rhdGetAtombiosDataTable(int scrnIndex, unsigned char *base,
                         atomDataTables *atomDataPtr)
 {
@@ -540,7 +540,7 @@ rhdInitAtomBIOS(int scrnIndex)
     return NULL;
 }
 
-void
+static void
 rhdTearDownAtomBIOS(atomBIOSHandlePtr handle)
 {
     RHDFUNC(handle);
@@ -549,7 +549,8 @@ rhdTearDownAtomBIOS(atomBIOSHandlePtr handle)
     xfree(handle->atomDataPtr);
     xfree(handle);
 }
-AtomBiosResult
+
+static AtomBiosResult
 rhdAtomBIOSVramInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func,
 			     CARD32 *val)
 {
@@ -581,7 +582,7 @@ rhdAtomBIOSTmdsInfoQuery(atomBIOSHandlePtr handle,
 {
     atomDataTablesPtr atomDataPtr;
     int index = *val;
-    
+
     atomDataPtr = handle->atomDataPtr;
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
@@ -874,7 +875,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	    xf86DrvMsg(scrnIndex,X_INFO,"%s: Received unknown query\n",__func__);
 	    return ATOM_NOT_IMPLEMENTED;
 	}
-    
+
     if (ret == ATOM_SUCCESS)
 	xf86DrvMsg(scrnIndex,X_INFO,"%s: %i\n",
 		   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS], (unsigned int)data->val);
