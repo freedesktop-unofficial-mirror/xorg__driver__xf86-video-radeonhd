@@ -27,6 +27,11 @@ This will dump the VBIOS to the file:
 to the current directory. Should the id information be unavailable the VBIOS
 will be dumped to the file 'posted.vga.rom'.
 
+DO NOT try to run conntest on the secondary PCI function. (1:0.1 in our
+example). For R5xx this is just a fake device to fool some Microsoft operating
+systems, and is of no use to us. For R6xx this is a HDMI sound device, and is
+of no use for a video driver.
+
 Background information:
 -----------------------
 

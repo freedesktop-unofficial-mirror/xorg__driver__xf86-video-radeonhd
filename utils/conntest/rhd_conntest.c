@@ -1027,7 +1027,7 @@ LVDSReport(void *map)
 	return;
     }
 
-    if (!(RegRead(map, LVTMA_CNTL) & 0x1) &&
+    if (!(RegRead(map, LVTMA_CNTL) & 0x1) ||
 	(RegRead(map, LVTMA_MODE) & 0x1))
 	return;
 
