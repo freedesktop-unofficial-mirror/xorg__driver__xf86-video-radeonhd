@@ -940,12 +940,12 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 		= atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo_HD->asIntSrcInfo[n];
 	    switch (isb.ucIntSrcBitmap) {
 		case 0x4:
-		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 1\n");
-		    devices[n].hpd = RHD_HPD_1;
+		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 0\n");
+		    devices[n].hpd = RHD_HPD_0;
 		    break;
 		case 0xa:
-		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 2\n");
-		    devices[n].hpd = RHD_HPD_2;
+		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 1\n");
+		    devices[n].hpd = RHD_HPD_1;
 		    break;
 		default:
 		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO HPD\n");
