@@ -31,9 +31,9 @@ typedef enum _rhdConnector {
     RHD_CONNECTOR_NONE  = 0,
     RHD_CONNECTOR_VGA,
     RHD_CONNECTOR_DVI,
-    RHD_CONNECTOR_DVI_DUAL = RHD_CONNECTOR_DVI,
     RHD_CONNECTOR_PANEL,
-    RHD_CONNECTOR_TV
+    RHD_CONNECTOR_TV,
+    RHD_CONNECTOR_DVI_DUAL = RHD_CONNECTOR_DVI
 } rhdConnector;
 /* add whatever */
 
@@ -55,6 +55,8 @@ typedef enum _rhdHPD {
     RHD_HPD_2
 } rhdHPD;
 
+#define MAX_OUTPUTS_PER_CONNECTOR 2
+
 struct rhdConnector {
     int scrnIndex;
 
@@ -73,7 +75,7 @@ struct rhdConnector {
     struct rhdMonitor *Monitor;
 
     /* Point back to our Outputs, so we can handle sensing better */
-    struct rhdOutput *Output[2];
+    struct rhdOutput *Output[MAX_OUTPUTS_PER_CONNECTOR];
 };
 
 Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);

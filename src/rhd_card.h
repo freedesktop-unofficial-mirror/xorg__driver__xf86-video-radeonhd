@@ -32,7 +32,7 @@ struct rhdConnectors {
     char *Name;
     rhdDDC DDC;
     rhdHPD HPD;
-    rhdOutputType Output[2];
+    rhdOutputType Output[MAX_OUTPUTS_PER_CONNECTOR];
 };
 
 struct rhdCard {
