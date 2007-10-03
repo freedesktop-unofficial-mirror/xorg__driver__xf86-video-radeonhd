@@ -927,16 +927,16 @@ const static struct _rhd_devices
     char *name;
     rhdOutputType ot;
 } rhd_devices[] = {
-    {"CRT1", RHD_OUTPUT_NONE },
-    {"LCD1", RHD_OUTPUT_LVTMA },
-    {"TV1", RHD_OUTPUT_NONE },
-    {"DFP1", RHD_OUTPUT_TMDSA },
-    {"CRT2", RHD_OUTPUT_NONE },
-    {"LCD2", RHD_OUTPUT_LVTMA },
-    {"TV2", RHD_OUTPUT_NONE },
-    {"DFP2", RHD_OUTPUT_LVTMA },
-    {"CV", RHD_OUTPUT_NONE },
-    {"DFP3", RHD_OUTPUT_LVTMA }
+    {" CRT1", RHD_OUTPUT_NONE },
+    {" LCD1", RHD_OUTPUT_LVTMA },
+    {" TV1", RHD_OUTPUT_NONE },
+    {" DFP1", RHD_OUTPUT_TMDSA },
+    {" CRT2", RHD_OUTPUT_NONE },
+    {" LCD2", RHD_OUTPUT_LVTMA },
+    {" TV2", RHD_OUTPUT_NONE },
+    {" DFP2", RHD_OUTPUT_LVTMA },
+    {" CV", RHD_OUTPUT_NONE },
+    {" DFP3", RHD_OUTPUT_LVTMA }
 };
 const static int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
 
@@ -1098,7 +1098,6 @@ rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
     devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
 
     for (i = 0; i < Record->ucNumberOfDevice; i++) {
-	strcat(devices, " ");
 	strcat(devices, rhd_devices[Record->asDeviceTag[i].usDeviceID].name);
     }
 
@@ -1291,6 +1290,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	rhdHPD hpd;
 	Bool dual;
 	char *name;
+	char *outputName;
     } devices[ATOM_MAX_SUPPORTED_DEVICE];
     int ncon = 0;
     int n;
@@ -1329,11 +1329,13 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	devices[n].name
 	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].name;
 
-	RHDDebug(handle->scrnIndex,"AtomBIOS Connector[%i]: %s Device: %s ",n,
+	RHDDebug(handle->scrnIndex,"AtomBIOS Connector[%i]: %s Device:%s ",n,
 		 rhd_connectors[ci.sucConnectorInfo
 				.sbfAccess.bfConnectorType].name,
 		 rhd_devices[n].name);
 
+	devices[n].outputName = rhd_devices[n].name;
+	
 	if (!Clamp(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
 		   n_acc_dac, "bfAssociatedDAC")) {
 	    if ((devices[n].ot
@@ -1408,7 +1410,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	cp[ncon].Output[0] = devices[n].ot;
 	cp[ncon].Output[1] = RHD_OUTPUT_NONE;
 	cp[ncon].Type = devices[n].con;
-	cp[ncon].Name = devices[n].name;
+	cp[ncon].Name = RhdCombineStrings(devices[n].name,devices[n].outputName);
 
 	if (devices[n].dual) {
 	    if (devices[n].ddc == RHD_DDC_NONE)
@@ -1417,6 +1419,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 			   " Cannot find matching device.\n",devices[n].name);
 	    else {
 		for (i = n + 1; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
+		    char *tmp;
 
 		    if (!devices[i].dual)
 			continue;
@@ -1438,6 +1441,9 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;
 
+			tmp = RhdCombineStrings(cp[ncon].Name,devices[i].outputName);
+			xfree(cp[ncon].Name); cp[ncon].Name = tmp;
+			
 			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
 		    }
 		}
