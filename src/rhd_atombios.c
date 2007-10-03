@@ -1093,6 +1093,9 @@ rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
 
     RHDFUNC(handle);
 
+    RHDDebug(handle->scrnIndex,"   NumberOfDevice: %i\n",
+	     Record->ucNumberOfDevice);
+
     if (!Record->ucNumberOfDevice) return NULL;
 
     devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
@@ -1148,6 +1151,13 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
     object_header_end =
 	atomDataPtr->Object_Header->usConnectorObjectTableOffset
 	+ object_header_size;
+
+    RHDDebug(handle->scrnIndex,"ObjectTable - size: %i, BIOS - size: %i "
+	     "TableOffset: %i object_header_end: %i tableOffset: %i\n",
+	     object_header_size, handle->BIOSImageSize,
+	     atomDataPtr->Object_Header->usConnectorObjectTableOffset,
+	     object_header_end,
+	     atomDataPtr->Object_Header->usConnectorObjectTableOffset);
 
     if ((object_header_size > handle->BIOSImageSize)
 	|| (atomDataPtr->Object_Header->usConnectorObjectTableOffset
@@ -1256,8 +1266,10 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 		case ATOM_CONNECTOR_DEVICE_TAG_RECORD_TYPE:
 		    taglist = rhdDeviceTagsFromRecord(handle,
 						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
-		    cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
-		    xfree(taglist);
+		    if (taglist) {
+			cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
+			xfree(taglist);
+		    }
 		    break;
 
 		default:
