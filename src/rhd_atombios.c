@@ -828,7 +828,7 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
     return ATOM_SUCCESS;
 }
 
-#define Clamp(n,max,name) ((n >= max) ? ( \
+#define Limit(n,max,name) ((n >= max) ? ( \
      xf86DrvMsg(handle->scrnIndex,X_ERROR,"%s: %s %i exceeds maximum %i\n", \
 		__func__,name,n,max), TRUE) : FALSE)
 
@@ -963,11 +963,11 @@ rhdInterpretObjectID(atomBIOSHandlePtr handle,
 
     switch (*obj_type) {
 	case GRAPH_OBJECT_TYPE_CONNECTOR:
-	    if (!Clamp(*obj_id, n_rhd_connector_objs, "obj_id"))
+	    if (!Limit(*obj_id, n_rhd_connector_objs, "obj_id"))
 		*name = rhd_connector_objs[*obj_id].name;
 	    break;
 	case GRAPH_OBJECT_TYPE_ENCODER:
-	    if (!Clamp(*obj_id, n_rhd_encoders, "obj_id"))
+	    if (!Limit(*obj_id, n_rhd_encoders, "obj_id"))
 		*name = rhd_encoders[*obj_id].name;
 	    break;
 	default:
@@ -1088,7 +1088,7 @@ static char *
 rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
 			ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record)
 {
-    int i;
+    int i, j, k;
     char *devices;
 
     RHDFUNC(handle);
@@ -1098,7 +1098,13 @@ rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
     devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
 
     for (i = 0; i < Record->ucNumberOfDevice; i++) {
-	strcat(devices, rhd_devices[Record->asDeviceTag[i].usDeviceID].name);
+	k = 0;
+	j = Record->asDeviceTag[i].usDeviceID;
+
+	while (!(j & 0x1)) { j >>= 1; k++; };
+
+	if (!Limit(k,n_rhd_devices,"usDeviceID"))
+	    strcat(devices, rhd_devices[k].name);
     }
 
     RHDDebug(handle->scrnIndex,"   Devices:%s\n",devices);
@@ -1315,7 +1321,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 
 	devices[n].ot = RHD_OUTPUT_NONE;
 
-	if (Clamp(ci.sucConnectorInfo.sbfAccess.bfConnectorType,
+	if (Limit(ci.sucConnectorInfo.sbfAccess.bfConnectorType,
 		  n_rhd_connectors, "bfConnectorType"))
 	    continue;
 
@@ -1335,8 +1341,8 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 		 rhd_devices[n].name);
 
 	devices[n].outputName = rhd_devices[n].name;
-	
-	if (!Clamp(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
+
+	if (!Limit(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
 		   n_acc_dac, "bfAssociatedDAC")) {
 	    if ((devices[n].ot
 		 = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
@@ -1353,7 +1359,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	    RHDDebugCont("HW DDC %i ",
 			 ci.sucI2cId.sbfAccess.bfI2C_LineMux);
 
-	    if (Clamp(ci.sucI2cId.sbfAccess.bfI2C_LineMux,
+	    if (Limit(ci.sucI2cId.sbfAccess.bfI2C_LineMux,
 		      n_hwddc, "bfI2C_LineMux"))
 		devices[n].ddc = RHD_DDC_NONE;
 	    else
@@ -1443,7 +1449,7 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 
 			tmp = RhdCombineStrings(cp[ncon].Name,devices[i].outputName);
 			xfree(cp[ncon].Name); cp[ncon].Name = tmp;
-			
+
 			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
 		    }
 		}
