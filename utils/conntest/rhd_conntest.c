@@ -862,7 +862,7 @@ enum _rhdR5xxI2CBits {
 static Bool
 R5xxI2CStatus(void *map)
 {
-    int count = 32;
+    int count = 5000;
     CARD32 res;
 
     while (count-- != 0) {
