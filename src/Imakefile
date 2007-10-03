@@ -68,7 +68,9 @@ INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
            -I$(XF86SRC)/rac    -I$(XF86SRC)/int10 -I$(SERVERSRC)/render \
            -I$(SERVERSRC)/include -I$(XINCLUDESRC) \
            -I$(SERVERSRC)/fb \
-           -I$(XF86SRC) -I$(XF86OSSRC)/bus -I$(XF86SRC)/vbe
+           -I$(XF86SRC) -I$(XF86OSSRC)/bus -I$(XF86SRC)/vbe \
+           -I/usr/X11R6/lib64/Server/include \
+           -I/usr/X11R6/lib/Server/include
 
 ATOM_BIOS_INCLUDES = -I./AtomBios/includes
 ATOM_BIOS_DEFINES = -DATOM_BIOS=1
