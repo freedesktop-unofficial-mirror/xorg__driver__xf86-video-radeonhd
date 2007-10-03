@@ -215,7 +215,7 @@ rhdAnalyzeRomHdr(unsigned char *rombase,
               ATOM_ROM_HEADER *hdr,
               int *data_offset)
 {
-    if (rhdAnalyzeCommonHdr(&hdr->sHeader) == -1) {
+    if (!rhdAnalyzeCommonHdr(&hdr->sHeader)) {
         return FALSE;
     }
     xf86DrvMsg(-1,X_NONE,"\tSubsystemVendorID: 0x%4.4x SubsystemID: 0x%4.4x\n",
@@ -237,7 +237,7 @@ rhdAnalyzeRomDataTable(unsigned char *base, int offset,
     ATOM_COMMON_TABLE_HEADER *table = (ATOM_COMMON_TABLE_HEADER *)
         (base + offset);
 
-   if (!*size || rhdAnalyzeCommonHdr(table) == -1) {
+   if (!*size || !rhdAnalyzeCommonHdr(table)) {
        if (*size) *size -= 2;
        *(void **)ptr = NULL;
        return FALSE;
