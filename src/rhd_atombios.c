@@ -232,7 +232,7 @@ rhdAnalyzeRomHdr(unsigned char *rombase,
 
 static int
 rhdAnalyzeRomDataTable(unsigned char *base, int offset,
-                    void *ptr,short *size)
+                    void *ptr,unsigned short *size)
 {
     ATOM_COMMON_TABLE_HEADER *table = (ATOM_COMMON_TABLE_HEADER *)
         (base + offset);
@@ -251,7 +251,7 @@ static Bool
 rhdGetAtomBiosTableRevisionAndSize(ATOM_COMMON_TABLE_HEADER *hdr,
                                    CARD8 *contentRev,
                                    CARD8 *formatRev,
-                                   short *size)
+                                   unsigned short *size)
 {
     if (!hdr)
         return FALSE;
@@ -270,7 +270,7 @@ rhdAnalyzeMasterDataTable(unsigned char *base,
 {
     ATOM_MASTER_LIST_OF_DATA_TABLES *data_table =
         &table->ListOfDataTables;
-    short size;
+    unsigned short size;
 
     if (!rhdAnalyzeCommonHdr(&table->sHeader))
         return FALSE;
@@ -1129,7 +1129,7 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
     unsigned long object_header_end;
     int ncon = 0;
     int i,j;
-    short object_header_size;
+    unsigned short object_header_size;
 
     RHDFUNC(handle);
 
@@ -1152,12 +1152,11 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 	atomDataPtr->Object_Header->usConnectorObjectTableOffset
 	+ object_header_size;
 
-    RHDDebug(handle->scrnIndex,"ObjectTable - size: %i, BIOS - size: %i "
-	     "TableOffset: %i object_header_end: %i tableOffset: %i\n",
+    RHDDebug(handle->scrnIndex,"ObjectTable - size: %u, BIOS - size: %u "
+	     "TableOffset: %u object_header_end: %u\n",
 	     object_header_size, handle->BIOSImageSize,
 	     atomDataPtr->Object_Header->usConnectorObjectTableOffset,
-	     object_header_end,
-	     atomDataPtr->Object_Header->usConnectorObjectTableOffset);
+	     object_header_end);
 
     if ((object_header_size > handle->BIOSImageSize)
 	|| (atomDataPtr->Object_Header->usConnectorObjectTableOffset
