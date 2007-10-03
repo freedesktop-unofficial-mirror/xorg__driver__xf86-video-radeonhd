@@ -170,6 +170,19 @@ typedef struct RHDRec {
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
 
+/* rhd_driver.c */
+/* Some handy functions that makes life so much more readable */
+CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
+#define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
+void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
+#define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
+void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
+#define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
+CARD32 _RHDReadMC(int scrnIndex, CARD16 offset);
+#define RHDReadMC(ptr,offset) _RHDReadMC((ptr)->scrnIndex,(offset));
+void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
+#define RHDWriteMC(ptr,offset,value) _RHDWriteMC((ptr)->scrnIndex,(offset),(value))
+
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,
                       RHDOptPtr optp, Bool def);
@@ -183,19 +196,7 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
                       OptFreqUnits expectedUnits, RHDOptPtr optp, double def);
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
-
-/* rhd_driver.c */
-/* Some handy functions that makes life so much more readable */
-CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
-#define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
-void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
-#define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
-void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
-#define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
-CARD32 _RHDReadMC(int scrnIndex, CARD16 offset);
-#define RHDReadMC(ptr,offset) _RHDReadMC((ptr)->scrnIndex,(offset));
-void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
-#define RHDWriteMC(ptr,offset,value) _RHDWriteMC((ptr)->scrnIndex,(offset),(value))
+char *RhdCombineStrings(const char *s1, const char *s2);
 
 /* Extra debugging verbosity: decimates gdb usage */
 

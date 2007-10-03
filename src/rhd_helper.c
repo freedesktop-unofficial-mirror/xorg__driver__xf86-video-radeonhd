@@ -165,3 +165,14 @@ RHDDebugContVerb(int verb, const char *format, ...)
     va_end(ap);
 }
 
+char *
+RhdCombineStrings(const char *s1, const char *s2)
+{
+    int len = strlen(s1) + strlen(s2) + 1;
+    char *result = (char *)xalloc(len);
+
+    xf86strcpy(result,s1);
+    xf86strcat(result,s2);
+
+    return result;
+}

@@ -898,6 +898,55 @@ const static struct _rhd_encoders
 };
 const static int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 
+const static struct _rhd_connectors
+{
+    char *name;
+    rhdConnector con;
+    Bool dual;
+} rhd_connectors[] = {
+    {"NONE", RHD_CONNECTOR_NONE, FALSE },
+    {"VGA", RHD_CONNECTOR_VGA, FALSE },
+    {"DVI-I", RHD_CONNECTOR_DVI, TRUE },
+    {"DVI-D", RHD_CONNECTOR_DVI, FALSE },
+    {"DVI-A", RHD_CONNECTOR_DVI, FALSE },
+    {"SVIDIO", RHD_CONNECTOR_TV, FALSE },
+    {"COMPOSITE", RHD_CONNECTOR_TV, FALSE },
+    {"PANEL", RHD_CONNECTOR_PANEL, FALSE },
+    {"DIGITAL_LINK", RHD_CONNECTOR_NONE, FALSE },
+    {"SCART", RHD_CONNECTOR_TV, FALSE },
+    {"HDMI Type A", RHD_CONNECTOR_NONE, FALSE },
+    {"HDMI Type B", RHD_CONNECTOR_NONE, FALSE },
+    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
+    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
+    {"DVI+DIN", RHD_CONNECTOR_NONE, FALSE }
+};
+const static int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_connectors);
+
+const static struct _rhd_devices
+{
+    char *name;
+    rhdOutputType ot;
+} rhd_devices[] = {
+    {"CRT1", RHD_OUTPUT_NONE },
+    {"LCD1", RHD_OUTPUT_LVTMA },
+    {"TV1", RHD_OUTPUT_NONE },
+    {"DFP1", RHD_OUTPUT_TMDSA },
+    {"CRT2", RHD_OUTPUT_NONE },
+    {"LCD2", RHD_OUTPUT_LVTMA },
+    {"TV2", RHD_OUTPUT_NONE },
+    {"DFP2", RHD_OUTPUT_LVTMA },
+    {"CV", RHD_OUTPUT_NONE },
+    {"DFP3", RHD_OUTPUT_LVTMA }
+};
+const static int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
+
+const static rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
+const static int n_hwddc = sizeof(hwddc) / sizeof(rhdDDC);
+
+const static rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
+				  RHD_OUTPUT_DACB, RHD_OUTPUT_DAC_EXTERNAL };
+const static int n_acc_dac = sizeof(acc_dac) / sizeof (rhdOutputType);
+
 /*
  *
  */
@@ -1035,6 +1084,32 @@ rhdHPDFromRecord(atomBIOSHandlePtr handle,
 /*
  *
  */
+static char *
+rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
+			ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record)
+{
+    int i;
+    char *devices;
+
+    RHDFUNC(handle);
+
+    if (!Record->ucNumberOfDevice) return NULL;
+
+    devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
+
+    for (i = 0; i < Record->ucNumberOfDevice; i++) {
+	strcat(devices, " ");
+	strcat(devices, rhd_devices[Record->asDeviceTag[i].usDeviceID].name);
+    }
+
+    RHDDebug(handle->scrnIndex,"   Devices:%s\n",devices);
+
+    return devices;
+}
+
+/*
+ *
+ */
 static AtomBiosResult
 rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 			      rhdConnectorsPtr *ptr)
@@ -1146,6 +1221,7 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 	record_base = con_obj->asObjects[i].usRecordOffset;
 
 	while (Record->ucRecordType != 0xff) {
+	    char *taglist;
 
 	    if ((record_base += Record->ucRecordSize)
 		> object_header_size) {
@@ -1172,6 +1248,13 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 				     &cp[ncon].HPD);
 		    break;
 
+		case ATOM_CONNECTOR_DEVICE_TAG_RECORD_TYPE:
+		    taglist = rhdDeviceTagsFromRecord(handle,
+						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
+		    cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
+		    xfree(taglist);
+		    break;
+
 		default:
 		    break;
 	    }
@@ -1190,56 +1273,6 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 
     return ATOM_SUCCESS;
 }
-
-const static struct _rhd_connectors
-{
-    char *name;
-    rhdConnector con;
-    Bool dual;
-} rhd_connectors[] = {
-    {"NONE", RHD_CONNECTOR_NONE, FALSE },
-    {"VGA", RHD_CONNECTOR_VGA, FALSE },
-    {"DVI-I", RHD_CONNECTOR_DVI, TRUE },
-    {"DVI-D", RHD_CONNECTOR_DVI, FALSE },
-    {"DVI-A", RHD_CONNECTOR_DVI, FALSE },
-    {"SVIDIO", RHD_CONNECTOR_TV, FALSE },
-    {"COMPOSITE", RHD_CONNECTOR_TV, FALSE },
-    {"PANEL", RHD_CONNECTOR_PANEL, FALSE },
-    {"DIGITAL_LINK", RHD_CONNECTOR_NONE, FALSE },
-    {"SCART", RHD_CONNECTOR_TV, FALSE },
-    {"HDMI Type A", RHD_CONNECTOR_NONE, FALSE },
-    {"HDMI Type B", RHD_CONNECTOR_NONE, FALSE },
-    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
-    {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
-    {"DVI+DIN", RHD_CONNECTOR_NONE, FALSE }
-};
-const static int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_connectors);
-
-const static struct _rhd_devices
-{
-    char *name;
-    rhdOutputType ot;
-} rhd_devices[] = {
-    {"CRT1", RHD_OUTPUT_NONE },
-    {"LCD1", RHD_OUTPUT_LVTMA },
-    {"TV1", RHD_OUTPUT_NONE },
-    {"DFP1", RHD_OUTPUT_TMDSA },
-    {"CRT2", RHD_OUTPUT_NONE },
-    {"LCD2", RHD_OUTPUT_LVTMA },
-    {"TV2", RHD_OUTPUT_NONE },
-    {"DFP2", RHD_OUTPUT_LVTMA },
-    {"CV", RHD_OUTPUT_NONE },
-    {"DFP3", RHD_OUTPUT_LVTMA }
-};
-const static int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
-
-const static rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
-const static int n_hwddc = sizeof(hwddc) / sizeof(rhdDDC);
-
-const static rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
-				  RHD_OUTPUT_DACB, RHD_OUTPUT_DAC_EXTERNAL };
-const static int n_acc_dac = sizeof(acc_dac) / sizeof (rhdOutputType);
-
 
 /*
  *
