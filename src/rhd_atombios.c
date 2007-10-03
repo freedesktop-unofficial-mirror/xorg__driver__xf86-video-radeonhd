@@ -218,7 +218,7 @@ rhdAnalyzeRomHdr(unsigned char *rombase,
     if (rhdAnalyzeCommonHdr(&hdr->sHeader) == -1) {
         return FALSE;
     }
-    xf86DrvMsg(-1,X_NONE,"\tSubsysemVendorID: 0x%4.4x SubsystemID: 0x%4.4x\n",
+    xf86DrvMsg(-1,X_NONE,"\tSubsystemVendorID: 0x%4.4x SubsystemID: 0x%4.4x\n",
                hdr->usSubsystemVendorID,hdr->usSubsystemID);
     xf86DrvMsg(-1,X_NONE,"\tIOBaseAddress: 0x%4.4x\n",hdr->usIoBaseAddress);
     xf86DrvMsgVerb(-1,X_NONE,3,"\tFilename: %s\n",rombase + hdr->usConfigFilenameOffset);
