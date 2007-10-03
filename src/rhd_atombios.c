@@ -218,11 +218,11 @@ rhdAnalyzeRomHdr(unsigned char *rombase,
     if (rhdAnalyzeCommonHdr(&hdr->sHeader) == -1) {
         return FALSE;
     }
-    xf86ErrorF("\tSubsysemVendorID: 0x%4.4x SubsystemID: 0x%4.4x\n",
+    xf86DrvMsg(-1,X_NONE,"\tSubsysemVendorID: 0x%4.4x SubsystemID: 0x%4.4x\n",
                hdr->usSubsystemVendorID,hdr->usSubsystemID);
-    xf86ErrorF("\tIOBaseAddress: 0x%4.4x\n",hdr->usIoBaseAddress);
-    xf86ErrorFVerb(3,"\tFilename: %s\n",rombase + hdr->usConfigFilenameOffset);
-    xf86ErrorFVerb(3,"\tBIOS Bootup Message: %s\n",
+    xf86DrvMsg(-1,X_NONE,"\tIOBaseAddress: 0x%4.4x\n",hdr->usIoBaseAddress);
+    xf86DrvMsgVerb(-1,X_NONE,3,"\tFilename: %s\n",rombase + hdr->usConfigFilenameOffset);
+    xf86DrvMsgVerb(-1,X_NONE,3,"\tBIOS Bootup Message: %s\n",
 		   rombase + hdr->usBIOS_BootupMessageOffset);
 
     *data_offset = hdr->usMasterDataTableOffset;
@@ -1272,8 +1272,8 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	return ATOM_NOT_IMPLEMENTED;
     }
 
-    if (!(cp = (rhdConnectorsPtr)xcalloc(sizeof(struct rhdConnectors),
-					 RHD_CONNECTORS_MAX)))
+    if (!(cp = (rhdConnectorsPtr)xcalloc(RHD_CONNECTORS_MAX,
+					 sizeof(struct rhdConnectors))))
 	return ATOM_FAILED;
 
     for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
@@ -1296,11 +1296,10 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	devices[n].name
 	    = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].name;
 
-	xf86DrvMsgVerb(handle->scrnIndex, X_INFO, CONNECTOR_LOG_LVL,
-		       "AtomBIOS Connector[%i]: %s Device: %s ",n,
-		       rhd_connectors[ci.sucConnectorInfo
-				      .sbfAccess.bfConnectorType].name,
-		       rhd_devices[n].name);
+	RHDDebug(handle->scrnIndex,"AtomBIOS Connector[%i]: %s Device: %s ",n,
+		 rhd_connectors[ci.sucConnectorInfo
+				.sbfAccess.bfConnectorType].name,
+		 rhd_devices[n].name);
 
 	if (!Clamp(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
 		   n_acc_dac, "bfAssociatedDAC")) {
@@ -1312,12 +1311,12 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 	} else
 	    devices[n].ot = RHD_OUTPUT_NONE;
 
-	xf86ErrorFVerb(CONNECTOR_LOG_LVL, "Output: %x ",devices[n].ot);
+	RHDDebugCont("Output: %x ",devices[n].ot);
 
 	if (ci.sucI2cId.sbfAccess.bfHW_Capable) {
 
-	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HW DDC %i ",
-			   ci.sucI2cId.sbfAccess.bfI2C_LineMux);
+	    RHDDebugCont("HW DDC %i ",
+			 ci.sucI2cId.sbfAccess.bfI2C_LineMux);
 
 	    if (Clamp(ci.sucI2cId.sbfAccess.bfI2C_LineMux,
 		      n_hwddc, "bfI2C_LineMux"))
@@ -1327,13 +1326,13 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 
 	} else if (ci.sucI2cId.sbfAccess.bfI2C_LineMux) {
 
-	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "GPIO DDC ");
+	    RHDDebugCont("GPIO DDC ");
 	    devices[n].ddc = RHD_DDC_GPIO;
 
 	    /* add support for GPIO line */
 	} else {
 
-	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO DDC ");
+	    RHDDebugCont("NO DDC ");
 	    devices[n].ddc = RHD_DDC_NONE;
 
 	}
@@ -1345,20 +1344,20 @@ rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *pt
 
 	    switch (isb.ucIntSrcBitmap) {
 		case 0x4:
-		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 0\n");
+		    RHDDebugCont("HPD 0\n");
 		    devices[n].hpd = RHD_HPD_0;
 		    break;
 		case 0xa:
-		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "HPD 1\n");
+		    RHDDebugCont("HPD 1\n");
 		    devices[n].hpd = RHD_HPD_1;
 		    break;
 		default:
-		    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO HPD\n");
+		    RHDDebugCont("NO HPD\n");
 		    devices[n].hpd = RHD_HPD_NONE;
 		    break;
 	    }
 	} else {
-	    xf86ErrorFVerb(CONNECTOR_LOG_LVL, "NO HPD\n");
+	    RHDDebugCont("NO HPD\n");
 	    devices[n].hpd = RHD_HPD_NONE;
 	}
     }

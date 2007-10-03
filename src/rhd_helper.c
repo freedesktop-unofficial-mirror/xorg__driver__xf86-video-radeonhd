@@ -136,12 +136,32 @@ RHDDebug(int scrnIndex, const char *format, ...)
 }
 
 void
+RHDDebugCont(const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    xf86VDrvMsgVerb(-1, X_NONE, LOG_DEBUG, format, ap);
+    va_end(ap);
+}
+
+void
 RHDDebugVerb(int scrnIndex, int verb, const char *format, ...)
 {
     va_list ap;
 
     va_start(ap, format);
     xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_DEBUG + verb, format, ap);
+    va_end(ap);
+}
+
+void
+RHDDebugContVerb(int verb, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    xf86VDrvMsgVerb(-1, X_NONE, LOG_DEBUG + verb, format, ap);
     va_end(ap);
 }
 
