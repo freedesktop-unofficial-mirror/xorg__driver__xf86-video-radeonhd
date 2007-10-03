@@ -403,6 +403,12 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
     RHDFUNC(rhdPtr);
 
+    if (!rhdPtr->Card) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: no card information "
+		   "available. Bailing for now...\n");
+	return NULL;
+    }
+
     /* Stop everything except LVDS at this time */
     if (Type != RHD_CONNECTOR_PANEL) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unhandled connector type:"
