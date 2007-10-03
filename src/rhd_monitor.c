@@ -43,7 +43,7 @@ rhdMonitorPrint(struct rhdMonitor *Monitor)
 {
     int i;
 
-    xf86Msg(X_NONE, "    Bandwidth:%dMHz\n", Monitor->Bandwidth / 1000);
+    xf86Msg(X_NONE, "    Bandwidth: %dMHz\n", Monitor->Bandwidth / 1000);
     xf86Msg(X_NONE, "    Horizontal timing:\n");
     for (i = 0; i < Monitor->numHSync; i++)
 	xf86Msg(X_NONE, "        %3.1f - %3.1fkHz\n",  Monitor->HSync[i].lo,
