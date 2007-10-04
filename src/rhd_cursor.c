@@ -154,7 +154,7 @@ rhdCursorSave(struct rhdCursor *Cursor)
     default:		/* 32bpp color */
 	Cursor->StoreImageSize *= 64*32/8;
     }
-    xfree (Cursor->StoreImageSize);
+    xfree (Cursor->StoreImage);
     if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
 	memcpy (Cursor->StoreImage,
 		(CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
