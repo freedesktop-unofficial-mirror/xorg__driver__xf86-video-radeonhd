@@ -53,6 +53,10 @@ char *AtomBIOSQueryStr[] = {
     "TMDS PLL DutyCycle",
     "TMDS PLL VCO Gain",
     "TMDS PLL VoltageSwing"
+    "LVDS Supported Refresh Rate",
+    "LVDS Off Delay",
+    "LVDS SEQ Dig onto DE",
+    "LVDS SEQ DE to BL"
 };
 
 char *AtomBIOSFuncStr[] = {
@@ -628,7 +632,7 @@ rhdAtomBIOSTmdsInfoQuery(atomBIOSHandlePtr handle,
 
     atomDataPtr = handle->atomDataPtr;
     if (!rhdGetAtomBiosTableRevisionAndSize(
-	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->TMDS_Info),
 	    NULL,NULL,NULL)) {
 	return ATOM_FAILED;
     }
@@ -654,6 +658,75 @@ rhdAtomBIOSTmdsInfoQuery(atomBIOSHandlePtr handle,
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
     }
+    return ATOM_SUCCESS;
+}
+
+static
+AtomBiosResult
+rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
+			 AtomBiosFunc func,  CARD32 *val)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+
+    atomDataPtr = handle->atomDataPtr;
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    RHDFUNC(handle);
+
+    switch (crev) {
+	case 1:
+	    switch (func) {
+		case ATOM_LVDS_SUPPORTED_REFRESH_RATE:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->usSupportedRefreshRate;
+		    break;
+		case ATOM_LVDS_OFF_DELAY:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->usOffDelayInMs;
+		    break;
+		case ATOM_LVDS_SEQ_DIG_ONTO_DE:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucPowerSequenceDigOntoDEin10Ms;
+		    break;
+		case ATOM_LVDS_SEQ_DE_TO_BL:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms;
+		    break;
+		default:
+		    return ATOM_NOT_IMPLEMENTED;
+	    }
+	    break;
+	case 2:
+	    switch (func) {
+		case ATOM_LVDS_SUPPORTED_REFRESH_RATE:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->usSupportedRefreshRate;
+		    break;
+		case ATOM_LVDS_OFF_DELAY:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->usOffDelayInMs;
+		    break;
+		case ATOM_LVDS_SEQ_DIG_ONTO_DE:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucPowerSequenceDigOntoDEin10Ms;
+		    break;
+		case ATOM_LVDS_SEQ_DE_TO_BL:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms;
+		    break;
+		default:
+		    return ATOM_NOT_IMPLEMENTED;
+	    }
+	    break;
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
+
     return ATOM_SUCCESS;
 }
 
@@ -1581,8 +1654,10 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	    ret = rhdAtomBIOSFirmwareInfoQuery(handle, func, &data->val);
 	} else if (func < ATOM_TMDS_QUERIES) {
 	    ret = rhdAtomBIOSVramInfoQuery(handle, func, &data->val);
-	} else if (func < FUNC_END) {
+	} else if (func < ATOM_LVDS_QUERIES) {
 	    ret = rhdAtomBIOSTmdsInfoQuery(handle, func, &data->val);
+	} else if (func < FUNC_END ){
+	    ret = rhdAtomBIOSLvdsInfoQuery(handle, func, &data->val);
 	} else {
 	    xf86DrvMsg(scrnIndex,X_INFO,"%s: Received unknown query\n",__func__);
 	    return ATOM_NOT_IMPLEMENTED;
