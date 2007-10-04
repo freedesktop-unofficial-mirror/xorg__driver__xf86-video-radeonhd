@@ -169,6 +169,7 @@ typedef struct RHDRec {
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
+#define RHDPTRI(p) 	(RHDPTR(xf86Screens[(p)->scrnIndex]))
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */

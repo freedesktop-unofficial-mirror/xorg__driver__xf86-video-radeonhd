@@ -64,7 +64,7 @@ struct rhdTMDSPrivate {
 static Bool
 TMDSASense(struct rhdOutput *Output, int Type)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[Output->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 Enable, Control, Detect;
     Bool ret;
 
@@ -189,7 +189,7 @@ TMDSAVoltageControl(RHDPtr rhdPtr)
 static void
 TMDSASet(struct rhdOutput *Output)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[Output->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
@@ -290,7 +290,7 @@ TMDSAPower(struct rhdOutput *Output, int Power)
 static void
 TMDSASave(struct rhdOutput *Output)
 {
-    int ChipSet = RHDPTR(xf86Screens[Output->scrnIndex])->ChipSet;
+    int ChipSet = RHDPTRI(Output)->ChipSet;
     struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
@@ -323,7 +323,7 @@ TMDSASave(struct rhdOutput *Output)
 static void
 TMDSARestore(struct rhdOutput *Output)
 {
-    int ChipSet = RHDPTR(xf86Screens[Output->scrnIndex])->ChipSet;
+    int ChipSet = RHDPTRI(Output)->ChipSet;
     struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
     RHDFUNC(Output);

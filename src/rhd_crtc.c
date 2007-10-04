@@ -160,7 +160,7 @@ static void
 DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
 	int bpp, CARD32 Offset)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[Crtc->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
     CARD16 RegOff;
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);

@@ -311,7 +311,7 @@ static void
 PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[PLL->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(PLL);
     CARD32 RefDiv, FBDiv, PostDiv, Control;
 
     RHDFUNC(PLL);
@@ -347,7 +347,7 @@ static void
 PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[PLL->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(PLL);
     CARD32 RefDiv, FBDiv, PostDiv, Control;
 
     RHDFUNC(PLL);

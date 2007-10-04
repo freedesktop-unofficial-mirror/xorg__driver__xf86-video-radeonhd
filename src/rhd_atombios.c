@@ -1494,7 +1494,7 @@ rhdConnectors(atomBIOSHandlePtr handle, rhdConnectorsPtr *conp)
 static Bool
 rhdAtomExec (atomBIOSHandlePtr handle, int index, void *pspace,  pointer *dataSpace)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[handle->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(handle);
     Bool ret = FALSE;
     char *msg;
 
@@ -1655,7 +1655,7 @@ CailReadFBData(VOID* CAIL, UINT32 index)
 
     if (((atomBIOSHandlePtr)CAIL)->fbBase) {
 	CARD8 *FBBase = (CARD8*)
-	    RHDPTR(xf86Screens[((atomBIOSHandlePtr)CAIL)->scrnIndex])->FbBase;
+	    RHDPTRI((atomBIOSHandlePtr)CAIL)->FbBase;
 	ret =  *((CARD32*)(FBBase + (((atomBIOSHandlePtr)CAIL)->fbBase) + index));
 	DEBUGP(ErrorF("%s(%x) = %x\n",__func__,index,ret));
     } else if (((atomBIOSHandlePtr)CAIL)->scratchBase) {
@@ -1677,7 +1677,7 @@ CailWriteFBData(VOID *CAIL, UINT32 index, UINT32 data)
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,index,data));
     if (((atomBIOSHandlePtr)CAIL)->fbBase) {
 	CARD8 *FBBase = (CARD8*)
-	    RHDPTR(xf86Screens[((atomBIOSHandlePtr)CAIL)->scrnIndex])->FbBase;
+	    RHDPTRI((atomBIOSHandlePtr)CAIL)->FbBase;
 	*((CARD32*)(FBBase + (((atomBIOSHandlePtr)CAIL)->fbBase) + index)) = data;
     } else if (((atomBIOSHandlePtr)CAIL)->scratchBase) {
 	*(CARD32*)((CARD8*)(((atomBIOSHandlePtr)CAIL)->scratchBase) + index) = data;

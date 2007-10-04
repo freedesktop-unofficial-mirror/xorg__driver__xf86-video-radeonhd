@@ -107,7 +107,7 @@ enableCursor(struct rhdCursor *Cursor, Bool Enable)
 static void
 setCursorImage(struct rhdCursor *Cursor)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[Cursor->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(Cursor);
 
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
 		rhdPtr->FbIntAddress + Cursor->Base);
@@ -123,7 +123,7 @@ setCursorImage(struct rhdCursor *Cursor)
 static void
 uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[Cursor->scrnIndex]);
+    RHDPtr rhdPtr = RHDPTRI(Cursor);
 
     memcpy(((char *) rhdPtr->FbBase + Cursor->Base), img,
 	   MAX_CURSOR_WIDTH * Cursor->Height * 4);
