@@ -87,7 +87,7 @@ setCursorPos(struct rhdCursor *Cursor, CARD32 x, CARD32 y,
     assert (x >= 0 && x < 0x10000);
     assert (y >= 0 && y < 0x10000);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_POSITION, x << 16 | y);
-    /* Note: unknown whether hotspot may be ouside width/height */
+    /* Note: unknown whether hotspot may be outside width/height */
     assert (hotx >= 0 && hotx < MAX_CURSOR_WIDTH);
     assert (hoty >= 0 && hoty < MAX_CURSOR_HEIGHT);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT, hotx << 16 | hoty);
@@ -125,7 +125,7 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 {
     RHDPtr rhdPtr = RHDPTRI(Cursor);
 
-    memcpy(((char *) rhdPtr->FbBase + Cursor->Base), img,
+    memcpy(((CARD8 *) rhdPtr->FbBase + Cursor->Base), img,
 	   MAX_CURSOR_WIDTH * Cursor->Height * 4);
 }
 
