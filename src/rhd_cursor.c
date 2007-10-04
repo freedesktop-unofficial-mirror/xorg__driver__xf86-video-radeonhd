@@ -367,6 +367,20 @@ rhdHideCursor(ScrnInfoPtr pScrn)
     }
 }
 
+void
+rhdReloadCursor(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    for (i = 0; i < 2; i++) {
+	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
+
+	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	    Crtc->Cursor->Load(Crtc->Cursor, rhdPtr->CursorImage);
+    }
+}
+
 static void
 rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {

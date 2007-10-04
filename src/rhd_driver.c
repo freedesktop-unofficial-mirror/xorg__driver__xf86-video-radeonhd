@@ -905,6 +905,8 @@ RHDEnterVT(int scrnIndex, int flags)
 
     /* @@@ video overlays can be initialized here */
 
+    if (rhdPtr->CursorInfo)
+	rhdReloadCursor(pScrn);
     /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
