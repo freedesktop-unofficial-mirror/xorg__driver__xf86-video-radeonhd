@@ -56,12 +56,13 @@ struct rhdCursor
 
     Bool Stored;
 
-    CARD32 StorePosition;
-    CARD32 StoreHotSpot;
-    CARD32 StoreAddress;
-    CARD32 StoreSize;
-
-    /* Store pixmap */
+    CARD32  StoreControl;
+    CARD32  StoreAddress;
+    CARD32  StoreSize;
+    CARD32  StorePosition;
+    CARD32  StoreHotSpot;
+    CARD8  *StoreImage;
+    int     StoreImageSize;
 };
 
 void RHDCursorsInit(RHDPtr rhdPtr);

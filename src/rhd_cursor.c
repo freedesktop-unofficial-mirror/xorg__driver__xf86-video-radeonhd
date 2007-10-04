@@ -129,35 +129,64 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 	   MAX_CURSOR_WIDTH * Cursor->Height * 4);
 }
 
-/*
- *
- */
+/* Save hardware state. */
 static void
 rhdCursorSave(struct rhdCursor *Cursor)
 {
-    Cursor->StorePosition = RHDRegRead(Cursor, Cursor->RegOffset + D1CUR_POSITION);
-    Cursor->StoreHotSpot = RHDRegRead(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT);
-    Cursor->StoreAddress = RHDRegRead(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS);
-    Cursor->StoreSize = RHDRegRead(Cursor, Cursor->RegOffset + D1CUR_SIZE);
+    RHDPtr rhdPtr = RHDPTRI(Cursor);
 
-    /* TODO: Store pixmap */
-    Cursor->Stored = FALSE;
+    Cursor->StoreControl  = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_CONTROL);
+    Cursor->StoreAddress  = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_SURFACE_ADDRESS);
+    Cursor->StoreSize     = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_SIZE);
+    Cursor->StorePosition = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_POSITION);
+    Cursor->StoreHotSpot  = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_HOT_SPOT);
+
+    Cursor->StoreImageSize = Cursor->StoreSize & 0x003f;	/* Height */
+    switch ((Cursor->StoreControl & 0x0300) >> 8) {
+    case 0:		/* 2bpp */
+	Cursor->StoreImageSize *= 64*2/8;
+	break;
+    default:		/* 32bpp color */
+	Cursor->StoreImageSize *= 64*32/8;
+    }
+    xfree (Cursor->StoreImageSize);
+    if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
+	memcpy (Cursor->StoreImage,
+		(CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
+		Cursor->StoreImageSize);
+    else
+	ErrorF("Out of memory for cursor save area\n");
+
+    Cursor->Stored = TRUE;
 }
 
-/*
- *
- */
+/* Restore hardware state. */
 static void
 rhdCursorRestore(struct rhdCursor *Cursor)
 {
+    RHDPtr rhdPtr = RHDPTRI(Cursor);
+
     Cursor->Lock(Cursor, TRUE);
 
-    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_POSITION, Cursor->StorePosition);
-    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT, Cursor->StoreHotSpot);
-    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS, Cursor->StoreAddress);
-    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE, Cursor->StoreSize);
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL,
+		Cursor->StoreControl);
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
+		Cursor->StoreAddress);
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE,
+		Cursor->StoreSize);
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_POSITION,
+		Cursor->StorePosition);
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT,
+		Cursor->StoreHotSpot);
 
-    /* TODO: Restore pixmap */
+    if (Cursor->StoreImage)
+	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
+		Cursor->StoreImage, Cursor->StoreImageSize);
 
     Cursor->Lock(Cursor, FALSE);
 }
