@@ -181,15 +181,21 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_R600,  0x9401, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9402, RES_SHARED_VGA }, /* Radeon HD 2900 XT */
     { RHD_R600,  0x9403, RES_SHARED_VGA }, /* Radeon HD 2900 Pro */
+    { RHD_R600,  0x9405, RES_SHARED_VGA }, /* Radeon HD 2900 GT */
+    { RHD_R600,  0x940A, RES_SHARED_VGA }, /* FireGL V8650 */
+    { RHD_R600,  0x940B, RES_SHARED_VGA }, /* FireGL V8600 */
+    { RHD_R600,  0x940F, RES_SHARED_VGA }, /* FireGL V7600 */
     { RHD_RV610, 0x94C0, RES_SHARED_VGA }, /* RV610 */
     { RHD_RV610, 0x94C1, RES_SHARED_VGA }, /* Radeon HD 2400 XT */
     { RHD_RV610, 0x94C3, RES_SHARED_VGA }, /* Radeon HD 2400 Pro */
     { RHD_RV610, 0x94C4, RES_SHARED_VGA }, /* ATI Radeon HD 2400 PRO AGP */
+    { RHD_RV610, 0x94C5, RES_SHARED_VGA }, /* FireGL V4000 */
     { RHD_RV610, 0x94C6, RES_SHARED_VGA }, /* RV610 */
     { RHD_RV610, 0x94C7, RES_SHARED_VGA }, /* ATI Radeon HD 2350 */
     { RHD_M74,   0x94C8, RES_SHARED_VGA }, /* Mobility Radeon HD 2400 XT */
     { RHD_M72,   0x94C9, RES_SHARED_VGA }, /* Mobility Radeon HD 2400 */
     { RHD_M72,   0x94CB, RES_SHARED_VGA }, /* ATI RADEON E2400 */
+    { RHD_RV610, 0x94CC, RES_SHARED_VGA }, /* RV610 */
     { RHD_RV630, 0x9580, RES_SHARED_VGA }, /* RV630 */
     { RHD_M76,   0x9581, RES_SHARED_VGA }, /* Mobility Radeon HD 2600 */
     { RHD_M76,   0x9583, RES_SHARED_VGA }, /* Mobility Radeon HD 2600 XT */
@@ -199,6 +205,8 @@ PciChipsets RHDPCIchipsets[] = {
     { RHD_RV630, 0x9589, RES_SHARED_VGA }, /* Radeon HD 2600 Pro */
     { RHD_RV630, 0x958A, RES_SHARED_VGA }, /* Gemini RV630 */
     { RHD_M76,   0x958B, RES_SHARED_VGA }, /* Gemini ATI Mobility Radeon HD 2600 XT */
+    { RHD_RV630, 0x958C, RES_SHARED_VGA }, /* FireGL V5600 */
+    { RHD_RV630, 0x958D, RES_SHARED_VGA }, /* FireGL V3600 */
     { -1,	 -1,     RES_UNDEFINED }
 };
 
@@ -220,10 +228,10 @@ RHDIdentify(int flags)
 	    "RV560  : Radeon X1650.\n\t"
 	    "RV570  : Radeon X1950, X1950 GT; FireGL V7400.\n\t"
 	    "R580   : Radeon X1900, X1950; AMD Stream Processor.\n\t"
-	    "R600   : Radeon HD 2900 Pro/XT.\n");
+	    "R600   : Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650.\n");
     xf86Msg(X_NONE, "\t"
-	    "RV610  : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP.\n\t"
-	    "RV630  : Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630.\n\t"
+	    "RV610  : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000.\n\t"
+	    "RV630  : Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600.\n\t"
 	    "M52    : Mobility Radeon X1300.\n\t"
 	    "M54    : Mobility Radeon X1400; M54-GL.\n\t"
 	    "M56    : Mobility Radeon X1600; Mobility FireGL V5200.\n\t"
@@ -499,17 +507,23 @@ rhdCards[] =
     /* 0x9401 : R600 : Radeon HD 2900 XT */
     /* 0x9402 : R600 : Radeon HD 2900 XT */
     /* 0x9403 : R600 : Radeon HD 2900 Pro */
+    /* 0x9405 : R600 : ATI Radeon HD 2900 GT  */
+    /* 0x940A : R600 : ATI FireGL V8650  */
+    /* 0x940B : R600 : ATI FireGL V8600  */
+    /* 0x940F : R600 : ATI FireGL V7600  */
     /* 0x94C0 : RV610 : RV610 */
     /* 0x94C1 : RV610 : Radeon HD 2400 XT */
     { 0x94C1, 0x174B, 0xE390, "Sapphire HD 2400 XT", VGA_B1_DVI_AB00},
     /* 0x94C3 : RV610 : Radeon HD 2400 Pro */
     { 0x94C3, 0x174B, 0xE370, "Sapphire HD 2400 Pro", VGA_A0_DVI_BB10 },
     /* 0x94C4 : RV610 : ATI Radeon HD 2400 PRO AGP  */
+    /* 0x94C5 : RV610 : ATI FireGL V4000  */
     /* 0x94C6 : RV610 : RV610  */
     /* 0x94C7 : RV610 : ATI Radeon HD 2350 */
     /* 0x94C8 : M74 : Mobility Radeon HD 2400 XT */
     /* 0x94C9 : M72 : Mobility Radeon HD 2400 */
     /* 0x94CB : M72 : ATI RADEON E2400 */
+    /* 0x94CC : RV610 : RV610  */
     /* 0x9580 : RV630 : RV630 */
     /* 0x9581 : M76 : Mobility Radeon HD 2600 */
     /* 0x9583 : M76 : Mobility Radeon HD 2600 XT */
@@ -522,6 +536,8 @@ rhdCards[] =
     { 0x9589, 0x174B, 0xE410, "Sapphire HD 2600 Pro", DVI_BA10_DVI_AB01 },
     /* 0x958A : RV630 : Gemini RV630 */
     /* 0x958B : M76 : Gemini ATI Mobility Radeon HD 2600 XT */
+    /* 0x958C : RV630 : ATI FireGL V5600  */
+    /* 0x958D : RV630 : ATI FireGL V3600  */
     { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
 };
 
