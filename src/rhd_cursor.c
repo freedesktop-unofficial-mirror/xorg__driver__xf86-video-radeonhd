@@ -158,7 +158,7 @@ rhdCursorSave(struct rhdCursor *Cursor)
     xfree (Cursor->StoreImage);
     if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
 	memcpy (Cursor->StoreImage,
-		(CARD8 *) rhdPtr->FbBase + Cursor->Base,
+		(CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
 		Cursor->StoreImageSize);
     else
 	ErrorF("Out of memory for cursor save area\n");
@@ -187,7 +187,7 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 		Cursor->StoreHotSpot);
 
     if (Cursor->StoreImage)
-	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->Base,
+	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
 		Cursor->StoreImage, Cursor->StoreImageSize);
 
     Cursor->Lock(Cursor, FALSE);
@@ -384,7 +384,7 @@ rhdSaveCursor(ScrnInfoPtr pScrn)
 }
 
 void
-rhdReloadCursor(ScrnInfoPtr pScrn)
+rhdRestoreCursor(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
@@ -394,6 +394,20 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
 	    Crtc->Cursor->Restore(Crtc->Cursor);
+    }
+}
+
+void
+rhdReloadCursor(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    for (i = 0; i < 2; i++) {
+	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
+
+	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	    Crtc->Cursor->Load(Crtc->Cursor, rhdPtr->CursorImage);
     }
 }
 
