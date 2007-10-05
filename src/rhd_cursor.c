@@ -176,8 +176,6 @@ restoreCursor(struct rhdCursor *Cursor)
 	return;
     }
 
-    lockCursor(Cursor, TRUE);
-
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL,
 		Cursor->StoreControl);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
@@ -192,8 +190,6 @@ restoreCursor(struct rhdCursor *Cursor)
     if (Cursor->StoreImage)
 	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
 		Cursor->StoreImage, Cursor->StoreImageSize);
-
-    lockCursor(Cursor, FALSE);
 }
 
 /*
@@ -256,15 +252,10 @@ displayCursor(struct rhdCrtc *Crtc)
 	HotX = Cursor->X >= 0 ? 0 : -Cursor->X;
 	HotY = Cursor->Y >= 0 ? 0 : -Cursor->Y;
 
-	lockCursor  (Cursor, TRUE);
 	enableCursor(Cursor, TRUE);
 	setCursorPos(Cursor, X, Y, HotX, HotY);
-	lockCursor  (Cursor, FALSE);
-    } else {
-	lockCursor  (Cursor, TRUE);
+    } else
 	enableCursor(Cursor, FALSE);
-	lockCursor  (Cursor, FALSE);
-    }
 }
 
 /*
@@ -280,8 +271,13 @@ rhdShowCursor(ScrnInfoPtr pScrn)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	    struct rhdCursor *Cursor = Crtc->Cursor;
+
+	    lockCursor   (Cursor, TRUE);
 	    displayCursor(Crtc);
+	    lockCursor   (Cursor, FALSE);
+	}
     }
 }
 
@@ -329,8 +325,13 @@ rhdRestoreCursor(ScrnInfoPtr pScrn)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
-	    restoreCursor(Crtc->Cursor);
+	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	    struct rhdCursor *Cursor = Crtc->Cursor;
+
+	    lockCursor   (Cursor, TRUE);
+	    restoreCursor(Cursor);
+	    lockCursor   (Cursor, FALSE);
+	}
     }
 }
 
@@ -345,9 +346,13 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
-	    uploadCursorImage(Crtc->Cursor, rhdPtr->CursorImage);
-	    setCursorImage   (Crtc->Cursor);
+	    struct rhdCursor *Cursor = Crtc->Cursor;
+
+	    lockCursor       (Cursor, TRUE);
+	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
+	    setCursorImage   (Cursor);
 	    displayCursor    (Crtc);
+	    lockCursor       (Cursor, FALSE);
 	}
     }
 }
@@ -365,12 +370,15 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    /* Given cursor pos is always relative to frame - make absolute */
 	    Crtc->Cursor->X = x + pScrn->frameX0;
 	    Crtc->Cursor->Y = y + pScrn->frameY0;
 
+	    lockCursor   (Cursor, TRUE);
 	    displayCursor(Crtc);
+	    lockCursor   (Cursor, FALSE);
 	}
     }
 }
