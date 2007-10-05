@@ -418,8 +418,11 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
 	    Crtc->Cursor->Load(Crtc->Cursor, rhdPtr->CursorImage);
+	    Crtc->Cursor->Set (Crtc->Cursor);
+	    rhdCursorSet      (Crtc);
+	}
     }
 }
 
