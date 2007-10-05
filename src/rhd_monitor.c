@@ -26,6 +26,9 @@
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
 #endif
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "xf86.h"
 #include "xf86DDC.h"
@@ -34,6 +37,9 @@
 #include "rhd_connector.h"
 #include "rhd_modes.h"
 #include "rhd_monitor.h"
+#ifdef ATOM_BIOS
+# include "rhd_atombios.h"
+#endif
 
 /*
  *
@@ -181,22 +187,65 @@ RHDDefaultMonitor(int scrnIndex)
 /*
  *
  */
+static void
+RHDPanelModeSet(struct rhdMonitor *Monitor, DisplayModePtr mode)
+{
+    RHDFUNC(Monitor);
+
+    Monitor->Name = xstrdup("LVDS Panel");
+    Monitor->Modes = RHDModesAdd(Monitor->Modes, mode);
+    Monitor->numHSync = 1;
+    Monitor->HSync[0].lo = mode->HSync;
+    Monitor->HSync[0].hi = mode->HSync;
+    Monitor->numVRefresh = 1;
+    Monitor->VRefresh[0].lo = mode->VRefresh;
+    Monitor->VRefresh[0].hi = mode->VRefresh;
+    Monitor->Bandwidth = mode->SynthClock;
+}
+
+/*
+ *
+ */
 struct rhdMonitor *
 RHDMonitorInit(struct rhdConnector *Connector)
 {
     struct rhdMonitor *Monitor;
     xf86MonPtr EDID = NULL;
+    DisplayModePtr mode = NULL;
 
     RHDFUNC(Connector);
 
-    /* TODO: We might want to use panel resolution from atombios in future */
-    if (!Connector->DDC)
-	return NULL;
+    /* TODO: For now. This should be handled differently. */
+    if (!Connector->DDC) {
+#ifdef ATOM_BIOS
+	if (Connector->Type == RHD_CONNECTOR_PANEL) {
+	    RHDPtr rhdPtr = RHDPTR(xf86Screens[Connector->scrnIndex]);
+	    AtomBIOSArg data;
 
-    EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
-    if (!EDID) {
-	xf86DrvMsg(Connector->scrnIndex, X_INFO,
-		   "No EDID data found on connector \"%s\"\n", Connector->Name);
+	    if (RHDAtomBIOSFunc(Connector->scrnIndex,
+				rhdPtr->atomBIOS, ATOMBIOS_GET_PANEL_TIMINGS,
+				&data) == ATOM_SUCCESS) {
+
+		if (data.panel->EDID)
+		    EDID = xf86InterpretEDID(Connector->scrnIndex,data.panel->EDID);
+		else
+		    mode = data.panel->mode;
+
+	    } else
+		return NULL;
+	} else
+#endif
+	    return NULL;
+    } else
+	EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
+
+    if (!EDID && !mode) {
+	if (Connector->Type != RHD_CONNECTOR_PANEL)
+	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
+		       "No EDID data found on connector \"%s\"\n", Connector->Name);
+	else
+	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
+		       "No EDID data nor mode found on panel connector \"%s\"\n", Connector->Name);
 	return NULL;
     }
 
@@ -204,7 +253,11 @@ RHDMonitorInit(struct rhdConnector *Connector)
 
     Monitor->scrnIndex = Connector->scrnIndex;
 
-    RHDMonitorEDIDSet(Monitor, EDID);
+    if (mode)
+	RHDPanelModeSet(Monitor, mode);
+    else
+	RHDMonitorEDIDSet(Monitor, EDID);
+
     xfree(EDID);
 
     if (Connector->Type == RHD_CONNECTOR_PANEL)

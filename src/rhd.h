@@ -111,8 +111,8 @@ typedef struct RHDRec {
     pciVideoPtr         PciInfo;
     PCITAG              PciTag;
     int			entityIndex;
-    struct rhdCard     *Card;
-
+    struct rhdCard      *Card;
+    struct rhdPanelMode *Panel;
     OptionInfoPtr       Options;
     RHDOpt              noAccel;
     RHDOpt              swCursor;

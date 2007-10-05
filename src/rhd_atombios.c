@@ -34,8 +34,11 @@
 #include "rhd_atombios.h"
 #include "rhd_output.h"
 #include "rhd_connector.h"
+#include "rhd_monitor.h"
 #include "rhd_card.h"
 #include "rhd_regs.h"
+/* only for testing now */
+#include "xf86DDC.h"
 
 char *AtomBIOSQueryStr[] = {
     "Default Engine Clock",
@@ -64,7 +67,8 @@ char *AtomBIOSFuncStr[] = {
     "AtomBIOS Teardown",
     "AtomBIOS Exec",
     "AtomBIOS Set FB Space",
-    "AtomBIOS GetConnectors"
+    "AtomBIOS Get Connectors",
+    "AtomBIOS Get Panel Timings"
 };
 
 #ifdef ATOM_BIOS
@@ -661,13 +665,159 @@ rhdAtomBIOSTmdsInfoQuery(atomBIOSHandlePtr handle,
     return ATOM_SUCCESS;
 }
 
-static
-AtomBiosResult
+static DisplayModePtr
+rhdLvdsTimings(atomBIOSHandlePtr handle, ATOM_DTD_FORMAT *dtd)
+{
+    DisplayModePtr mode;
+#define NAME_LEN 16
+    char name[NAME_LEN];
+
+    RHDFUNC(handle);
+
+    if (!(mode = (DisplayModePtr)xalloc(sizeof(DisplayModeRec))))
+	return NULL;
+
+    mode->CrtcHDisplay = mode->HDisplay = dtd->usHActive;
+    mode->CrtcVDisplay = mode->VDisplay = dtd->usVActive;
+    mode->CrtcHBlankStart = dtd->usHActive + dtd->ucHBorder;
+    mode->CrtcHBlankEnd = mode->CrtcHBlankStart + dtd->usHBlanking_Time;
+    mode->CrtcHTotal = mode->HTotal = mode->CrtcHBlankEnd + dtd->ucHBorder;
+    mode->CrtcVBlankStart = dtd->usVActive + dtd->ucVBorder;
+    mode->CrtcVBlankEnd = mode->CrtcVBlankStart + dtd->usVBlanking_Time;
+    mode->CrtcVTotal = mode->VTotal = mode->CrtcVBlankEnd + dtd->ucVBorder;
+    mode->CrtcHSyncStart = mode->HSyncStart = dtd->usHActive + dtd->usHSyncOffset;
+    mode->CrtcHSyncEnd = mode->HSyncEnd = mode->HSyncStart + dtd->usHSyncWidth;
+    mode->CrtcVSyncStart = mode->VSyncStart = dtd->usVActive + dtd->usVSyncOffset;
+    mode->CrtcVSyncEnd = mode->VSyncEnd = mode->VSyncStart + dtd->usVSyncWidth;
+
+    mode->SynthClock = mode->Clock  = dtd->usPixClk * 10;
+
+    mode->HSync = ((float) mode->Clock) / ((float)mode->HTotal);
+    mode->VRefresh = (1000.0 * ((float) mode->Clock))
+	/ ((float)(((float)mode->HTotal) * ((float)mode->VTotal)));
+
+    xf86snprintf(name, NAME_LEN, "%dx%d",
+		 mode->HDisplay, mode->VDisplay);
+    mode->name = xstrdup(name);
+
+    RHDDebug(handle->scrnIndex,"%s: LVDS Modeline: %s  "
+	     "%2.d  %i (%i) %i %i (%i) %i  %i (%i) %i %i (%i) %i\n",
+	     __func__, mode->name, mode->Clock,
+	     mode->HDisplay, mode->CrtcHBlankStart, mode->HSyncStart, mode->CrtcHSyncEnd,
+	     mode->CrtcHBlankEnd, mode->HTotal,
+	     mode->VDisplay, mode->CrtcVBlankStart, mode->VSyncStart, mode->VSyncEnd,
+	     mode->CrtcVBlankEnd, mode->VTotal);
+
+    return mode;
+}
+
+static unsigned char*
+rhdLvdsDDC(atomBIOSHandlePtr handle, unsigned char *record)
+{
+    unsigned char *EDID;
+
+    RHDFUNC(handle);
+
+    while (*record != ATOM_RECORD_END_TYPE) {
+	switch (*record) {
+	    case LCD_MODE_PATCH_RECORD_MODE_TYPE:
+		record += sizeof(ATOM_PATCH_RECORD_MODE);
+		break;
+
+	    case LCD_RTS_RECORD_TYPE:
+		record += sizeof(ATOM_LCD_RTS_RECORD);
+		break;
+
+	    case LCD_CAP_RECORD_TYPE:
+		record += sizeof(ATOM_LCD_MODE_CONTROL_CAP);
+		break;
+
+	    case LCD_FAKE_EDID_PATCH_RECORD_TYPE:
+		if (!(EDID = (unsigned char *)xalloc(
+			  ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength)))
+		    return NULL;
+		/* dup string as we free it later */
+		memcpy(EDID,&((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDString,
+		       ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength);
+
+		/* for testing */
+		{
+		    xf86MonPtr mon = xf86InterpretEDID(handle->scrnIndex,EDID);
+		    xf86PrintEDID(mon);
+		    xfree(mon);
+		}
+		return EDID;
+
+	    case LCD_PANEL_RESOLUTION_RECORD_TYPE:
+		record += sizeof(ATOM_PANEL_RESOLUTION_PATCH_RECORD);
+		break;
+
+	    default:
+		xf86DrvMsg(handle->scrnIndex, X_ERROR,
+			   "%s: unknown record type: %x\n",__func__,*record);
+		return NULL;
+	}
+    }
+
+    return NULL;
+}
+
+static AtomBiosResult
+rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
+
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    rhdPanelModePtr m;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    RHDFUNC(handle);
+
+    switch (crev) {
+	case 1:
+	    if (!(m = (rhdPanelModePtr)xcalloc(1,sizeof(rhdPanelModeRec))))
+		return ATOM_FAILED;
+	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
+				       .LVDS_Info->sLCDTiming);
+	    m->EDID = NULL;
+	    break;
+
+	case 2:
+	    if (!(m = (rhdPanelModePtr)xalloc(sizeof(rhdPanelModeRec))))
+		return ATOM_FAILED;
+	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
+				       .LVDS_Info_v12->sLCDTiming);
+	    /* todo check if offset is valid */
+	    m->EDID = rhdLvdsDDC(handle,
+				 (unsigned char *)&atomDataPtr->LVDS_Info.base
+				 + atomDataPtr->LVDS_Info
+				 .LVDS_Info_v12->usExtInfoTableOffset);
+	    break;
+
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
+    *ptr = m;
+
+    return ATOM_SUCCESS;
+}
+
+static AtomBiosResult
 rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 			 AtomBiosFunc func,  CARD32 *val)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
+
+    RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
     if (!rhdGetAtomBiosTableRevisionAndSize(
@@ -1366,7 +1516,6 @@ rhdConnectorsFromObjectHeader(atomBIOSHandlePtr handle,
 /*
  *
  */
-#define CONNECTOR_LOG_LVL 3
 static AtomBiosResult
 rhdConnectorsFromSupportedDevices(atomBIOSHandlePtr handle, rhdConnectorsPtr *ptr)
 {
@@ -1638,6 +1787,10 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	rhdConnectorsPtr ptr = NULL;
 	ret = rhdConnectors(handle, &ptr);
 	data->ptr = ptr;
+	do_return(ret);
+    }
+    if (func == ATOMBIOS_GET_PANEL_TIMINGS) {
+	ret = rhdLvdsGetTimings(handle, &data->panel);
 	do_return(ret);
     }
 # ifdef ATOM_BIOS_PARSER

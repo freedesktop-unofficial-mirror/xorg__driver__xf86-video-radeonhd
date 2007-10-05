@@ -35,6 +35,7 @@ typedef enum {
     ATOMBIOS_EXEC,
     ATOMBIOS_ALLOCATE_FB_SCRATCH,
     ATOMBIOS_GET_CONNECTORS,
+    ATOMBIOS_GET_PANEL_TIMINGS,
     ATOM_QUERY_FUNCS = 0x1000,
     GET_DEFAULT_ENGINE_CLOCK = ATOM_QUERY_FUNCS,
     GET_DEFAULT_MEMORY_CLOCK,
@@ -83,6 +84,7 @@ typedef union
     CARD32 val;
 
     pointer ptr;
+    struct rhdPanelMode *panel;
     atomBIOSHandlePtr atomp;
     AtomExec exec;
     AtomFb fb;

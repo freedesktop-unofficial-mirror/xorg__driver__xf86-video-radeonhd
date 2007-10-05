@@ -1571,6 +1571,7 @@ rhdTestDDC(ScrnInfoPtr pScrn)
 		    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on line %i:\n",
 			       i - 1);
 		    xf86PrintEDID(data.monitor);
+		    xfree(data.monitor);
 		} else {
 		    xf86DrvMsgVerb(pScrn->scrnIndex, 7,X_INFO,
 				   "No DDC data found on line %i\n",i - 1);
