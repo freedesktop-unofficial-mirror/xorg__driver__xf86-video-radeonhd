@@ -727,6 +727,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     }
 
     /* save previous mode */
+// FIXME: necessary? is EnterVT called?
     rhdSave(rhdPtr);
 
     /* now init the new mode */
@@ -864,11 +865,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if(pScrn->vtSema){
-        if (rhdPtr->CursorInfo)
-	    rhdHideCursor(pScrn);
+    if(pScrn->vtSema)
 	rhdRestore(rhdPtr);
-    }
 
     RHDShadowCloseScreen(pScreen);
     rhdUnmapFB(rhdPtr);
@@ -920,11 +918,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    /* Invalidate the cached acceleration registers */
-    if (rhdPtr->CursorInfo) {
-	rhdSaveCursor(pScrn);
-	rhdHideCursor(pScrn);
-    }
+    /* TODO: Invalidate the cached acceleration registers */
     rhdRestore(rhdPtr);
 }
 
@@ -1442,6 +1436,8 @@ rhdSave(RHDPtr rhdPtr)
 
     rhdPtr->Crtc[0]->Save(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Save(rhdPtr->Crtc[1]);
+    if (rhdPtr->CursorInfo) 
+	rhdSaveCursor(pScrn);
 }
 
 /*
@@ -1457,6 +1453,8 @@ rhdRestore(RHDPtr rhdPtr)
 
     rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
+    if (rhdPtr->CursorInfo) 
+	rhdRestoreCursor(pScrn);
 
     RHDVGARestore(rhdPtr);
 
