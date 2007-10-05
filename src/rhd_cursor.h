@@ -57,7 +57,7 @@ struct rhdCursor
     Bool Stored;
 
     CARD32  StoreControl;
-    CARD32  StoreAddress;
+    CARD32  StoreOffset;
     CARD32  StoreSize;
     CARD32  StorePosition;
     CARD32  StoreHotSpot;

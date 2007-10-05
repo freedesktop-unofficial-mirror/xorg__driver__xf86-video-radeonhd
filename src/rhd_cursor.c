@@ -140,8 +140,9 @@ rhdCursorSave(struct rhdCursor *Cursor)
 
     Cursor->StoreControl  = RHDRegRead(Cursor, Cursor->RegOffset
 				       + D1CUR_CONTROL);
-    Cursor->StoreAddress  = RHDRegRead(Cursor, Cursor->RegOffset
-				       + D1CUR_SURFACE_ADDRESS);
+    Cursor->StoreOffset   = RHDRegRead(Cursor, Cursor->RegOffset
+				       + D1CUR_SURFACE_ADDRESS)
+			    - rhdPtr->FbIntAddress;
     Cursor->StoreSize     = RHDRegRead(Cursor, Cursor->RegOffset
 				       + D1CUR_SIZE);
     Cursor->StorePosition = RHDRegRead(Cursor, Cursor->RegOffset
@@ -149,7 +150,7 @@ rhdCursorSave(struct rhdCursor *Cursor)
     Cursor->StoreHotSpot  = RHDRegRead(Cursor, Cursor->RegOffset
 				       + D1CUR_HOT_SPOT);
 
-    Cursor->StoreImageSize = Cursor->StoreSize & 0x003f;	/* Height */
+    Cursor->StoreImageSize = (Cursor->StoreSize & 0x003f) + 1;	/* Height */
     switch ((Cursor->StoreControl & 0x0300) >> 8) {
     case 0:		/* 2bpp */
 	Cursor->StoreImageSize *= 64*2/8;
@@ -158,10 +159,10 @@ rhdCursorSave(struct rhdCursor *Cursor)
 	Cursor->StoreImageSize *= 64*32/8;
     }
     xfree (Cursor->StoreImage);
-    if (Cursor->StoreAddress + Cursor->StoreImageSize < pScrn->videoRam) {
+    if ((Cursor->StoreOffset + Cursor->StoreImageSize)/1024 < pScrn->videoRam) {
 	if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
 	    memcpy (Cursor->StoreImage,
-		    (CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
+		    (CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
 		    Cursor->StoreImageSize);
 	else
 	    ErrorF("Out of memory for cursor save area\n");
@@ -189,7 +190,7 @@ rhdCursorRestore(struct rhdCursor *Cursor)
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL,
 		Cursor->StoreControl);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
-		Cursor->StoreAddress);
+		Cursor->StoreOffset + rhdPtr->FbIntAddress);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE,
 		Cursor->StoreSize);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_POSITION,
@@ -198,7 +199,7 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 		Cursor->StoreHotSpot);
 
     if (Cursor->StoreImage)
-	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
+	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
 		Cursor->StoreImage, Cursor->StoreImageSize);
 
     Cursor->Lock(Cursor, FALSE);
