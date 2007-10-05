@@ -728,11 +728,12 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
      * If we have a display (panel) provided mode
      * we should not have to validate the duty cycle.
      */
-    if (Monitor->UseFixedModes)
+    if (Monitor->UseFixedModes) {
 	if (!rhdMonitorFixedValid(Monitor, Mode))
 	    return MODE_FIXED;
 	else
 	    return MODE_OK;
+    }
 
     /* Is the horizontal blanking a bit lowish? */
     if (((Mode->CrtcHDisplay * 5 / 4) & ~0x07) > Mode->CrtcHTotal) {
