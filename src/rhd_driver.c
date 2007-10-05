@@ -711,6 +711,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn = xf86Screens[pScreen->myNum];
     rhdPtr = RHDPTR(pScrn);
+    RHDFUNC(pScrn);
 
     /*
      * Whack the hardware
@@ -1425,6 +1426,8 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 static void
 rhdSave(RHDPtr rhdPtr)
 {
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+
     RHDFUNC(rhdPtr);
 
     RHDVGASave(rhdPtr);
@@ -1436,8 +1439,7 @@ rhdSave(RHDPtr rhdPtr)
 
     rhdPtr->Crtc[0]->Save(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Save(rhdPtr->Crtc[1]);
-    if (rhdPtr->CursorInfo) 
-	rhdSaveCursor(pScrn);
+    rhdSaveCursor(pScrn);
 }
 
 /*
@@ -1446,6 +1448,8 @@ rhdSave(RHDPtr rhdPtr)
 static void
 rhdRestore(RHDPtr rhdPtr)
 {
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+
     RHDFUNC(rhdPtr);
 
     RHDPLLsRestore(rhdPtr);
