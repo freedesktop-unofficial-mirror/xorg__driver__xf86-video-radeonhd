@@ -34,7 +34,6 @@
 
 #include "rhd.h"
 #include "rhd_crtc.h"
-#include "rhd_cursor.h"
 #include "rhd_pll.h"
 #include "rhd_lut.h"
 #include "rhd_regs.h"
