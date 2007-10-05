@@ -123,7 +123,7 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 }
 
 static void
-rhdCursorSave(struct rhdCursor *Cursor)
+saveCursor(struct rhdCursor *Cursor)
 {
     ScrnInfoPtr pScrn  = xf86Screens[Cursor->scrnIndex];
     RHDPtr      rhdPtr = RHDPTR(pScrn);
@@ -165,7 +165,7 @@ rhdCursorSave(struct rhdCursor *Cursor)
 }
 
 static void
-rhdCursorRestore(struct rhdCursor *Cursor)
+restoreCursor(struct rhdCursor *Cursor)
 {
     RHDPtr rhdPtr = RHDPTRI(Cursor);
     RHDFUNC(Cursor);
@@ -176,7 +176,7 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 	return;
     }
 
-    Cursor->Lock(Cursor, TRUE);
+    lockCursor(Cursor, TRUE);
 
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL,
 		Cursor->StoreControl);
@@ -193,7 +193,7 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
 		Cursor->StoreImage, Cursor->StoreImageSize);
 
-    Cursor->Lock(Cursor, FALSE);
+    lockCursor(Cursor, FALSE);
 }
 
 /*
@@ -237,7 +237,7 @@ convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
 
 /* Enable/disable cursor according to visibility, and set cursor pos */
 static void
-rhdCursorSet(struct rhdCrtc *Crtc)
+displayCursor(struct rhdCrtc *Crtc)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
 
@@ -256,14 +256,14 @@ rhdCursorSet(struct rhdCrtc *Crtc)
 	HotX = Cursor->X >= 0 ? 0 : -Cursor->X;
 	HotY = Cursor->Y >= 0 ? 0 : -Cursor->Y;
 
-	Cursor->Lock(Cursor, TRUE);
-	Cursor->Enable(Cursor, TRUE);
-	Cursor->Position(Cursor, X, Y, HotX, HotY);
-	Cursor->Lock(Cursor, FALSE);
+	lockCursor  (Cursor, TRUE);
+	enableCursor(Cursor, TRUE);
+	setCursorPos(Cursor, X, Y, HotX, HotY);
+	lockCursor  (Cursor, FALSE);
     } else {
-	Cursor->Lock(Cursor, TRUE);
-	Cursor->Enable(Cursor, FALSE);
-	Cursor->Lock(Cursor, FALSE);
+	lockCursor  (Cursor, TRUE);
+	enableCursor(Cursor, FALSE);
+	lockCursor  (Cursor, FALSE);
     }
 }
 
@@ -281,7 +281,7 @@ rhdShowCursor(ScrnInfoPtr pScrn)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
-	    rhdCursorSet(Crtc);
+	    displayCursor(Crtc);
     }
 }
 
@@ -297,9 +297,9 @@ rhdHideCursor(ScrnInfoPtr pScrn)
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
-	    Cursor->Lock(Cursor, TRUE);
-	    Cursor->Enable(Cursor, FALSE);
-	    Cursor->Lock(Cursor, FALSE);
+	    lockCursor  (Cursor, TRUE);
+	    enableCursor(Cursor, FALSE);
+	    lockCursor  (Cursor, FALSE);
 	}
     }
 }
@@ -315,7 +315,7 @@ rhdSaveCursor(ScrnInfoPtr pScrn)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
-	    Crtc->Cursor->Save(Crtc->Cursor);
+	    saveCursor(Crtc->Cursor);
     }
 }
 
@@ -330,7 +330,7 @@ rhdRestoreCursor(ScrnInfoPtr pScrn)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
-	    Crtc->Cursor->Restore(Crtc->Cursor);
+	    restoreCursor(Crtc->Cursor);
     }
 }
 
@@ -345,9 +345,9 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
-	    Crtc->Cursor->Load(Crtc->Cursor, rhdPtr->CursorImage);
-	    Crtc->Cursor->Set (Crtc->Cursor);
-	    rhdCursorSet      (Crtc);
+	    uploadCursorImage(Crtc->Cursor, rhdPtr->CursorImage);
+	    setCursorImage   (Crtc->Cursor);
+	    displayCursor    (Crtc);
 	}
     }
 }
@@ -370,7 +370,7 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 	    Crtc->Cursor->X = x + pScrn->frameX0;
 	    Crtc->Cursor->Y = y + pScrn->frameY0;
 
-	    rhdCursorSet(Crtc);
+	    displayCursor(Crtc);
 	}
     }
 }
@@ -397,10 +397,10 @@ rhdSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
-	    Cursor->Lock(Cursor, TRUE);
-	    Cursor->Load(Cursor, rhdPtr->CursorImage);
-	    Cursor->Set(Cursor);
-	    Cursor->Lock(Cursor, FALSE);
+	    lockCursor       (Cursor, TRUE);
+	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
+	    setCursorImage   (Cursor);
+	    lockCursor       (Cursor, FALSE);
 	}
     }
 }
@@ -426,10 +426,10 @@ rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
 	    Cursor->Width  = bits->width;
 	    Cursor->Height = bits->height;
 
-	    Cursor->Lock(Cursor, TRUE);
-	    Cursor->Load(Cursor, rhdPtr->CursorImage);
-	    Cursor->Set(Cursor);
-	    Cursor->Lock(Cursor, FALSE);
+	    lockCursor       (Cursor, TRUE);
+	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
+	    setCursorImage   (Cursor);
+	    lockCursor       (Cursor, FALSE);
 	}
     }
 }
@@ -465,10 +465,10 @@ rhdLoadCursorARGB(ScrnInfoPtr pScrn, CursorPtr cur)
 	    Cursor->Width = cur->bits->width;
 	    Cursor->Height = cur->bits->height;
 
-	    Cursor->Lock(Cursor, TRUE);
-	    Cursor->Load(Cursor, rhdPtr->CursorImage);
-	    Cursor->Set(Cursor);
-	    Cursor->Lock(Cursor, FALSE);
+	    lockCursor       (Cursor, TRUE);
+	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
+	    setCursorImage   (Cursor);
+	    lockCursor       (Cursor, FALSE);
 	}
     }
 }
@@ -514,14 +514,6 @@ RHDCursorsInit(RHDPtr rhdPtr)
 	Cursor->Base = rhdPtr->FbFreeStart;
 	rhdPtr->FbFreeStart += size;
 	rhdPtr->FbFreeSize -= size;
-
-	Cursor->Lock = lockCursor;
-	Cursor->Enable = enableCursor;
-	Cursor->Position = setCursorPos;
-	Cursor->Set = setCursorImage;
-	Cursor->Load = uploadCursorImage;
-	Cursor->Save = rhdCursorSave;
-	Cursor->Restore = rhdCursorRestore;
 
 	rhdPtr->Crtc[i]->Cursor = Cursor;	/* HW is fixed anyway */
     }

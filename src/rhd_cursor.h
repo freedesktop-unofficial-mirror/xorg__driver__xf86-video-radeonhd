@@ -45,15 +45,6 @@ struct rhdCursor
     int X;
     int Y;
 
-    void (*Lock) (struct rhdCursor *Cursor, Bool Lock);
-    void (*Enable) (struct rhdCursor *Cursor, Bool Enable);
-    void (*Position) (struct rhdCursor *Cursor,
-		      CARD32 x, CARD32 y, CARD32 hotx, CARD32 hoty);
-    void (*Set) (struct rhdCursor *Cursor);
-    void (*Load) (struct rhdCursor *Cursor, CARD32 *img);
-    void (*Save) (struct rhdCursor *Cursor);
-    void (*Restore) (struct rhdCursor *Cursor);
-
     Bool Stored;
 
     CARD32  StoreControl;
@@ -72,5 +63,6 @@ void rhdShowCursor(ScrnInfoPtr);
 void rhdHideCursor(ScrnInfoPtr);
 void rhdReloadCursor(ScrnInfoPtr pScrn);
 void rhdSaveCursor(ScrnInfoPtr pScrn);
+void rhdRestoreCursor(ScrnInfoPtr pScrn);
 
 #endif
