@@ -71,5 +71,6 @@ Bool RHDxf86InitCursor(ScreenPtr pScreen);
 void rhdShowCursor(ScrnInfoPtr);
 void rhdHideCursor(ScrnInfoPtr);
 void rhdReloadCursor(ScrnInfoPtr pScrn);
+void rhdSaveCursor(ScrnInfoPtr pScrn);
 
 #endif

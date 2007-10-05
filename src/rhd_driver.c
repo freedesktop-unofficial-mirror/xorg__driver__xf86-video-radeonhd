@@ -921,8 +921,10 @@ RHDLeaveVT(int scrnIndex, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     /* Invalidate the cached acceleration registers */
-    if (rhdPtr->CursorInfo)
+    if (rhdPtr->CursorInfo) {
+	rhdSaveCursor(pScrn);
 	rhdHideCursor(pScrn);
+    }
     rhdRestore(rhdPtr);
 }
 

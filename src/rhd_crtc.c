@@ -550,9 +550,6 @@ DxSave(struct rhdCrtc *Crtc)
     else
 	Store = Crtc->Store;
 
-    if (Crtc->Cursor)
-	Crtc->Cursor->Save(Crtc->Cursor);
-
     Store->GrphEnable = RHDRegRead(Crtc, RegOff + D1GRPH_ENABLE);
     Store->GrphControl = RHDRegRead(Crtc, RegOff + D1GRPH_CONTROL);
     Store->GrphXStart = RHDRegRead(Crtc, RegOff + D1GRPH_X_START);
@@ -675,8 +672,6 @@ DxRestore(struct rhdCrtc *Crtc)
     else
 	RHDRegWrite(Crtc, PCLK_CRTC2_CNTL, Store->CrtcPCLKControl);
 
-    if (Crtc->Cursor)
-	Crtc->Cursor->Restore(Crtc->Cursor);
 }
 
 /*
