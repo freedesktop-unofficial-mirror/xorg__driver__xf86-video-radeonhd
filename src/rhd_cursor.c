@@ -50,17 +50,10 @@
 /* System headers */
 #include <assert.h>
 
-/* Internal interface to RealizeCursor - we need width/height */
-struct rhd_Cursor_Bits {
-    int width, height;
-    /* Cursor source bitmap follows */
-    /* Cursor mask bitmap follows */
-} ;
-
 /*
  * Bit-banging ONLY
  */
-
+ 
 /* RadeonHD registers are double buffered, exchange only during vertical blank.
  * By locking registers, a set of registers is updated atomically.
  * Probably not necessary for cursors, but trivial and fast. */
@@ -129,7 +122,6 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 	   MAX_CURSOR_WIDTH * Cursor->Height * 4);
 }
 
-/* Save hardware state. */
 static void
 rhdCursorSave(struct rhdCursor *Cursor)
 {
@@ -172,7 +164,6 @@ rhdCursorSave(struct rhdCursor *Cursor)
     Cursor->Stored = TRUE;
 }
 
-/* Restore hardware state. */
 static void
 rhdCursorRestore(struct rhdCursor *Cursor)
 {
@@ -206,82 +197,17 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 }
 
 /*
- *
- */
-void
-RHDCursorsInit(RHDPtr rhdPtr)
-{
-    struct rhdCursor *Cursor;
-    int size = RHD_FB_CHUNK(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
-
-    RHDFUNC(rhdPtr);
-
-    /* First Cursor */
-    Cursor = xnfcalloc(sizeof(struct rhdCursor), 1);
-
-    Cursor->scrnIndex = rhdPtr->scrnIndex;
-
-    Cursor->RegOffset = 0;
-
-    /* Don't set width and height yet */
-
-    /* grab our cursor FB */
-    /* I love a bit of a challenge, so move start instead of end */
-    Cursor->Base = rhdPtr->FbFreeStart;
-    rhdPtr->FbFreeStart += size;
-    rhdPtr->FbFreeSize -= size;
-
-    Cursor->Lock = lockCursor;
-    Cursor->Enable = enableCursor;
-    Cursor->Position = setCursorPos;
-    Cursor->Set = setCursorImage;
-    Cursor->Load = uploadCursorImage;
-    Cursor->Save = rhdCursorSave;
-    Cursor->Restore = rhdCursorRestore;
-
-    rhdPtr->Crtc[0]->Cursor = Cursor; /* HW is fixed anyway */
-
-    /* Second Cursor */
-    Cursor = xnfcalloc(sizeof(struct rhdCursor), 1);
-
-    Cursor->scrnIndex = rhdPtr->scrnIndex;
-
-    Cursor->RegOffset = 0x800;
-
-    Cursor->Base = rhdPtr->FbFreeStart;
-    rhdPtr->FbFreeStart += size;
-    rhdPtr->FbFreeSize -= size;
-
-    Cursor->Lock = lockCursor;
-    Cursor->Enable = enableCursor;
-    Cursor->Position = setCursorPos;
-    Cursor->Set = setCursorImage;
-    Cursor->Load = uploadCursorImage;
-    Cursor->Save = rhdCursorSave;
-    Cursor->Restore = rhdCursorRestore;
-
-    rhdPtr->Crtc[1]->Cursor = Cursor;
-}
-
-/*
- *
- */
-void
-RHDCursorsDestroy(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    if (rhdPtr->Crtc[0])
-	    xfree(rhdPtr->Crtc[0]->Cursor);
-    if (rhdPtr->Crtc[1])
-	    xfree(rhdPtr->Crtc[1]->Cursor);
-}
-
-/*
  * Helper functions
  */
 
-/* Convert bitmaps as defined in rhd_CursorBits to ARGB tupels */
+/* Internal interface to RealizeCursor - we need width/height */
+struct rhd_Cursor_Bits {
+    int width, height;
+    /* Cursor source bitmap follows */
+    /* Cursor mask bitmap follows */
+} ;
+
+/* Convert bitmaps as defined in rhd_Cursor_Bits to ARGB tupels */
 static void
 convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
 		  CARD32 color0, CARD32 color1)
@@ -309,10 +235,7 @@ convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
     }
 }
 
-
-/*
- *
- */
+/* Enable/disable cursor according to visibility, and set cursor pos */
 static void
 rhdCursorSet(struct rhdCrtc *Crtc)
 {
@@ -345,7 +268,7 @@ rhdCursorSet(struct rhdCrtc *Crtc)
 }
 
 /*
- * Interface
+ * Internal Driver + Xorg Interface
  */
 
 void
@@ -381,6 +304,7 @@ rhdHideCursor(ScrnInfoPtr pScrn)
     }
 }
 
+/* Called for saving VT cursor info */
 void
 rhdSaveCursor(ScrnInfoPtr pScrn)
 {
@@ -395,6 +319,7 @@ rhdSaveCursor(ScrnInfoPtr pScrn)
     }
 }
 
+/* Called for restoring VT cursor info */
 void
 rhdRestoreCursor(ScrnInfoPtr pScrn)
 {
@@ -409,6 +334,7 @@ rhdRestoreCursor(ScrnInfoPtr pScrn)
     }
 }
 
+/* Called for restoring Xorg cursor */
 void
 rhdReloadCursor(ScrnInfoPtr pScrn)
 {
@@ -426,6 +352,9 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     }
 }
 
+/*
+ * Xorg Interface
+ */
 static void
 rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {
@@ -437,7 +366,7 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 
 	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
 
-	    /* Given cursor pos is always relative to frame - make absolute here */
+	    /* Given cursor pos is always relative to frame - make absolute */
 	    Crtc->Cursor->X = x + pScrn->frameX0;
 	    Crtc->Cursor->Y = y + pScrn->frameY0;
 
@@ -564,6 +493,52 @@ rhdRealizeCursor(xf86CursorInfoPtr infoPtr, CursorPtr cur)
 /*
  * Init
  */
+
+void
+RHDCursorsInit(RHDPtr rhdPtr)
+{
+    int size = RHD_FB_CHUNK(MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
+    int i;
+
+    RHDFUNC(rhdPtr);
+
+    for (i = 0; i < 2; i++) {
+	struct rhdCursor *Cursor = xnfcalloc(sizeof(struct rhdCursor), 1);
+
+	Cursor->scrnIndex = rhdPtr->scrnIndex;
+
+	Cursor->RegOffset = i * 0x0800;
+
+	/* grab our cursor FB */
+	/* I love a bit of a challenge, so move start instead of end */
+	Cursor->Base = rhdPtr->FbFreeStart;
+	rhdPtr->FbFreeStart += size;
+	rhdPtr->FbFreeSize -= size;
+
+	Cursor->Lock = lockCursor;
+	Cursor->Enable = enableCursor;
+	Cursor->Position = setCursorPos;
+	Cursor->Set = setCursorImage;
+	Cursor->Load = uploadCursorImage;
+	Cursor->Save = rhdCursorSave;
+	Cursor->Restore = rhdCursorRestore;
+
+	rhdPtr->Crtc[i]->Cursor = Cursor;	/* HW is fixed anyway */
+    }
+}
+
+void
+RHDCursorsDestroy(RHDPtr rhdPtr)
+{
+    int i;
+    RHDFUNC(rhdPtr);
+
+    for (i = 0; i < 2; i++) {
+	xfree(rhdPtr->Crtc[i]->Cursor->StoreImage);
+	rhdPtr->Crtc[i]->Cursor->Stored = FALSE;
+	xfree(rhdPtr->Crtc[i]->Cursor);
+    }
+}
 
 Bool
 RHDxf86InitCursor(ScreenPtr pScreen)
