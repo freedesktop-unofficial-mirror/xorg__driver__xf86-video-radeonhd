@@ -133,7 +133,9 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
 static void
 rhdCursorSave(struct rhdCursor *Cursor)
 {
-    RHDPtr rhdPtr = RHDPTRI(Cursor);
+    ScrnInfoPtr pScrn  = xf86Screens[Cursor->scrnIndex];
+    RHDPtr      rhdPtr = RHDPTR(pScrn);
+
     RHDFUNC(Cursor);
 
     Cursor->StoreControl  = RHDRegRead(Cursor, Cursor->RegOffset
@@ -156,12 +158,15 @@ rhdCursorSave(struct rhdCursor *Cursor)
 	Cursor->StoreImageSize *= 64*32/8;
     }
     xfree (Cursor->StoreImage);
-    if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
-	memcpy (Cursor->StoreImage,
-		(CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
-		Cursor->StoreImageSize);
-    else
-	ErrorF("Out of memory for cursor save area\n");
+    if (Cursor->StoreAddress + Cursor->StoreImageSize < pScrn->videoRam) {
+	if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
+	    memcpy (Cursor->StoreImage,
+		    (CARD8 *) rhdPtr->FbBase + Cursor->StoreAddress,
+		    Cursor->StoreImageSize);
+	else
+	    ErrorF("Out of memory for cursor save area\n");
+    } else
+	Cursor->StoreImage = NULL;
 
     Cursor->Stored = TRUE;
 }
@@ -172,6 +177,12 @@ rhdCursorRestore(struct rhdCursor *Cursor)
 {
     RHDPtr rhdPtr = RHDPTRI(Cursor);
     RHDFUNC(Cursor);
+
+    if (!Cursor->Stored) {
+	xf86DrvMsg(Cursor->scrnIndex, X_ERROR, "%s: trying to restore "
+		   "uninitialized values.\n", __func__);
+	return;
+    }
 
     Cursor->Lock(Cursor, TRUE);
 
