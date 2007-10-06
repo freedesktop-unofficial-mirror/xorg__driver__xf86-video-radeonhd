@@ -216,7 +216,11 @@ RHDMonitorInit(struct rhdConnector *Connector)
     RHDFUNC(Connector);
 
     /* TODO: For now. This should be handled differently. */
-    if (!Connector->DDC) {
+    if (Connector->DDC) {
+	EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
+    }
+
+    if (!EDID) {
 #ifdef ATOM_BIOS
 	if (Connector->Type == RHD_CONNECTOR_PANEL) {
 	    RHDPtr rhdPtr = RHDPTR(xf86Screens[Connector->scrnIndex]);
@@ -233,19 +237,19 @@ RHDMonitorInit(struct rhdConnector *Connector)
 
 	    } else
 		return NULL;
-	} else
+	}
 #endif
-	    return NULL;
-    } else
-	EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
+    }
 
-    if (!EDID && !mode) {
+    if (!EDID && !mode) { /* still no information? */
 	if (Connector->Type != RHD_CONNECTOR_PANEL)
 	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
-		       "No EDID data found on connector \"%s\"\n", Connector->Name);
+		       "No EDID data found on connector \"%s\"\n",
+		       Connector->Name);
 	else
 	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
-		       "No EDID data nor mode found on panel connector \"%s\"\n", Connector->Name);
+		       "No EDID data nor mode found on panel connector "
+		       "\"%s\"\n", Connector->Name);
 	return NULL;
     }
 
