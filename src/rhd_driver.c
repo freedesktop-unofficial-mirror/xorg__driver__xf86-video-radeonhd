@@ -1245,8 +1245,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 
 	    Connector = Output->Connector;
 
-	    if (Connector->DDC)
-		Monitor = RHDMonitorInit(Connector);
+	    Monitor = RHDMonitorInit(Connector);
 
 	    if (!Monitor && (Connector->Type == RHD_CONNECTOR_PANEL)) {
 		xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach a"
