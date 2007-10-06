@@ -599,19 +599,16 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	if (PLLIn > PLL->InMax)
 	    break;
 
-	for (RefDiv = 1; RefDiv < REF_DIV_LIMIT; RefDiv++) {
+	for (RefDiv = 128; RefDiv >= 2; RefDiv--) {
 	    int Diff;
 
-	    FBDiv = (float) (Ratio * PostDiv * RefDiv) + 0.5;
+	    FBDiv = (CARD32) ((Ratio * PostDiv * RefDiv) + 0.5);
 	    if (!FBDiv)
-		continue;
-	    if (FBDiv >= FB_DIV_LIMIT)
 		break;
+			      if (FBDiv >= FB_DIV_LIMIT) continue;
 
-	    Diff = PixelClock - (FBDiv * PLL->RefClock) / (PostDiv * RefDiv);
-	    if (Diff < 0)
-		Diff *= -1;
-
+	    Diff = abs(PixelClock - (FBDiv * PLL->RefClock) / (PostDiv * RefDiv));
+	    xf86DrvMsg(PLL->scrnIndex, X_INFO, "RefDiv=%d Diff=%d\n",RefDiv,Diff);
 	    if (Diff < BestDiff) {
 		*FBDivider = FBDiv;
 		*RefDivider = RefDiv;
