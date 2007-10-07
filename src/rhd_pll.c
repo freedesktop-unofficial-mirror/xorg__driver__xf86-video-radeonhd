@@ -1,3 +1,4 @@
+#define APPROACH_FROM_HIGH
 /*
  * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
