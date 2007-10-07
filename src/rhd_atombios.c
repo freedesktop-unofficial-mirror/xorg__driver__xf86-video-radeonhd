@@ -60,6 +60,7 @@ char *AtomBIOSQueryStr[] = {
     "LVDS Off Delay",
     "LVDS SEQ Dig onto DE",
     "LVDS SEQ DE to BL"
+    "LVDS Misc"
 };
 
 char *AtomBIOSFuncStr[] = {
@@ -847,6 +848,10 @@ rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms;
 		    break;
+		case     ATOM_LVDS_MISC:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc;
+		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
 	    }
@@ -868,6 +873,10 @@ rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 		case ATOM_LVDS_SEQ_DE_TO_BL:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms;
+		    break;
+		case     ATOM_LVDS_MISC:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;

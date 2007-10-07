@@ -59,8 +59,14 @@ typedef enum {
     ATOM_LVDS_OFF_DELAY,
     ATOM_LVDS_SEQ_DIG_ONTO_DE,
     ATOM_LVDS_SEQ_DE_TO_BL,
+    ATOM_LVDS_MISC,
     FUNC_END
 } AtomBiosFunc;
+
+/* LVDS_MISC_INFO */
+#define LVDS_MISC_DUALLINK(x) (x & 1)
+#define LVDS_MISC_24BIT(x) (x & (1 << 1))
+#define LVDS_MISC_FPDI(x) (x & (1 << 4))
 
 typedef enum {
     ATOM_SUCCESS,

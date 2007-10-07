@@ -43,6 +43,9 @@
 #include "rhd_connector.h"
 #include "rhd_regs.h"
 #include "rhd_card.h"
+#ifdef ATOM_BIOS
+#include "rhd_atombios.h"
+#endif
 
 struct rhdLVTMAPrivate {
     Bool DualLink;
@@ -395,19 +398,38 @@ LVTMADestroy(struct rhdOutput *Output)
 /*
  *
  */
+static Bool
+getFromAtomBIOS(RHDPtr rhdPtr, CARD16 *dst, CARD16 *src,
+		AtomBiosFunc func)
+{
+    AtomBIOSArg data;
+
+    if (RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			func ,&data) == ATOM_SUCCESS)
+	*dst = data.val;
+    else if (src)
+	*dst = *src;
+    else {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: no AtomBIOS nor card information "
+		   "available. Bailing for now...\n",__func__);
+	return FALSE;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
 struct rhdOutput *
 RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 {
     struct rhdOutput *Output;
     struct rhdLVTMAPrivate *Private;
-
+#ifdef ATOM_BIOS
+    CARD32 val;
+#endif
     RHDFUNC(rhdPtr);
-
-    if (!rhdPtr->Card) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: no card information "
-		   "available. Bailing for now...\n",__func__);
-	return NULL;
-    }
 
     /* Stop everything except LVDS at this time */
     if (Type != RHD_CONNECTOR_PANEL) {
@@ -440,20 +462,64 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
 
     /* TODO: Retrieve from atombios -- impossible for all */
+#ifdef ATOM_BIOS
+
+    if (!getFromAtomBIOS(rhdPtr, &Private->PowerDigToDE,
+			 rhdPtr->Card ? &rhdPtr->Card->Lvds.PowerDigToDE
+			 : NULL,
+			 ATOM_LVDS_SEQ_DIG_ONTO_DE))
+	return NULL;
+    if (!getFromAtomBIOS(rhdPtr, &Private->PowerDEToBL,
+			 rhdPtr->Card ? &rhdPtr->Card->Lvds.PowerDEToBL
+			 : NULL,  ATOM_LVDS_SEQ_DE_TO_BL))
+	return NULL;
+    if (!getFromAtomBIOS(rhdPtr, &Private->OffDelay,
+			 rhdPtr->Card ? &rhdPtr->Card->Lvds.OffDelay : NULL,
+			 ATOM_LVDS_OFF_DELAY))
+	return NULL;
+
+#else
+
+    if (!rhdPtr->Card) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: no card information "
+		   "available. Bailing for now...\n",__func__);
+	return NULL;
+    }
+
     Private->PowerDigToDE = rhdPtr->Card->Lvds.PowerDigToDE;
     Private->PowerDEToBL = rhdPtr->Card->Lvds.PowerDEToBL;
     Private->OffDelay = rhdPtr->Card->Lvds.OffDelay;
     Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
     Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
+#endif
 
+    if (!rhdPtr->Card)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: no card information "
+		   "available on LVDS parameters.\n",__func__);
+    else {
+	Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
+	Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
+    }
     /* Not in atombios tables afaik */
     Private->TXClockPattern = 0x0063;
     Private->MacroControl =  0x0C720407;
 
-    /* TODO: Retrieve from atombios */
-    Private->DualLink = RHDRegRead(rhdPtr, LVTMA_CNTL) & 0x01000000;
-    Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
-    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+#ifdef ATOM_BIOS
+    /* Retrieve from atombios */
+    if (getFromAtomBIOS(rhdPtr, &val,
+			 rhdPtr->Card ? &rhdPtr->Card->Lvds.OffDelay : NULL,
+			ATOM_LVDS_MISC)) {
+
+	Private->DualLink = LVDS_MISC_DUALLINK(val);
+	Private->LVDS24Bit = LVDS_MISC_24BIT(val);
+	Private->FPDI = LVDS_MISC_FPDI(val);
+    } else
+#endif
+    {
+	Private->DualLink = RHDRegRead(rhdPtr, LVTMA_CNTL) & 0x01000000;
+	Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+	Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+    }
 
     if (Private->LVDS24Bit)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
@@ -468,4 +534,5 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output->Private = Private;
 
     return Output;
+
 }
