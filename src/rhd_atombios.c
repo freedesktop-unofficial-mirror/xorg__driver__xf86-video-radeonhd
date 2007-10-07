@@ -47,7 +47,7 @@ char *AtomBIOSQueryStr[] = {
     "Minimum Pixel ClockPLL Frequency Output",
     "Maximum Pixel ClockPLL Frequency Input",
     "Minimum Pixel ClockPLL Frequency Input",
-    "Minimum Pixel Clock",
+    "Maximum Pixel Clock",
     "Reference Clock",
     "Start of VRAM area used by Firmware",
     "Framebuffer space used by Firmware (kb)",

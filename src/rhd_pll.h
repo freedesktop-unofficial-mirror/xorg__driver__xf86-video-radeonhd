@@ -48,6 +48,8 @@ struct rhdPLL {
     CARD32 InMax;
     CARD32 OutMin;
     CARD32 OutMax;
+    CARD32 PixMin;
+    CARD32 PixMax;
 
     ModeStatus (*Valid) (struct rhdPLL *PLL, CARD32 Clock);
     void (*Set) (struct rhdPLL *PLL, CARD16 ReferenceDivider,

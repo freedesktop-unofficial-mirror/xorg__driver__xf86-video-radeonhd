@@ -48,10 +48,10 @@ PLLValid(struct rhdPLL *PLL, CARD32 Clock)
 {
     RHDFUNC(PLL);
 
-    if (Clock < PLL->OutMin)
+    if (Clock < PLL->PixMin)
 	return MODE_CLOCK_LOW;
 
-    if (Clock > PLL->OutMax)
+    if (Clock > PLL->PixMax)
 	return MODE_CLOCK_HIGH;
 
     return MODE_OK;
@@ -470,8 +470,61 @@ PLL2Restore(struct rhdPLL *PLL)
 #define RHD_PLL_DEFAULT_REFERENCE    27000 /* it's right there on the card */
 #define RHD_PLL_DEFAULT_PLLOUT_MIN  600000 /* x6 otherwise clock is unstable */
 #define RHD_PLL_DEFAULT_PLLOUT_MAX 1100000 /* Lowest value seen so far */
+#define RHD_PLL_DEFAULT_PLLIN_MIN     1000
+#define RHD_PLL_DEFAULT_PLLIN_MAX    13500
 #define RHD_PLL_DEFAULT_MIN          16000 /* guess */
 #define RHD_PLL_DEFAULT_MAX         400000 /* 400Mhz modes... hrm */
+
+enum pllComp {
+    PLL_NONE,
+    PLL_MIN,
+    PLL_MAX
+};
+
+/*
+ *
+ */
+#ifdef ATOM_BIOS
+Bool
+getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
+			 AtomBiosFunc func, char *msg, CARD32 *val, enum pllComp comp)
+{
+    AtomBIOSArg arg;
+    AtomBiosResult ret;
+
+    if (rhdPtr->atomBIOS) {
+	ret = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			      func, &arg);
+	if (ret == ATOM_SUCCESS) {
+	    if (arg.val) {
+		switch (comp) {
+		    case PLL_MAX:
+			if ((arg.val * 10) < *val)
+			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+				       "Lower %s detected than the default: %lu %lu.\n"
+				       "Please contact the authors ASAP.\n", msg,
+				       (unsigned long)*val, (unsigned long)arg.val * 10);
+			break;
+		    case PLL_MIN:
+			if ((arg.val * 10) > *val)
+			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+				       "Higher %s detected than the default: %lu %lu.\n"
+				       "Please contact the authors ASAP.\n", msg,
+				       (unsigned long)*val, (unsigned long)arg.val * 10);
+			break;
+		    default:
+			break;
+		}
+		*val = arg.val * 10;
+	    }
+	}
+	return TRUE;
+    } else
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Failed to retrieve the %s"
+		   " clock from ATOM.\n",msg);
+    return FALSE;
+}
+#endif
 
 /*
  *
@@ -480,37 +533,39 @@ void
 RHDPLLsInit(RHDPtr rhdPtr)
 {
     struct rhdPLL *PLL;
-    CARD32 RefClock, InMin, InMax, OutMin, OutMax;
-    AtomBIOSArg arg;
-    int ret;
+    CARD32 RefClock, InMin, InMax, OutMin, OutMax, PixMin, PixMax;
 
     RHDFUNC(rhdPtr);
 
-    /* Retrieve the maximum internal PLL frequency */
-    InMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
-#ifdef ATOM_BIOS
-    if (rhdPtr->atomBIOS) {
-	ret = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			      GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &arg);
-	if (ret == ATOM_SUCCESS) {
-	    if (arg.val) {
-		if ((arg.val * 10) < RHD_PLL_DEFAULT_PLLOUT_MAX)
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-			       "Lower PLL maximum detected than the default.\n"
-			       "Please contact the authors ASAP.\n");
-		InMax = arg.val * 10;
-	    }
-	}
-    } else
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Failed to retrieve the maximum"
-		   " internal PLL clock from ATOM.\n");
-#endif
-    /* keep the defaults */
+    /* Retrieve the internal PLL frequency limits*/
     RefClock = RHD_PLL_DEFAULT_REFERENCE;
-    InMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
-    OutMin = RHD_PLL_DEFAULT_MIN;
-    OutMax = RHD_PLL_DEFAULT_MAX;
+    InMin = RHD_PLL_DEFAULT_PLLIN_MIN;
+    OutMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
+    InMax = RHD_PLL_DEFAULT_PLLIN_MAX;
+    OutMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
+    /* keep the defaults */
+    PixMin = RHD_PLL_DEFAULT_MIN;
+    PixMax = RHD_PLL_DEFAULT_MAX;
 
+#ifdef ATOM_BIOS
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, "minimum PLL output",
+			     &OutMin,  PLL_MIN);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
+			     &OutMax, PLL_MAX);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_INPUT, "minimum PLL input",
+			     &InMin, PLL_MIN);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_INPUT, "maximum PLL input",
+			     &InMax, PLL_MAX);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLK, "Pixel Clock",
+			     &PixMax, PLL_MAX);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
+			     &RefClock, PLL_NONE);
+    if (OutMax == 0) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS reports minimum VCO freq 0. "
+		   "Using %lu instead\n",(unsigned long)OutMin);
+	OutMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
+    }
+#endif
     /* PLL1 */
     PLL = (struct rhdPLL *) xnfcalloc(sizeof(struct rhdPLL), 1);
 
@@ -523,6 +578,8 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->InMax = InMax;
     PLL->OutMin = OutMin;
     PLL->OutMax = OutMax;
+    PLL->PixMin = PixMin;
+    PLL->PixMax = PixMax;
 
     PLL->Valid = PLLValid;
     PLL->Set = PLL1Set;
@@ -544,6 +601,8 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->InMax = InMax;
     PLL->OutMin = OutMin;
     PLL->OutMax = OutMax;
+    PLL->PixMin = PixMin;
+    PLL->PixMax = PixMax;
 
     PLL->Valid = PLLValid;
     PLL->Set = PLL2Set;
@@ -562,9 +621,9 @@ RHDPLLValid(struct rhdPLL *PLL, CARD32 Clock)
 {
     RHDFUNC(PLL);
 
-    if (Clock < PLL->OutMin)
+    if (Clock < PLL->PixMin)
 	return MODE_CLOCK_LOW;
-    if (Clock > PLL->OutMax)
+    if (Clock > PLL->PixMax)
 	return MODE_CLOCK_HIGH;
 
     if (PLL->Valid)
@@ -592,23 +651,43 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
     Ratio = ((float) PixelClock) / ((float) PLL->RefClock);
 
     for (PostDiv = 2; PostDiv < POST_DIV_LIMIT; PostDiv++) {
-	CARD32 PLLIn = PixelClock * PostDiv;
+	CARD32 VCOOut = PixelClock * PostDiv;
 
-	if (PLLIn < PLL->InMin)
+	/* we are conservative and avoid the limits */
+	if (VCOOut <= PLL->OutMin)
 	    continue;
-	if (PLLIn > PLL->InMax)
+	if (VCOOut >= PLL->OutMax)
 	    break;
-
-	for (RefDiv = 128; RefDiv >= 2; RefDiv--) {
+#ifdef APPROACH_FROM_HIGH
+	for (RefDiv = REF_DIV_LIMIT; RefDiv >= 1; RefDiv--) 
+#else
+        for (RefDiv = 1; RefDiv <= REF_DIV_LIMIT; RefDiv++)
+#endif
+	{
 	    int Diff;
-
-	    FBDiv = (CARD32) ((Ratio * PostDiv * RefDiv) + 0.5);
-	    if (!FBDiv)
+#ifdef APPROACH_FROM_HIGH
+	    if (PLL->RefClock >= PLL->InMax * RefDiv)
 		break;
-			      if (FBDiv >= FB_DIV_LIMIT) continue;
+	    if (PLL->RefClock <= PLL->InMin * RefDiv)
+		continue;
+#else
+	    if (PLL->RefClock >= PLL->InMax * RefDiv)
+		continue;
+	    if (PLL->RefClock <= PLL->InMin * RefDiv)
+		break;
+#endif
+	    FBDiv = (CARD32) ((Ratio * PostDiv * RefDiv) + 0.5);
 
-	    Diff = abs(PixelClock - (FBDiv * PLL->RefClock) / (PostDiv * RefDiv));
-	    xf86DrvMsg(PLL->scrnIndex, X_INFO, "RefDiv=%d Diff=%d\n",RefDiv,Diff);
+#ifdef APPROACH_FROM_HIGH
+	    if (FBDiv >= FB_DIV_LIMIT)
+		continue;
+#else
+	    if (FBDiv >= FB_DIV_LIMIT)
+		break;
+#endif
+	    Diff = abs( PixelClock - (FBDiv * PLL->RefClock) / (PostDiv * RefDiv) );
+	    RHDDebug(PLL->scrnIndex, "RefDiv=%i Diff=%i\n",RefDiv,Diff);
+
 	    if (Diff < BestDiff) {
 		*FBDivider = FBDiv;
 		*RefDivider = RefDiv;
