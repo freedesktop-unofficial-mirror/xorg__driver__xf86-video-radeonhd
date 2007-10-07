@@ -117,7 +117,7 @@ RHDHPDCheck(struct rhdConnector *Connector)
 Bool
 RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 {
-    struct rhdConnectors *Connectors;
+    struct rhdConnectorTable *Connectors;
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
@@ -271,7 +271,7 @@ RHDConnectorsDestroy(RHDPtr rhdPtr)
  *
  */
 void
-RhdPrintConnectorTable(int scrnIndex, struct rhdConnectors *cp)
+RhdPrintConnectorTable(int scrnIndex, struct rhdConnectorTable *cp)
 {
     int n;
     const char *c_name[] =

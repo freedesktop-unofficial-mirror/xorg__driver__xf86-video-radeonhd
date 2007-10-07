@@ -90,7 +90,7 @@ enum RHD_CHIPSETS {
 typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBIOSHandle *atomBIOSHandlePtr;
 typedef struct _rhdShadowRec *rhdShadowPtr;
-typedef struct rhdConnectors *rhdConnectorsPtr;
+typedef struct rhdConnectorTable *rhdConnectorTablePtr;
 
 typedef struct _RHDopt {
     Bool set;

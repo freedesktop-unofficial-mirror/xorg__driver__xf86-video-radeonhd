@@ -27,7 +27,7 @@
 #define _RHD_CARD_H
 
 /* Four bytes in TYPE/DDC layout: see rhd_connector.h */
-struct rhdConnectors {
+struct rhdConnectorTable {
     rhdConnector Type;
     char *Name;
     rhdDDC DDC;
@@ -41,7 +41,7 @@ struct rhdCard {
     CARD16 card_device;
     char *name;
 
-    struct rhdConnectors Connectors[RHD_CONNECTORS_MAX];
+    struct rhdConnectorTable Connectors[RHD_CONNECTORS_MAX];
 
     struct Lvds {
 	CARD16 PowerRefDiv;
