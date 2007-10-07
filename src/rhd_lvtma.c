@@ -427,8 +427,9 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     struct rhdOutput *Output;
     struct rhdLVTMAPrivate *Private;
 #ifdef ATOM_BIOS
-    CARD32 val;
+    CARD16 val;
 #endif
+
     RHDFUNC(rhdPtr);
 
     /* Stop everything except LVDS at this time */
@@ -493,13 +494,20 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
 #endif
 
-    if (!rhdPtr->Card)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: no card information "
+    if (!rhdPtr->Card) {
+	CARD16 tmp;
+
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: no card information "
 		   "available on LVDS parameters.\n",__func__);
-    else {
+
+	tmp = RHDRegRead(Output, LVTMA_PWRSEQ_REF_DIV);
+	Private->PowerRefDiv = tmp & 0xffff;
+	Private->BlonRefDiv = tmp >> 16;
+    } else {
 	Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
 	Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
     }
+
     /* Not in atombios tables afaik */
     Private->TXClockPattern = 0x0063;
     Private->MacroControl =  0x0C720407;
