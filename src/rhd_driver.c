@@ -980,7 +980,7 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	}
 
 	if (Crtc2->Active) {
-	    Crtc2->Power(Crtc1, RHD_POWER_ON);
+	    Crtc2->Power(Crtc2, RHD_POWER_ON);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
