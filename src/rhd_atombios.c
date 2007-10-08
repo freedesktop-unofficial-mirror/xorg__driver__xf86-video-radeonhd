@@ -675,7 +675,7 @@ rhdLvdsTimings(atomBIOSHandlePtr handle, ATOM_DTD_FORMAT *dtd)
 
     RHDFUNC(handle);
 
-    if (!(mode = (DisplayModePtr)xalloc(sizeof(DisplayModeRec))))
+    if (!(mode = (DisplayModePtr)xcalloc(1,sizeof(DisplayModeRec))))
 	return NULL;
 
     mode->CrtcHDisplay = mode->HDisplay = dtd->usHActive;
