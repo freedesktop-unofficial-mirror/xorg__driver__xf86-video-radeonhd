@@ -495,7 +495,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 #endif
 
     if (!rhdPtr->Card) {
-	CARD16 tmp;
+	CARD32 tmp;
 
 	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: no card information "
 		   "available on LVDS parameters.\n",__func__);
