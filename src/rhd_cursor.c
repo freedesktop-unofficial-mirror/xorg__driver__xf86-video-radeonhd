@@ -151,7 +151,9 @@ saveCursor(struct rhdCursor *Cursor)
 	Cursor->StoreImageSize *= 64*32/8;
     }
     xfree (Cursor->StoreImage);
-    if ((Cursor->StoreOffset + Cursor->StoreImageSize)/1024 < pScrn->videoRam) {
+    if ((Cursor->StoreOffset + Cursor->StoreImageSize)/1024 < pScrn->videoRam
+	&& (Cursor->StoreSize & 0xffff) < MAX_CURSOR_HEIGHT
+	&& (Cursor->StoreSize >> 16)    < MAX_CURSOR_WIDTH) {
 	if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
 	    memcpy (Cursor->StoreImage,
 		    (CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
