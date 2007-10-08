@@ -244,8 +244,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 
     rhdPtr = RHDPTR(pScrn);
 
-    if (rhdPtr->Options)
-	xfree(rhdPtr->Options);
+    xfree(rhdPtr->Options);
 
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
@@ -260,8 +259,10 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 		    ATOMBIOS_TEARDOWN, NULL);
 #endif
     RHDShadowDestroy(rhdPtr);
+    if (rhdPtr->CursorInfo)
+        xf86DestroyCursorInfoRec(rhdPtr->CursorInfo);
 
-    xfree(pScrn->driverPrivate);
+    xfree(pScrn->driverPrivate);	/* == rhdPtr */
     pScrn->driverPrivate = NULL;
 }
 
@@ -728,7 +729,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     }
 
     /* save previous mode */
-// FIXME: necessary? is EnterVT called?
     rhdSave(rhdPtr);
 
     /* now init the new mode */
@@ -872,12 +872,6 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     RHDShadowCloseScreen(pScreen);
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
-
-    /* @@@ deacllocate any data structures that are rhdPtr private here */
-    if (rhdPtr->CursorInfo) {
-        xf86DestroyCursorInfoRec(rhdPtr->CursorInfo);
-        rhdPtr->CursorInfo = NULL;
-    }
 
     pScrn->vtSema = FALSE;
     pScreen->CloseScreen = rhdPtr->CloseScreen;
