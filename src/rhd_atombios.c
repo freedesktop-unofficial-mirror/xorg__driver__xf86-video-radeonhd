@@ -713,27 +713,40 @@ rhdLvdsTimings(atomBIOSHandlePtr handle, ATOM_DTD_FORMAT *dtd)
 }
 
 static unsigned char*
-rhdLvdsDDC(atomBIOSHandlePtr handle, unsigned char *record)
+rhdLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 {
     unsigned char *EDID;
 
     RHDFUNC(handle);
 
     while (*record != ATOM_RECORD_END_TYPE) {
+
 	switch (*record) {
 	    case LCD_MODE_PATCH_RECORD_MODE_TYPE:
+		offset += sizeof(ATOM_PATCH_RECORD_MODE);
+		if (offset > handle->BIOSImageSize) break;
 		record += sizeof(ATOM_PATCH_RECORD_MODE);
 		break;
 
 	    case LCD_RTS_RECORD_TYPE:
+		offset += sizeof(ATOM_LCD_RTS_RECORD);
+		if (offset > handle->BIOSImageSize) break;
 		record += sizeof(ATOM_LCD_RTS_RECORD);
 		break;
 
 	    case LCD_CAP_RECORD_TYPE:
+		offset += sizeof(ATOM_LCD_MODE_CONTROL_CAP);
+		if (offset > handle->BIOSImageSize) break;
 		record += sizeof(ATOM_LCD_MODE_CONTROL_CAP);
 		break;
 
 	    case LCD_FAKE_EDID_PATCH_RECORD_TYPE:
+		offset += sizeof(ATOM_FAKE_EDID_PATCH_RECORD);
+		/* check if the structure still fully lives in the BIOS image */
+		if (offset > handle->BIOSImageSize) break;
+		offset += ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength
+		    - sizeof(UCHAR);
+		if (offset > handle->BIOSImageSize) break;
 		if (!(EDID = (unsigned char *)xalloc(
 			  ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength)))
 		    return NULL;
@@ -750,6 +763,8 @@ rhdLvdsDDC(atomBIOSHandlePtr handle, unsigned char *record)
 		return EDID;
 
 	    case LCD_PANEL_RESOLUTION_RECORD_TYPE:
+		offset += sizeof(ATOM_PANEL_RESOLUTION_PATCH_RECORD);
+		if (offset > handle->BIOSImageSize) break;
 		record += sizeof(ATOM_PANEL_RESOLUTION_PATCH_RECORD);
 		break;
 
@@ -770,6 +785,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
     rhdPanelModePtr m;
+    unsigned long offset;
 
     RHDFUNC(handle);
 
@@ -795,9 +811,13 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
 	    if (!(m = (rhdPanelModePtr)xalloc(sizeof(rhdPanelModeRec))))
 		return ATOM_FAILED;
 	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
-				       .LVDS_Info_v12->sLCDTiming);
-	    /* todo check if offset is valid */
-	    m->EDID = rhdLvdsDDC(handle,
+				     .LVDS_Info_v12->sLCDTiming);
+
+	    offset = (unsigned long)&atomDataPtr->LVDS_Info.base
+		- (unsigned long)handle->BIOSBase
+		+ atomDataPtr->LVDS_Info.LVDS_Info_v12->usExtInfoTableOffset;
+
+	    m->EDID = rhdLvdsDDC(handle, offset,
 				 (unsigned char *)&atomDataPtr->LVDS_Info.base
 				 + atomDataPtr->LVDS_Info
 				 .LVDS_Info_v12->usExtInfoTableOffset);
@@ -874,7 +894,7 @@ rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms;
 		    break;
-		case     ATOM_LVDS_MISC:
+		case ATOM_LVDS_MISC:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucLVDS_Misc;
 		    break;
