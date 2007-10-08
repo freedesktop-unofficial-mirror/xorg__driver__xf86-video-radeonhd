@@ -142,27 +142,6 @@ saveCursor(struct rhdCursor *Cursor)
     Cursor->StoreHotSpot  = RHDRegRead(Cursor, Cursor->RegOffset
 				       + D1CUR_HOT_SPOT);
 
-    Cursor->StoreImageSize = (Cursor->StoreSize & 0x003f) + 1;	/* Height */
-    switch ((Cursor->StoreControl & 0x0300) >> 8) {
-    case 0:		/* 2bpp */
-	Cursor->StoreImageSize *= 64*2/8;
-	break;
-    default:		/* 32bpp color */
-	Cursor->StoreImageSize *= 64*32/8;
-    }
-    xfree (Cursor->StoreImage);
-    if ((Cursor->StoreOffset + Cursor->StoreImageSize)/1024 < pScrn->videoRam
-	&& (Cursor->StoreSize & 0xffff) < MAX_CURSOR_HEIGHT
-	&& (Cursor->StoreSize >> 16)    < MAX_CURSOR_WIDTH) {
-	if ( (Cursor->StoreImage = xalloc (Cursor->StoreImageSize)) )
-	    memcpy (Cursor->StoreImage,
-		    (CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
-		    Cursor->StoreImageSize);
-	else
-	    ErrorF("Out of memory for cursor save area\n");
-    } else
-	Cursor->StoreImage = NULL;
-
     Cursor->Stored = TRUE;
 }
 
@@ -188,10 +167,6 @@ restoreCursor(struct rhdCursor *Cursor)
 		Cursor->StorePosition);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT,
 		Cursor->StoreHotSpot);
-
-    if (Cursor->StoreImage)
-	memcpy ((CARD8 *) rhdPtr->FbBase + Cursor->StoreOffset,
-		Cursor->StoreImage, Cursor->StoreImageSize);
 }
 
 /*
@@ -536,9 +511,8 @@ RHDCursorsDestroy(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     for (i = 0; i < 2; i++) {
-	xfree(rhdPtr->Crtc[i]->Cursor->StoreImage);
-	rhdPtr->Crtc[i]->Cursor->Stored = FALSE;
 	xfree(rhdPtr->Crtc[i]->Cursor);
+	rhdPtr->Crtc[i] = NULL;
     }
 }
 

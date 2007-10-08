@@ -52,8 +52,6 @@ struct rhdCursor
     CARD32  StoreSize;
     CARD32  StorePosition;
     CARD32  StoreHotSpot;
-    CARD8  *StoreImage;
-    int     StoreImageSize;
 };
 
 void RHDCursorsInit(RHDPtr rhdPtr);
