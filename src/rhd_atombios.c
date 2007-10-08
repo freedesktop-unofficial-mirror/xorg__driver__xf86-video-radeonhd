@@ -1067,7 +1067,7 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
 const static struct _rhd_connector_objs
 {
     char *name;
-    rhdConnector con;
+    rhdConnectorType con;
 } rhd_connector_objs[] = {
     { "NONE", RHD_CONNECTOR_NONE },
     { "SINGLE_LINK_DVI_I", RHD_CONNECTOR_DVI },
@@ -1133,7 +1133,7 @@ const static int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_enc
 const static struct _rhd_connectors
 {
     char *name;
-    rhdConnector con;
+    rhdConnectorType con;
     Bool dual;
 } rhd_connectors[] = {
     {"NONE", RHD_CONNECTOR_NONE, FALSE },
@@ -1534,7 +1534,7 @@ rhdConnectorTableFromSupportedDevices(atomBIOSHandlePtr handle,
     rhdConnectorTablePtr cp;
     struct {
 	rhdOutputType ot;
-	rhdConnector con;
+	rhdConnectorType con;
 	rhdDDC ddc;
 	rhdHPD hpd;
 	Bool dual;

@@ -27,14 +27,14 @@
 #define _RHD_CONNECTOR_H
 
 /* so that we can map which is which */
-typedef enum _rhdConnector {
+typedef enum _rhdConnectorType {
     RHD_CONNECTOR_NONE  = 0,
     RHD_CONNECTOR_VGA,
     RHD_CONNECTOR_DVI,
     RHD_CONNECTOR_PANEL,
     RHD_CONNECTOR_TV,
     RHD_CONNECTOR_DVI_DUAL = RHD_CONNECTOR_DVI
-} rhdConnector;
+} rhdConnectorType;
 /* add whatever */
 
 /* map which DDC bus is where */

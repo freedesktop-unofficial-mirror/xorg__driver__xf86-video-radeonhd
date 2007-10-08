@@ -28,7 +28,7 @@
 
 /* Four bytes in TYPE/DDC layout: see rhd_connector.h */
 struct rhdConnectorTable {
-    rhdConnector Type;
+    rhdConnectorType Type;
     char *Name;
     rhdDDC DDC;
     rhdHPD HPD;
