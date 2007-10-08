@@ -484,6 +484,8 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     if (!rhdPtr->Card) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: no card information "
 		   "available. Bailing for now...\n",__func__);
+	xfree(Output);
+	xfree(Private);
 	return NULL;
     }
 
