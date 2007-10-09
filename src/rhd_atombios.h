@@ -101,7 +101,4 @@ extern AtomBiosResult
 RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 		    AtomBIOSArgPtr data);
 
-/* only for testing */
-void rhdTestAtomBIOS(atomBIOSHandlePtr atomBIOS);
-
 #endif /*  RHD_ATOMBIOS_H_ */
