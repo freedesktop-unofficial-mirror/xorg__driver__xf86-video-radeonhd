@@ -1524,8 +1524,9 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 		    taglist = rhdDeviceTagsFromRecord(handle,
 						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
 		    if (taglist) {
-			xfree(cp[ncon].Name);
+			char *tmp = cp[ncon].Name;
 			cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
+			xfree(tmp);
 			xfree(taglist);
 		    }
 		    break;
