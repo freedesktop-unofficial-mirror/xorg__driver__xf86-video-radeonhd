@@ -1469,7 +1469,7 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 	}
 
 	cp[ncon].Type = rhd_connector_objs[obj_id].con;
-	cp[ncon].Name = name;
+	cp[ncon].Name = strdup(name);
 
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
 	    CARD8 stype, sobj_id, snum;
@@ -1524,6 +1524,7 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 		    taglist = rhdDeviceTagsFromRecord(handle,
 						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
 		    if (taglist) {
+			xfree(cp[ncon].Name);
 			cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
 			xfree(taglist);
 		    }
@@ -1717,7 +1718,8 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 			    cp[ncon].HPD = devices[i].hpd;
 
 			tmp = RhdCombineStrings(cp[ncon].Name,devices[i].outputName);
-			xfree(cp[ncon].Name); cp[ncon].Name = tmp;
+			xfree(cp[ncon].Name);
+			cp[ncon].Name = tmp;
 
 			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
 		    }

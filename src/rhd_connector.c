@@ -123,25 +123,25 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
-    Bool table_from_bios = FALSE;
+    Bool InfoAllocated = FALSE;
 
     RHDFUNC(rhdPtr);
 
     /* Card->ConnectorInfo is there to work around quirks, so check it first */
-    if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE)) {
+    if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE))
 	ConnectorInfo = Card->ConnectorInfo;
-	table_from_bios = TRUE;
-    } else {
+    else {
 #ifdef ATOM_BIOS
-	/* when nothing else is needed */
+	/* common case */
 	AtomBIOSArg data;
 	AtomBiosResult result;
 
 	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_CONNECTORS, &data);
-	if (result == ATOM_SUCCESS)
+	if (result == ATOM_SUCCESS) {
 	    ConnectorInfo = data.ptr;
-	else
+	    InfoAllocated = TRUE;
+	} else
 #endif
         {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Failed to retrieve "
@@ -168,11 +168,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	Connector->scrnIndex = rhdPtr->scrnIndex;
 
 	Connector->Type = ConnectorInfo[i].Type;
-	/* so we can free it later */
-	if (!table_from_bios)
-	    Connector->Name = strdup(ConnectorInfo[i].Name);
-	else
-	    Connector->Name = ConnectorInfo[i].Name;
+	Connector->Name = xf86strdup(ConnectorInfo[i].Name);
 
 	/* Get the DDC bus of this connector */
 	if (ConnectorInfo[i].DDC != RHD_DDC_NONE) {
@@ -257,8 +253,13 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	j++;
     }
 
-    if (table_from_bios)
+    /* Deallocate what atombios code allocated */
+    if (ConnectorInfo && InfoAllocated) {
+	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
+	    if (ConnectorInfo[i].Type != RHD_CONNECTOR_NONE)
+		xfree(ConnectorInfo[i].Name);
 	xfree(ConnectorInfo);
+    }
 
     RHDHPDRestore(rhdPtr);
 
@@ -281,8 +282,7 @@ RHDConnectorsDestroy(RHDPtr rhdPtr)
 	if (Connector) {
 	    if (Connector->Monitor)
 		RHDMonitorDestroy(Connector->Monitor);
-	    if (Connector->Name)
-		xfree(Connector->Name);
+	    xfree(Connector->Name);
 	    xfree(Connector);
 	}
     }
