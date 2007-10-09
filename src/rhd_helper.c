@@ -171,6 +171,8 @@ RhdCombineStrings(const char *s1, const char *s2)
     int len = strlen(s1) + strlen(s2) + 1;
     char *result = (char *)xalloc(len);
 
+    if (!result) return NULL;
+
     xf86strcpy(result,s1);
     xf86strcat(result,s2);
 
