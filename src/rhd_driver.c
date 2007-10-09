@@ -548,12 +548,18 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    }
 	    if (xf86LoadSubModule(pScrn, "ddc")) {
 		rhdTestDDC(pScrn);
-	    } else
-		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load DDC module\n",__func__);
-	} else
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "I2C init failed\n");
-    } else
+	    } else {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Failed to load DDC module\n",__func__);
+		goto error1;
+	    }
+	} else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "I2C init failed\n");
+	    goto error1;
+	}
+    } else {
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load I2C module\n",__func__);
+	goto error1;
+    }
 
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
@@ -1450,7 +1456,7 @@ rhdRestore(RHDPtr rhdPtr)
 
     rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
-    if (rhdPtr->CursorInfo) 
+    if (rhdPtr->CursorInfo)
 	rhdRestoreCursor(pScrn);
 
     RHDVGARestore(rhdPtr);
