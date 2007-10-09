@@ -395,30 +395,100 @@ LVTMADestroy(struct rhdOutput *Output)
     Output->Private = NULL;
 }
 
-#ifdef ATOM_BIOS
 /*
- *
+ * Here we pretty much assume that ATOM has either initialised the panel already
+ * or that we can find information from ATOM BIOS data tables. We know that the
+ * latter assumption is false for some values, but there is no getting around
+ * ATI clinging desperately to a broken concept.
  */
-static Bool
-getFromAtomBIOS(RHDPtr rhdPtr, CARD16 *dst, CARD16 *src,
-		AtomBiosFunc func)
+static struct rhdLVTMAPrivate *
+rhdLVDSInfoRetrieve(RHDPtr rhdPtr)
 {
-    AtomBIOSArg data;
+    struct rhdLVTMAPrivate *Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
+    CARD32 tmp;
 
-    if (RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			func ,&data) == ATOM_SUCCESS)
-	*dst = data.val;
-    else if (src)
-	*dst = *src;
-    else {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: no AtomBIOS nor card information "
-		   "available. Bailing for now...\n",__func__);
-	return FALSE;
+    /* These values are not available from atombios data tables at all. */
+    Private->MacroControl = RHDRegRead(rhdPtr, LVTMA_MACRO_CONTROL);
+    Private->TXClockPattern =
+	(RHDRegRead(rhdPtr, LVTMA_TRANSMITTER_CONTROL) >> 16) & 0x3FF;
+
+    /* For these values, we try to retrieve them from register space first,
+       and later override with atombios data table information */
+    Private->PowerDigToDE =
+	(RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY1) & 0x000000FF) << 2;
+
+    Private->PowerDEToBL =
+	(RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY1) & 0x0000FF00) >> 6;
+
+    Private->OffDelay = (RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY2) & 0xFF) << 2;
+
+    tmp = RHDRegRead(rhdPtr, LVTMA_PWRSEQ_REF_DIV);
+    Private->PowerRefDiv = tmp & 0x0FFF;
+    Private->BlonRefDiv = (tmp >> 16) & 0x0FFF;
+
+    Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
+    Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+
+#ifdef ATOM_BIOS
+    {
+	AtomBIOSArg data;
+	AtomBiosResult result;
+
+	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_LVDS_SEQ_DIG_ONTO_DE, &data);
+	if (result == ATOM_SUCCESS)
+	    Private->PowerDigToDE = data.val * 10;
+
+	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_LVDS_SEQ_DE_TO_BL, &data);
+	if (result == ATOM_SUCCESS)
+	    Private->PowerDEToBL = data.val * 10;
+
+	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_LVDS_OFF_DELAY, &data);
+	if (result == ATOM_SUCCESS)
+	    Private->OffDelay = data.val;
+
+	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_LVDS_MISC, &data);
+	if (result == ATOM_SUCCESS) {
+	    Private->DualLink = data.val & 0x01;
+	    Private->LVDS24Bit = data.val & 0x02;
+	    Private->FPDI = data.val & 0x10;
+	}
     }
-    return TRUE;
-}
 #endif
+
+    if (Private->LVDS24Bit)
+	xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
+		   "Detected a 24bit %s, %s link panel.\n",
+		   Private->DualLink ? "dual" : "single",
+		   Private->FPDI ? "FPDI": "LDI");
+    else
+	xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
+		   "Detected a 18bit %s link panel.\n",
+		   Private->DualLink ? "dual" : "single");
+
+    /* extra noise */
+    RHDDebug(rhdPtr->scrnIndex, "Printing LVDS paramaters:\n");
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tMacroControl: 0x%08X\n",
+		(unsigned int) Private->MacroControl);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tTXClockPattern: 0x%04X\n",
+		Private->TXClockPattern);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tPowerDigToDE: 0x%04X\n",
+		Private->PowerDigToDE);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tPowerDEToBL: 0x%04X\n",
+		Private->PowerDEToBL);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tOffDelay: 0x%04X\n",
+		Private->OffDelay);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tPowerRefDiv: 0x%04X\n",
+		Private->PowerRefDiv);
+    xf86MsgVerb(X_NONE, LOG_DEBUG, "\tBlonRefDiv: 0x%04X\n",
+		Private->BlonRefDiv);
+
+    return Private;
+}
 
 /*
  *
@@ -427,10 +497,6 @@ struct rhdOutput *
 RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 {
     struct rhdOutput *Output;
-    struct rhdLVTMAPrivate *Private;
-#ifdef ATOM_BIOS
-    CARD16 val;
-#endif
 
     RHDFUNC(rhdPtr);
 
@@ -462,89 +528,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output->Restore = LVTMARestore;
     Output->Destroy = LVTMADestroy;
 
-    Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
-
-    /* TODO: Retrieve from atombios -- impossible for all */
-#ifdef ATOM_BIOS
-
-    if (!getFromAtomBIOS(rhdPtr, &Private->PowerDigToDE,
-			 rhdPtr->Card ? &rhdPtr->Card->Lvds.PowerDigToDE
-			 : NULL,
-			 ATOM_LVDS_SEQ_DIG_ONTO_DE))
-	return NULL;
-    if (!getFromAtomBIOS(rhdPtr, &Private->PowerDEToBL,
-			 rhdPtr->Card ? &rhdPtr->Card->Lvds.PowerDEToBL
-			 : NULL,  ATOM_LVDS_SEQ_DE_TO_BL))
-	return NULL;
-    if (!getFromAtomBIOS(rhdPtr, &Private->OffDelay,
-			 rhdPtr->Card ? &rhdPtr->Card->Lvds.OffDelay : NULL,
-			 ATOM_LVDS_OFF_DELAY))
-	return NULL;
-
-#else
-
-    if (!rhdPtr->Card) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: no card information "
-		   "available. Bailing for now...\n",__func__);
-	xfree(Output);
-	xfree(Private);
-	return NULL;
-    }
-
-    Private->PowerDigToDE = rhdPtr->Card->Lvds.PowerDigToDE;
-    Private->PowerDEToBL = rhdPtr->Card->Lvds.PowerDEToBL;
-    Private->OffDelay = rhdPtr->Card->Lvds.OffDelay;
-    Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
-    Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
-#endif
-
-    if (!rhdPtr->Card) {
-	CARD32 tmp;
-
-	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: no card information "
-		   "available on LVDS parameters.\n",__func__);
-
-	tmp = RHDRegRead(Output, LVTMA_PWRSEQ_REF_DIV);
-	Private->PowerRefDiv = tmp & 0xffff;
-	Private->BlonRefDiv = tmp >> 16;
-    } else {
-	Private->PowerRefDiv = rhdPtr->Card->Lvds.PowerRefDiv;
-	Private->BlonRefDiv = rhdPtr->Card->Lvds.BlonRefDiv;
-    }
-
-    /* Not in atombios tables afaik */
-    Private->TXClockPattern = 0x0063;
-    Private->MacroControl =  0x0C720407;
-
-#ifdef ATOM_BIOS
-    /* Retrieve from atombios */
-    if (getFromAtomBIOS(rhdPtr, &val,
-			 rhdPtr->Card ? &rhdPtr->Card->Lvds.OffDelay : NULL,
-			ATOM_LVDS_MISC)) {
-
-	Private->DualLink = LVDS_MISC_DUALLINK(val);
-	Private->LVDS24Bit = LVDS_MISC_24BIT(val);
-	Private->FPDI = LVDS_MISC_FPDI(val);
-    } else
-#endif
-    {
-	Private->DualLink = RHDRegRead(rhdPtr, LVTMA_CNTL) & 0x01000000;
-	Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
-	Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
-    }
-
-    if (Private->LVDS24Bit)
-	xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
-		   "Detected a 24bit %s, %s link panel.\n",
-		   Private->DualLink ? "dual" : "single",
-		   Private->FPDI ? "FPDI": "LDI");
-    else
-	xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
-		   "Detected a 18bit %s link panel.\n",
-		   Private->DualLink ? "dual" : "single");
-
-    Output->Private = Private;
+    Output->Private = rhdLVDSInfoRetrieve(rhdPtr);
 
     return Output;
-
 }

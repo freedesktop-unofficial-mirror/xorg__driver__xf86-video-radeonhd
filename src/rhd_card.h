@@ -42,14 +42,6 @@ struct rhdCard {
     char *name;
 
     struct rhdConnectorInfo ConnectorInfo[RHD_CONNECTORS_MAX];
-
-    struct Lvds {
-	CARD16 PowerRefDiv;
-	CARD16 BlonRefDiv;
-	CARD16 PowerDigToDE;
-	CARD16 PowerDEToBL;
-	CARD16 OffDelay;
-    } Lvds;
 };
 
 void RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp);

@@ -407,25 +407,18 @@ rhdCards[] =
     /* 0x7143 : RV505 : Radeon X1550 */
     /* 0x7144 : M54 : M54-GL */
     /* 0x7145 : M54 : Mobility Radeon X1400 */
-    { 0x7145, 0x1028, 0x2002, "Dell Inspiron 9400", PANEL_B2_VGA_A0_DVI_A10,
-                              { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
-    { 0x7145, 0x1028, 0x2003, "Dell Inspiron 6400", PANEL_B_VGA_A0,
-                              { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
-    { 0x7145, 0x1179, 0xFF10, "Toshiba Satellite A100-773", PANEL_B1_VGA_A2,
-                              { 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
-    { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", PANEL_B2_VGA_A0_DVI_A10,
-                              { 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
-    { 0x7145, 0x17AA, 0x202A, "Lenovo Thinkpad Z61m", PANEL_B2_VGA_A0,
-                              { 0x465, 0x00F, 0x10, 0x64, 0x2A8}},
+    { 0x7145, 0x1028, 0x2002, "Dell Inspiron 9400", PANEL_B2_VGA_A0_DVI_A10 },
+    { 0x7145, 0x1028, 0x2003, "Dell Inspiron 6400", PANEL_B_VGA_A0 },
+    { 0x7145, 0x1179, 0xFF10, "Toshiba Satellite A100-773", PANEL_B1_VGA_A2 },
+    { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", PANEL_B2_VGA_A0_DVI_A10 },
+    { 0x7145, 0x17AA, 0x202A, "Lenovo Thinkpad Z61m", PANEL_B2_VGA_A0 },
     /* 0x7146 : RV515 : Radeon X1300/X1550 */
     { 0x7146, 0x174B, 0x0470, "Sapphire X1300", VGA_B1_DVI_AB01 },
     /* 0x7147 : RV505 : Radeon X1550 64-bit */
     { 0x7147, 0x174B, 0x0840, "Sapphire X1550", VGA_A0_DVI_BB11 },
     /* 0x7149 : M52 : Mobility Radeon X1300 */
-    { 0x7149, 0x1028, 0x2003, "Dell Inspiron E1505", PANEL_B_VGA_A0,
-                              { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
-    { 0x7149, 0x17AA, 0x2005, "Lenovo Thinkpad T60 (2008)", PANEL_B2_VGA_A0_DVI_A10,
-                              { 0xF9F, 0x00F, 0x04, 0x19, 0x0A8 }},
+    { 0x7149, 0x1028, 0x2003, "Dell Inspiron E1505", PANEL_B_VGA_A0 },
+    { 0x7149, 0x17AA, 0x2005, "Lenovo Thinkpad T60 (2008)", PANEL_B2_VGA_A0_DVI_A10 },
     /* 0x714A : M52 : Mobility Radeon X1300 */
     /* 0x714B : M52 : Mobility Radeon X1300 */
     /* 0x714C : M52 : Mobility Radeon X1300 */
@@ -460,19 +453,13 @@ rhdCards[] =
     { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro", VGA_B1_DVI_AA00 },
     /* 0x71C3 : RV535 : Radeon X1600 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
-    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p", PANEL_B2_VGA_A0,
-                              { 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
+    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p", PANEL_B2_VGA_A0 },
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
-    { 0x71C5, 0x103C, 0x30A3, "HP/Compaq nc8430", PANEL_B1_VGA_A0,
-                              { 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
-    { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_B1_VGA_A0,
-                              { 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
-    { 0x71C5, 0x1043, 0x10B2, "Asus W3J/Z96", PANEL_B_VGA_A0,
-                              { 0xF9F, 0x000, 0x03, 0x19, 0x1F4}},
-    { 0x71C5, 0x106B, 0x0080, "Macbook Pro", PANEL_B2_DVI_AA00,
-                              { 0xF9F, 0x00D, 0x03, 0x19, 0x1F4}},
-    { 0x71C5, 0x1179, 0xFF10, "Toshiba Satellite A100-237", PANEL_B1_VGA_A2,
-                              { 0xF9F, 0x00F, 0x03, 0x23, 0x190}},
+    { 0x71C5, 0x103C, 0x30A3, "HP/Compaq nc8430", PANEL_B1_VGA_A0 },
+    { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", PANEL_B1_VGA_A0 },
+    { 0x71C5, 0x1043, 0x10B2, "Asus W3J/Z96", PANEL_B_VGA_A0 },
+    { 0x71C5, 0x106B, 0x0080, "Macbook Pro", PANEL_B2_DVI_AA00 },
+    { 0x71C5, 0x1179, 0xFF10, "Toshiba Satellite A100-237", PANEL_B1_VGA_A2 },
     /* 0x71C6 : RV530 : Radeon X1650 */
     { 0x71C6, 0x174B, 0x0850, "Sapphire X1650 Pro AGP", VGA_A0_DVI_BA10 },
     { 0x71C6, 0x1462, 0x0400, "MSI RX1650 Pro", DVI_BA10_DVI_AB01 },
@@ -483,8 +470,7 @@ rhdCards[] =
     /* 0x71D2 : RV530 : FireGL V3400 */
     { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", DVI_BB11_DVI_AA00 },
     /* 0x71D4 : M66 : Mobility FireGL V5250 */
-    { 0x71D4, 0x17AA, 0x20A4, "Lenovo T60p", PANEL_B2_VGA_A0,
-                              { 0x8CA, 0x00F, 0x08, 0x2D, 0x3E8}},
+    { 0x71D4, 0x17AA, 0x20A4, "Lenovo T60p", PANEL_B2_VGA_A0 },
     /* 0x71D5 : M66 : Mobility Radeon X1700 */
     /* 0x71D6 : M66 : Mobility Radeon X1700 XT */
     /* 0x71DA : RV530 : FireGL V5200 */
