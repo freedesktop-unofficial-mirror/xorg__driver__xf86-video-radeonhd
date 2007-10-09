@@ -123,13 +123,15 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
+    Bool table_from_bios = FALSE;
 
     RHDFUNC(rhdPtr);
 
     /* Card->ConnectorInfo is there to work around quirks, so check it first */
-    if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE))
+    if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE)) {
 	ConnectorInfo = Card->ConnectorInfo;
-    else {
+	table_from_bios = TRUE;
+    } else {
 #ifdef ATOM_BIOS
 	/* when nothing else is needed */
 	AtomBIOSArg data;
@@ -164,8 +166,13 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	Connector = xnfcalloc(sizeof(struct rhdConnector), 1);
 
 	Connector->scrnIndex = rhdPtr->scrnIndex;
+
 	Connector->Type = ConnectorInfo[i].Type;
-	Connector->Name = ConnectorInfo[i].Name;
+	/* so we can free it later */
+	if (!table_from_bios)
+	    Connector->Name = strdup(ConnectorInfo[i].Name);
+	else
+	    Connector->Name = ConnectorInfo[i].Name;
 
 	/* Get the DDC bus of this connector */
 	if (ConnectorInfo[i].DDC != RHD_DDC_NONE) {
@@ -250,6 +257,9 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	j++;
     }
 
+    if (table_from_bios)
+	xfree(ConnectorInfo);
+
     RHDHPDRestore(rhdPtr);
 
     return (j && 1);
@@ -271,6 +281,8 @@ RHDConnectorsDestroy(RHDPtr rhdPtr)
 	if (Connector) {
 	    if (Connector->Monitor)
 		RHDMonitorDestroy(Connector->Monitor);
+	    if (Connector->Name)
+		xfree(Connector->Name);
 	    xfree(Connector);
 	}
     }

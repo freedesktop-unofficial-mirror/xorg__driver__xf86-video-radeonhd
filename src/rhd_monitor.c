@@ -230,11 +230,9 @@ RHDMonitorInit(struct rhdConnector *Connector)
 				rhdPtr->atomBIOS, ATOMBIOS_GET_PANEL_TIMINGS,
 				&data) == ATOM_SUCCESS) {
 
-		if (data.panel->EDID)
-		    EDID = xf86InterpretEDID(Connector->scrnIndex,data.panel->EDID);
-		else
-		    mode = data.panel->mode;
-
+		EDID = xf86InterpretEDID(Connector->scrnIndex,data.panel->EDID);
+		mode = data.panel->mode;
+		xfree(data.panel);
 	    } else
 		return NULL;
 	}
@@ -257,12 +255,16 @@ RHDMonitorInit(struct rhdConnector *Connector)
 
     Monitor->scrnIndex = Connector->scrnIndex;
 
+    /* for testing - we may want to reverse the order */
     if (mode)
 	RHDPanelModeSet(Monitor, mode);
     else
 	RHDMonitorEDIDSet(Monitor, EDID);
 
-    xfree(EDID);
+    if (EDID) {
+	xfree(EDID->rawData);
+	xfree(EDID);
+    }
 
     if (Connector->Type == RHD_CONNECTOR_PANEL)
 	/* Prevent other resolutions on directly connected panels */
