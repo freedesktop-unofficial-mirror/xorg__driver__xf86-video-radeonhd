@@ -229,9 +229,9 @@ RHDIdentify(int flags)
 	    "RV550  : Radeon X2300 HD.\n\t"
 	    "RV560  : Radeon X1650.\n\t"
 	    "RV570  : Radeon X1950, X1950 GT; FireGL V7400.\n\t"
-	    "R580   : Radeon X1900, X1950; AMD Stream Processor.\n\t"
-	    "R600   : Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650.\n");
+	    "R580   : Radeon X1900, X1950; AMD Stream Processor.\n");
     xf86Msg(X_NONE, "\t"
+	    "R600   : Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650.\n\t"
 	    "RV610  : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000.\n\t"
 	    "RV630  : Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600.\n\t"
 	    "M52    : Mobility Radeon X1300.\n\t"
@@ -239,10 +239,10 @@ RHDIdentify(int flags)
 	    "M56    : Mobility Radeon X1600; Mobility FireGL V5200.\n\t"
 	    "M58    : Mobility Radeon X1800, X1800 XT; Mobility FireGL V7100, V7200.\n\t"
 	    "M62    : Mobility Radeon X1350.\n\t"
-	    "M64    : Mobility Radeon X1450, X2300.\n\t"
-	    "M66    : Mobility Radeon X1700, X1700 XT; FireGL V5250.\n\t"
-	    "M68    : Mobility Radeon X1900.\n");
+	    "M64    : Mobility Radeon X1450, X2300.\n");
     xf86Msg(X_NONE, "\t"
+	    "M66    : Mobility Radeon X1700, X1700 XT; FireGL V5250.\n\t"
+	    "M68    : Mobility Radeon X1900.\n\t"
 	    "M71    : Mobility Radeon HD 2300.\n\t"
 	    "M72    : Mobility Radeon HD 2400; Radeon E2400.\n\t"
 	    "M74    : Mobility Radeon HD 2400 XT.\n\t"
