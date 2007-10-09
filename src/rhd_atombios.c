@@ -512,7 +512,7 @@ rhdInitAtomBIOS(int scrnIndex)
 	    int read_len;
 
 	    BIOSImageSize = 1 << rhdPtr->PciInfo->biosSize;
-	    if (!(ptr = xcalloc(BIOSImageSize, 1))) {
+	    if (!(ptr = xcalloc(1, BIOSImageSize))) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot allocate %i bytes of memory "
 			   "for BIOS image\n",BIOSImageSize);
@@ -543,7 +543,7 @@ rhdInitAtomBIOS(int scrnIndex)
 		xf86DrvMsg(scrnIndex,X_ERROR,"Invalid BIOS length field\n");
 		return NULL;
 	    }
-	    if (!(ptr = xcalloc(BIOSImageSize,1))) {
+	    if (!(ptr = xcalloc(1,BIOSImageSize))) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot allocate %i bytes of memory "
 			   "for BIOS image\n",BIOSImageSize);
@@ -556,14 +556,14 @@ rhdInitAtomBIOS(int scrnIndex)
 	    }
 	}
     }
-    if (!(atomDataPtr = xcalloc(sizeof(atomDataTables),1))) {
+    if (!(atomDataPtr = xcalloc(1, sizeof(atomDataTables)))) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"Cannot allocate memory for "
 		   "ATOM BIOS data tabes\n");
 	goto error;
     }
     if (!rhdGetAtombiosDataTable(scrnIndex, ptr, atomDataPtr,BIOSImageSize))
 	goto error1;
-    if (!(handle = xcalloc(sizeof(atomBIOSHandle),1))) {
+    if (!(handle = xcalloc(1, sizeof(atomBIOSHandle)))) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"Cannot allocate memory\n");
 	goto error1;
     }
@@ -599,6 +599,7 @@ rhdTearDownAtomBIOS(atomBIOSHandlePtr handle)
 
     xfree(handle->BIOSBase);
     xfree(handle->atomDataPtr);
+    if (handle->scratchBase) xfree(handle->scratchBase);
     xfree(handle);
 }
 
@@ -747,10 +748,10 @@ rhdLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 		offset += ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength
 		    - sizeof(UCHAR);
 		if (offset > handle->BIOSImageSize) break;
+		/* dup string as we free it later */
 		if (!(EDID = (unsigned char *)xalloc(
 			  ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength)))
 		    return NULL;
-		/* dup string as we free it later */
 		memcpy(EDID,&((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDString,
 		       ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength);
 

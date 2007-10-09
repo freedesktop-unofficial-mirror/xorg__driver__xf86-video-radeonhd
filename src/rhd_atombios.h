@@ -89,7 +89,7 @@ typedef union
 {
     CARD32 val;
 
-    pointer ptr;
+    pointer ptr;  /* replace */
     struct rhdPanelMode *panel;
     atomBIOSHandlePtr atomp;
     AtomExec exec;
