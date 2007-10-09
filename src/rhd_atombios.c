@@ -790,15 +790,15 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
+
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
 	    &frev,&crev,NULL)) {
 	return ATOM_FAILED;
     }
 
-    RHDFUNC(handle);
-
     switch (crev) {
+
 	case 1:
 	    if (!(m = (rhdPanelModePtr)xcalloc(1,sizeof(rhdPanelModeRec))))
 		return ATOM_FAILED;
@@ -826,6 +826,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
     }
+
     *ptr = m;
 
     return ATOM_SUCCESS;
@@ -841,13 +842,12 @@ rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
+
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
 	    &frev,&crev,NULL)) {
 	return ATOM_FAILED;
     }
-
-    RHDFUNC(handle);
 
     switch (crev) {
 	case 1:
@@ -918,11 +918,13 @@ rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle, AtomBiosFunc func, CARD32
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
+
     if (!rhdGetAtomBiosTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
 	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
+
     switch (crev) {
 	case 1:
 	    switch (func) {
@@ -1110,7 +1112,7 @@ const static struct _rhd_connector_objs
     { "HARDCODE_DVI", RHD_CONNECTOR_NONE },
     { "DISPLAYPORT", RHD_CONNECTOR_NONE}
 };
-const static int n_rhd_connector_objs = sizeof (rhd_connector_objs)/sizeof(struct _rhd_connector_objs);
+const static int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(struct _rhd_connector_objs);
 
 const static struct _rhd_encoders
 {
@@ -1253,7 +1255,8 @@ rhdDDCFromI2CRecord(atomBIOSHandlePtr handle,
 	if (Record->sucI2cId.bfHW_Capable) {
 
 	    *DDC = (rhdDDC)Record->sucI2cId.bfI2C_LineMux;
-	    if (*DDC >= RHD_DDC_MAX) *DDC = RHD_DDC_NONE;
+	    if (*DDC >= RHD_DDC_MAX)
+		*DDC = RHD_DDC_NONE;
 
 	} else {
 	    *DDC = RHD_DDC_GPIO;
@@ -1289,8 +1292,7 @@ rhdParseGPIOLutForHPD(atomBIOSHandlePtr handle,
 
     /* we count up to 10 because we don't know better :{ */
     for (i = 0; i < 10; i++) {
-	if (gpio_pin_lut->asGPIO_Pin[i].ucGPIO_ID
-	    == pinID) {
+	if (gpio_pin_lut->asGPIO_Pin[i].ucGPIO_ID  == pinID) {
 
 	    RHDDebug(handle->scrnIndex,
 		     "   %s: GPIO PinID: %i Index: %x Shift: %i\n",
@@ -1443,7 +1445,8 @@ rhdConnectorTableFromObjectHeader(atomBIOSHandlePtr handle,
 			     &obj_type, &obj_id, &num, &name);
 
 	RHDDebug(handle->scrnIndex, "Object: ID: %x name: %s type: %x id: %x\n",
-		 con_obj->asObjects[i].usObjectID,name,obj_type, obj_id);
+		 con_obj->asObjects[i].usObjectID, name ? name : "",
+		 obj_type, obj_id);
 
 
 	if (obj_type != GRAPH_OBJECT_TYPE_CONNECTOR)
