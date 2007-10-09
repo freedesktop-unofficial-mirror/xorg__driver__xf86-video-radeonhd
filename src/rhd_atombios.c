@@ -40,6 +40,8 @@
 /* only for testing now */
 #include "xf86DDC.h"
 
+typedef struct rhdConnectorInfo *rhdConnectorInfoPtr;
+
 char *AtomBIOSQueryStr[] = {
     "Default Engine Clock",
     "Default Memory Clock",
@@ -1374,13 +1376,13 @@ rhdDeviceTagsFromRecord(atomBIOSHandlePtr handle,
  *
  */
 static AtomBiosResult
-rhdConnectorTableFromObjectHeader(atomBIOSHandlePtr handle,
-			      rhdConnectorTablePtr *ptr)
+rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
+				 rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
     ATOM_CONNECTOR_OBJECT_TABLE *con_obj;
-    rhdConnectorTablePtr cp;
+    rhdConnectorInfoPtr cp;
     unsigned long object_header_end;
     int ncon = 0;
     int i,j;
@@ -1399,7 +1401,7 @@ rhdConnectorTableFromObjectHeader(atomBIOSHandlePtr handle,
     if (crev < 2) /* don't bother with anything below rev 2 */
 	return ATOM_NOT_IMPLEMENTED;
 
-    if (!(cp = (rhdConnectorTablePtr)xcalloc(sizeof(struct rhdConnectorTable),
+    if (!(cp = (rhdConnectorInfoPtr)xcalloc(sizeof(struct rhdConnectorInfo),
 					 RHD_CONNECTORS_MAX)))
 	return ATOM_FAILED;
 
@@ -1541,7 +1543,7 @@ rhdConnectorTableFromObjectHeader(atomBIOSHandlePtr handle,
     }
     *ptr = cp;
 
-    RhdPrintConnectorTable(handle->scrnIndex, cp);
+    RhdPrintConnectorInfo(handle->scrnIndex, cp);
 
     return ATOM_SUCCESS;
 }
@@ -1550,12 +1552,12 @@ rhdConnectorTableFromObjectHeader(atomBIOSHandlePtr handle,
  *
  */
 static AtomBiosResult
-rhdConnectorTableFromSupportedDevices(atomBIOSHandlePtr handle,
-				      rhdConnectorTablePtr *ptr)
+rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
+				     rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
-    rhdConnectorTablePtr cp;
+    rhdConnectorInfoPtr cp;
     struct {
 	rhdOutputType ot;
 	rhdConnectorType con;
@@ -1578,8 +1580,8 @@ rhdConnectorTableFromSupportedDevices(atomBIOSHandlePtr handle,
 	return ATOM_NOT_IMPLEMENTED;
     }
 
-    if (!(cp = (rhdConnectorTablePtr)xcalloc(RHD_CONNECTORS_MAX,
-					 sizeof(struct rhdConnectorTable))))
+    if (!(cp = (rhdConnectorInfoPtr)xcalloc(RHD_CONNECTORS_MAX,
+					 sizeof(struct rhdConnectorInfo))))
 	return ATOM_FAILED;
 
     for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
@@ -1728,7 +1730,7 @@ rhdConnectorTableFromSupportedDevices(atomBIOSHandlePtr handle,
     }
     *ptr = cp;
 
-    RhdPrintConnectorTable(handle->scrnIndex, cp);
+    RhdPrintConnectorInfo(handle->scrnIndex, cp);
 
     return ATOM_SUCCESS;
 }
@@ -1737,13 +1739,13 @@ rhdConnectorTableFromSupportedDevices(atomBIOSHandlePtr handle,
  *
  */
 static AtomBiosResult
-rhdConnectorTable(atomBIOSHandlePtr handle, rhdConnectorTablePtr *conp)
+rhdAtomConnectorInfo(atomBIOSHandlePtr handle, rhdConnectorInfoPtr *conp)
 {
 
-    if (rhdConnectorTableFromObjectHeader(handle,conp) == ATOM_SUCCESS)
+    if (rhdConnectorInfoFromObjectHeader(handle,conp) == ATOM_SUCCESS)
 	return ATOM_SUCCESS;
     else
-	return rhdConnectorTableFromSupportedDevices(handle,conp);
+	return rhdConnectorInfoFromSupportedDevices(handle,conp);
 }
 
 # ifdef ATOM_BIOS_PARSER
@@ -1818,8 +1820,8 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	do_return(ATOM_SUCCESS);
     }
     if (func == ATOMBIOS_GET_CONNECTORS) {
-	rhdConnectorTablePtr ptr = NULL;
-	ret = rhdConnectorTable(handle, &ptr);
+	rhdConnectorInfoPtr ptr = NULL;
+	ret = rhdAtomConnectorInfo(handle, &ptr);
 	data->ptr = ptr;
 	do_return(ret);
     }

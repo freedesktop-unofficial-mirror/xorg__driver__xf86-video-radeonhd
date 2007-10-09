@@ -395,6 +395,7 @@ LVTMADestroy(struct rhdOutput *Output)
     Output->Private = NULL;
 }
 
+#ifdef ATOM_BIOS
 /*
  *
  */
@@ -417,6 +418,7 @@ getFromAtomBIOS(RHDPtr rhdPtr, CARD16 *dst, CARD16 *src,
     }
     return TRUE;
 }
+#endif
 
 /*
  *

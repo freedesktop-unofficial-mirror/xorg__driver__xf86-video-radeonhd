@@ -252,6 +252,7 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE, "\n");
 }
 
+#if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS)
 /*
  * Some macros to help us make connector tables less messy.
  * There are, after all, a limited number of possibilities at the moment.
@@ -348,6 +349,30 @@ RHDIdentify(int flags)
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
     {RHD_CONNECTOR_DVI, "DVI-D", RHD_DDC_1, RHD_HPD_0, \
        { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE}}}
+
+#else /* if !defined(USE_ID_CONNECTORS) && defined(ATOM_BIOS) */
+
+#define ID_CONNECTORINFO_EMPTY \
+     { {RHD_CONNECTOR_NONE, "NULL", RHD_DDC_NONE, RHD_HPD_NONE, \
+       { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE}}}
+
+#define VGA_A0_DVI_BA10         ID_CONNECTORINFO_EMPTY
+#define VGA_A0_DVI_BB10         ID_CONNECTORINFO_EMPTY
+#define VGA_A0_DVI_BB11         ID_CONNECTORINFO_EMPTY
+#define VGA_B1_DVI_AA00         ID_CONNECTORINFO_EMPTY
+#define VGA_B1_DVI_AB01         ID_CONNECTORINFO_EMPTY
+#define VGA_B1_DVI_AB00         ID_CONNECTORINFO_EMPTY
+#define DVI_AA00_DVI_BB11       ID_CONNECTORINFO_EMPTY
+#define DVI_BA10_DVI_AB01       ID_CONNECTORINFO_EMPTY
+#define DVI_BB11_DVI_AA00       ID_CONNECTORINFO_EMPTY
+#define PANEL_B_VGA_A0          ID_CONNECTORINFO_EMPTY
+#define PANEL_B1_VGA_A0         ID_CONNECTORINFO_EMPTY
+#define PANEL_B1_VGA_A2         ID_CONNECTORINFO_EMPTY
+#define PANEL_B2_VGA_A0         ID_CONNECTORINFO_EMPTY
+#define PANEL_B2_DVI_AA00       ID_CONNECTORINFO_EMPTY
+#define PANEL_B2_VGA_A0_DVI_A10 ID_CONNECTORINFO_EMPTY
+
+#endif /* if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS) */
 
 /*
  * List of pci subsystem / card ids.

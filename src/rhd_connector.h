@@ -83,6 +83,5 @@ Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);
 void RHDHPDSave(RHDPtr rhdPtr);
 void RHDHPDRestore(RHDPtr rhdPtr);
 void RHDConnectorsDestroy(RHDPtr rhdPtr);
-void RhdPrintConnectorTable(int scrnIndex, struct rhdConnectorTable *cp);
 
 #endif /* _RHD_CONNECTOR_H */

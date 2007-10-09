@@ -39,7 +39,9 @@
 #include "rhd_monitor.h"
 #include "rhd_card.h"
 
+#ifdef ATOM_BIOS
 #include "rhd_atombios.h"
+#endif
 
 #include "xf86i2c.h"
 #include "rhd_i2c.h"
@@ -117,53 +119,60 @@ RHDHPDCheck(struct rhdConnector *Connector)
 Bool
 RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 {
-    struct rhdConnectorTable *Connectors;
+    struct rhdConnectorInfo *ConnectorInfo;
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     int i, j, k, l;
-    AtomBIOSArg data;
 
     RHDFUNC(rhdPtr);
 
+    /* Card->ConnectorInfo is there to work around quirks, so check it first */
+    if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE))
+	ConnectorInfo = Card->ConnectorInfo;
+    else {
+#ifdef ATOM_BIOS
+	/* when nothing else is needed */
+	AtomBIOSArg data;
+	AtomBiosResult result;
+
+	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOMBIOS_GET_CONNECTORS, &data);
+	if (result == ATOM_SUCCESS)
+	    ConnectorInfo = data.ptr;
+	else
+#endif
+        {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Failed to retrieve "
+		       "Connector information.\n", __func__);
+	    return FALSE;
+	}
+    }
+
     /* Init HPD */
     rhdPtr->HPD = xnfcalloc(sizeof(struct rhdHPD), 1);
-
-#ifdef ATOM_BIOS
-    /* To test the connector table parser we make it the default */
-    if (RHDAtomBIOSFunc(rhdPtr->scrnIndex,
-			rhdPtr->atomBIOS, ATOMBIOS_GET_CONNECTORS, &data) == ATOM_SUCCESS) {
-	Connectors = data.ptr;
-    } else {
-	if (!Card)
-	    return FALSE;
-
-	Connectors = Card->Connectors;
-    }
-#endif
-
     RHDHPDSave(rhdPtr);
     RHDHPDSet(rhdPtr);
 
     for (i = 0, j = 0; i < RHD_CONNECTORS_MAX; i++) {
-	if (Connectors[i].Type == RHD_CONNECTOR_NONE)
+	if (ConnectorInfo[i].Type == RHD_CONNECTOR_NONE)
 	    continue;
 
 	RHDDebug(rhdPtr->scrnIndex, "%s: %d (%s) type %d, ddc %d, hpd %d\n",
-		 __func__, i, Connectors[i].Name, Connectors[i].Type,
-		 Connectors[i].DDC, Connectors[i].HPD);
+		 __func__, i, ConnectorInfo[i].Name, ConnectorInfo[i].Type,
+		 ConnectorInfo[i].DDC, ConnectorInfo[i].HPD);
 
 	Connector = xnfcalloc(sizeof(struct rhdConnector), 1);
 
 	Connector->scrnIndex = rhdPtr->scrnIndex;
-	Connector->Type = Connectors[i].Type;
-	Connector->Name = Connectors[i].Name;
+	Connector->Type = ConnectorInfo[i].Type;
+	Connector->Name = ConnectorInfo[i].Name;
 
 	/* Get the DDC bus of this connector */
-	if (Connectors[i].DDC != RHD_DDC_NONE) {
+	if (ConnectorInfo[i].DDC != RHD_DDC_NONE) {
 	    RHDI2CDataArg data;
 	    int ret;
 
-	    data.i = Connectors[i].DDC;
+	    data.i = ConnectorInfo[i].DDC;
 	    ret = RHDI2CFunc(rhdPtr->scrnIndex,
 			     rhdPtr->I2C, RHD_I2C_GETBUS, &data);
 	    if (ret == RHD_I2C_SUCCESS)
@@ -171,7 +180,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	}
 
 	/* attach HPD */
-	switch(Connectors[i].HPD) {
+	switch(ConnectorInfo[i].HPD) {
 	case RHD_HPD_0:
 	    Connector->HPDMask = 0x00000001;
 	    Connector->HPDCheck = RHDHPDCheck;
@@ -191,16 +200,16 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 
 	/* create Outputs */
 	for (k = 0; k < 2; k++) {
-	    if (Connectors[i].Output[k] == RHD_OUTPUT_NONE)
+	    if (ConnectorInfo[i].Output[k] == RHD_OUTPUT_NONE)
 		continue;
 
 	    /* Check whether the output exists already */
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Id == Connectors[i].Output[k])
+		if (Output->Id == ConnectorInfo[i].Output[k])
 		    break;
 
 	    if (!Output) {
-		switch (Connectors[i].Output[k]) {
+		switch (ConnectorInfo[i].Output[k]) {
 		case RHD_OUTPUT_DACA:
 		    Output = RHDDACAInit(rhdPtr);
 		    RHDOutputAdd(rhdPtr, Output);
@@ -214,13 +223,13 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
 		case RHD_OUTPUT_LVTMA:
-		    Output = RHDLVTMAInit(rhdPtr,  Connectors[i].Type);
+		    Output = RHDLVTMAInit(rhdPtr, ConnectorInfo[i].Type);
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
 		default:
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			       "%s: unhandled output id: %d\n", __func__,
-			       Connectors[i].Output[k]);
+			       ConnectorInfo[i].Output[k]);
 		    break;
 		}
 	    }
@@ -271,7 +280,7 @@ RHDConnectorsDestroy(RHDPtr rhdPtr)
  *
  */
 void
-RhdPrintConnectorTable(int scrnIndex, struct rhdConnectorTable *cp)
+RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 {
     int n;
     const char *c_name[] =
