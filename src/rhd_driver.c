@@ -585,7 +585,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	}
     }
 
-    rhdPtr->ConfigMonitor = RHDConfigMonitor(pScrn->confScreen->monitor);
+    rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
     if (!rhdPtr->ConfigMonitor) {
 	int i;
 
@@ -596,7 +596,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	if (i == RHD_CONNECTORS_MAX) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		       "No monitor information found. Attaching default.\n");
-	    rhdPtr->ConfigMonitor = RHDDefaultMonitor(pScrn->scrnIndex);
+	    rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
 	}
     }
 

@@ -653,13 +653,7 @@ rhdMonitorFixedValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 {
     DisplayModePtr Fixed;
 
-    xf86DrvMsg(Monitor->scrnIndex, X_INFO, "%s: tested mode:", __func__);
-    RHDPrintModeline(Mode);
-
     for (Fixed = Monitor->Modes; Fixed; Fixed = Fixed->next) {
-	 xf86DrvMsg(Monitor->scrnIndex, X_INFO, "%s: fixed mode:", __func__);
-	 RHDPrintModeline(Mode);
-
 	if ((Mode->Flags != Fixed->Flags) ||
 	    (Mode->Clock != Fixed->Clock) ||
 	    (Mode->SynthClock != Fixed->Clock))

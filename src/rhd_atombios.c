@@ -782,12 +782,12 @@ rhdLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 }
 
 static AtomBiosResult
-rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
+rhdLvdsGetTimings(atomBIOSHandlePtr handle, AtomPanelModeInfo **ptr)
 
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
-    rhdPanelModePtr m;
+    AtomPanelModeInfo *m;
     unsigned long offset;
 
     RHDFUNC(handle);
@@ -803,7 +803,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
     switch (crev) {
 
 	case 1:
-	    if (!(m = (rhdPanelModePtr)xcalloc(1,sizeof(rhdPanelModeRec))))
+	    if (!(m = (AtomPanelModeInfo *)xcalloc(1,sizeof(AtomPanelModeInfo))))
 		return ATOM_FAILED;
 	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
 				       .LVDS_Info->sLCDTiming);
@@ -811,7 +811,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle,  rhdPanelModePtr *ptr)
 	    break;
 
 	case 2:
-	    if (!(m = (rhdPanelModePtr)xalloc(sizeof(rhdPanelModeRec))))
+	    if (!(m = (AtomPanelModeInfo *)xcalloc(1,sizeof(AtomPanelModeInfo))))
 		return ATOM_FAILED;
 	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
 				     .LVDS_Info_v12->sLCDTiming);

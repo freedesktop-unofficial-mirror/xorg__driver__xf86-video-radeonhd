@@ -43,13 +43,8 @@ struct rhdMonitor {
     DisplayModePtr Modes; /* default: NULL */
 };
 
-typedef struct rhdPanelMode {
-    DisplayModePtr	mode;
-    unsigned char*	EDID;
-} rhdPanelModeRec, *rhdPanelModePtr;
-
-struct rhdMonitor *RHDConfigMonitor(MonPtr Config);
-struct rhdMonitor *RHDDefaultMonitor(int scrnIndex);
+struct rhdMonitor *RHDMonitorConfig(MonPtr Config);
+struct rhdMonitor *RHDMonitorDefault(int scrnIndex);
 
 #ifdef _RHD_CONNECTOR_H
 struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);

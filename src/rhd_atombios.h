@@ -75,6 +75,11 @@ typedef enum {
 } AtomBiosResult;
 
 typedef struct {
+    DisplayModePtr     mode;
+    unsigned char*     EDID;
+} AtomPanelModeInfo;
+
+typedef struct {
     int index;
     pointer pspace;
     pointer *dataSpace;
@@ -90,7 +95,7 @@ typedef union
     CARD32 val;
 
     pointer ptr;  /* replace */
-    struct rhdPanelMode *panel;
+    AtomPanelModeInfo *panel;
     atomBIOSHandlePtr atomp;
     AtomExec exec;
     AtomFb fb;

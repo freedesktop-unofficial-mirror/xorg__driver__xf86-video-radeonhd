@@ -81,7 +81,7 @@ rhdMonitorPrint(struct rhdMonitor *Monitor)
  *
  */
 struct rhdMonitor *
-RHDConfigMonitor(MonPtr Config)
+RHDMonitorConfig(MonPtr Config)
 {
     struct rhdMonitor *Monitor;
     DisplayModePtr Mode;
@@ -147,7 +147,7 @@ RHDConfigMonitor(MonPtr Config)
  *
  */
 struct rhdMonitor *
-RHDDefaultMonitor(int scrnIndex)
+RHDMonitorDefault(int scrnIndex)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     struct rhdMonitor *Monitor;
@@ -185,22 +185,126 @@ RHDDefaultMonitor(int scrnIndex)
 }
 
 /*
- *
+ * Make sure that we keep only a single mode in our list. This mode should
+ * hopefully match our panel at native resolution correctly.
  */
 static void
-RHDPanelModeSet(struct rhdMonitor *Monitor, DisplayModePtr mode)
+rhdPanelEDIDModesFilter(struct rhdMonitor *Monitor)
 {
+    DisplayModeRec *Best = Monitor->Modes, *Mode, *Temp;
+
     RHDFUNC(Monitor);
 
-    Monitor->Name = xstrdup("LVDS Panel");
-    Monitor->Modes = RHDModesAdd(Monitor->Modes, mode);
+    if (!Best || !Best->next)
+	return; /* don't bother */
+
+    /* don't go for preferred, just take the biggest */
+    for (Mode = Best->next; Mode; Mode = Mode->next) {
+	if (((Best->HDisplay <= Mode->HDisplay) &&
+	     (Best->VDisplay < Mode->VDisplay)) ||
+	    ((Best->HDisplay < Mode->HDisplay) &&
+	     (Best->VDisplay <= Mode->VDisplay)))
+	    Best = Mode;
+    }
+
+    xf86DrvMsg(Monitor->scrnIndex, X_INFO, "Monitor \"%s\": Using Mode \"%s\""
+	       " for native resolution.\n", Monitor->Name, Best->name);
+
+    /* kill all other modes */
+    Mode = Monitor->Modes;
+    while (Mode) {
+	Temp = Mode->next;
+
+	if (Mode != Best) {
+	    RHDDebug(Monitor->scrnIndex, "Monitor \"%s\": Discarding Mode \"%s\"\n",
+		     Monitor->Name, Mode->name);
+
+	    xfree(Mode->name);
+	    xfree(Mode);
+	}
+
+	Mode = Temp;
+    }
+
+    Best->next = NULL;
+    Best->prev = NULL;
+    Monitor->Modes = Best;
+
     Monitor->numHSync = 1;
-    Monitor->HSync[0].lo = mode->HSync;
-    Monitor->HSync[0].hi = mode->HSync;
+    Monitor->HSync[0].lo = Best->HSync;
+    Monitor->HSync[0].hi = Best->HSync;
     Monitor->numVRefresh = 1;
-    Monitor->VRefresh[0].lo = mode->VRefresh;
-    Monitor->VRefresh[0].hi = mode->VRefresh;
-    Monitor->Bandwidth = mode->SynthClock;
+    Monitor->VRefresh[0].lo = Best->VRefresh;
+    Monitor->VRefresh[0].hi = Best->VRefresh;
+    Monitor->Bandwidth = Best->Clock;
+}
+
+/*
+ * Panels are the most complicated case we need to handle here.
+ * Information can come from several places, and we need to make sure
+ * that we end up with only the native resolution in our table.
+ */
+static struct rhdMonitor *
+rhdMonitorPanel(struct rhdConnector *Connector)
+{
+    struct rhdMonitor *Monitor;
+    DisplayModeRec *Mode = NULL;
+    xf86MonPtr EDID = NULL;
+
+    /* has priority over AtomBIOS EDID */
+    if (Connector->DDC)
+	EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
+
+#ifdef ATOM_BIOS
+    {
+	RHDPtr rhdPtr = RHDPTR(xf86Screens[Connector->scrnIndex]);
+	AtomBIOSArg data;
+	AtomBiosResult Result;
+
+	Result = RHDAtomBIOSFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
+				 ATOMBIOS_GET_PANEL_TIMINGS, &data);
+	if (Result == ATOM_SUCCESS) {
+	    Mode = RHDModeCopy(data.panel->mode);
+	    if (!EDID)
+		EDID = xf86InterpretEDID(Connector->scrnIndex, data.panel->EDID);
+	    xfree(data.panel);
+	}
+    }
+#endif
+
+    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
+
+    Monitor->scrnIndex = Connector->scrnIndex;
+
+    if (Mode) {
+	Monitor->Name = xstrdup("LVDS Panel");
+	Monitor->Modes = RHDModesAdd(Monitor->Modes, Mode);
+	Monitor->numHSync = 1;
+	Monitor->HSync[0].lo = Mode->HSync;
+	Monitor->HSync[0].hi = Mode->HSync;
+	Monitor->numVRefresh = 1;
+	Monitor->VRefresh[0].lo = Mode->VRefresh;
+	Monitor->VRefresh[0].hi = Mode->VRefresh;
+	Monitor->Bandwidth = Mode->SynthClock;
+    } else if (EDID) {
+	RHDMonitorEDIDSet(Monitor, EDID);
+	rhdPanelEDIDModesFilter(Monitor);
+    } else {
+	xf86DrvMsg(Connector->scrnIndex, X_ERROR,
+		   "%s: No panel mode information found.\n", __func__);
+	xfree(Monitor);
+	return NULL;
+    }
+
+    /* panel should be driven at native resolution only. */
+    Monitor->UseFixedModes = TRUE;
+
+    if (EDID) {
+	xfree(EDID->rawData);
+	xfree(EDID);
+    }
+
+    return Monitor;
 }
 
 /*
@@ -209,70 +313,34 @@ RHDPanelModeSet(struct rhdMonitor *Monitor, DisplayModePtr mode)
 struct rhdMonitor *
 RHDMonitorInit(struct rhdConnector *Connector)
 {
-    struct rhdMonitor *Monitor;
-    xf86MonPtr EDID = NULL;
-    DisplayModePtr mode = NULL;
+    struct rhdMonitor *Monitor = NULL;
 
     RHDFUNC(Connector);
 
-    /* TODO: For now. This should be handled differently. */
-    if (Connector->DDC) {
-	EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
-    }
-
-    if (!EDID) {
-#ifdef ATOM_BIOS
-	if (Connector->Type == RHD_CONNECTOR_PANEL) {
-	    RHDPtr rhdPtr = RHDPTR(xf86Screens[Connector->scrnIndex]);
-	    AtomBIOSArg data;
-
-	    if (RHDAtomBIOSFunc(Connector->scrnIndex,
-				rhdPtr->atomBIOS, ATOMBIOS_GET_PANEL_TIMINGS,
-				&data) == ATOM_SUCCESS) {
-
-		EDID = xf86InterpretEDID(Connector->scrnIndex,data.panel->EDID);
-		mode = data.panel->mode;
-		xfree(data.panel);
-	    } else
-		return NULL;
-	}
-#endif
-    }
-
-    if (!EDID && !mode) { /* still no information? */
-	if (Connector->Type != RHD_CONNECTOR_PANEL)
-	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
-		       "No EDID data found on connector \"%s\"\n",
-		       Connector->Name);
-	else
-	    xf86DrvMsg(Connector->scrnIndex, X_INFO,
-		       "No EDID data nor mode found on panel connector "
-		       "\"%s\"\n", Connector->Name);
-	return NULL;
-    }
-
-    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
-
-    Monitor->scrnIndex = Connector->scrnIndex;
-
-    /* for testing - we may want to reverse the order */
-    if (mode)
-	RHDPanelModeSet(Monitor, mode);
-    else
-	RHDMonitorEDIDSet(Monitor, EDID);
-
-    if (EDID) {
-	xfree(EDID->rawData);
-	xfree(EDID);
-    }
-
     if (Connector->Type == RHD_CONNECTOR_PANEL)
-	/* Prevent other resolutions on directly connected panels */
-	Monitor->UseFixedModes = TRUE;
+	Monitor = rhdMonitorPanel(Connector);
+    else if (Connector->DDC) {
+	xf86MonPtr EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
+	if (EDID) {
+	    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
+	    Monitor->scrnIndex = Connector->scrnIndex;
 
-    xf86DrvMsg(Monitor->scrnIndex, X_INFO, "Monitor \"%s\" connected to \"%s\":\n",
-	       Monitor->Name, Connector->Name);
-    rhdMonitorPrint(Monitor);
+	    RHDMonitorEDIDSet(Monitor, EDID);
+
+	    xfree(EDID->rawData);
+	    xfree(EDID);
+	}
+    }
+
+    if (Monitor) {
+	xf86DrvMsg(Monitor->scrnIndex, X_INFO,
+		   "Connector \"%s\" uses Monitor \"%s\":\n",
+		   Monitor->Name, Connector->Name);
+	rhdMonitorPrint(Monitor);
+    } else
+	xf86DrvMsg(Connector->scrnIndex, X_WARNING,
+		   "Connector \"%s\": Failed to retrieve Monitor information.\n",
+		   Connector->Name);
 
     return Monitor;
 }
