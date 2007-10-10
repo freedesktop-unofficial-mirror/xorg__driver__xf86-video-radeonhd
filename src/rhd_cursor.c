@@ -512,7 +512,7 @@ RHDCursorsDestroy(RHDPtr rhdPtr)
 
     for (i = 0; i < 2; i++) {
 	xfree(rhdPtr->Crtc[i]->Cursor);
-	rhdPtr->Crtc[i] = NULL;
+	rhdPtr->Crtc[i]->Cursor = NULL;
     }
 }
 
