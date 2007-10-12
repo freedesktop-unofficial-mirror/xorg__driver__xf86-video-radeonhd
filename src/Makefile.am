@@ -26,6 +26,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_atombios.h \
 	rhd.h \
 	rhd_i2c.h \
+	rhd_card.h \
 	rhd_crtc.h \
 	rhd_connector.h \
 	rhd_cursor.h \
@@ -71,6 +72,7 @@ libatom_la_SOURCES = \
 	AtomBios/includes/CD_Opcodes.h \
 	AtomBios/includes/CD_Structs.h \
 	AtomBios/includes/Decoder.h \
+	AtomBios/includes/ObjectID.h \
 	AtomBios/includes/regsdef.h
 
 radeonhd_drv_la_LIBADD = libatom.la
