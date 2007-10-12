@@ -1856,8 +1856,9 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle, AtomBiosFunc func,
 	}
 
     if (ret == ATOM_SUCCESS)
-	xf86DrvMsg(scrnIndex,X_INFO,"%s: %i\n",
-		   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS], (unsigned int)data->val);
+	xf86DrvMsg(scrnIndex,X_INFO,"%s: %i (0x%x)\n",
+		   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS],
+		   (unsigned int)data->val, (unsigned int)data->val);
     else
 	xf86DrvMsg(scrnIndex,X_INFO,"Query for %s: %s\n",
 		   AtomBIOSQueryStr[func - ATOM_QUERY_FUNCS],
