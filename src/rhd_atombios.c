@@ -1592,6 +1592,10 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 
 	devices[n].ot = RHD_OUTPUT_NONE;
 
+	if (!(atomDataPtr->SupportedDevicesInfo
+	      .SupportedDevicesInfo->usDeviceSupport & (1 << n)))
+	    continue;
+
 	if (Limit(ci.sucConnectorInfo.sbfAccess.bfConnectorType,
 		  n_rhd_connectors, "bfConnectorType"))
 	    continue;
