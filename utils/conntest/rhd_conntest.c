@@ -749,7 +749,7 @@ R6xxI2CSetupStatus(void *map, int channel)
     }
     RegWrite(map, R6_DC_I2C_CONTROL, channel << 8);
     RegMask(map, R6_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
-    RegMask(map, R6_DC_I2C_ARBITRATION, 0, 0x00);
+    RegMask(map, R6_DC_I2C_ARBITRATION, 0, 0xff);
     return TRUE;
 }
 

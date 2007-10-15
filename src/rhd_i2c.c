@@ -383,7 +383,7 @@ rhd6xxI2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
     }
     RHDRegWrite(I2CPtr, R6_DC_I2C_CONTROL, line << 8);
     RHDRegMask(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
-    RHDRegMask(I2CPtr, R6_DC_I2C_ARBITRATION, 0, 0x00);
+    RHDRegMask(I2CPtr, R6_DC_I2C_ARBITRATION, 0, 0xff);
     return TRUE;
 }
 
