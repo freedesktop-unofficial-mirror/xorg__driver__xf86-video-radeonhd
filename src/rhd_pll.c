@@ -286,6 +286,11 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
 	    return 0x00120704;
 	else
 	    return 0;
+    case RHD_RV530:
+	if (rhdPtr->PciInfo->chipType == 0x71C6)
+	    return 0x00230704;
+	else
+	    return 0;
     case RHD_RS690:
 	/* depending on MiscInfo also 0x00120004 */
 	return 0x00120704;
@@ -562,7 +567,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
     getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
 			     &RefClock, PLL_NONE);
     if (OutMax == 0) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS reports minimum VCO freq 0. "
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS reports maximum VCO freq 0. "
 		   "Using %lu instead\n",(unsigned long)OutMin);
 	OutMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
     }
