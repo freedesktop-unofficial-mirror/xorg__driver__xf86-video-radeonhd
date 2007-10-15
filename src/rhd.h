@@ -26,6 +26,10 @@
 #ifndef _RHD_H
 #define _RHD_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define RHD_VERSION 0001
 #define RHD_NAME "RADEONHD"
 #define RHD_DRIVER_NAME "radeonhd"
@@ -107,8 +111,13 @@ typedef struct RHDRec {
     int                 scrnIndex;
 
     int                 ChipSet;
-    pciVideoPtr         PciInfo;
+#ifdef XSERVER_LIBPCIACCESS
+    struct pci_device   *PciInfo;
+#else
+    pciVideoRec         *PciInfo;
+#endif
     PCITAG              PciTag;
+    unsigned int	PciDeviceID;
     int			entityIndex;
     struct rhdCard      *Card;
     OptionInfoPtr       Options;

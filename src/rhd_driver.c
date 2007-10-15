@@ -106,8 +106,12 @@
 
 /* Mandatory functions */
 static const OptionInfoRec *	RHDAvailableOptions(int chipid, int busid);
-void     RHDIdentify(int flags);
+#ifdef XSERVER_LIBPCIACCESS
+static Bool RHDPciProbe(DriverPtr drv, int entityNum,
+			struct pci_device *dev, intptr_t matchData);
+#else
 static Bool     RHDProbe(DriverPtr drv, int flags);
+#endif
 static Bool     RHDPreInit(ScrnInfoPtr pScrn, int flags);
 static Bool     RHDScreenInit(int Index, ScreenPtr pScreen, int argc,
                                   char **argv);
@@ -141,8 +145,11 @@ static void rhdTestDDC(ScrnInfoPtr pScrn);
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
-void RHDIdentify(int flags);
-struct rhdCard *RHDCardIdentify(ScrnInfoPtr pScrn);
+extern void RHDIdentify(int flags);
+extern struct rhdCard *RHDCardIdentify(ScrnInfoPtr pScrn);
+#ifdef XSERVER_LIBPCIACCESS
+extern const struct pci_id_match RHDDeviceMatch[];
+#endif
 
 /* keep accross drivers */
 static int pix24bpp = 0;
@@ -156,10 +163,19 @@ _X_EXPORT DriverRec RADEONHD = {
     RHD_VERSION,
     RHD_DRIVER_NAME,
     RHDIdentify,
+#ifdef XSERVER_LIBPCIACCESS
+    NULL,
+#else
     RHDProbe,
+#endif
     RHDAvailableOptions,
     NULL,
-    0
+    0,
+    NULL,
+#ifdef XSERVER_LIBPCIACCESS
+    RHDDeviceMatch,
+    RHDPciProbe
+#endif
 };
 
 typedef enum {
@@ -272,6 +288,51 @@ RHDAvailableOptions(int chipid, int busid)
     return RHDOptions;
 }
 
+/*
+ *
+ */
+#ifdef XSERVER_LIBPCIACCESS
+static Bool
+RHDPciProbe(DriverPtr drv, int entityNum,
+	    struct pci_device *dev, intptr_t matchData)
+{
+    ScrnInfoPtr pScrn;
+    RHDPtr rhdPtr;
+
+    pScrn = xf86ConfigPciEntity(NULL, 0, entityNum, NULL,
+				RES_SHARED_VGA, NULL, NULL, NULL, NULL);
+    if (pScrn != NULL) {
+
+	pScrn->driverVersion = RHD_VERSION;
+	pScrn->driverName    = RHD_DRIVER_NAME;
+	pScrn->name          = RHD_NAME;
+	pScrn->Probe         = NULL;
+	pScrn->PreInit       = RHDPreInit;
+	pScrn->ScreenInit    = RHDScreenInit;
+	pScrn->SwitchMode    = RHDSwitchMode;
+	pScrn->AdjustFrame   = RHDAdjustFrame;
+	pScrn->EnterVT       = RHDEnterVT;
+	pScrn->LeaveVT       = RHDLeaveVT;
+	pScrn->FreeScreen    = RHDFreeScreen;
+	pScrn->ValidMode     = NULL; /* we do our own validation */
+
+	if (!RHDGetRec(pScrn))
+	    return FALSE;
+
+	rhdPtr = RHDPTR(pScrn);
+
+	rhdPtr->PciInfo = dev;
+	rhdPtr->PciTag = pciTag(dev->bus,
+				dev->dev,
+				dev->func);
+	rhdPtr->ChipSet = matchData;
+    }
+
+    return (pScrn != NULL);
+}
+
+#else
+
 static Bool
 RHDProbe(DriverPtr drv, int flags)
 {
@@ -324,6 +385,7 @@ RHDProbe(DriverPtr drv, int flags)
     xfree(devSections);
     return foundScreen;
 }
+#endif
 
 /*
  *
@@ -357,27 +419,41 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   "Driver doesn't support more than one entity per screen\n");
 	goto error0;
     }
-
+    /* @@@ move to Probe? */
     if (!(pEnt = xf86GetEntityInfo(pScrn->entityList[0]))) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Unable to get entity info\n");
 	goto error0;
     }
+
     if (pEnt->resources) {
         xfree(pEnt);
 	goto error0;
     }
 
-    rhdPtr->ChipSet = pEnt->chipset;
-    pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, pEnt->chipset);
+    rhdPtr->entityIndex = pEnt->index;
 
-    pScrn->videoRam = pEnt->device->videoRam;
+#ifndef XSERVER_LIBPCIACCESS
+    rhdPtr->ChipSet = pEnt->chipset;
 
     rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
     rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
                             rhdPtr->PciInfo->device,
                             rhdPtr->PciInfo->func);
-    rhdPtr->entityIndex = pEnt->index;
+/* #else:  RHDPciProbe() did this for us already */
+#endif
+
+    xfree(pEnt);
+
+    pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, rhdPtr->ChipSet);
+
+    pScrn->videoRam = pEnt->device->videoRam;
+
+    /* We will disable access to VGA legacy resources emulation and
+       save/restore VGA thru MMIO when necessary */
+    if (xf86RegisterResources(rhdPtr->entityIndex, NULL, ResNone))
+	goto error0;
+
 #ifndef  ATOM_ASIC_INIT
     if (xf86LoadSubModule(pScrn, "int10")) {
 	xf86Int10InfoPtr Int10;
@@ -402,13 +478,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	}
     }
 #endif
-    /* We will disable access to VGA legacy resources emulation and
-       save/restore VGA thru MMIO when necessary */
-    if (xf86RegisterResources(pEnt->index, NULL, ResNone)) {
-	xfree(pEnt);
-	goto error0;
-    }
-    xfree(pEnt);
 
     /* xf86CollectOptions cluelessly depends on these and
        will SIGSEGV otherwise */
@@ -1041,10 +1110,25 @@ rhdMapMMIO(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
+#ifdef XSERVER_LIBPCIACCESS
+
+    rhdPtr->MMIOMapSize = rhdPtr->PciInfo->regions[RHD_MMIO_BAR].size;
+
+    if (pci_device_map_range(rhdPtr->PciInfo,
+			     rhdPtr->PciInfo->regions[RHD_MMIO_BAR].bus_addr,
+			     rhdPtr->MMIOMapSize,
+			     PCI_DEV_MAP_FLAG_WRITABLE,
+			     &rhdPtr->MMIOBase))
+	rhdPtr->MMIOBase = NULL;
+
+#else
+
     rhdPtr->MMIOMapSize = 1 << rhdPtr->PciInfo->size[RHD_MMIO_BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_MMIO, rhdPtr->PciTag,
-		      rhdPtr->PciInfo->memBase[RHD_MMIO_BAR], rhdPtr->MMIOMapSize);
+		      rhdPtr->PciInfo->memBase[RHD_MMIO_BAR],
+		      rhdPtr->MMIOMapSize);
+#endif
     if (!rhdPtr->MMIOBase)
         return FALSE;
 
@@ -1062,8 +1146,13 @@ rhdUnmapMMIO(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
+#ifdef XSERVER_LIBPCIACCESS
+    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->MMIOBase,
+			    rhdPtr->MMIOMapSize);
+#else
     xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->MMIOBase,
                     rhdPtr->MMIOMapSize);
+#endif
     rhdPtr->MMIOBase = 0;
 }
 
@@ -1081,8 +1170,11 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
 	RamSize = (RHDRegRead(rhdPtr, R5XX_CONFIG_MEMSIZE)) >> 10;
     else
 	RamSize = (RHDRegRead(rhdPtr, R6XX_CONFIG_MEMSIZE)) >> 10;
+#ifdef XSERVER_LIBPCIACCESS
+    BARSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+#else
     BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
-
+#endif
     if (RamSize > BARSize) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "The detected amount of videoram"
 		   " exceeds the PCI BAR aperture.\n");
@@ -1099,12 +1191,32 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
 static Bool
 rhdMapFB(RHDPtr rhdPtr)
 {
+    unsigned long membase;
     RHDFUNC(rhdPtr);
+
+#ifdef XSERVER_LIBPCIACCESS
+
+    rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+    membase = rhdPtr->PciInfo->regions[RHD_FB_BAR].bus_addr; /* @@@ */
+
+    if (pci_device_map_range(rhdPtr->PciInfo,
+			     membase,
+			     rhdPtr->FbMapSize,
+			     PCI_DEV_MAP_FLAG_WRITABLE
+			     | PCI_DEV_MAP_FLAG_WRITE_COMBINE
+			     | PCI_DEV_MAP_FLAG_CACHABLE,
+			     &rhdPtr->FbBase))		     
+	rhdPtr->FbBase = NULL;
+
+#else
 
     rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
 		      rhdPtr->PciInfo->memBase[RHD_FB_BAR], rhdPtr->FbMapSize);
+    membase = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
+
+#endif
 
     if (!rhdPtr->FbBase)
         return FALSE;
@@ -1117,15 +1229,14 @@ rhdMapFB(RHDPtr rhdPtr)
     else
 	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
 
-    if (rhdPtr->FbIntAddress != rhdPtr->PciInfo->memBase[RHD_FB_BAR])
+    if (rhdPtr->FbIntAddress != membase)
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
 		       "0x%08X while card Internal Address is 0x%08X\n",
-		       (unsigned int) rhdPtr->PciInfo->memBase[RHD_FB_BAR],
+		       (unsigned int) membase,
 		       rhdPtr->FbIntAddress);
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
-
     return TRUE;
 }
 
@@ -1139,9 +1250,13 @@ rhdUnmapFB(RHDPtr rhdPtr)
 
     if (!rhdPtr->FbBase)
 	return;
-
+#ifdef XSERVER_LIBPCIACCESS
+    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->FbBase,
+			   rhdPtr->FbMapSize);
+#else
     xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
                     rhdPtr->FbMapSize);
+#endif
     rhdPtr->FbBase = 0;
 }
 

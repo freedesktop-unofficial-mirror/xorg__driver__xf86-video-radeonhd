@@ -585,9 +585,12 @@ rhdInitAtomBIOS(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
 	}
     } else {
 	if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
+#ifdef XSERVER_LIBPCIACCESS
+	    BIOSImageSize = rhdPtr->PciInfo->rom_size;
+#else
 	    int read_len;
-
 	    BIOSImageSize = 1 << rhdPtr->PciInfo->biosSize;
+#endif
 	    if (!(ptr = xcalloc(1, BIOSImageSize))) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot allocate %i bytes of memory "
@@ -595,7 +598,13 @@ rhdInitAtomBIOS(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
 		return ATOM_FAILED;
 	    }
 	    xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from PCI ROM\n");
-
+#ifdef XSERVER_LIBPCIACCESS
+	    if (pci_device_read_rom(rhdPtr->PciInfo, ptr)) {
+		xf86DrvMsg(scrnIndex,X_ERROR,
+			   "Cannot read BIOS image\n");
+		goto error;
+	    }
+#else
 	    if ((read_len =
 		 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, ptr, BIOSImageSize) < 0)) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
@@ -605,6 +614,7 @@ rhdInitAtomBIOS(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
 		xf86DrvMsg(scrnIndex,X_WARNING,
 			   "Read only %i of %i bytes of BIOS image\n",
 			   read_len, BIOSImageSize);
+#endif
 	} else {
 	    int read_len;
 	    unsigned char tmp[32];
@@ -2087,6 +2097,24 @@ CailWriteMC(VOID *CAIL, ULONG Address, ULONG data)
     RHDWriteMC(((atomBIOSHandlePtr)CAIL), Address, data);
 }
 
+#ifdef XSERVER_LIBPCIACCESS
+
+VOID
+CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
+{
+    pci_device_cfg_read(RHDPTRI((atomBIOSHandlePtr)CAIL)->PciInfo,
+				ret,index << 2 , size >> 3, NULL);
+}
+
+VOID
+CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 index,UINT16 size)
+{
+    pci_device_cfg_write(RHDPTRI((atomBIOSHandlePtr)CAIL)->PciInfo,
+			 src, index << 2, size >> 3, NULL);
+}
+
+#else
+
 VOID
 CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
 {
@@ -2138,6 +2166,7 @@ CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 index,UINT16 size)
 	    break;
     }
 }
+#endif
 
 ULONG
 CailReadPLL(VOID *CAIL, ULONG Address)

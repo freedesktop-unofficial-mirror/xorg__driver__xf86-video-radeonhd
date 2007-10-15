@@ -282,7 +282,7 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
 {
     switch (rhdPtr->ChipSet) {
     case RHD_RV515:
-	if (rhdPtr->PciInfo->chipType == 0x7146)
+	if (rhdPtr->PciDeviceID == 0x7146)
 	    return 0x00120704;
 	else
 	    return 0;

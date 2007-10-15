@@ -119,9 +119,7 @@ TMDSAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 TMDSAVoltageControl(RHDPtr rhdPtr)
 {
-    CARD16 id = rhdPtr->PciInfo->chipType;
-
-    switch (id) {
+    switch (rhdPtr->PciDeviceID) {
     case 0x7104: /* R520 */
 	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00C00414);
 	break;
@@ -178,7 +176,8 @@ TMDSAVoltageControl(RHDPtr rhdPtr)
 	break;
     default:
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: unhandled chipset: 0x%04X.\n", __func__, id);
+		   "%s: unhandled chipset: 0x%04X.\n", __func__,
+		   rhdPtr->PciDeviceID);
 	break;
     }
 }
