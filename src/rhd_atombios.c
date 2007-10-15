@@ -61,7 +61,7 @@ char *AtomBIOSQueryStr[] = {
     "LVDS Supported Refresh Rate",
     "LVDS Off Delay",
     "LVDS SEQ Dig onto DE",
-    "LVDS SEQ DE to BL"
+    "LVDS SEQ DE to BL",
     "LVDS Misc"
 };
 
