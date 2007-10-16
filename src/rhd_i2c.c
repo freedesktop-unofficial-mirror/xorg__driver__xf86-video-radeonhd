@@ -36,7 +36,9 @@
 #include "rhd_i2c.h"
 #include "rhd_regs.h"
 
+#ifdef ATOM_BIOS
 #include "rhd_atombios.h"
+#endif
 
 typedef struct _rhdI2CRec
 {
@@ -500,9 +502,11 @@ rhdTearDownI2C(I2CBusPtr *I2C)
 }
 
 #define TARGET_HW_I2C_CLOCK 25 /*  kHz */
+#define DEFAULT_ENGINE_CLOCK 50
 static CARD32
 rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
+#ifdef ATOM_BIOS
     AtomBIOSArg atomBiosArg;
     RHDFUNC(rhdPtr);
 
@@ -516,6 +520,16 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 			GET_REF_CLOCK, &atomBiosArg);
 	    return (atomBiosArg.val * 10) / TARGET_HW_I2C_CLOCK;
     }
+#else
+    RHDFUNC(rhdPtr);
+
+    if (rhdPtr->ChipSet < RHD_R600) {
+	return (0x7f << 8)
+	    + (DEFAULT_ENGINE_CLOCK) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
+    } else {
+	return (DEFAULT_ENGINE_CLOCK / TARGET_HW_I2C_CLOCK);
+    }    
+#endif
 }
 
 static I2CBusPtr *

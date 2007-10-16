@@ -40,13 +40,35 @@
 /* only for testing now */
 #include "xf86DDC.h"
 
-typedef struct rhdConnectorInfo *rhdConnectorInfoPtr;
+#ifdef ATOM_BIOS
+# include "rhd_atomwrapper.h"
+# include "xf86int10.h"
+# ifdef ATOM_BIOS_PARSER
+#  define INT8 INT8
+#  define INT16 INT16
+#  define INT32 INT32
+#  include "CD_Common_Types.h"
+# else
+#  ifndef ULONG
+typedef unsigned int ULONG;
+#   define ULONG ULONG
+#  endif
+#  ifndef UCHAR
+typedef unsigned char UCHAR;
+#   define UCHAR UCHAR
+#  endif
+#  ifndef USHORT
+typedef unsigned short USHORT;
+#   define USHORT USHORT
+#  endif
+# endif
 
-enum msgDataFormat {
-    MSG_FORMAT_NONE,
-    MSG_FORMAT_HEX,
-    MSG_FORMAT_DEC
-};
+# include "atombios.h"
+# include "ObjectID.h"
+
+typedef AtomBiosResult (*AtomBiosRequestFunc)(atomBIOSHandlePtr handle,
+					  AtomBiosRequestID unused, AtomBIOSArgPtr data);
+typedef struct rhdConnectorInfo *rhdConnectorInfoPtr;
 
 static AtomBiosResult rhdInitAtomBIOS(atomBIOSHandlePtr unused1,
 				      AtomBiosRequestID unused2, AtomBIOSArgPtr data);
@@ -72,8 +94,12 @@ static AtomBiosResult rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
 static AtomBiosResult rhdAtomExec(atomBIOSHandlePtr handle,
 				   AtomBiosRequestID unused, AtomBIOSArgPtr data);
 # endif
-typedef AtomBiosResult (*AtomBiosRequestFunc)(atomBIOSHandlePtr handle,
-					  AtomBiosRequestID unused, AtomBIOSArgPtr data);
+
+enum msgDataFormat {
+    MSG_FORMAT_NONE,
+    MSG_FORMAT_HEX,
+    MSG_FORMAT_DEC
+};
 
 struct atomBIOSRequests {
     AtomBiosRequestID id;
@@ -140,50 +166,6 @@ struct atomBIOSRequests {
     {FUNC_END,				NULL,
      NULL,					MSG_FORMAT_NONE}
 };
-
-
-#ifdef ATOM_BIOS
-# include "rhd_atomwrapper.h"
-# include "xf86int10.h"
-# ifdef ATOM_BIOS_PARSER
-#  define INT8 INT8
-#  define INT16 INT16
-#  define INT32 INT32
-#  include "CD_Common_Types.h"
-# else
-#  ifndef ULONG
-typedef unsigned int ULONG;
-#   define ULONG ULONG
-#  endif
-#  ifndef UCHAR
-typedef unsigned char UCHAR;
-#   define UCHAR UCHAR
-#  endif
-#  ifndef USHORT
-typedef unsigned short USHORT;
-#   define USHORT USHORT
-#  endif
-# endif
-
-# include "atombios.h"
-# include "ObjectID.h"
-
-# define LOG_CAIL LOG_DEBUG + 1
-
-#ifdef ATOM_BIOS_PARSER
-static void
-CailDebug(int scrnIndex, const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_CAIL, format, ap);
-    va_end(ap);
-}
-#endif
-
-# define CAILFUNC(ptr) \
-  CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
 
 /*
  * This works around a bug in atombios.h where
@@ -279,6 +261,24 @@ enum {
     legacyBIOSLocation = 0xC0000,
     legacyBIOSMax = 0x10000
 };
+
+#  ifdef ATOM_BIOS_PARSER
+
+#   define LOG_CAIL LOG_DEBUG + 1
+
+static void
+CailDebug(int scrnIndex, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    xf86VDrvMsgVerb(scrnIndex, X_INFO, LOG_CAIL, format, ap);
+    va_end(ap);
+}
+#   define CAILFUNC(ptr) \
+  CailDebug(((atomBIOSHandlePtr)(ptr))->scrnIndex, "CAIL: %s\n", __func__)
+
+#  endif
 
 static int
 rhdAnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
@@ -455,14 +455,16 @@ rhdBIOSGetFbBaseAndSize(atomBIOSHandlePtr handle, unsigned int *base, unsigned i
 		       "scratch space size invalid\n", __func__);
 	    return FALSE;
 	}
-	*size = (int)data.val;
+	if (size)
+	    *size = (int)data.val;
     } else
 	return FALSE;
     if (RHDAtomBIOSFunc(handle->scrnIndex, handle, GET_FW_FB_START, &data)
 	== ATOM_SUCCESS) {
 	if (data.val == 0)
 	    return FALSE;
-	*base = (int)data.val;
+	if (base)
+	    *base = (int)data.val;
     }
     return TRUE;
 }
@@ -566,7 +568,6 @@ rhdInitAtomBIOS(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
     unsigned char *ptr;
     atomDataTablesPtr atomDataPtr;
     atomBIOSHandlePtr handle = NULL;
-    unsigned int dummy;
     int BIOSImageSize = 0;
     data->atomhandle = NULL;
 
@@ -650,7 +651,7 @@ rhdInitAtomBIOS(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
 
 # if ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
-    if (!rhdBIOSGetFbBaseAndSize(handle, &dummy, &dummy)) {
+    if (!rhdBIOSGetFbBaseAndSize(handle, NULL, NULL)) {
 	/* run AsicInit */
 	if (!rhdASICInit(handle))
 	    xf86DrvMsg(scrnIndex, X_WARNING,
