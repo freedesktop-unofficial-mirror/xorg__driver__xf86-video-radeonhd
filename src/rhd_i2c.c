@@ -43,7 +43,6 @@ typedef struct _rhdI2CRec
     CARD16 prescale;
     CARD8 line;
     int scrnIndex;
-    I2CBusPtr i2cPtr[I2C_LINES];
 } rhdI2CRec;
 
 enum _rhdR6xxI2CBits {
@@ -527,15 +526,17 @@ rhdInitI2C(int scrnIndex)
     I2CBusPtr I2CPtr = NULL;
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     I2CBusPtr *I2CList;
+    int numLines = (rhdPtr->ChipSet < RHD_R600) ? 3 : I2C_LINES;
+    CARD16 prescale = rhdGetI2CPrescale(rhdPtr);
 
     RHDFUNCI(scrnIndex);
 
-    if (!(I2CList = xcalloc(sizeof(I2CBusPtr),I2C_LINES))) {
+    if (!(I2CList = xcalloc(I2C_LINES, sizeof(I2CBusPtr)))) {
 	xf86DrvMsg(scrnIndex, X_ERROR,
 		   "%s: Out of memory.\n",__func__);
     }
     /* We have 4 I2C lines */
-    for (i = 0; i < I2C_LINES; i++) {
+    for (i = 0; i < numLines; i++) {
 	if (!(I2C = xcalloc(sizeof(rhdI2CRec),1))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
 		       "%s: Out of memory.\n",__func__);
@@ -543,11 +544,11 @@ rhdInitI2C(int scrnIndex)
 	}
 	I2C->scrnIndex = scrnIndex;
         /*
-	 * This is a value that has been found to work on many card.
+	 * This is a value that has been found to work on many cards.
 	 * It nees to be replaced by the proper calculation formula
 	 * once this is available.
 	 */
-	I2C->prescale = rhdGetI2CPrescale(rhdPtr);
+	I2C->prescale = prescale;
 	xf86DrvMsgVerb(scrnIndex, X_INFO, 5, "I2C clock prescale value: %x\n",I2C->prescale);
 	I2C->line = i;
 	if (!(I2CPtr = xf86CreateI2CBusRec())) {
@@ -595,10 +596,8 @@ rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
     int ret = FALSE;
     char *name = "I2CProbe";
 
-    if (line >= I2C_LINES)
+    if (line >= I2C_LINES || !I2CList[line])
 	return RHD_I2C_NOLINE;
-    if (!I2CList[line])
-	return RHD_I2C_FAILED;
 
     if ((dev = xf86CreateI2CDevRec())) {
 	dev->SlaveAddr = slave & 0xFE;
@@ -619,10 +618,8 @@ rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
 {
     int i;
 
-    if (line >= I2C_LINES)
+    if (line >= I2C_LINES || !I2CList[line])
 	return RHD_I2C_NOLINE;
-    if (!I2CList[line])
-	return RHD_I2C_FAILED;
 
     /* don't probe reserved addresses */
     for (i = 0x8; i < 0x78; i++) {
@@ -648,10 +645,9 @@ RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	    return RHD_I2C_SUCCESS;
     }
     if (func == RHD_I2C_DDC) {
-	if (datap->i >= I2C_LINES)
+	if (datap->i >= I2C_LINES || !I2CList[datap->i])
 	    return RHD_I2C_NOLINE;
-	if (!I2CList[datap->i])
-	    return RHD_I2C_FAILED;
+
 	datap->monitor = xf86DoEDID_DDC2(scrnIndex, I2CList[datap->i]);
 	return RHD_I2C_SUCCESS;
     }
@@ -665,10 +661,9 @@ RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 			     datap->scanbus.slaves);
     }
     if (func == RHD_I2C_GETBUS) {
-	if (datap->i >= I2C_LINES)
+	if (datap->i >= I2C_LINES || !I2CList[datap->i])
 	    return RHD_I2C_NOLINE;
-	if (!I2CList[datap->i])
-	    return RHD_I2C_FAILED;
+
 	datap->i2cBusPtr = I2CList[datap->i];
 	return RHD_I2C_SUCCESS;
     }
