@@ -459,7 +459,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
 	if (RHDAtomBIOSFunc(pScrn->scrnIndex, NULL, ATOMBIOS_INIT, &atomBiosArg)
 	    == ATOM_SUCCESS) {
-	    rhdPtr->atomBIOS = atomBiosArg.ptr;
+	    rhdPtr->atomBIOS = atomBiosArg.atomhandle;
 	}
     }
 #else

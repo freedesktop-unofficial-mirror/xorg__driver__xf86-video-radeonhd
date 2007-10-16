@@ -139,7 +139,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_CONNECTORS, &data);
 	if (result == ATOM_SUCCESS) {
-	    ConnectorInfo = data.ptr;
+	    ConnectorInfo = data.connectorInfo;
 	    InfoAllocated = TRUE;
 	} else
 #endif

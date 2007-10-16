@@ -493,7 +493,7 @@ enum pllComp {
 #ifdef ATOM_BIOS
 Bool
 getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
-			 AtomBiosFunc func, char *msg, CARD32 *val, enum pllComp comp)
+			 AtomBiosRequestID func, char *msg, CARD32 *val, enum pllComp comp)
 {
     AtomBIOSArg arg;
     AtomBiosResult ret;
@@ -665,7 +665,7 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	if (VCOOut >= PLL->OutMax)
 	    break;
 #ifdef APPROACH_FROM_HIGH
-	for (RefDiv = REF_DIV_LIMIT; RefDiv >= 1; RefDiv--) 
+	for (RefDiv = REF_DIV_LIMIT; RefDiv >= 1; RefDiv--)
 #else
         for (RefDiv = 1; RefDiv <= REF_DIV_LIMIT; RefDiv++)
 #endif
