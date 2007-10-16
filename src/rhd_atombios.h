@@ -64,6 +64,7 @@ typedef enum {
     ATOM_LVDS_SEQ_DE_TO_BL,
     ATOM_LVDS_MISC,
     ATOM_GPIO_QUERIES,
+    ATOM_GPIO_I2C_CLK_MASK,
     FUNC_END
 } AtomBiosRequestID;
 

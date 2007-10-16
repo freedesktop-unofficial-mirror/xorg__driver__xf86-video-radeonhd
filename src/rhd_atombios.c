@@ -62,6 +62,8 @@ static AtomBiosResult rhdLvdsGetTimings(atomBIOSHandlePtr handle,
 					AtomBiosRequestID unused, AtomBIOSArgPtr data);
 static AtomBiosResult rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 					       AtomBiosRequestID func,  AtomBIOSArgPtr data);
+static AtomBiosResult rhdAtomBIOSGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
+						  AtomBiosRequestID func, AtomBIOSArgPtr data);
 static AtomBiosResult rhdAtomBIOSFirmwareInfoQuery(atomBIOSHandlePtr handle,
 						   AtomBiosRequestID func, AtomBIOSArgPtr data);
 static AtomBiosResult rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
@@ -133,6 +135,8 @@ struct atomBIOSRequests {
      "LVDS SEQ DE to BL",			MSG_FORMAT_DEC},
     {ATOM_LVDS_MISC,			rhdAtomBIOSLvdsInfoQuery,
      "LVDS Misc",				MSG_FORMAT_HEX},
+    {ATOM_GPIO_I2C_CLK_MASK,		rhdAtomBIOSGPIOI2CInfoQuery,
+     "GPIO_I2C_Clk_Mask",			MSG_FORMAT_HEX},
     {FUNC_END,				NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -984,6 +988,44 @@ rhdAtomBIOSLvdsInfoQuery(atomBIOSHandlePtr handle,
 	    return ATOM_NOT_IMPLEMENTED;
     }
 
+    return ATOM_SUCCESS;
+}
+
+static AtomBiosResult
+rhdAtomBIOSGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
+			 AtomBiosRequestID func, AtomBIOSArgPtr data)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    CARD32 *val = &data->val;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+
+    if (!rhdGetAtomBiosTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->GPIO_I2C_Info),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    switch (func) {
+	case ATOM_GPIO_I2C_CLK_MASK:
+	    if (*val >= ATOM_MAX_SUPPORTED_DEVICE) {
+		xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: GPIO_I2C Device "
+			   "num %lu bigger than max %u\n",__func__,
+			   (unsigned long)val,
+			   ATOM_MAX_SUPPORTED_DEVICE);
+		return ATOM_FAILED;
+	    }
+
+	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
+		.usDataA_RegisterIndex;
+	    break;
+
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
     return ATOM_SUCCESS;
 }
 
@@ -1905,7 +1947,7 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
 	ret = req_func(handle, id, data);
 
     if (ret == ATOM_SUCCESS) {
-	
+
 	switch (msg_f) {
 	    case MSG_FORMAT_DEC:
 		xf86DrvMsg(scrnIndex,X_INFO,"%s: %i\n", msg, data->val);
