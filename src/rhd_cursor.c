@@ -509,8 +509,15 @@ RHDCursorsDestroy(RHDPtr rhdPtr)
 {
     int i;
     RHDFUNC(rhdPtr);
+    
+    if (!rhdPtr->Crtc)
+	return;
 
     for (i = 0; i < 2; i++) {
+
+	if (!rhdPtr->Crtc[i] || !rhdPtr->Crtc[i]->Cursor)
+	    continue;
+
 	xfree(rhdPtr->Crtc[i]->Cursor);
 	rhdPtr->Crtc[i]->Cursor = NULL;
     }
