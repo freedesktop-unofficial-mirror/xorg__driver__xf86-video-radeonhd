@@ -1469,7 +1469,7 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 	}
 
 	cp[ncon].Type = rhd_connector_objs[obj_id].con;
-	cp[ncon].Name = strdup(name);
+	cp[ncon].Name = rhdAppendString(cp[ncon].Name,name);
 
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
 	    CARD8 stype, sobj_id, snum;
@@ -1525,7 +1525,7 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
 		    if (taglist) {
 			char *tmp = cp[ncon].Name;
-			cp[ncon].Name = RhdCombineStrings(cp[ncon].Name,taglist);
+			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
 			xfree(tmp);
 			xfree(taglist);
 		    }
@@ -1687,7 +1687,8 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 	cp[ncon].Output[0] = devices[n].ot;
 	cp[ncon].Output[1] = RHD_OUTPUT_NONE;
 	cp[ncon].Type = devices[n].con;
-	cp[ncon].Name = RhdCombineStrings(devices[n].name,devices[n].outputName);
+	cp[ncon].Name = xf86strdup(devices[n].name);
+	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
 	if (devices[n].dual) {
 	    if (devices[n].ddc == RHD_DDC_NONE)
@@ -1696,7 +1697,6 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 			   " Cannot find matching device.\n",devices[n].name);
 	    else {
 		for (i = n + 1; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
-		    char *tmp;
 
 		    if (!devices[i].dual)
 			continue;
@@ -1717,11 +1717,9 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;
-
-			tmp = RhdCombineStrings(cp[ncon].Name,devices[i].outputName);
-			xfree(cp[ncon].Name);
-			cp[ncon].Name = tmp;
-
+			
+			cp[ncon].Name = RhdAppendString(cp[ncon].Name,
+							devices[i].outputName);
 			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
 		    }
 		}

@@ -195,7 +195,7 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
                       OptFreqUnits expectedUnits, RHDOptPtr optp, double def);
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
-char *RhdCombineStrings(const char *s1, const char *s2);
+char *RhdAppendString(char *s1, const char *s2);
 
 /* Extra debugging verbosity: decimates gdb usage */
 

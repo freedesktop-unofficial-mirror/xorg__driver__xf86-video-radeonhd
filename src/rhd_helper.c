@@ -164,17 +164,25 @@ RHDDebugContVerb(int verb, const char *format, ...)
     xf86VDrvMsgVerb(-1, X_NONE, LOG_DEBUG + verb, format, ap);
     va_end(ap);
 }
-
+/*
+ * Create a new string where s2 is attached to s1, free s1.
+ */
 char *
-RhdCombineStrings(const char *s1, const char *s2)
+RhdAppendString(char *s1, const char *s2)
 {
-    int len = strlen(s1) + strlen(s2) + 1;
-    char *result = (char *)xalloc(len);
+    if (!s2)
+	return s1;
+    else if (!s1)
+	return xf86strdup(s2);
+    else {
+	int len = strlen(s1) + strlen(s2) + 1; 
+	char *result  = (char *)xalloc(len);
 
-    if (!result) return NULL;
+	if (!result) return s1;
 
-    xf86strcpy(result,s1);
-    xf86strcat(result,s2);
-
-    return result;
+	xf86strcpy(result,s1);
+	xf86strcat(result,s2);
+	xfree(s1);
+	return result;
+    }
 }
