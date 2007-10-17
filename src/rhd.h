@@ -30,13 +30,20 @@
 #  error "config.h missing!"
 # endif
 
-#define RHD_VERSION 0001
+#define RHD_MAJOR_VERSION (PACKAGE_VERSION_MAJOR)
+#define RHD_MINOR_VERSION (PACKAGE_VERSION_MINOR)
+#define RHD_PATCHLEVEL    (PACKAGE_VERSION_PATCHLEVEL)
+
+/* It does not seem to matter how exactly we construct this int for
+    + * DriverRec.driverVersion. So... choose 20/10/0 bitshift. */
+#define RHD_VERSION            \
+    ((RHD_MAJOR_VERSION<<20) | \
+     (RHD_MINOR_VERSION<<10) | \
+           (RHD_PATCHLEVEL))
+
 #define RHD_NAME "RADEONHD"
 #define RHD_DRIVER_NAME "radeonhd"
 
-#define RHD_MAJOR_VERSION 0
-#define RHD_MINOR_VERSION 0
-#define RHD_PATCHLEVEL    1
 
 enum RHD_CHIPSETS {
     RHD_UNKNOWN = 0,

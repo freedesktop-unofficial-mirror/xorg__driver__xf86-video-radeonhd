@@ -23,10 +23,21 @@ if test "x$GCC" = "xyes"; then
         CFLAGS="$CFLAGS -Wall -pedantic"
 fi
 
+
 AH_TOP([#ifndef _CONFIG_H])
 AH_TOP([# define _CONFIG_H])
 AH_TOP([# include "xorg-server.h"])
 AH_BOTTOM([#endif])
+
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR],
+		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\1/")],
+		[Major Version])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR],
+		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\2/")],
+		[Minor Version])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_PATCHLEVEL],
+		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\3/")],
+		[Patchlevel Version])
 
 AC_ARG_WITH(xorg-module-dir,
             AC_HELP_STRING([--with-xorg-module-dir=DIR],
