@@ -222,7 +222,7 @@ rhdSetup(pointer module, pointer opts, int *errmaj, int *errmin)
 
     if (!setupDone) {
 	setupDone = TRUE;
-        xf86AddDriver(&RADEONHD, module, 0);
+        xf86AddDriver(&RADEONHD, module, HaveDriverFuncs);
 #if 0  /* @@@ */
 	LoaderRefSymLists(NULL);
 #endif
@@ -1115,7 +1115,7 @@ rhdMapMMIO(RHDPtr rhdPtr)
     rhdPtr->MMIOMapSize = rhdPtr->PciInfo->regions[RHD_MMIO_BAR].size;
 
     if (pci_device_map_range(rhdPtr->PciInfo,
-			     rhdPtr->PciInfo->regions[RHD_MMIO_BAR].bus_addr,
+			     rhdPtr->PciInfo->regions[RHD_MMIO_BAR].base_addr,
 			     rhdPtr->MMIOMapSize,
 			     PCI_DEV_MAP_FLAG_WRITABLE,
 			     &rhdPtr->MMIOBase))
@@ -1197,7 +1197,7 @@ rhdMapFB(RHDPtr rhdPtr)
 #ifdef XSERVER_LIBPCIACCESS
 
     rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
-    membase = rhdPtr->PciInfo->regions[RHD_FB_BAR].bus_addr; /* @@@ */
+    membase = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
 
     if (pci_device_map_range(rhdPtr->PciInfo,
 			     membase,
@@ -1205,7 +1205,7 @@ rhdMapFB(RHDPtr rhdPtr)
 			     PCI_DEV_MAP_FLAG_WRITABLE
 			     | PCI_DEV_MAP_FLAG_WRITE_COMBINE
 			     | PCI_DEV_MAP_FLAG_CACHABLE,
-			     &rhdPtr->FbBase))		     
+			     &rhdPtr->FbBase))
 	rhdPtr->FbBase = NULL;
 
 #else
