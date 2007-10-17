@@ -502,7 +502,7 @@ rhdTearDownI2C(I2CBusPtr *I2C)
 }
 
 #define TARGET_HW_I2C_CLOCK 25 /*  kHz */
-#define DEFAULT_ENGINE_CLOCK 50
+#define DEFAULT_ENGINE_CLOCK 700000 /* kHz (guessed) */
 static CARD32
 rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
@@ -528,7 +528,7 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 	    + (DEFAULT_ENGINE_CLOCK) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
     } else {
 	return (DEFAULT_ENGINE_CLOCK / TARGET_HW_I2C_CLOCK);
-    }    
+    }
 #endif
 }
 
