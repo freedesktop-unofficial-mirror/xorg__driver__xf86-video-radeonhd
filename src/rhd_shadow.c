@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "scrnintstr.h"
 #include "shadow.h"
 #include "fb.h"
@@ -64,7 +68,7 @@ rhdShadowWindow(ScreenPtr pScreen, CARD32 row, CARD32 offset, int mode,
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     DEBUGP(RHDDebugVerb(pScrn->scrnIndex, 1, "FUNCTION: %s row: %i\n",__func__,row));
-    
+
     *size = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
     return ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbFreeStart
 	    + row * (*size) + offset);

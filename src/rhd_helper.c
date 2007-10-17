@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "xf86.h"
 #include "xf86_ansic.h"
 
@@ -175,7 +179,7 @@ RhdAppendString(char *s1, const char *s2)
     else if (!s1)
 	return xf86strdup(s2);
     else {
-	int len = strlen(s1) + strlen(s2) + 1; 
+	int len = strlen(s1) + strlen(s2) + 1;
 	char *result  = (char *)xalloc(len);
 
 	if (!result) return s1;

@@ -29,8 +29,6 @@
 
 # ifdef ATOM_BIOS
 
-#  include "rhd.h"
-
 typedef enum {
     ATOMBIOS_INIT,
     ATOMBIOS_TEARDOWN,

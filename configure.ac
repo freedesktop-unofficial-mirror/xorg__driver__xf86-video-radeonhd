@@ -23,7 +23,10 @@ if test "x$GCC" = "xyes"; then
         CFLAGS="$CFLAGS -Wall -pedantic"
 fi
 
-AH_TOP([#include "xorg-server.h"])
+AH_TOP([#ifndef _CONFIG_H])
+AH_TOP([# define _CONFIG_H])
+AH_TOP([# include "xorg-server.h"])
+AH_BOTTOM([#endif])
 
 AC_ARG_WITH(xorg-module-dir,
             AC_HELP_STRING([--with-xorg-module-dir=DIR],

@@ -1959,10 +1959,12 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
 
 	switch (msg_f) {
 	    case MSG_FORMAT_DEC:
-		xf86DrvMsg(scrnIndex,X_INFO,"%s: %i\n", msg, data->val);
+		xf86DrvMsg(scrnIndex,X_INFO,"%s: %li\n", msg,
+			   (unsigned long) data->val);
 		break;
 	    case MSG_FORMAT_HEX:
-		xf86DrvMsg(scrnIndex,X_INFO,"%s: 0x%x\n",msg , data->val);
+		xf86DrvMsg(scrnIndex,X_INFO,"%s: 0x%lx\n",msg ,
+			   (unsigned long) data->val);
 		break;
 	    case MSG_FORMAT_NONE:
 		xf86DrvMsgVerb(scrnIndex, 7, X_INFO,

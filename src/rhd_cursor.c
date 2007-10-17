@@ -31,7 +31,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+# include "config.h"
 #endif
 
 /* All drivers should typically include these */
@@ -53,7 +53,7 @@
 /*
  * Bit-banging ONLY
  */
- 
+
 /* RadeonHD registers are double buffered, exchange only during vertical blank.
  * By locking registers, a set of registers is updated atomically.
  * Probably not necessary for cursors, but trivial and fast. */
@@ -509,7 +509,7 @@ RHDCursorsDestroy(RHDPtr rhdPtr)
 {
     int i;
     RHDFUNC(rhdPtr);
-    
+
     if (!rhdPtr->Crtc)
 	return;
 

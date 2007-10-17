@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "rhd_atomwrapper.h"
 
 #define INT32 INT32
@@ -36,7 +40,7 @@ ParseTableWrapper(void *pspace, int index, void *handle, void *BIOSBase,
 {
     DEVICE_DATA deviceData;
     int ret = 0;
-    
+
     /* FILL OUT PARAMETER SPACE */
     deviceData.pParameterSpace = (UINT32*) pspace;
     deviceData.CAIL = handle;

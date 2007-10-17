@@ -24,11 +24,11 @@
  */
 
 #ifndef _RHD_H
-#define _RHD_H
+# define _RHD_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+# if defined HAVE_CONFIG_H && !defined _CONFIG_H
+#  error "config.h missing!"
+# endif
 
 #define RHD_VERSION 0001
 #define RHD_NAME "RADEONHD"
