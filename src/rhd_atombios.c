@@ -1654,9 +1654,7 @@ rhdConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 		    taglist = rhdDeviceTagsFromRecord(handle,
 						      (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
 		    if (taglist) {
-			char *tmp = cp[ncon].Name;
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
-			xfree(tmp);
 			xfree(taglist);
 		    }
 		    break;
@@ -1851,7 +1849,7 @@ rhdConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
 
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;
-			
+
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,
 							devices[i].outputName);
 			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
