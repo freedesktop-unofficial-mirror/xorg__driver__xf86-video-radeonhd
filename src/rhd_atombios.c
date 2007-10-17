@@ -1031,7 +1031,7 @@ rhdAtomBIOSGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
 	    }
 
 	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
-		.usDataA_RegisterIndex;
+		.usClkMaskRegisterIndex;
 	    break;
 
 	default:

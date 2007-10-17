@@ -149,6 +149,30 @@ enum _rhdR5xxI2CBits {
     R5_DC_I2C_HW_USING_I2C	 = (0x1 << 17)
 };
 
+enum _rhdRS69I2CBits {
+    /* RS69_DC_I2C_TRANSACTION0 */
+    RS69_DC_I2C_RW0   = (0x1 << 0),
+    RS69_DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
+    RS69_DC_I2C_START0        = (0x1 << 12),
+    RS69_DC_I2C_STOP0         = (0x1 << 13),
+    /* RS69_DC_I2C_TRANSACTION1 */
+    RS69_DC_I2C_RW1   = (0x1 << 0),
+    RS69_DC_I2C_START1        = (0x1 << 12),
+    RS69_DC_I2C_STOP1         = (0x1 << 13),
+    /* RS69_DC_I2C_DATA */
+    RS69_DC_I2C_DATA_RW       = (0x1 << 0),
+    RS69_DC_I2C_INDEX_WRITE   = (0x1 << 31),
+    /* RS69_DC_I2C_CONTROL */
+    RS69_DC_I2C_GO    = (0x1 << 0),
+    RS69_DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
+    RS69_DC_I2C_SW_DONE_ACK   = (0x1 << 1),
+    /* RS69_DC_I2C_SW_STATUS */
+    RS69_DC_I2C_SW_DONE       = (0x1 << 2),
+    RS69_DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
+    RS69_DC_I2C_SW_NACK0      = (0x1 << 12),
+    RS69_DC_I2C_SW_NACK1      = (0x1 << 13)
+};
+
 /* R5xx */
 static Bool
 rhd5xxI2CStatus(I2CBusPtr I2CPtr)
@@ -311,6 +335,161 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 
     return FALSE;
 }
+
+/* RS690 */
+static Bool
+rhdRS69I2CStatus(I2CBusPtr I2CPtr)
+{
+    int count = 5000;
+    volatile CARD32 val;
+
+    RHDFUNC(I2CPtr)
+
+    while (--count) {
+
+	usleep(10);
+	val = RHDRegRead(I2CPtr, RS69_DC_I2C_SW_STATUS);
+	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+	if (val & RS69_DC_I2C_SW_DONE)
+	    break;
+    }
+    RHDRegMask(I2CPtr, RS69_DC_I2C_INTERRUPT_CONTROL, RS69_DC_I2C_SW_DONE_ACK,
+	       RS69_DC_I2C_SW_DONE_ACK);
+    if (!count || (val & (RS69_DC_I2C_SW_STOPPED_ON_NACK | RS69_DC_I2C_SW_NACK0 | RS69_DC_I2C_SW_NACK1 | 0x3)))
+	return FALSE; /* 2 */
+    return TRUE; /* 1 */
+}
+
+static Bool
+rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
+{
+    AtomBIOSArg atomBiosArg;
+    CARD32 ddc;
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[I2CPtr->scrnIndex]);
+
+    RHDFUNC(I2CPtr);
+
+    atomBiosArg.val = line & 0xf;
+    if (ATOM_SUCCESS != RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+					ATOM_GPIO_I2C_CLK_MASK,
+					&atomBiosArg))
+	return FALSE;
+
+    RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
+    /* add SDVO handling later */
+    switch (atomBiosArg.val) {
+	case 0x1f90:
+	    ddc = 0; /* ddc3 */
+	    break;
+	case 0x1f94: /* ddc1 */
+	    ddc = 1;
+	    break;
+	default:
+	    ddc = 2; /* ddc0 */
+	    break;
+    }
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
+    RHDRegWrite(I2CPtr, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_2, 0x2, 0xff);
+
+    return TRUE;
+}
+
+static Bool
+rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
+		 int nWrite, I2CByte *ReadBuffer, int nRead)
+{
+    Bool ret = FALSE;
+    CARD32 data = 0;
+    I2CBusPtr I2CPtr = i2cDevPtr->pI2CBus;
+    I2CSlaveAddr slave = i2cDevPtr->SlaveAddr;
+    rhdI2CPtr I2C = (rhdI2CPtr)I2CPtr->DriverPrivate.ptr;
+    CARD8 line = I2C->line;
+    int prescale = I2C->prescale;
+    int index = 1;
+
+    enum {
+	TRANS_WRITE_READ,
+	TRANS_WRITE,
+	TRANS_READ
+    } trans;
+
+    RHDFUNC(i2cDevPtr->pI2CBus)
+
+    if (nWrite > 0 && nRead > 0) {
+	trans = TRANS_WRITE_READ;
+    } else if (nWrite > 0) {
+	trans = TRANS_WRITE;
+    } else if (nRead > 0) {
+	trans = TRANS_READ;
+    } else {
+	/* for bus probing */
+	trans = TRANS_WRITE;
+    }
+    if (slave & 0xff00) {
+	xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR,
+		   "%s: 10 bit I2C slave addresses not supported\n",__func__);
+	return FALSE;
+    }
+
+    if (!rhdRS69I2CSetupStatus(I2CPtr, line,  prescale))
+	return FALSE;
+
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, (trans == TRANS_WRITE_READ)
+	       ? (1 << 20) : 0, RS69_DC_I2C_TRANSACTION_COUNT); /* 2 or 1 Transaction */
+    RHDRegMask(I2CPtr, RS69_DC_I2C_TRANSACTION0,
+	       RS69_DC_I2C_STOP_ON_NACK0
+	       | (trans == TRANS_READ ? RS69_DC_I2C_RW0 : 0)
+	       | RS69_DC_I2C_START0
+	       | (trans == TRANS_WRITE_READ ? 0 : RS69_DC_I2C_STOP0 )
+	       | ((trans == TRANS_READ ? nRead : nWrite)  << 16),
+	       0xffffff);
+    if (trans == TRANS_WRITE_READ)
+	RHDRegMask(I2CPtr, RS69_DC_I2C_TRANSACTION1,
+		   nRead << 16
+		   | RS69_DC_I2C_RW1
+		   | RS69_DC_I2C_START1
+		   | RS69_DC_I2C_STOP1,
+		   0xffffff); /* <bytes> read */
+
+    data = RS69_DC_I2C_INDEX_WRITE
+	| (((slave & 0xfe) | (trans == TRANS_READ ? 1 : 0)) << 8 )
+	| (0 << 16);
+    RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, data);
+    if (trans != TRANS_READ) { /* we have bytes to write */
+	while (nWrite--) {
+	    data = RS69_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
+		| (index++ << 16);
+	    RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, data);
+	}
+    }
+    if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
+	data = RS69_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (index++ << 16);
+	RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, data);
+    }
+    /* Go! */
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, RS69_DC_I2C_GO, RS69_DC_I2C_GO);
+    if (rhdRS69I2CStatus(I2CPtr)) {
+	/* Hopefully this doesn't write data to index */
+	RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, RS69_DC_I2C_INDEX_WRITE
+		    | RS69_DC_I2C_DATA_RW  | /* index++ */3 << 16);
+	while (nRead--) {
+	    data = RHDRegRead(I2CPtr, RS69_DC_I2C_DATA);
+	    *(ReadBuffer++) = (data >> 8) & 0xff;
+	}
+	ret = TRUE;
+    }
+
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, 0x2, 0xff);
+    usleep(10);
+    RHDRegWrite(I2CPtr, RS69_DC_I2C_CONTROL, 0);
+
+    return ret;
+}
+
 
 /* R6xx */
 static Bool
@@ -581,8 +760,10 @@ rhdInitI2C(int scrnIndex)
 	}
 	xf86snprintf(I2CPtr->BusName,17,"RHD I2C line %1.1i",i);
 	I2CPtr->scrnIndex = scrnIndex;
-	if (rhdPtr->ChipSet < RHD_R600)
+	if (rhdPtr->ChipSet < RHD_RS690)
 	    I2CPtr->I2CWriteRead = rhd5xxWriteRead;
+	else if (rhdPtr->ChipSet < RHD_R600)
+	    I2CPtr->I2CWriteRead = rhdRS69WriteRead;
 	else
 	    I2CPtr->I2CWriteRead = rhd6xxWriteRead;
 

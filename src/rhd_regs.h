@@ -302,6 +302,21 @@ enum _r6xxRegs {
     R6_DC_GPIO_DDC3_Y                 = 0x7E6C  /* (RW) */
 };
 
+/* *_Q: questionbable */
+enum _rs6xxRegs {
+    /* I2C */
+    RS69_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) *//* */
+    RS69_DC_I2C_UNKNOWN_2		   = 0x7D34,  /* (RW) */
+    RS69_DC_I2C_INTERRUPT_CONTROL	   = 0x7D38,  /* (RW) */
+    RS69_DC_I2C_SW_STATUS	           = 0x7d3c,  /* (RW) *//**/
+    RS69_DC_I2C_UNKNOWN_1                = 0x7d40,
+    RS69_DC_I2C_DDC_SETUP_Q              = 0x7D44,  /* (RW) */
+    RS69_DC_I2C_DATA			   = 0x7D58,  /* (RW) *//**/
+    RS69_DC_I2C_TRANSACTION0            = 0x7D48,  /* (RW) *//**/
+    RS69_DC_I2C_TRANSACTION1            = 0x7D4C  /* (RW) *//**/
+
+};
+
 
 enum {
     /* CLOCK_CNTL_INDEX */
