@@ -45,7 +45,7 @@
  *
  */
 void
-rhdMonitorPrint(struct rhdMonitor *Monitor)
+RHDMonitorPrint(struct rhdMonitor *Monitor)
 {
     int i;
 
@@ -136,11 +136,7 @@ RHDMonitorConfig(MonPtr Config)
     for (Mode = Config->Modes; Mode; Mode = Mode->next)
 	Monitor->Modes = RHDModesAdd(Monitor->Modes, RHDModeCopy(Mode));
 
-     xf86DrvMsg(Monitor->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
-		Monitor->Name);
-     rhdMonitorPrint(Monitor);
-
-     return Monitor;
+    return Monitor;
 }
 
 /*
@@ -176,10 +172,6 @@ RHDMonitorDefault(int scrnIndex)
     if (pScrn->confScreen->monitor)
 	for (Mode = pScrn->confScreen->monitor->Modes; Mode; Mode = Mode->next)
 	    Monitor->Modes = RHDModesAdd(Monitor->Modes, RHDModeCopy(Mode));
-
-    xf86DrvMsg(Monitor->scrnIndex, X_INFO, "Default Monitor \"%s\":\n",
-		Monitor->Name);
-    rhdMonitorPrint(Monitor);
 
     return Monitor;
 }
@@ -264,9 +256,10 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	Result = RHDAtomBIOSFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_PANEL_TIMINGS, &data);
 	if (Result == ATOM_SUCCESS) {
-	    Mode = RHDModeCopy(data.panel->mode);
+	    Mode = data.panel->mode;
 	    if (!EDID)
 		EDID = xf86InterpretEDID(Connector->scrnIndex, data.panel->EDID);
+	    xfree(data.panel->EDID);
 	    xfree(data.panel);
 	}
     }
@@ -331,16 +324,6 @@ RHDMonitorInit(struct rhdConnector *Connector)
 	    xfree(EDID);
 	}
     }
-
-    if (Monitor) {
-	xf86DrvMsg(Monitor->scrnIndex, X_INFO,
-		   "Connector \"%s\" uses Monitor \"%s\":\n",
-		   Monitor->Name, Connector->Name);
-	rhdMonitorPrint(Monitor);
-    } else
-	xf86DrvMsg(Connector->scrnIndex, X_WARNING,
-		   "Connector \"%s\": Failed to retrieve Monitor information.\n",
-		   Connector->Name);
 
     return Monitor;
 }

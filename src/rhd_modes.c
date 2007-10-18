@@ -693,7 +693,7 @@ rhdMonitorFixedValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
     return FALSE;
 }
 /*
- *
+ * TODO: review fixed modes when doing different modes on both crtcs.
  */
 static int
 rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
@@ -718,29 +718,18 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 	(Mode->SynthClock > (Monitor->Bandwidth * (1 + SYNC_TOLERANCE))))
         return MODE_CLOCK_HIGH;
 
-    /*
-     * If we have a display (panel) provided mode
-     * we should not have to validate the duty cycle.
-     */
-    if (Monitor->UseFixedModes) {
-	if (!rhdMonitorFixedValid(Monitor, Mode))
-	    return MODE_FIXED;
-	else
-	    return MODE_OK;
+    if (Monitor->ReducedAllowed) {
+	if (((Mode->CrtcHTotal - Mode->CrtcHDisplay) != 160) && /* CVT -r */
+	    ((Mode->CrtcHTotal - Mode->CrtcHDisplay) != 70) && /* SGI 1600SW */
+	    ((Mode->CrtcHDisplay * 21) > (Mode->CrtcHTotal * 20))) /* 5% */
+	    return MODE_HBLANK_NARROW;
+    } else { /* no reduced blanking */
+	if ((Mode->CrtcHDisplay * 23) > (Mode->CrtcHTotal * 20)) /* 15% */
+	    return MODE_HBLANK_NARROW;
     }
 
-    /* Is the horizontal blanking a bit lowish? */
-    if (((Mode->CrtcHDisplay * 5 / 4) & ~0x07) > Mode->CrtcHTotal) {
-        /* is this a cvt -r Mode, and only a cvt -r Mode? */
-        if (((Mode->CrtcHTotal - Mode->CrtcHDisplay) == 160) &&
-            ((Mode->CrtcHSyncEnd - Mode->CrtcHDisplay) == 80) &&
-            ((Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) == 32) &&
-            ((Mode->CrtcVSyncStart - Mode->CrtcVDisplay) == 3)) {
-            if (!Monitor->ReducedAllowed)
-                return MODE_NO_REDUCED;
-        } else if ((Mode->CrtcHDisplay * 11) > (Mode->CrtcHTotal * 10))
-            return MODE_HSYNC_NARROW;
-    }
+    if (Monitor->UseFixedModes && !rhdMonitorFixedValid(Monitor, Mode))
+	return MODE_FIXED;
 
     return MODE_OK;
 }
@@ -1165,7 +1154,7 @@ rhdModeCreateFromName(ScrnInfoPtr pScrn, char *name, Bool Silent)
 
     if (!Silent)
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
-		   "(%dx%d): %s\n", name, HDisplay, VDisplay,
+		   "(%dx%d):\n\t %s\n", name, HDisplay, VDisplay,
 		   rhdModeStatusToString(Status));
     return NULL;
 }
@@ -1221,8 +1210,8 @@ rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 		    Modes = Output->Connector->Monitor->Modes;
 		    if (!Silent && Modes)
 			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Fixed"
-				   " Modes from Monitor \"%s\" on \"%s\"\n",
-				   Output->Connector->Monitor->Name,
+				   " Modes from Monitor \"%s\"\n\t on Connector"
+				   " \"%s\"\n", Output->Connector->Monitor->Name,
 				   Output->Connector->Name);
 
 		    Modes = rhdModesListValidateAndCopy(pScrn, Modes, Silent);

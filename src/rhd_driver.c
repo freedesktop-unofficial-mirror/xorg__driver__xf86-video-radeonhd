@@ -667,7 +667,16 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		       "No monitor information found. Attaching default.\n");
 	    rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
+	    if (rhdPtr->ConfigMonitor) {
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Default Monitor \"%s\":\n",
+			   rhdPtr->ConfigMonitor->Name);
+		RHDMonitorPrint(rhdPtr->ConfigMonitor);
+	    }
 	}
+    } else {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
+		   rhdPtr->ConfigMonitor->Name);
+	RHDMonitorPrint(rhdPtr->ConfigMonitor);
     }
 
     rhdModeLayoutPrint(rhdPtr);
@@ -1375,6 +1384,23 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 		Output->Crtc->Active = TRUE;
 
 		Found = TRUE;
+
+		if (Monitor) {
+		    /* If this is a digitally attached monitor, enable reduced blanking.
+		     * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
+		     */
+		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
+			(Output->Id == RHD_OUTPUT_LVTMA))
+			Monitor->ReducedAllowed = TRUE;
+
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+			       "Connector \"%s\" uses Monitor \"%s\":\n",
+			       Connector->Name, Monitor->Name);
+		    RHDMonitorPrint(Monitor);
+		} else
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+			       "Connector \"%s\": Failed to retrieve Monitor"
+			       " information.\n", Connector->Name);
 	    }
 	}
 

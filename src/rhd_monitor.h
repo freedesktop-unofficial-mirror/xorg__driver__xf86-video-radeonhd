@@ -51,6 +51,7 @@ struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);
 #endif
 
 void RHDMonitorDestroy(struct rhdMonitor *Monitor);
+void RHDMonitorPrint(struct rhdMonitor *Monitor);
 
 #ifdef XF86_DDC_H
 void RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID);
