@@ -831,7 +831,7 @@ RHDI2CResult
 RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	   RHDI2CDataArgPtr datap)
 {
-    RHDFUNCI(scrnIndex)
+    RHDFUNCI(scrnIndex);
 
     if (func == RHD_I2C_INIT) {
 	if (!(datap->I2CBusList = rhdInitI2C(scrnIndex)))

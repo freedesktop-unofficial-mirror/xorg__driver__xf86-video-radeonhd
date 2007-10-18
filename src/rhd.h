@@ -226,7 +226,7 @@ void RHDDebugCont(const char *format, ...);
 void RHDDebugVerb(int scrnIndex, int verb, const char *format, ...);
 void RHDDebugContVerb(int verb, const char *format, ...);
 #define RHDFUNC(ptr) RHDDebug((ptr)->scrnIndex, "FUNCTION: %s\n", __func__)
-#define RHDFUNCI(scrnIndex) RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__);
+#define RHDFUNCI(scrnIndex) RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__)
 void RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size);
 #ifdef RHD_DEBUG
 # define DEBUGP(x) {x;}
