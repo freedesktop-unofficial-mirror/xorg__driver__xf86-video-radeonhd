@@ -407,11 +407,15 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	return TRUE;
     }
 
-    /* Allocate the RhdRec driverPrivate */
+#ifndef XSERVER_LIBPCIACCESS
+    /*
+     * Allocate the RhdRec driverPrivate
+     * (for the PCIACCESS case this is done in Probe already)
+     */
     if (!RHDGetRec(pScrn)) {
 	return FALSE;
     }
-
+#endif
     rhdPtr = RHDPTR(pScrn);
 
     /* This driver doesn't expect more than one entity per screen */
