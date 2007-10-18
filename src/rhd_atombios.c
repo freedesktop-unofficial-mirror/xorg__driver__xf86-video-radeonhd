@@ -806,7 +806,7 @@ rhdLvdsTimings(atomBIOSHandlePtr handle, ATOM_DTD_FORMAT *dtd)
 static unsigned char*
 rhdLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 {
-    unsigned char *EDID;
+    unsigned char *EDIDBlock;
 
     RHDFUNC(handle);
 
@@ -839,19 +839,19 @@ rhdLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 		    - sizeof(UCHAR);
 		if (offset > handle->BIOSImageSize) break;
 		/* dup string as we free it later */
-		if (!(EDID = (unsigned char *)xalloc(
+		if (!(EDIDBlock = (unsigned char *)xalloc(
 			  ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength)))
 		    return NULL;
-		memcpy(EDID,&((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDString,
+		memcpy(EDIDBlock,&((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDString,
 		       ((ATOM_FAKE_EDID_PATCH_RECORD*)record)->ucFakeEDIDLength);
 
 		/* for testing */
 		{
-		    xf86MonPtr mon = xf86InterpretEDID(handle->scrnIndex,EDID);
+		    xf86MonPtr mon = xf86InterpretEDID(handle->scrnIndex,EDIDBlock);
 		    xf86PrintEDID(mon);
 		    xfree(mon);
 		}
-		return EDID;
+		return EDIDBlock;
 
 	    case LCD_PANEL_RESOLUTION_RECORD_TYPE:
 		offset += sizeof(ATOM_PANEL_RESOLUTION_PATCH_RECORD);
@@ -896,7 +896,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID unused,
 		return ATOM_FAILED;
 	    m->mode = rhdLvdsTimings(handle, &atomDataPtr->LVDS_Info
 				       .LVDS_Info->sLCDTiming);
-	    m->EDID = NULL;
+	    m->EDIDBlock = NULL;
 	    break;
 
 	case 2:
@@ -909,7 +909,7 @@ rhdLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID unused,
 		- (unsigned long)handle->BIOSBase
 		+ atomDataPtr->LVDS_Info.LVDS_Info_v12->usExtInfoTableOffset;
 
-	    m->EDID = rhdLvdsDDC(handle, offset,
+	    m->EDIDBlock = rhdLvdsDDC(handle, offset,
 				 (unsigned char *)&atomDataPtr->LVDS_Info.base
 				 + atomDataPtr->LVDS_Info
 				 .LVDS_Info_v12->usExtInfoTableOffset);

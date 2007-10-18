@@ -79,7 +79,7 @@ typedef enum {
 
 typedef struct {
     DisplayModePtr     mode;
-    unsigned char*     EDID;
+    unsigned char*     EDIDBlock;
 } AtomPanelModeInfo;
 
 typedef struct {

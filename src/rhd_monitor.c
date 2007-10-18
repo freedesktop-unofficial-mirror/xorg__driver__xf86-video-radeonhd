@@ -258,8 +258,10 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	if (Result == ATOM_SUCCESS) {
 	    Mode = data.panel->mode;
 	    if (!EDID)
-		EDID = xf86InterpretEDID(Connector->scrnIndex, data.panel->EDID);
-	    xfree(data.panel->EDID);
+		EDID = xf86InterpretEDID(Connector->scrnIndex,
+					 data.panel->EDIDBlock);
+	    else
+		xfree(data.panel->EDIDBlock);
 	    xfree(data.panel);
 	}
     }
