@@ -29,7 +29,7 @@
 
 # ifdef ATOM_BIOS
 
-typedef enum {
+typedef enum _AtomBiosRequestID {
     ATOMBIOS_INIT,
     ATOMBIOS_TEARDOWN,
 # ifdef ATOM_BIOS_PARSER
@@ -71,24 +71,24 @@ typedef enum {
 #define LVDS_MISC_24BIT(x) (x & (1 << 1))
 #define LVDS_MISC_FPDI(x) (x & (1 << 4))
 
-typedef enum {
+typedef enum _AtomBiosResult {
     ATOM_SUCCESS,
     ATOM_FAILED,
     ATOM_NOT_IMPLEMENTED
 } AtomBiosResult;
 
-typedef struct {
+typedef struct _AtomPanelModeInfo {
     DisplayModePtr     mode;
     unsigned char*     EDIDBlock;
 } AtomPanelModeInfo;
 
-typedef struct {
+typedef struct _AtomExec {
     int index;
     pointer pspace;
     pointer *dataSpace;
 } AtomExec, *AtomExecPtr;
 
-typedef struct {
+typedef struct _AtomFb {
     unsigned int start;
     unsigned int size;
 } AtomFb, *AtomFbPtr;
@@ -96,14 +96,12 @@ typedef struct {
 typedef union _AtomBIOSArg
 {
     CARD32 val;
-
     struct rhdConnectorInfo *connectorInfo;
     AtomPanelModeInfo *panel;
     atomBIOSHandlePtr atomhandle;
     AtomExec exec;
     AtomFb fb;
 } AtomBIOSArg, *AtomBIOSArgPtr;
-
 
 extern AtomBiosResult
 RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
