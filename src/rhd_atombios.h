@@ -37,7 +37,8 @@ typedef enum _AtomBiosRequestID {
 #endif
     ATOMBIOS_ALLOCATE_FB_SCRATCH,
     ATOMBIOS_GET_CONNECTORS,
-    ATOMBIOS_GET_PANEL_TIMINGS,
+    ATOMBIOS_GET_PANEL_MODE,
+    ATOMBIOS_GET_PANEL_EDID,
     GET_DEFAULT_ENGINE_CLOCK,
     GET_DEFAULT_MEMORY_CLOCK,
     GET_MAX_PIXEL_CLOCK_PLL_OUTPUT,
@@ -46,16 +47,13 @@ typedef enum _AtomBiosRequestID {
     GET_MIN_PIXEL_CLOCK_PLL_INPUT,
     GET_MAX_PIXEL_CLK,
     GET_REF_CLOCK,
-    ATOM_VRAM_QUERIES,
     GET_FW_FB_START,
     GET_FW_FB_SIZE,
-    ATOM_TMDS_QUERIES,
     ATOM_TMDS_FREQUENCY,
     ATOM_TMDS_PLL_CHARGE_PUMP,
     ATOM_TMDS_PLL_DUTY_CYCLE,
     ATOM_TMDS_PLL_VCO_GAIN,
     ATOM_TMDS_PLL_VOLTAGE_SWING,
-    ATOM_LVDS_QUERIES,
     ATOM_LVDS_SUPPORTED_REFRESH_RATE,
     ATOM_LVDS_OFF_DELAY,
     ATOM_LVDS_SEQ_DIG_ONTO_DE,
@@ -77,11 +75,6 @@ typedef enum _AtomBiosResult {
     ATOM_NOT_IMPLEMENTED
 } AtomBiosResult;
 
-typedef struct _AtomPanelModeInfo {
-    DisplayModePtr     mode;
-    unsigned char*     EDIDBlock;
-} AtomPanelModeInfo;
-
 typedef struct _AtomExec {
     int index;
     pointer pspace;
@@ -96,11 +89,12 @@ typedef struct _AtomFb {
 typedef union _AtomBIOSArg
 {
     CARD32 val;
-    struct rhdConnectorInfo *connectorInfo;
-    AtomPanelModeInfo *panel;
-    atomBIOSHandlePtr atomhandle;
-    AtomExec exec;
-    AtomFb fb;
+    struct rhdConnectorInfo	*connectorInfo;
+    unsigned char*		EDIDBlock;
+    atomBIOSHandlePtr		atomhandle;
+    DisplayModePtr		mode;
+    AtomExec			exec;
+    AtomFb			fb;
 } AtomBIOSArg, *AtomBIOSArgPtr;
 
 extern AtomBiosResult

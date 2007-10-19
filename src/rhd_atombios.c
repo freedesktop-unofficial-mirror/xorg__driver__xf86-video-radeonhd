@@ -119,8 +119,10 @@ struct atomBIOSRequests {
      "AtomBIOS Set FB Space",			MSG_FORMAT_NONE},
     {ATOMBIOS_GET_CONNECTORS,		rhdAtomConnectorInfo,
      "AtomBIOS Get Connectors",			MSG_FORMAT_NONE},
-    {ATOMBIOS_GET_PANEL_TIMINGS,	rhdAtomLvdsGetTimings,
-     "AtomBIOS Get Panel Timings",		MSG_FORMAT_NONE},
+    {ATOMBIOS_GET_PANEL_MODE,		rhdAtomLvdsGetTimings,
+     "AtomBIOS Get Panel Mode",			MSG_FORMAT_NONE},
+    {ATOMBIOS_GET_PANEL_EDID,		rhdAtomLvdsGetTimings,
+     "AtomBIOS Get Panel EDID",			MSG_FORMAT_NONE},
     {GET_DEFAULT_ENGINE_CLOCK,		rhdAtomFirmwareInfoQuery,
      "Default Engine Clock",			MSG_FORMAT_DEC},
     {GET_DEFAULT_MEMORY_CLOCK,		rhdAtomFirmwareInfoQuery,
@@ -874,14 +876,12 @@ rhdAtomLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 }
 
 static AtomBiosResult
-rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID unused,
+rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID func,
 		  AtomBIOSArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
-    AtomPanelModeInfo *m;
     unsigned long offset;
-    AtomPanelModeInfo **ptr = &data->panel;
 
     RHDFUNC(handle);
 
@@ -896,36 +896,48 @@ rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID unused,
     switch (crev) {
 
 	case 1:
-	    if (!(m = (AtomPanelModeInfo *)xcalloc(1,sizeof(AtomPanelModeInfo))))
-		return ATOM_FAILED;
-	    m->mode = rhdAtomLvdsTimings(handle, &atomDataPtr->LVDS_Info
-					 .LVDS_Info->sLCDTiming);
-	    m->EDIDBlock = NULL;
-	    break;
-
+	    switch (func) {
+		case ATOMBIOS_GET_PANEL_MODE:
+		    data->mode = rhdAtomLvdsTimings(handle,
+						    &atomDataPtr->LVDS_Info
+						    .LVDS_Info->sLCDTiming);
+		    if (data->mode)
+			return ATOM_SUCCESS;
+		default:
+		    return ATOM_FAILED;
+	    }
 	case 2:
-	    if (!(m = (AtomPanelModeInfo *)xcalloc(1,sizeof(AtomPanelModeInfo))))
-		return ATOM_FAILED;
-	    m->mode = rhdAtomLvdsTimings(handle, &atomDataPtr->LVDS_Info
-					 .LVDS_Info_v12->sLCDTiming);
+	    switch (func) {
+		case ATOMBIOS_GET_PANEL_MODE:
+		    data->mode = rhdAtomLvdsTimings(handle,
+						    &atomDataPtr->LVDS_Info
+						    .LVDS_Info_v12->sLCDTiming);
+		    if (data->mode)
+			return ATOM_SUCCESS;
+		    return ATOM_FAILED;
 
-	    offset = (unsigned long)&atomDataPtr->LVDS_Info.base
-		- (unsigned long)handle->BIOSBase
-		+ atomDataPtr->LVDS_Info.LVDS_Info_v12->usExtInfoTableOffset;
+		case ATOMBIOS_GET_PANEL_EDID:
+		    offset = (unsigned long)&atomDataPtr->LVDS_Info.base
+			- (unsigned long)handle->BIOSBase
+			+ atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->usExtInfoTableOffset;
 
-	    m->EDIDBlock = rhdAtomLvdsDDC(handle, offset,
-				 (unsigned char *)&atomDataPtr->LVDS_Info.base
-				 + atomDataPtr->LVDS_Info
-				 .LVDS_Info_v12->usExtInfoTableOffset);
-	    break;
-
+		    data->EDIDBlock
+			= rhdAtomLvdsDDC(handle, offset,
+					 (unsigned char *)
+					 &atomDataPtr->LVDS_Info.base
+					 + atomDataPtr->LVDS_Info
+					 .LVDS_Info_v12->usExtInfoTableOffset);
+		    if (data->EDIDBlock)
+			return ATOM_SUCCESS;
+		default:
+		    return ATOM_FAILED;
+	    }
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
     }
 
-    *ptr = m;
-
-    return ATOM_SUCCESS;
+    return ATOM_FAILED;
 }
 
 static AtomBiosResult

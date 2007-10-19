@@ -254,15 +254,18 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	AtomBiosResult Result;
 
 	Result = RHDAtomBIOSFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
-				 ATOMBIOS_GET_PANEL_TIMINGS, &data);
+				 ATOMBIOS_GET_PANEL_MODE, &data);
 	if (Result == ATOM_SUCCESS) {
-	    Mode = data.panel->mode;
-	    if (!EDID)
-		EDID = xf86InterpretEDID(Connector->scrnIndex,
-					 data.panel->EDIDBlock);
-	    else
-		xfree(data.panel->EDIDBlock);
-	    xfree(data.panel);
+	    Mode = data.mode;
+	} else {
+	    if (!EDID) {
+		Result = RHDAtomBIOSFunc(Connector->scrnIndex,
+					 rhdPtr->atomBIOS,
+					 ATOMBIOS_GET_PANEL_EDID, &data);
+		if (Result == ATOM_SUCCESS)
+		    EDID = xf86InterpretEDID(Connector->scrnIndex,
+					     data.EDIDBlock);
+	    }
 	}
     }
 #endif
