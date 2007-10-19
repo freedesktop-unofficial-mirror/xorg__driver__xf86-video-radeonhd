@@ -180,7 +180,7 @@ rhd5xxI2CStatus(I2CBusPtr I2CPtr)
     int count = 5000;
     CARD32 res;
 
-    RHDFUNC(I2CPtr)
+    RHDFUNC(I2CPtr);
 
     while (count-- != 0) {
 	usleep (10);
@@ -211,7 +211,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     CARD32  tmp32;
     Bool ret = TRUE;
 
-    RHDFUNC(i2cDevPtr->pI2CBus)
+    RHDFUNC(i2cDevPtr->pI2CBus);
 
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
     save_I2C_CONTROL1 = RHDRegRead(I2CPtr, R5_DC_I2C_CONTROL1);
@@ -309,7 +309,7 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
      * the transaction after 15 bytes sending
      * a new offset.
      */
-     RHDFUNC(i2cDevPtr->pI2CBus)
+    RHDFUNC(i2cDevPtr->pI2CBus);
 
     if (nWrite > 15 || (nRead > 15 && nWrite != 1)) {
 	xf86DrvMsg(i2cDevPtr->pI2CBus->scrnIndex,X_ERROR,
@@ -343,7 +343,7 @@ rhdRS69I2CStatus(I2CBusPtr I2CPtr)
     int count = 5000;
     volatile CARD32 val;
 
-    RHDFUNC(I2CPtr)
+    RHDFUNC(I2CPtr);
 
     while (--count) {
 
@@ -417,7 +417,7 @@ rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 	TRANS_READ
     } trans;
 
-    RHDFUNC(i2cDevPtr->pI2CBus)
+    RHDFUNC(i2cDevPtr->pI2CBus);
 
     if (nWrite > 0 && nRead > 0) {
 	trans = TRANS_WRITE_READ;
@@ -498,7 +498,7 @@ rhdR6xxI2CStatus(I2CBusPtr I2CPtr)
     int count = 5000;
     volatile CARD32 val;
 
-    RHDFUNC(I2CPtr)
+    RHDFUNC(I2CPtr);
 
     while (--count) {
 
@@ -520,7 +520,7 @@ rhd6xxI2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
     line &= 0xf;
 
-    RHDFUNC(I2CPtr)
+    RHDFUNC(I2CPtr);
 
     switch (line) {
 	case 0:
@@ -585,7 +585,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 	TRANS_READ
     } trans;
 
-    RHDFUNC(i2cDevPtr->pI2CBus)
+    RHDFUNC(i2cDevPtr->pI2CBus);
 
     if (nWrite > 0 && nRead > 0) {
 	trans = TRANS_WRITE_READ;
