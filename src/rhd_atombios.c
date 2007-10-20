@@ -546,11 +546,11 @@ rhdAtomASICInit(atomBIOSHandlePtr handle)
     RHDAtomBIOSFunc(handle->scrnIndex, handle,
 		    GET_DEFAULT_ENGINE_CLOCK,
 		    &data);
-    asicInit.sASICInitClocks.ulDefaultEngineClock = data.val;  /* in 10 Khz */
+    asicInit.sASICInitClocks.ulDefaultEngineClock = data.val / 10;/*in 10 Khz*/
     RHDAtomBIOSFunc(handle->scrnIndex, handle,
 		    GET_DEFAULT_MEMORY_CLOCK,
 		    &data);
-    asicInit.sASICInitClocks.ulDefaultMemoryClock = data.val;  /* in 10 Khz */
+    asicInit.sASICInitClocks.ulDefaultMemoryClock = data.val / 10;/*in 10 Khz*/
     data.exec.dataSpace = NULL;
     data.exec.index = 0x0;
     data.exec.pspace = &asicInit;
@@ -971,11 +971,11 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    break;
 		case ATOM_LVDS_SEQ_DIG_ONTO_DE:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucPowerSequenceDigOntoDEin10Ms;
+			.LVDS_Info->ucPowerSequenceDigOntoDEin10Ms * 10;
 		    break;
 		case ATOM_LVDS_SEQ_DE_TO_BL:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms;
+			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
 		case     ATOM_LVDS_MISC:
 		    *val = atomDataPtr->LVDS_Info
@@ -997,11 +997,11 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    break;
 		case ATOM_LVDS_SEQ_DIG_ONTO_DE:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucPowerSequenceDigOntoDEin10Ms;
+			.LVDS_Info_v12->ucPowerSequenceDigOntoDEin10Ms * 10;
 		    break;
 		case ATOM_LVDS_SEQ_DE_TO_BL:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms;
+			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
 		case ATOM_LVDS_MISC:
 		    *val = atomDataPtr->LVDS_Info
@@ -1079,34 +1079,34 @@ rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
 	    switch (func) {
 		case GET_DEFAULT_ENGINE_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->ulDefaultEngineClock;
+			.FirmwareInfo->ulDefaultEngineClock * 10;
 		    break;
 		case GET_DEFAULT_MEMORY_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->ulDefaultMemoryClock;
+			.FirmwareInfo->ulDefaultMemoryClock * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->ulMaxPixelClockPLL_Output;
+			.FirmwareInfo->ulMaxPixelClockPLL_Output * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->usMinPixelClockPLL_Output;
+			.FirmwareInfo->usMinPixelClockPLL_Output * 10;
 		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->usMaxPixelClockPLL_Input;
+			.FirmwareInfo->usMaxPixelClockPLL_Input * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->usMinPixelClockPLL_Input;
+			.FirmwareInfo->usMinPixelClockPLL_Input * 10;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->usMaxPixelClock;
+			.FirmwareInfo->usMaxPixelClock * 10;
 		    break;
 		case GET_REF_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo->usReferenceClock;
+			.FirmwareInfo->usReferenceClock * 10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1115,35 +1115,35 @@ rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
 	    switch (func) {
 		case GET_DEFAULT_ENGINE_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+			.FirmwareInfo_V_1_2->ulDefaultEngineClock * 10;
 		    break;
 		case GET_DEFAULT_MEMORY_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->ulDefaultMemoryClock;
+			.FirmwareInfo_V_1_2->ulDefaultMemoryClock * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->ulMaxPixelClockPLL_Output;
+			.FirmwareInfo_V_1_2->ulMaxPixelClockPLL_Output * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Output;
+			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Output * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->usMaxPixelClockPLL_Input;
+			.FirmwareInfo_V_1_2->usMaxPixelClockPLL_Input * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Input;
+			.FirmwareInfo_V_1_2->usMinPixelClockPLL_Input * 10;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->usMaxPixelClock;
+			.FirmwareInfo_V_1_2->usMaxPixelClock * 10;
 		    break;
 		case GET_REF_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_2->usReferenceClock;
+			.FirmwareInfo_V_1_2->usReferenceClock * 10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1153,35 +1153,35 @@ rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
 	    switch (func) {
 		case GET_DEFAULT_ENGINE_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+			.FirmwareInfo_V_1_3->ulDefaultEngineClock * 10;
 		    break;
 		case GET_DEFAULT_MEMORY_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->ulDefaultMemoryClock;
+			.FirmwareInfo_V_1_3->ulDefaultMemoryClock * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->ulMaxPixelClockPLL_Output;
+			.FirmwareInfo_V_1_3->ulMaxPixelClockPLL_Output * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Output;
+			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Output * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->usMaxPixelClockPLL_Input;
+			.FirmwareInfo_V_1_3->usMaxPixelClockPLL_Input * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Input;
+			.FirmwareInfo_V_1_3->usMinPixelClockPLL_Input * 10;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->usMaxPixelClock;
+			.FirmwareInfo_V_1_3->usMaxPixelClock * 10;
 		    break;
 		case GET_REF_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_3->usReferenceClock;
+			.FirmwareInfo_V_1_3->usReferenceClock * 10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1191,35 +1191,35 @@ rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
 	    switch (func) {
 		case GET_DEFAULT_ENGINE_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+			.FirmwareInfo_V_1_4->ulDefaultEngineClock * 10;
 		    break;
 		case GET_DEFAULT_MEMORY_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->ulDefaultMemoryClock;
+			.FirmwareInfo_V_1_4->ulDefaultMemoryClock * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->usMaxPixelClockPLL_Input;
+			.FirmwareInfo_V_1_4->usMaxPixelClockPLL_Input * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_INPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Input;
+			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Input * 10;
 		    break;
 		case GET_MAX_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->ulMaxPixelClockPLL_Output;
+			.FirmwareInfo_V_1_4->ulMaxPixelClockPLL_Output * 10;
 		    break;
 		case GET_MIN_PIXEL_CLOCK_PLL_OUTPUT:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Output;
+			.FirmwareInfo_V_1_4->usMinPixelClockPLL_Output * 10;
 		    break;
 		case GET_MAX_PIXEL_CLK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->usMaxPixelClock;
+			.FirmwareInfo_V_1_4->usMaxPixelClock * 10;
 		    break;
 		case GET_REF_CLOCK:
 		    *val = atomDataPtr->FirmwareInfo
-			.FirmwareInfo_V_1_4->usReferenceClock;
+			.FirmwareInfo_V_1_4->usReferenceClock * 10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;

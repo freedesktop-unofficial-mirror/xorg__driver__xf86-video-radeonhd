@@ -505,23 +505,23 @@ getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
 	    if (arg.val) {
 		switch (comp) {
 		    case PLL_MAX:
-			if ((arg.val * 10) < *val)
+			if ((arg.val) < *val)
 			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 				       "Lower %s detected than the default: %lu %lu.\n"
 				       "Please contact the authors ASAP.\n", msg,
-				       (unsigned long)*val, (unsigned long)arg.val * 10);
+				       (unsigned long)*val, (unsigned long)arg.val);
 			break;
 		    case PLL_MIN:
-			if ((arg.val * 10) > *val)
+			if ((arg.val) > *val)
 			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 				       "Higher %s detected than the default: %lu %lu.\n"
 				       "Please contact the authors ASAP.\n", msg,
-				       (unsigned long)*val, (unsigned long)arg.val * 10);
+				       (unsigned long)*val, (unsigned long)arg.val);
 			break;
 		    default:
 			break;
 		}
-		*val = arg.val * 10;
+		*val = arg.val;
 	    }
 	}
 	return TRUE;

@@ -179,11 +179,11 @@ LVDSPWRSEQInit(struct rhdOutput *Output)
     struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
     CARD32 tmp = 0;
 
-    tmp = (Private->PowerDigToDE * 10) >> 2;
+    tmp = (Private->PowerDigToDE) >> 2;
     RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp, 0x000000FF);
     RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 24, 0xFF000000);
 
-    tmp =  (Private->PowerDEToBL * 10) >> 2;
+    tmp =  (Private->PowerDEToBL) >> 2;
     RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 8, 0x0000FF00);
     RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 16, 0x00FF0000);
 
@@ -438,12 +438,12 @@ rhdLVDSInfoRetrieve(RHDPtr rhdPtr)
 	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOM_LVDS_SEQ_DIG_ONTO_DE, &data);
 	if (result == ATOM_SUCCESS)
-	    Private->PowerDigToDE = data.val * 10;
+	    Private->PowerDigToDE = data.val;
 
 	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOM_LVDS_SEQ_DE_TO_BL, &data);
 	if (result == ATOM_SUCCESS)
-	    Private->PowerDEToBL = data.val * 10;
+	    Private->PowerDEToBL = data.val;
 
 	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOM_LVDS_OFF_DELAY, &data);
