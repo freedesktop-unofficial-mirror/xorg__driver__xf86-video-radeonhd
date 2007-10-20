@@ -1638,7 +1638,8 @@ rhdAtomConnectorInfoFromObjectHeader(atomBIOSHandlePtr handle,
 
 	record_base = con_obj->asObjects[i].usRecordOffset;
 
-	while (Record->ucRecordType != 0xff) {
+	while (Record->ucRecordType > 0
+	       && Record->ucRecordType <= ATOM_MAX_OBJECT_RECORD_NUMBER ) {
 	    char *taglist;
 
 	    if ((record_base += Record->ucRecordSize)
