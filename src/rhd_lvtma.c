@@ -433,30 +433,30 @@ rhdLVDSInfoRetrieve(RHDPtr rhdPtr)
 #ifdef ATOM_BIOS
     {
 	AtomBiosArgRec data;
-	AtomBiosResult result;
 
-	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_LVDS_SEQ_DIG_ONTO_DE, &data);
-	if (result == ATOM_SUCCESS)
+	if(RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			   ATOM_LVDS_SEQ_DIG_ONTO_DE, &data) == ATOM_SUCCESS)
 	    Private->PowerDigToDE = data.val;
 
-	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_LVDS_SEQ_DE_TO_BL, &data);
-	if (result == ATOM_SUCCESS)
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_SEQ_DE_TO_BL, &data) == ATOM_SUCCESS)
 	    Private->PowerDEToBL = data.val;
 
-	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_LVDS_OFF_DELAY, &data);
-	if (result == ATOM_SUCCESS)
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_OFF_DELAY, &data) == ATOM_SUCCESS)
 	    Private->OffDelay = data.val;
 
-	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_LVDS_MISC, &data);
-	if (result == ATOM_SUCCESS) {
-	    Private->DualLink = data.val & 0x01;
-	    Private->LVDS24Bit = data.val & 0x02;
-	    Private->FPDI = data.val & 0x10;
-	}
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_DUALLINK, &data) == ATOM_SUCCESS)
+	    Private->DualLink = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_24BIT, &data) == ATOM_SUCCESS)
+	    Private->LVDS24Bit = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_LVDS_FPDI, &data) == ATOM_SUCCESS)
+	    Private->FPDI = data.val;
     }
 #endif
 

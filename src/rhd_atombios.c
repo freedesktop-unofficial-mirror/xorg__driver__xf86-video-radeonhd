@@ -94,6 +94,10 @@ static AtomBiosResult rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
 static AtomBiosResult rhdAtomExec(atomBIOSHandlePtr handle,
 				   AtomBiosRequestID unused, AtomBiosArgPtr data);
 # endif
+static AtomBiosResult
+rhdAtomCompassionateDataQuery(atomBIOSHandlePtr handle,
+			      AtomBiosRequestID func, AtomBiosArgPtr data);
+
 
 enum msgDataFormat {
     MSG_FORMAT_NONE,
@@ -161,11 +165,35 @@ struct atomBIOSRequests {
      "LVDS SEQ Dig onto DE",			MSG_FORMAT_DEC},
     {ATOM_LVDS_SEQ_DE_TO_BL,		rhdAtomLvdsInfoQuery,
      "LVDS SEQ DE to BL",			MSG_FORMAT_DEC},
-    {ATOM_LVDS_MISC,			rhdAtomLvdsInfoQuery,
-     "LVDS Misc",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_DITHER,			rhdAtomLvdsInfoQuery,
+     "LVDS Ditherc",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_DUALLINK,		rhdAtomLvdsInfoQuery,
+     "LVDS Duallink",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_GREYLVL,			rhdAtomLvdsInfoQuery,
+     "LVDS Grey Level",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_FPDI,			rhdAtomLvdsInfoQuery,
+     "LVDS FPDI",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_24BIT,			rhdAtomLvdsInfoQuery,
+     "LVDS 24Bit",				MSG_FORMAT_HEX},
     {ATOM_GPIO_I2C_CLK_MASK,		rhdAtomGPIOI2CInfoQuery,
      "GPIO_I2C_Clk_Mask",			MSG_FORMAT_HEX},
-    {FUNC_END,				NULL,
+    {ATOM_DAC1_BG_ADJ,		rhdAtomCompassionateDataQuery,
+     "DAC1 BG Adjustment",			MSG_FORMAT_HEX},
+    {ATOM_DAC1_DAC_ADJ,		rhdAtomCompassionateDataQuery,
+     "DAC1 DAC Adjustment",			MSG_FORMAT_HEX},
+    {ATOM_DAC1_FORCE,		rhdAtomCompassionateDataQuery,
+     "DAC1 Force Data",				MSG_FORMAT_HEX},
+    {ATOM_DAC2_CRTC2_BG_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_CRTC2 BG Adjustment",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_CRTC2_DAC_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_CRTC2 DAC Adjustment",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_CRTC2_FORCE,	rhdAtomCompassionateDataQuery,
+     "DAC2_CRTC2 Force",			MSG_FORMAT_HEX},
+    {ATOM_DAC2_CRTC2_MUX_REG_IND,rhdAtomCompassionateDataQuery,
+     "DAC2_CRTC2 Mux Register Index",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_CRTC2_MUX_REG_INFO,rhdAtomCompassionateDataQuery,
+     "DAC2_CRTC2 Mux Register Info",		MSG_FORMAT_HEX},
+    {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
 
@@ -977,9 +1005,25 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
-		case     ATOM_LVDS_MISC:
+		case     ATOM_LVDS_DITHER:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc;
+			.LVDS_Info->ucLVDS_Misc & 0x40;
+		    break;
+		case     ATOM_LVDS_DUALLINK:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc & 0x01;
+		    break;
+		case     ATOM_LVDS_24BIT:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc & 0x02;
+		    break;
+		case     ATOM_LVDS_GREYLVL:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc & 0x0C;
+		    break;
+		case     ATOM_LVDS_FPDI:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc * 0x10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1003,9 +1047,25 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
-		case ATOM_LVDS_MISC:
+		case     ATOM_LVDS_DITHER:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc;
+			.LVDS_Info_v12->ucLVDS_Misc & 0x40;
+		    break;
+		case     ATOM_LVDS_DUALLINK:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc & 0x01;
+		    break;
+		case     ATOM_LVDS_24BIT:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc & 0x02;
+		    break;
+		case     ATOM_LVDS_GREYLVL:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc & 0x0C;
+		    break;
+		case     ATOM_LVDS_FPDI:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc * 0x10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1015,6 +1075,63 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 	    return ATOM_NOT_IMPLEMENTED;
     }
 
+    return ATOM_SUCCESS;
+}
+
+static AtomBiosResult
+rhdAtomCompassionateDataQuery(atomBIOSHandlePtr handle,
+			AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    CARD32 *val = &data->val;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+
+    if (!rhdAtomGetTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->CompassionateData),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    switch (func) {
+	case ATOM_DAC1_BG_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC1_BG_Adjustment;
+	    break;
+	case ATOM_DAC1_DAC_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC1_DAC_Adjustment;
+	    break;
+	case ATOM_DAC1_FORCE:
+	    *val = atomDataPtr->CompassionateData->
+		usDAC1_FORCE_Data;
+	    break;
+	case ATOM_DAC2_CRTC2_BG_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_CRT2_BG_Adjustment;
+	    break;
+	case ATOM_DAC2_CRTC2_DAC_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_CRT2_DAC_Adjustment;
+	    break;
+	case ATOM_DAC2_CRTC2_FORCE:
+	    *val = atomDataPtr->CompassionateData->
+		usDAC2_CRT2_FORCE_Data;
+	    break;
+	case ATOM_DAC2_CRTC2_MUX_REG_IND:
+	    *val = atomDataPtr->CompassionateData->
+		usDAC2_CRT2_MUX_RegisterIndex;
+	    break;
+	case ATOM_DAC2_CRTC2_MUX_REG_INFO:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_CRT2_MUX_RegisterInfo;
+	    break;
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
     return ATOM_SUCCESS;
 }
 
