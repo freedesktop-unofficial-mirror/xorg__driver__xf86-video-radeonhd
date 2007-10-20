@@ -250,16 +250,16 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 #ifdef ATOM_BIOS
     {
 	RHDPtr rhdPtr = RHDPTR(xf86Screens[Connector->scrnIndex]);
-	AtomBIOSArg data;
+	AtomBiosArgRec data;
 	AtomBiosResult Result;
 
-	Result = RHDAtomBIOSFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
+	Result = RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_PANEL_MODE, &data);
 	if (Result == ATOM_SUCCESS) {
 	    Mode = data.mode;
 	} else {
 	    if (!EDID) {
-		Result = RHDAtomBIOSFunc(Connector->scrnIndex,
+		Result = RHDAtomBiosFunc(Connector->scrnIndex,
 					 rhdPtr->atomBIOS,
 					 ATOMBIOS_GET_PANEL_EDID, &data);
 		if (Result == ATOM_SUCCESS)

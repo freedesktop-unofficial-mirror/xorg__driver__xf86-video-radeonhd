@@ -67,32 +67,32 @@ typedef unsigned short USHORT;
 # include "ObjectID.h"
 
 typedef AtomBiosResult (*AtomBiosRequestFunc)(atomBIOSHandlePtr handle,
-					  AtomBiosRequestID unused, AtomBIOSArgPtr data);
+					  AtomBiosRequestID unused, AtomBiosArgPtr data);
 typedef struct rhdConnectorInfo *rhdConnectorInfoPtr;
 
 static AtomBiosResult rhdAtomInit(atomBIOSHandlePtr unused1,
-				      AtomBiosRequestID unused2, AtomBIOSArgPtr data);
+				      AtomBiosRequestID unused2, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomTearDown(atomBIOSHandlePtr handle,
-					  AtomBiosRequestID unused1, AtomBIOSArgPtr unused2);
+					  AtomBiosRequestID unused1, AtomBiosArgPtr unused2);
 static AtomBiosResult rhdAtomVramInfoQuery(atomBIOSHandlePtr handle,
-					       AtomBiosRequestID func, AtomBIOSArgPtr data);
+					       AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomTmdsInfoQuery(atomBIOSHandlePtr handle,
-					       AtomBiosRequestID func, AtomBIOSArgPtr data);
+					       AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomAllocateFbScratch(atomBIOSHandlePtr handle,
-						   AtomBiosRequestID func, AtomBIOSArgPtr data);
+						   AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle,
-					AtomBiosRequestID unused, AtomBIOSArgPtr data);
+					AtomBiosRequestID unused, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
-					       AtomBiosRequestID func,  AtomBIOSArgPtr data);
+					       AtomBiosRequestID func,  AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
-						  AtomBiosRequestID func, AtomBIOSArgPtr data);
+						  AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
-						   AtomBiosRequestID func, AtomBIOSArgPtr data);
+						   AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
-					   AtomBiosRequestID unused, AtomBIOSArgPtr data);
+					   AtomBiosRequestID unused, AtomBiosArgPtr data);
 # ifdef ATOM_BIOS_PARSER
 static AtomBiosResult rhdAtomExec(atomBIOSHandlePtr handle,
-				   AtomBiosRequestID unused, AtomBIOSArgPtr data);
+				   AtomBiosRequestID unused, AtomBiosArgPtr data);
 # endif
 
 enum msgDataFormat {
@@ -106,7 +106,7 @@ struct atomBIOSRequests {
     AtomBiosRequestFunc request;
     char *message;
     enum msgDataFormat message_format;
-} AtomBIOSRequestList [] = {
+} AtomBiosRequestList [] = {
     {ATOMBIOS_INIT,			rhdAtomInit,
      "AtomBIOS Init",				MSG_FORMAT_NONE},
     {ATOMBIOS_TEARDOWN,			rhdAtomTearDown,
@@ -453,8 +453,8 @@ static Bool
 rhdAtomGetFbBaseAndSize(atomBIOSHandlePtr handle, unsigned int *base,
 			unsigned int *size)
 {
-    AtomBIOSArg data;
-    if (RHDAtomBIOSFunc(handle->scrnIndex, handle, GET_FW_FB_SIZE, &data)
+    AtomBiosArgRec data;
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle, GET_FW_FB_SIZE, &data)
 	== ATOM_SUCCESS) {
 	if (data.val == 0) {
 	    xf86DrvMsg(handle->scrnIndex, X_WARNING, "%s: AtomBIOS specified VRAM "
@@ -465,7 +465,7 @@ rhdAtomGetFbBaseAndSize(atomBIOSHandlePtr handle, unsigned int *base,
 	    *size = (int)data.val;
     } else
 	return FALSE;
-    if (RHDAtomBIOSFunc(handle->scrnIndex, handle, GET_FW_FB_START, &data)
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle, GET_FW_FB_START, &data)
 	== ATOM_SUCCESS) {
 	if (data.val == 0)
 	    return FALSE;
@@ -480,7 +480,7 @@ rhdAtomGetFbBaseAndSize(atomBIOSHandlePtr handle, unsigned int *base,
  */
 static AtomBiosResult
 rhdAtomAllocateFbScratch(atomBIOSHandlePtr handle,
-			 AtomBiosRequestID func, AtomBIOSArgPtr data)
+			 AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     unsigned int fb_base = 0;
     unsigned int fb_size = 0;
@@ -541,13 +541,13 @@ static Bool
 rhdAtomASICInit(atomBIOSHandlePtr handle)
 {
     ASIC_INIT_PS_ALLOCATION asicInit;
-    AtomBIOSArg data;
+    AtomBiosArgRec data;
 
-    RHDAtomBIOSFunc(handle->scrnIndex, handle,
+    RHDAtomBiosFunc(handle->scrnIndex, handle,
 		    GET_DEFAULT_ENGINE_CLOCK,
 		    &data);
     asicInit.sASICInitClocks.ulDefaultEngineClock = data.val / 10;/*in 10 Khz*/
-    RHDAtomBIOSFunc(handle->scrnIndex, handle,
+    RHDAtomBiosFunc(handle->scrnIndex, handle,
 		    GET_DEFAULT_MEMORY_CLOCK,
 		    &data);
     asicInit.sASICInitClocks.ulDefaultMemoryClock = data.val / 10;/*in 10 Khz*/
@@ -555,7 +555,7 @@ rhdAtomASICInit(atomBIOSHandlePtr handle)
     data.exec.index = 0x0;
     data.exec.pspace = &asicInit;
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
-    if (RHDAtomBIOSFunc(handle->scrnIndex, handle,
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Successful\n");
 	return TRUE;
@@ -567,7 +567,7 @@ rhdAtomASICInit(atomBIOSHandlePtr handle)
 
 static AtomBiosResult
 rhdAtomInit(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
-		    AtomBIOSArgPtr data)
+		    AtomBiosArgPtr data)
 {
     int scrnIndex = data->val;
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
@@ -688,7 +688,7 @@ rhdAtomInit(atomBIOSHandlePtr unused1, AtomBiosRequestID unused2,
 
 static AtomBiosResult
 rhdAtomTearDown(atomBIOSHandlePtr handle,
-		AtomBiosRequestID unused1, AtomBIOSArgPtr unused2)
+		AtomBiosRequestID unused1, AtomBiosArgPtr unused2)
 {
     RHDFUNC(handle);
 
@@ -701,7 +701,7 @@ rhdAtomTearDown(atomBIOSHandlePtr handle,
 
 static AtomBiosResult
 rhdAtomVramInfoQuery(atomBIOSHandlePtr handle, AtomBiosRequestID func,
-		     AtomBIOSArgPtr data)
+		     AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD32 *val = &data->val;
@@ -726,7 +726,7 @@ rhdAtomVramInfoQuery(atomBIOSHandlePtr handle, AtomBiosRequestID func,
 
 static AtomBiosResult
 rhdAtomTmdsInfoQuery(atomBIOSHandlePtr handle,
-		     AtomBiosRequestID func, AtomBIOSArgPtr data)
+		     AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD32 *val = &data->val;
@@ -877,7 +877,7 @@ rhdAtomLvdsDDC(atomBIOSHandlePtr handle, CARD32 offset, unsigned char *record)
 
 static AtomBiosResult
 rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID func,
-		  AtomBIOSArgPtr data)
+		  AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
@@ -942,7 +942,7 @@ rhdAtomLvdsGetTimings(atomBIOSHandlePtr handle, AtomBiosRequestID func,
 
 static AtomBiosResult
 rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
-		     AtomBiosRequestID func,  AtomBIOSArgPtr data)
+		     AtomBiosRequestID func,  AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
@@ -1020,7 +1020,7 @@ rhdAtomLvdsInfoQuery(atomBIOSHandlePtr handle,
 
 static AtomBiosResult
 rhdAtomGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
-			AtomBiosRequestID func, AtomBIOSArgPtr data)
+			AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
@@ -1058,7 +1058,7 @@ rhdAtomGPIOI2CInfoQuery(atomBIOSHandlePtr handle,
 
 static AtomBiosResult
 rhdAtomFirmwareInfoQuery(atomBIOSHandlePtr handle,
-			 AtomBiosRequestID func, AtomBIOSArgPtr data)
+			 AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
@@ -1889,7 +1889,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBIOSHandlePtr handle,
  */
 static AtomBiosResult
 rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
-		     AtomBiosRequestID unused, AtomBIOSArgPtr data)
+		     AtomBiosRequestID unused, AtomBiosArgPtr data)
 {
     data->connectorInfo = NULL;
 
@@ -1904,7 +1904,7 @@ rhdAtomConnectorInfo(atomBIOSHandlePtr handle,
 # ifdef ATOM_BIOS_PARSER
 static AtomBiosResult
 rhdAtomExec (atomBIOSHandlePtr handle,
-	     AtomBiosRequestID unused, AtomBIOSArgPtr data)
+	     AtomBiosRequestID unused, AtomBiosArgPtr data)
 {
     RHDPtr rhdPtr = RHDPTRI(handle);
     Bool ret = FALSE;
@@ -1942,8 +1942,8 @@ rhdAtomExec (atomBIOSHandlePtr handle,
 # endif
 
 AtomBiosResult
-RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
-		AtomBiosRequestID id, AtomBIOSArgPtr data)
+RHDAtomBiosFunc(int scrnIndex, atomBIOSHandlePtr handle,
+		AtomBiosRequestID id, AtomBiosArgPtr data)
 {
     AtomBiosResult ret = ATOM_FAILED;
     int i;
@@ -1953,11 +1953,11 @@ RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
 
     RHDFUNCI(scrnIndex);
 
-    for (i = 0; AtomBIOSRequestList[i].id != FUNC_END; i++) {
-	if (id ==  AtomBIOSRequestList[i].id) {
-	    req_func = AtomBIOSRequestList[i].request;
-	    msg = AtomBIOSRequestList[i].message;
-	    msg_f = AtomBIOSRequestList[i].message_format;
+    for (i = 0; AtomBiosRequestList[i].id != FUNC_END; i++) {
+	if (id ==  AtomBiosRequestList[i].id) {
+	    req_func = AtomBiosRequestList[i].request;
+	    msg = AtomBiosRequestList[i].message;
+	    msg_f = AtomBiosRequestList[i].message_format;
 	    break;
 	}
     }

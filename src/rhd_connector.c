@@ -133,10 +133,10 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     else {
 #ifdef ATOM_BIOS
 	/* common case */
-	AtomBIOSArg data;
+	AtomBiosArgRec data;
 	AtomBiosResult result;
 
-	result = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_CONNECTORS, &data);
 	if (result == ATOM_SUCCESS) {
 	    ConnectorInfo = data.connectorInfo;

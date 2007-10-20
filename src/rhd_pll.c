@@ -495,28 +495,28 @@ Bool
 getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
 			 AtomBiosRequestID func, char *msg, CARD32 *val, enum pllComp comp)
 {
-    AtomBIOSArg arg;
+    AtomBiosArgRec arg;
     AtomBiosResult ret;
 
     if (rhdPtr->atomBIOS) {
-	ret = RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+	ret = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			      func, &arg);
 	if (ret == ATOM_SUCCESS) {
 	    if (arg.val) {
 		switch (comp) {
 		    case PLL_MAX:
-			if ((arg.val) < *val)
+			if (arg.val < *val)
 			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 				       "Lower %s detected than the default: %lu %lu.\n"
 				       "Please contact the authors ASAP.\n", msg,
-				       (unsigned long)*val, (unsigned long)arg.val);
+				       (unsigned long)*val, (unsigned long)arg.val * 10);
 			break;
 		    case PLL_MIN:
-			if ((arg.val) > *val)
+			if (arg.val > *val)
 			    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 				       "Higher %s detected than the default: %lu %lu.\n"
 				       "Please contact the authors ASAP.\n", msg,
-				       (unsigned long)*val, (unsigned long)arg.val);
+				       (unsigned long)*val, (unsigned long)arg.val * 10);
 			break;
 		    default:
 			break;

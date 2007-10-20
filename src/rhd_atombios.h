@@ -75,31 +75,31 @@ typedef enum _AtomBiosResult {
     ATOM_NOT_IMPLEMENTED
 } AtomBiosResult;
 
-typedef struct _AtomExec {
+typedef struct AtomExec {
     int index;
     pointer pspace;
     pointer *dataSpace;
-} AtomExec, *AtomExecPtr;
+} AtomExecRec, *AtomExecPtr;
 
-typedef struct _AtomFb {
+typedef struct AtomFb {
     unsigned int start;
     unsigned int size;
-} AtomFb, *AtomFbPtr;
+} AtomFbRec, *AtomFbPtr;
 
-typedef union _AtomBIOSArg
+typedef union AtomBiosArg
 {
     CARD32 val;
     struct rhdConnectorInfo	*connectorInfo;
     unsigned char*		EDIDBlock;
     atomBIOSHandlePtr		atomhandle;
     DisplayModePtr		mode;
-    AtomExec			exec;
-    AtomFb			fb;
-} AtomBIOSArg, *AtomBIOSArgPtr;
+    AtomExecRec			exec;
+    AtomFbRec			fb;
+} AtomBiosArgRec, *AtomBiosArgPtr;
 
 extern AtomBiosResult
-RHDAtomBIOSFunc(int scrnIndex, atomBIOSHandlePtr handle,
-		AtomBiosRequestID id, AtomBIOSArgPtr data);
+RHDAtomBiosFunc(int scrnIndex, atomBIOSHandlePtr handle,
+		AtomBiosRequestID id, AtomBiosArgPtr data);
 # endif
 
 #endif /*  RHD_ATOMBIOS_H_ */

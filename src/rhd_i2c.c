@@ -363,14 +363,14 @@ rhdRS69I2CStatus(I2CBusPtr I2CPtr)
 static Bool
 rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
-    AtomBIOSArg atomBiosArg;
+    AtomBiosArgRec atomBiosArg;
     CARD32 ddc;
     RHDPtr rhdPtr = RHDPTR(xf86Screens[I2CPtr->scrnIndex]);
 
     RHDFUNC(I2CPtr);
 
     atomBiosArg.val = line & 0xf;
-    if (ATOM_SUCCESS != RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+    if (ATOM_SUCCESS != RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 					ATOM_GPIO_I2C_CLK_MASK,
 					&atomBiosArg))
 	return FALSE;
@@ -686,18 +686,18 @@ static CARD32
 rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
 #ifdef ATOM_BIOS
-    AtomBIOSArg atomBiosArg;
+    AtomBiosArgRec atomBiosArg;
     RHDFUNC(rhdPtr);
 
     if (rhdPtr->ChipSet < RHD_R600) {
-	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg);
 	return (0x7f << 8)
-	    + (atomBiosArg.val) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
+	    + (atomBiosArg.val / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
     } else {
-	RHDAtomBIOSFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
-	    return (atomBiosArg.val) / TARGET_HW_I2C_CLOCK;
+	    return (atomBiosArg.val / TARGET_HW_I2C_CLOCK);
     }
 #else
     RHDFUNC(rhdPtr);
