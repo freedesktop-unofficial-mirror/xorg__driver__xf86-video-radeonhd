@@ -34,7 +34,6 @@ typedef enum {
     RHD_I2C_INIT,
     RHD_I2C_DDC,
     RHD_I2C_PROBE_ADDR,
-    RHD_I2C_SCANBUS,
     RHD_I2C_GETBUS,
     RHD_I2C_TEARDOWN
 } RHDi2cFunc;

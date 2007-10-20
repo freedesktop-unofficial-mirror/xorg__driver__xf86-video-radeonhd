@@ -682,8 +682,6 @@ enum _r6xxI2CBits {
     R6_DC_I2C_SW_REQ        = (0x1 << 18)
 };
 
-#define EDID_SLAVE 0xA0
-
 /*
  *
  */
@@ -786,7 +784,7 @@ R6xxI2CStatus(void *map)
  *
  */
 static Bool
-R6xxDDCProbe(void *map, int Channel)
+R6xxDDCProbe(void *map, int Channel, unsigned char slave)
 {
     Bool ret = FALSE;
     CARD32 data;
@@ -800,7 +798,7 @@ R6xxDDCProbe(void *map, int Channel)
 	    R6_DC_I2C_STOP_ON_NACK0 | R6_DC_I2C_START0
 	    | R6_DC_I2C_STOP0 | (0 << 16), 0x00ffffff);
 
-    data = R6_DC_I2C_INDEX_WRITE | ( EDID_SLAVE << 8 ) | (0 << 16);
+    data = R6_DC_I2C_INDEX_WRITE | ( slave << 8 ) | (0 << 16);
 	RegWrite(map, R6_DC_I2C_DATA, data);
 
     RegMask(map, R6_DC_I2C_CONTROL, R6_DC_I2C_GO, R6_DC_I2C_GO);
@@ -889,7 +887,7 @@ R5xxI2CStatus(void *map)
  *
  */
 static Bool
-R5xxDDCProbe(void *map, int Channel)
+R5xxDDCProbe(void *map, int Channel, unsigned char slave)
 {
     Bool ret = FALSE;
     CARD32 SaveControl1, save_494;
@@ -937,7 +935,7 @@ R5xxDDCProbe(void *map, int Channel)
     /* time limit 30 */
     RegMask(map, R5_DC_I2C_CONTROL3, 0x30 << 24, 0xff << 24);
 
-    RegWrite(map, R5_DC_I2C_DATA, EDID_SLAVE);  /* slave */
+    RegWrite(map, R5_DC_I2C_DATA, slave);  /* slave */
     RegWrite(map, R5_DC_I2C_DATA, 0);
 
     RegMask(map, R5_DC_I2C_CONTROL1,
@@ -966,13 +964,13 @@ R5xxDDCProbe(void *map, int Channel)
  *
  */
 static Bool
-DDCProbe(void *map, int Channel)
+DDCProbe(void *map, int Channel, unsigned char slave)
 {
     switch (ChipType) {
 	case RHD_R500:
-	    return R5xxDDCProbe(map, Channel);
+	    return R5xxDDCProbe(map, Channel, slave);
 	case RHD_R600:
-	    return R6xxDDCProbe(map, Channel);
+	    return R6xxDDCProbe(map, Channel, slave);
 	default:
 	    return FALSE;
     }
@@ -981,16 +979,18 @@ DDCProbe(void *map, int Channel)
 /*
  *
  */
+#define EDID_SLAVE 0xA0
+
 static void
 DDCReport(void *map)
 {
     Bool Chan0, Chan1, Chan2, Chan3;
 
-    Chan0 = DDCProbe(map, 0);
-    Chan1 = DDCProbe(map, 1);
-    Chan2 = DDCProbe(map, 2);
-    if (ChipType > RHD_R500)
-	Chan3 = DDCProbe(map, 3);
+    Chan0 = DDCProbe(map, 0, EDID_SLAVE);
+    Chan1 = DDCProbe(map, 1, EDID_SLAVE);
+    Chan2 = DDCProbe(map, 2, EDID_SLAVE);
+    if (ChipType >= RHD_R600)
+	Chan3 = DDCProbe(map, 3, EDID_SLAVE);
     else
 	Chan3 = FALSE;
 
@@ -1011,7 +1011,34 @@ DDCReport(void *map)
 	    printf(" RHD_DDC_3");
     }
     printf("\n");
+}
 
+/*
+ *
+ */
+static void
+DDCScanBus(void *map)
+{
+    int channel;
+    unsigned char slave;
+    int max_chan = ((ChipType >= RHD_R600) ? 3 : 2);
+
+    for (channel = 0; channel < max_chan; channel ++) {
+	int state = 0;
+
+	for (slave = 0x8; slave < 0x78; slave++ ) {
+
+	    if (DDCProbe(map, channel, slave << 1)) {
+		if (state == 0) {
+		    printf("DDC Line[%i]: Slaves: \n", channel);
+		    state = 1;
+		}
+		printf("%x ", slave << 1);
+	    }
+	}
+	if (state == 1)
+	    printf("\n");
+    }
 }
 
 /*
@@ -1275,7 +1302,7 @@ main(int argc, char *argv[])
     int bus, dev, func;
     int ret;
     int saved_errno;
-    Bool dumpBios, deviceSet;
+    Bool dumpBios, deviceSet, scanDDCBus;
     int i;
     unsigned char *rombase;
     int size;
@@ -1294,6 +1321,8 @@ main(int argc, char *argv[])
     for (i = 1; i < argc; i++) {
 	if (!strncmp("-d",argv[i],3)) {
 	    dumpBios = TRUE;
+	} else if (!strncmp("-s",argv[i],3)){
+	    scanDDCBus = TRUE;
 	} else {
 	    ret = sscanf(argv[i], "%x:%x.%x", &bus, &dev, &func);
 	    if (ret != 3) {
@@ -1386,6 +1415,8 @@ main(int argc, char *argv[])
     DDCReport(io);
 
     LVDSReport(io);
+    if (scanDDCBus)
+	DDCScanBus(io);
 
     FreeVBIOS(rombase, size);
 

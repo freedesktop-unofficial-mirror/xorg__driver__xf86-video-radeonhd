@@ -398,8 +398,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     EntityInfoPtr pEnt = NULL;
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
-
-    RHDOpt tmpOpt;
     DisplayModePtr Modes;
 
     if (flags & PROBE_DETECT)  {
@@ -598,25 +596,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
-	    RhdGetOptValBool(rhdPtr->Options, OPTION_PROBE_I2C, &tmpOpt,
-			     FALSE);
-	    if (tmpOpt.val.bool) {
-		RHDI2CDataArg data;
-		int line = 0;
-		data.scanbus.line = line++;
-		while (RHDI2CFunc(pScrn->scrnIndex,
-				  rhdPtr->I2C, RHD_I2C_SCANBUS, &data) != RHD_I2C_NOLINE) {
-		    int i,j;
-		    for (i = 0; i < ((rhdPtr->ChipSet < RHD_R600) ? 3 : 4); i++) {
-			for (j = 0; j < 32; j++) {
-			    if (data.scanbus.slaves[i] & (1 << j))
-				xf86DrvMsg(pScrn->scrnIndex, X_INFO, "I2C Bus at slave address "
-					   "%x found on line %i\n",(i * 32 + j) << 1, data.scanbus.line);
-			}
-		    }
-		    data.scanbus.line = line++;
-		}
-	    }
+
 	    if (xf86LoadSubModule(pScrn, "ddc")) {
 		rhdTestDDC(pScrn);
 	    } else {

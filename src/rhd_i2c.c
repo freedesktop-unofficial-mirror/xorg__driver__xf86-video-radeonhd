@@ -809,25 +809,6 @@ rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
 }
 
 RHDI2CResult
-rhdI2CScanBus(int scrnIndex, I2CBusPtr *I2CList, int line, CARD32 slaves[4])
-{
-    int i;
-
-    if (line >= I2C_LINES || !I2CList[line])
-	return RHD_I2C_NOLINE;
-
-    /* don't probe reserved addresses */
-    for (i = 0x8; i < 0x78; i++) {
-	if (rhdI2CProbeAddress(scrnIndex, I2CList, line, i << 1))
-	    slaves[i >> 5] |= 1 << (i & 0x1F);
-	else
-	    slaves[i >> 5] &= ~(1 << (i & 0x1F));
-    }
-
-    return RHD_I2C_SUCCESS;
-}
-
-RHDI2CResult
 RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	   RHDI2CDataArgPtr datap)
 {
@@ -850,10 +831,6 @@ RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	return rhdI2CProbeAddress(scrnIndex, I2CList,
 				  datap->target.line,
 				  datap->target.slave);
-    }
-    if (func == RHD_I2C_SCANBUS) {
-	return rhdI2CScanBus(scrnIndex, I2CList, datap->scanbus.line,
-			     datap->scanbus.slaves);
     }
     if (func == RHD_I2C_GETBUS) {
 	if (datap->i >= I2C_LINES || !I2CList[datap->i])
