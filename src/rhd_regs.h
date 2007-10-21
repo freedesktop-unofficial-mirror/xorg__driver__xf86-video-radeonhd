@@ -314,9 +314,7 @@ enum _rs6xxRegs {
     RS69_DC_I2C_DATA			   = 0x7D58,  /* (RW) *//**/
     RS69_DC_I2C_TRANSACTION0            = 0x7D48,  /* (RW) *//**/
     RS69_DC_I2C_TRANSACTION1            = 0x7D4C  /* (RW) *//**/
-
 };
-
 
 enum {
     /* CLOCK_CNTL_INDEX */

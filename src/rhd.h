@@ -99,7 +99,7 @@ enum RHD_CHIPSETS {
 #define RHD_VBIOS_SIZE 0x10000
 
 typedef struct _rhdI2CRec *rhdI2CPtr;
-typedef struct _atomBIOSHandle *atomBIOSHandlePtr;
+typedef struct _atomBiosHandle *atomBiosHandlePtr;
 typedef struct _rhdShadowRec *rhdShadowPtr;
 
 typedef struct _RHDopt {
@@ -153,7 +153,7 @@ typedef struct RHDRec {
     CloseScreenProcPtr  CloseScreen;
 
     struct _I2CBusRec	**I2C;  /* I2C bus list */
-    atomBIOSHandlePtr   atomBIOS; /* handle for AtomBIOS */
+    atomBiosHandlePtr   atomBIOS; /* handle for AtomBIOS */
     /*
      * BIOS copy - kludge that should go away
      * once we know how to read PCI BIOS on

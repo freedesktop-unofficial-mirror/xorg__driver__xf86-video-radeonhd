@@ -103,14 +103,14 @@ typedef union AtomBiosArg
     CARD32 val;
     struct rhdConnectorInfo	*connectorInfo;
     unsigned char*		EDIDBlock;
-    atomBIOSHandlePtr		atomhandle;
+    atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;
     AtomFbRec			fb;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 extern AtomBiosResult
-RHDAtomBiosFunc(int scrnIndex, atomBIOSHandlePtr handle,
+RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
 # endif
 
