@@ -167,12 +167,24 @@ enum {
     DC_GPIO_DDC3_EN                = 0x7E68,  /* (RW) */
     DC_GPIO_DDC3_Y                 = 0x7E6C,  /* (RW) */
 
+    /* RS69x I2C */
+    RS69_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
+    RS69_DC_I2C_UNKNOWN_2	   = 0x7D34,  /* (RW) */
+    RS69_DC_I2C_INTERRUPT_CONTROL  = 0x7D38,  /* (RW) */
+    RS69_DC_I2C_SW_STATUS	   = 0x7d3c,  /* (RW) */
+    RS69_DC_I2C_UNKNOWN_1          = 0x7d40,
+    RS69_DC_I2C_DDC_SETUP_Q        = 0x7D44,  /* (RW) */
+    RS69_DC_I2C_DATA		   = 0x7D58,  /* (RW) */
+    RS69_DC_I2C_TRANSACTION0       = 0x7D48,  /* (RW) */
+    RS69_DC_I2C_TRANSACTION1       = 0x7D4C,  /* (RW) */
+
     /* HPD */
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
 
 typedef enum _chipType {
     RHD_R500 = 1,
+    RHD_RS690,
     RHD_R600
 } chipType;
 
@@ -195,6 +207,8 @@ typedef struct _atomDataTables
         ATOM_FIRMWARE_INFO_V1_4         *FirmwareInfo_V_1_4;
     } FirmwareInfo;
     tableVersion FirmwareInfoVersion;
+    ATOM_GPIO_I2C_INFO			*GPIO_I2C_Info;
+    tableVersion GPIO_I2C_InfoVersion;
 } atomDataTables, *atomDataTablesPtr;
 
 atomDataTables AtomData;
@@ -207,8 +221,6 @@ struct RHDDevice {
     CARD16 vendor;
     CARD16 device;
     int bar;
-#define RHD_R500 1
-#define RHD_R600 2
     chipType type;
 } rhdDevices[] = {
 
@@ -307,8 +319,8 @@ struct RHDDevice {
     { 0x1002, 0x7291, 2, RHD_R500},
     { 0x1002, 0x7293, 2, RHD_R500},
     { 0x1002, 0x7297, 2, RHD_R500},
-    { 0x1002, 0x791E, 2, RHD_R500},
-    { 0x1002, 0x791F, 2, RHD_R500},
+    { 0x1002, 0x791E, 2, RHD_RS690},
+    { 0x1002, 0x791F, 2, RHD_RS690},
     { 0x1002, 0x796C, 2, RHD_R500},
     { 0x1002, 0x796D, 2, RHD_R500},
     { 0x1002, 0x796E, 2, RHD_R500},
@@ -620,6 +632,46 @@ LoadReport(void *map)
 }
 
 /*
+ *
+ */
+CARD32
+getDDCSpeed(void)
+{
+    CARD32 clock, ret;
+
+    switch  (AtomData.FirmwareInfoVersion.crev) {
+	case 1:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
+	    break;
+	case 2:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+	    break;
+	case 3:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+	    break;
+	case 4:
+	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+	    break;
+    }
+    clock *= 10;
+
+    switch (ChipType) {
+	case RHD_R500:
+	case RHD_RS690:
+	    ret = (0x7F << 8)
+		+ (clock) / (4 * 0x7F * TARGET_HW_I2C_CLOCK);
+	    break;
+	case RHD_R600:
+	    ret = (clock) / TARGET_HW_I2C_CLOCK;
+	    break;
+    }
+#ifdef DEBUG
+    printf("%s: Clock: %i Prescale: 0x%x\n",__func__,clock,ret);
+#endif
+    return ret;
+}
+
+/*
  * R600 DDC defines.
  */
 enum _r6xxI2CBits {
@@ -692,22 +744,7 @@ R6xxI2CSetupStatus(void *map, int channel)
     CARD32 clock;
     CARD16 i2c_speed;
 
-    switch  (AtomData.FirmwareInfoVersion.crev) {
-	case 1:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo->usReferenceClock;
-	    break;
-	case 2:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->usReferenceClock;
-	    break;
-	case 3:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->usReferenceClock;
-	    break;
-	case 4:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->usReferenceClock;
-	    break;
-    }
-
-    i2c_speed = (clock * 10) / TARGET_HW_I2C_CLOCK;
+    clock = getDDCSpeed();
 
     switch (channel) {
     case 0:
@@ -757,7 +794,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 static Bool
 R6xxI2CStatus(void *map)
 {
-    int count = 5000;
+    int count = 800;
     CARD32 val;
 
     while (--count) {
@@ -812,6 +849,129 @@ R6xxDDCProbe(void *map, int Channel, unsigned char slave)
     return ret;
 }
 
+enum _rhdRS69I2CBits {
+    /* RS69_DC_I2C_TRANSACTION0 */
+    RS69_DC_I2C_RW0   = (0x1 << 0),
+    RS69_DC_I2C_STOP_ON_NACK0         = (0x1 << 8),
+    RS69_DC_I2C_START0        = (0x1 << 12),
+    RS69_DC_I2C_STOP0         = (0x1 << 13),
+    /* RS69_DC_I2C_TRANSACTION1 */
+    RS69_DC_I2C_RW1   = (0x1 << 0),
+    RS69_DC_I2C_START1        = (0x1 << 12),
+    RS69_DC_I2C_STOP1         = (0x1 << 13),
+    /* RS69_DC_I2C_DATA */
+    RS69_DC_I2C_DATA_RW       = (0x1 << 0),
+    RS69_DC_I2C_INDEX_WRITE   = (0x1 << 31),
+    /* RS69_DC_I2C_CONTROL */
+    RS69_DC_I2C_GO    = (0x1 << 0),
+    RS69_DC_I2C_TRANSACTION_COUNT     = (0x3 << 20),
+    RS69_DC_I2C_SW_DONE_ACK   = (0x1 << 1),
+    /* RS69_DC_I2C_SW_STATUS */
+    RS69_DC_I2C_SW_DONE       = (0x1 << 2),
+    RS69_DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
+    RS69_DC_I2C_SW_NACK0      = (0x1 << 12),
+    RS69_DC_I2C_SW_NACK1      = (0x1 << 13)
+};
+
+/*
+ *
+ */
+static Bool
+RS69I2CStatus(void *map)
+{
+    int count = 800;
+    volatile CARD32 val;
+
+    while (--count) {
+
+	usleep(10);
+	val = RegRead(map, RS69_DC_I2C_SW_STATUS);
+#ifdef DEBUG
+	fprintf(stderr,"I2CStatus : 0x%x %i\n",(unsigned int)val,count);
+#endif
+	if (val & RS69_DC_I2C_SW_DONE)
+	    break;
+    }
+    RegMask(map, RS69_DC_I2C_INTERRUPT_CONTROL, RS69_DC_I2C_SW_DONE_ACK,
+	    RS69_DC_I2C_SW_DONE_ACK);
+    if (!count || (val & (RS69_DC_I2C_SW_STOPPED_ON_NACK
+			  | RS69_DC_I2C_SW_NACK0 | RS69_DC_I2C_SW_NACK1
+			  | 0x3)))
+	return FALSE; /* 2 */
+    return TRUE; /* 1 */
+}
+
+/*
+ *
+ */
+static Bool
+RS69I2CSetupStatus(void *map, int line)
+{
+    CARD32 ddc;
+    CARD16 prescale;
+    
+    prescale = getDDCSpeed();
+    RegMask(map, 0x28, 0x200, 0x200);
+    RegMask(map, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
+    /* add SDVO handling later */
+    switch (AtomData.GPIO_I2C_Info->asGPIO_Info[line & 0xf]
+	    .usClkMaskRegisterIndex) {
+	case 0x1f90:
+	    ddc = 0; /* ddc3 */
+	    break;
+	case 0x1f94: /* ddc1 */
+	    ddc = 1;
+	    break;
+	default:
+	    ddc = 2; /* ddc0 */
+	    break;
+    }
+#ifdef DEBUG
+    printf("DDC: line: %i -> %i port: %x\n",line,ddc,
+	   AtomData.GPIO_I2C_Info->asGPIO_Info[line & 0xf]
+	   .usClkMaskRegisterIndex);
+#endif
+    RegMask(map, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
+    RegWrite(map, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
+    RegMask(map, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
+    RegMask(map, RS69_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
+    RegMask(map, RS69_DC_I2C_UNKNOWN_2, 0x2, 0xff);
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+RS69DDCProbe(void *map, int Channel, unsigned char slave)
+{
+    Bool ret = FALSE;
+    CARD32 data;
+
+    if (!RS69I2CSetupStatus(map, Channel))
+	return FALSE;
+
+    RegMask(map, RS69_DC_I2C_CONTROL, 0, RS69_DC_I2C_TRANSACTION_COUNT); /* 1 Transaction */
+
+    RegMask(map, RS69_DC_I2C_TRANSACTION0, /* only slave */
+	    RS69_DC_I2C_STOP_ON_NACK0 | RS69_DC_I2C_START0
+	    | RS69_DC_I2C_STOP0 | (0 << 16), 0x00ffffff);
+
+    data = RS69_DC_I2C_INDEX_WRITE | ( slave << 8 ) | (0 << 16);
+    RegWrite(map, RS69_DC_I2C_DATA, data);
+
+    RegMask(map, RS69_DC_I2C_CONTROL, RS69_DC_I2C_GO, RS69_DC_I2C_GO);
+
+    ret = RS69I2CStatus(map);
+
+    RegMask(map, RS69_DC_I2C_CONTROL, 0x2, 0xff);
+    usleep(1000);
+    RegWrite(map, RS69_DC_I2C_CONTROL, 0);
+
+    return ret;
+}
+
 enum _rhdR5xxI2CBits {
  /* R5_DC_I2C_STATUS1 */
     R5_DC_I2C_DONE	 = (0x1 << 0),
@@ -860,7 +1020,7 @@ enum _rhdR5xxI2CBits {
 static Bool
 R5xxI2CStatus(void *map)
 {
-    int count = 5000;
+    int count = 800;
     CARD32 res;
 
     while (count-- != 0) {
@@ -892,25 +1052,8 @@ R5xxDDCProbe(void *map, int Channel, unsigned char slave)
     Bool ret = FALSE;
     CARD32 SaveControl1, save_494;
     CARD16 prescale;
-    CARD16 clock;
 
-    switch  (AtomData.FirmwareInfoVersion.crev) {
-	case 1:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
-	    break;
-	case 2:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
-	    break;
-	case 3:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
-	    break;
-	case 4:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
-	    break;
-    }
-
-    prescale = (0x7F << 8)
-	+ (clock * 10) / (4 * 127 * TARGET_HW_I2C_CLOCK);
+    prescale = getDDCSpeed();
 
     RegMask(map, 0x28, 0x200, 0x200);
 
@@ -969,6 +1112,8 @@ DDCProbe(void *map, int Channel, unsigned char slave)
     switch (ChipType) {
 	case RHD_R500:
 	    return R5xxDDCProbe(map, Channel, slave);
+	case RHD_RS690:
+	    return RS69DDCProbe(map, Channel, slave);
 	case RHD_R600:
 	    return R6xxDDCProbe(map, Channel, slave);
 	default:
@@ -1030,7 +1175,7 @@ DDCScanBus(void *map)
 
 	    if (DDCProbe(map, channel, slave << 1)) {
 		if (state == 0) {
-		    printf("DDC Line[%i]: Slaves: \n", channel);
+		    printf("  DDC Line[%i]: Slaves: ", channel);
 		    state = 1;
 		}
 		printf("%x ", slave << 1);
@@ -1255,6 +1400,11 @@ AnalyzeMasterDataTable(unsigned char *base,
     GetAtomBiosTableRevisionAndSize(AtomData.FirmwareInfo.base,
                                    &AtomData.FirmwareInfoVersion.crev,
                                    &AtomData.FirmwareInfoVersion.frev,
+				    NULL);
+    AnalyzeRomDataTable(base,data_table->GPIO_I2C_Info,&(AtomData.GPIO_I2C_Info),&size);
+    GetAtomBiosTableRevisionAndSize((ATOM_COMMON_TABLE_HEADER *)AtomData.GPIO_I2C_Info,
+                                   &AtomData.GPIO_I2C_InfoVersion.crev,
+                                   &AtomData.GPIO_I2C_InfoVersion.frev,
 				    NULL);
 
     return TRUE;
