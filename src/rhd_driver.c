@@ -141,8 +141,6 @@ static void     rhdUnmapFB(RHDPtr rhdPtr);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
 
-static void rhdTestDDC(ScrnInfoPtr pScrn);
-
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
 extern PciChipsets RHDPCIchipsets[];
@@ -594,9 +592,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
 
-	    if (xf86LoadSubModule(pScrn, "ddc")) {
-		rhdTestDDC(pScrn);
-	    } else {
+	    if (!xf86LoadSubModule(pScrn, "ddc")) {
 		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Failed to load DDC module\n",__func__);
 		goto error1;
 	    }
@@ -1672,41 +1668,5 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
 		     TRUE);
-}
-
-/*
- * Crude test if DDC is working.
- */
-
-static void
-rhdTestDDC(ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    RHDI2CDataArg data;
-    Bool done = FALSE;
-
-    int i = 0;
-    while (!done) {
-	data.i = i++;
-	switch (RHDI2CFunc(pScrn->scrnIndex, rhdPtr->I2C, RHD_I2C_DDC, &data)) {
-	    case RHD_I2C_SUCCESS:
-		if (data.monitor) {
-		    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Found DDC on line %i:\n",
-			       i - 1);
-		    xf86PrintEDID(data.monitor);
-		    xfree(data.monitor);
-		} else {
-		    xf86DrvMsgVerb(pScrn->scrnIndex, 7,X_INFO,
-				   "No DDC data found on line %i\n",i - 1);
-		}
-		break;
-	    case RHD_I2C_NOLINE:
-		done = TRUE;
-		break;
-	    default:
-		xf86DrvMsgVerb(pScrn->scrnIndex, 7,X_INFO, "No DDC line %i found.\n",data.i);
-		break;
-	}
-    }
 }
 

@@ -232,6 +232,17 @@ rhdPanelEDIDModesFilter(struct rhdMonitor *Monitor)
 }
 
 /*
+ *
+ */
+void
+rhdMonitorPrintEDID(struct rhdMonitor *Monitor, xf86MonPtr EDID)
+{
+    xf86DrvMsg(EDID->scrnIndex, X_INFO, "EDID data for %s\n",
+	       Monitor->Name);
+    xf86PrintEDID(EDID);
+}
+
+/*
  * Panels are the most complicated case we need to handle here.
  * Information can come from several places, and we need to make sure
  * that we end up with only the native resolution in our table.
@@ -298,6 +309,8 @@ rhdMonitorPanel(struct rhdConnector *Connector)
     Monitor->UseFixedModes = TRUE;
 
     if (EDID) {
+	rhdMonitorPrintEDID(Monitor, EDID);
+
 	xfree(EDID->rawData);
 	xfree(EDID);
     }
@@ -324,6 +337,7 @@ RHDMonitorInit(struct rhdConnector *Connector)
 	    Monitor->scrnIndex = Connector->scrnIndex;
 
 	    RHDMonitorEDIDSet(Monitor, EDID);
+	    rhdMonitorPrintEDID(Monitor, EDID);
 
 	    xfree(EDID->rawData);
 	    xfree(EDID);
