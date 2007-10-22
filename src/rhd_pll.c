@@ -1,4 +1,3 @@
-#define APPROACH_FROM_HIGH
 /*
  * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
@@ -48,12 +47,6 @@ static ModeStatus
 PLLValid(struct rhdPLL *PLL, CARD32 Clock)
 {
     RHDFUNC(PLL);
-
-    if (Clock < PLL->PixMin)
-	return MODE_CLOCK_LOW;
-
-    if (Clock > PLL->PixMax)
-	return MODE_CLOCK_HIGH;
 
     return MODE_OK;
 }
@@ -343,6 +336,9 @@ PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
     if (!Control)
 	Control = RHDRegRead(PLL, EXT1_PPLL_CNTL);
 
+    /* Disable Spread Spectrum */
+    RHDRegMask(PLL, P1PLL_INT_SS_CNTL, 0, 0x00000001);
+
     PLL1SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
 }
 
@@ -379,6 +375,9 @@ PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
     if (!Control)
 	Control = RHDRegRead(PLL, EXT2_PPLL_CNTL);
 
+    /* Disable Spread Spectrum */
+    RHDRegMask(PLL, P2PLL_INT_SS_CNTL, 0, 0x00000001);
+
     PLL2SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
 }
 
@@ -395,6 +394,7 @@ PLL1Save(struct rhdPLL *PLL)
     PLL->StoreFBDiv = RHDRegRead(PLL, EXT1_PPLL_FB_DIV);
     PLL->StorePostDiv = RHDRegRead(PLL, EXT1_PPLL_POST_DIV);
     PLL->StoreControl = RHDRegRead(PLL, EXT1_PPLL_CNTL);
+    PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P1PLL_INT_SS_CNTL);
 
     PLL->Stored = TRUE;
 }
@@ -412,6 +412,7 @@ PLL2Save(struct rhdPLL *PLL)
     PLL->StoreFBDiv = RHDRegRead(PLL, EXT2_PPLL_FB_DIV);
     PLL->StorePostDiv = RHDRegRead(PLL, EXT2_PPLL_POST_DIV);
     PLL->StoreControl = RHDRegRead(PLL, EXT2_PPLL_CNTL);
+    PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P2PLL_INT_SS_CNTL);
 
     PLL->Stored = TRUE;
 }
@@ -431,6 +432,8 @@ PLL1Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreActive) {
+	RHDRegWrite(PLL, P1PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
+
 	PLL1SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		   PLL->StorePostDiv, PLL->StoreControl);
     } else {
@@ -441,6 +444,7 @@ PLL1Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT1_PPLL_FB_DIV, PLL->StoreFBDiv);
 	RHDRegWrite(PLL, EXT1_PPLL_POST_DIV, PLL->StorePostDiv);
 	RHDRegWrite(PLL, EXT1_PPLL_CNTL, PLL->StoreControl);
+	RHDRegWrite(PLL, P1PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
     }
 }
 
@@ -459,6 +463,8 @@ PLL2Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreActive) {
+	RHDRegWrite(PLL, P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
+
 	PLL2SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		   PLL->StorePostDiv, PLL->StoreControl);
     } else {
@@ -469,15 +475,14 @@ PLL2Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT2_PPLL_FB_DIV, PLL->StoreFBDiv);
 	RHDRegWrite(PLL, EXT2_PPLL_POST_DIV, PLL->StorePostDiv);
 	RHDRegWrite(PLL, EXT2_PPLL_CNTL, PLL->StoreControl);
+	RHDRegWrite(PLL, P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
     }
 }
 
 /* Some defaults for when we don't have this info */
 #define RHD_PLL_DEFAULT_REFERENCE    27000 /* it's right there on the card */
-#define RHD_PLL_DEFAULT_PLLOUT_MIN  600000 /* x6 otherwise clock is unstable */
+#define RHD_PLL_DEFAULT_PLLOUT_MIN  648000 /* experimental. */
 #define RHD_PLL_DEFAULT_PLLOUT_MAX 1100000 /* Lowest value seen so far */
-#define RHD_PLL_DEFAULT_PLLIN_MIN     1000
-#define RHD_PLL_DEFAULT_PLLIN_MAX    13500
 #define RHD_PLL_DEFAULT_MIN          16000 /* guess */
 #define RHD_PLL_DEFAULT_MAX         400000 /* 400Mhz modes... hrm */
 
@@ -539,15 +544,13 @@ void
 RHDPLLsInit(RHDPtr rhdPtr)
 {
     struct rhdPLL *PLL;
-    CARD32 RefClock, InMin, InMax, OutMin, OutMax, PixMin, PixMax;
+    CARD32 RefClock, OutMin, OutMax, PixMin, PixMax;
 
     RHDFUNC(rhdPtr);
 
     /* Retrieve the internal PLL frequency limits*/
     RefClock = RHD_PLL_DEFAULT_REFERENCE;
-    InMin = RHD_PLL_DEFAULT_PLLIN_MIN;
     OutMin = RHD_PLL_DEFAULT_PLLOUT_MIN;
-    InMax = RHD_PLL_DEFAULT_PLLIN_MAX;
     OutMax = RHD_PLL_DEFAULT_PLLOUT_MAX;
     /* keep the defaults */
     PixMin = RHD_PLL_DEFAULT_MIN;
@@ -558,10 +561,6 @@ RHDPLLsInit(RHDPtr rhdPtr)
 			     &OutMin,  PLL_MIN);
     getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
 			     &OutMax, PLL_MAX);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_INPUT, "minimum PLL input",
-			     &InMin, PLL_MIN);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_INPUT, "maximum PLL input",
-			     &InMax, PLL_MAX);
     getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLK, "Pixel Clock",
 			     &PixMax, PLL_MAX);
     getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
@@ -580,8 +579,6 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->Id = PLL_ID_PLL1;
 
     PLL->RefClock = RefClock;
-    PLL->InMin = InMin;
-    PLL->InMax = InMax;
     PLL->OutMin = OutMin;
     PLL->OutMax = OutMax;
     PLL->PixMin = PixMin;
@@ -603,8 +600,6 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->Id = PLL_ID_PLL2;
 
     PLL->RefClock = RefClock;
-    PLL->InMin = InMin;
-    PLL->InMax = InMax;
     PLL->OutMin = OutMin;
     PLL->OutMax = OutMax;
     PLL->PixMin = PixMin;
@@ -641,13 +636,21 @@ RHDPLLValid(struct rhdPLL *PLL, CARD32 Clock)
 
 /*
  * Calculate the PLL parameters for a given dotclock.
+ *
+ * This calculation uses a linear approximation of an experimentally found
+ * curve that delimits reference versus feedback dividers on rv610. This curve
+ * can be shifted towards higher feedback divider through increasing the gain
+ * control, but the effect of this is rather limited.
+ *
+ * Since this upper limit still provides a wide enough range with enough
+ * granularity, we use it for all r5xx and r6xx devices.
  */
 static Bool
 PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	     CARD16 *RefDivider, CARD16 *FBDivider, CARD8 *PostDivider)
 {
 /* limited by the number of bits available */
-#define FB_DIV_LIMIT 1024 /* rv6x0 doesn't like 2048 */
+#define FB_DIV_LIMIT 2048
 #define REF_DIV_LIMIT 1024
 #define POST_DIV_LIMIT 128
 
@@ -664,35 +667,18 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	    continue;
 	if (VCOOut >= PLL->OutMax)
 	    break;
-#ifdef APPROACH_FROM_HIGH
-	for (RefDiv = REF_DIV_LIMIT; RefDiv >= 1; RefDiv--)
-#else
-        for (RefDiv = 1; RefDiv <= REF_DIV_LIMIT; RefDiv++)
-#endif
-	{
+
+        for (RefDiv = 1; RefDiv <= REF_DIV_LIMIT; RefDiv++) {
 	    int Diff;
-#ifdef APPROACH_FROM_HIGH
-	    if (PLL->RefClock >= PLL->InMax * RefDiv)
-		break;
-	    if (PLL->RefClock <= PLL->InMin * RefDiv)
-		continue;
-#else
-	    if (PLL->RefClock >= PLL->InMax * RefDiv)
-		continue;
-	    if (PLL->RefClock <= PLL->InMin * RefDiv)
-		break;
-#endif
+
 	    FBDiv = (CARD32) ((Ratio * PostDiv * RefDiv) + 0.5);
 
-#ifdef APPROACH_FROM_HIGH
-	    if (FBDiv >= FB_DIV_LIMIT)
-		continue;
-#else
 	    if (FBDiv >= FB_DIV_LIMIT)
 		break;
-#endif
+	    if (FBDiv > (500 + (13 * RefDiv))) /* rv6x0 limit */
+		break;
+
 	    Diff = abs( PixelClock - (FBDiv * PLL->RefClock) / (PostDiv * RefDiv) );
-	    RHDDebug(PLL->scrnIndex, "RefDiv=%i Diff=%i\n",RefDiv,Diff);
 
 	    if (Diff < BestDiff) {
 		*FBDivider = FBDiv;
@@ -713,9 +699,6 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
 		   (int) PixelClock, (unsigned int) PLL->RefClock, *RefDivider,
 		   *FBDivider, *PostDivider, (int) BestDiff);
-	xf86DrvMsg(PLL->scrnIndex, X_INFO, "PLL for %dkHz uses %dkHz internally.\n",
-		   (int) PixelClock,
-		   (int) (PLL->RefClock * *FBDivider) / *RefDivider);
 	return TRUE;
     } else { /* Should never happen */
 	xf86DrvMsg(PLL->scrnIndex, X_ERROR,

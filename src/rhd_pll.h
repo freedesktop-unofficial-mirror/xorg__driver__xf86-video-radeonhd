@@ -44,8 +44,6 @@ struct rhdPLL {
 
     /* from defaults or from atom */
     CARD32 RefClock;
-    CARD32 InMin;
-    CARD32 InMax;
     CARD32 OutMin;
     CARD32 OutMax;
     CARD32 PixMin;
@@ -66,6 +64,7 @@ struct rhdPLL {
     CARD32 StoreFBDiv;
     CARD32 StorePostDiv;
     CARD32 StoreControl;
+    CARD32 StoreSpreadSpectrum;
 };
 
 void RHDPLLsInit(RHDPtr rhdPtr);

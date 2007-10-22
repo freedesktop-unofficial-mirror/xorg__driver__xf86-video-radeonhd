@@ -62,6 +62,8 @@ enum {
     EXT2_PPLL_CNTL                 = 0x044C,
     P1PLL_CNTL                     = 0x0450,
     P2PLL_CNTL                     = 0x0454,
+    P1PLL_INT_SS_CNTL              = 0x0458,
+    P2PLL_INT_SS_CNTL              = 0x045C,
 
     PCLK_CRTC1_CNTL                = 0x0480,
     PCLK_CRTC2_CNTL                = 0x0484,
