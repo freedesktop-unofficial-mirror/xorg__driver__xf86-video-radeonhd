@@ -76,11 +76,6 @@ typedef enum _AtomBiosRequestID {
     FUNC_END
 } AtomBiosRequestID;
 
-/* LVDS_MISC_INFO */
-#define LVDS_MISC_DUALLINK(x) (x & 1)
-#define LVDS_MISC_24BIT(x) (x & (1 << 1))
-#define LVDS_MISC_FPDI(x) (x & (1 << 4))
-
 typedef enum _AtomBiosResult {
     ATOM_SUCCESS,
     ATOM_FAILED,
