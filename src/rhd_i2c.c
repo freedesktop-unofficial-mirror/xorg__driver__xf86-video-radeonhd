@@ -389,6 +389,9 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	    ddc = 2; /* ddc0 */
 	    break;
     }
+    RHDDebug(I2CPtr->scrnIndex,"%s: DDC Line: %i val: %i port: 0x%x\n",
+	     __func__,line & 0xf, ddc, atomBiosArg.val);
+
     RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
     RHDRegWrite(I2CPtr, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
     RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
