@@ -434,6 +434,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
+    pScrn->videoRam = pEnt->device->videoRam;
     rhdPtr->entityIndex = pEnt->index;
 
 #ifndef XSERVER_LIBPCIACCESS
@@ -449,8 +450,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xfree(pEnt);
 
     pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, rhdPtr->ChipSet);
-
-    pScrn->videoRam = pEnt->device->videoRam;
 
     /* We will disable access to VGA legacy resources emulation and
        save/restore VGA thru MMIO when necessary */
