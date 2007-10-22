@@ -591,6 +591,28 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Failed\n");
     return FALSE;
 }
+
+static Bool
+rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
+{
+    ENABLE_SCALER_PARAMETERS scaler;
+    AtomBiosArgRec data;
+
+    scaler.ucScaler = scalerID;
+    scaler.ucEnable = setting;
+    data.exec.dataSpace = NULL;
+    data.exec.index = 0x21;
+    data.exec.pspace = &scaler;
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableScaler\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableScaler Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "EableScaler Failed\n");
+    return FALSE;
+}
+
 # endif
 
 static AtomBiosResult
