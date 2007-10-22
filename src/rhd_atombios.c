@@ -592,7 +592,7 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     return FALSE;
 }
 
-static Bool
+Bool
 rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
 {
     ENABLE_SCALER_PARAMETERS scaler;
