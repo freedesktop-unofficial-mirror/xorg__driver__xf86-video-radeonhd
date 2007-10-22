@@ -15,10 +15,12 @@ Usage:
 ------
 
 As root run:
-./conntest <pci tag>
+./rhd_conntest <pci tag> [-s]
 
 <pci tag> is in the form <bus>:<device>.<function>, the most common position
 is 1:0.0. lspci happily provides you with this information.
+The optional option -s will scan the known I2C for additional slaves (besides
+the DDC slave on 0xA0). Depending on your hardware this may take long.
 
 To dump the content of the VBIOS run:
 ./conntest <pci tag> -d
