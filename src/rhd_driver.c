@@ -131,7 +131,7 @@ static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
 static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(RHDPtr rhdPtr);
 static void     rhdRestore(RHDPtr rhdPtr);
-static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore);
+static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
@@ -182,20 +182,18 @@ _X_EXPORT DriverRec RADEONHD = {
 typedef enum {
     OPTION_NOACCEL,
     OPTION_SW_CURSOR,
-    OPTION_PCI_BURST,
     OPTION_SHADOWFB,
-    OPTION_PROBE_I2C,
-    OPTION_IGNORECONNECTOR
+    OPTION_IGNORECONNECTOR,
+    OPTION_FORCEREDUCED
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
-    { OPTION_NOACCEL,	"NoAccel",	OPTV_BOOLEAN,	{0}, FALSE },
-    { OPTION_SW_CURSOR,	"SWcursor",	OPTV_BOOLEAN,	{0}, FALSE },
-    { OPTION_PCI_BURST, "pciBurst",	OPTV_BOOLEAN,   {0}, FALSE },
-    { OPTION_SHADOWFB, "shadowfb", OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_PROBE_I2C, "probe_i2c",	OPTV_BOOLEAN,	{0}, FALSE },
-    { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR, {0}, FALSE },
-    { -1,               NULL,           OPTV_NONE,	{0}, FALSE }
+    { OPTION_NOACCEL,	      "NoAccel",         OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SW_CURSOR,	      "SWcursor",        OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SHADOWFB,        "shadowfb",        OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_FORCEREDUCED,    "forcereduced",    OPTV_BOOLEAN, {0}, FALSE },
+    { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
 static MODULESETUPPROTO(rhdSetup);
@@ -625,17 +623,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    {
-	char *ignore;
-
-	ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
-
-	/* Pick anything for now */
-	if (!rhdModeLayoutSelect(rhdPtr, ignore)) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Failed to detect a connected monitor\n");
-	    goto error1;
-	}
+    /* Pick anything for now */
+    if (!rhdModeLayoutSelect(rhdPtr)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Failed to detect a connected monitor\n");
+	goto error1;
     }
 
     rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
@@ -1257,11 +1249,13 @@ rhdUnmapFB(RHDPtr rhdPtr)
  *
  */
 static Bool
-rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
+rhdModeLayoutSelect(RHDPtr rhdPtr)
 {
     struct rhdOutput *Output;
     struct rhdConnector *Connector;
     Bool Found = FALSE;
+    char *ignore = NULL;
+    RHDOpt ForceReduced;
     int i = 0, j;
 
     RHDFUNC(rhdPtr);
@@ -1279,6 +1273,10 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 	Output->Crtc = NULL;
 	Output->Connector = NULL;
     }
+
+    ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED, &ForceReduced,
+		     FALSE);
 
     /* Check on the basis of Connector->HPD */
     for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
@@ -1375,6 +1373,10 @@ rhdModeLayoutSelect(RHDPtr rhdPtr, char *ignore)
 		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
 			(Output->Id == RHD_OUTPUT_LVTMA))
 			Monitor->ReducedAllowed = TRUE;
+
+		    /* allow user to override settings globally */
+		    if (ForceReduced.set)
+			Monitor->ReducedAllowed = ForceReduced.val.bool;
 
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			       "Connector \"%s\" uses Monitor \"%s\":\n",
@@ -1667,8 +1669,6 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL, &rhdPtr->noAccel,
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, &rhdPtr->swCursor,
-		     FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_PCI_BURST, &rhdPtr->onPciBurst,
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
 		     TRUE);

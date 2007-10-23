@@ -221,6 +221,23 @@ EDIDGuessRangesFromModes(struct rhdMonitor *Monitor, DisplayModePtr Modes)
 }
 
 /*
+ * Determine whether this monitor does allow reduced blanking.
+ * Do not set it to false, to allow the user to specify this too.
+ */
+static void
+EDIDReducedAllowed(struct rhdMonitor *Monitor, DisplayModePtr Modes)
+{
+    DisplayModePtr Mode;
+
+    for (Mode = Modes; Mode; Mode = Mode->next)
+	if (((Mode->HTotal - Mode->HDisplay) == 160) &&
+	    ((Mode->HSyncEnd - Mode->HDisplay) == 80) &&
+            ((Mode->HSyncEnd - Mode->HSyncStart) == 32) &&
+            ((Mode->VSyncStart - Mode->VDisplay) == 3))
+	    Monitor->ReducedAllowed = TRUE;
+}
+
+/*
  * Fill out rhdMonitor with xf86MonPtr information.
  */
 void
@@ -236,12 +253,6 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
     Monitor->Name = xnfcalloc(9, 1);
     snprintf(Monitor->Name, 9, "%s-%04X", EDID->vendor.name,
              EDID->vendor.prod_id);
-
-    /* If this is a digital display, then we can use reduced blanking
-     * What about my VMP 453? */
-    if (EDID->features.input_type)
-        Monitor->ReducedAllowed = TRUE;
-    /* Allow the user to also enable this through config */
 
     /* Add established timings */
     Mode = EDIDModesFromEstablished(Monitor->scrnIndex, &EDID->timings1);
@@ -304,7 +315,7 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
 
     if (Modes) {
 	EDIDGuessRangesFromModes(Monitor, Modes);
-
+	EDIDReducedAllowed(Monitor, Modes);
         Monitor->Modes = RHDModesAdd(Monitor->Modes, Modes);
     }
 }
