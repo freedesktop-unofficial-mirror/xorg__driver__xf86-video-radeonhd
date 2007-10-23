@@ -32,6 +32,7 @@ AC_ARG_WITH(xorg-module-dir,
             [moduledir="$libdir/xorg/modules"])
 
 # Extensions checks.
+m4_pattern_forbid([XORG_DRIVER_CHECK_EXT])dnl
 XORG_DRIVER_CHECK_EXT(RANDR, randrproto)
 XORG_DRIVER_CHECK_EXT(RENDER, renderproto)
 XORG_DRIVER_CHECK_EXT(XV, videoproto)
@@ -166,7 +167,8 @@ AC_SUBST([moduledir])
 DRIVER_NAME=radeonhd
 AC_SUBST([DRIVER_NAME])
 
-# XORG_MANPAGE_SECTIONS
+dnl XORG_MANPAGE_SECTIONS
+m4_pattern_forbid([XORG_RELEASE_VERSION])dnl
 XORG_RELEASE_VERSION
 
 dnl These are also defined in XORG_RELEASE_VERSION since 2006-11-30.
