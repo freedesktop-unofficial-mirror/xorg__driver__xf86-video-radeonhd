@@ -1511,6 +1511,10 @@ main(int argc, char *argv[])
     }
 
     rombase = GetVBIOS(&size);
+    if (!rombase) {
+	fprintf(stderr, "Cannot get VBIOS. Are we root?\n");
+	return 1;
+    }
     if (!InterpretATOMBIOS(rombase)) {
 	fprintf(stderr, "Cannot analyze AtomBIOS\n");
 	return 1;
