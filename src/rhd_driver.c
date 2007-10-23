@@ -1670,3 +1670,109 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     TRUE);
 }
 
+/*
+ *  rhdDoReadPCIBios(): do the actual reading, return size and copy in ptr
+ */
+static int
+rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+{
+#ifdef XSERVER_LIBPCIACCESS
+    int size = rhdPtr->PciInfo->rom_size;
+#else
+    int size = 1 << rhdPtr->PciInfo->biosSize;
+    int read_len;
+#endif
+
+    if (!(*ptr = xcalloc(1, size))) {
+	xf86DrvMsg(rhdPtr->scrnIndex,X_ERROR,
+		   "Cannot allocate %i bytes of memory "
+		   "for BIOS image\n",size);
+	return 0;
+    }
+    xf86DrvMsg(rhdPtr->scrnIndex,X_INFO,"Getting BIOS copy from PCI ROM\n");
+
+#ifdef XSERVER_LIBPCIACCESS
+    if (pci_device_read_rom(rhdPtr->PciInfo, ptr)) {
+	xf86DrvMsg(scrnIndex,X_ERROR,
+		   "Cannot read BIOS image\n");
+	xfree(*ptr);
+	return 0;
+    }
+#else
+    if ((read_len =
+	 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, *ptr, size)) < 0) {
+	xf86DrvMsg(rhdPtr->scrnIndex,X_ERROR,
+		   "Cannot read BIOS image\n");
+	xfree(*ptr);
+	return 0;
+    } else if (read_len != size) {
+	xf86DrvMsg(rhdPtr->scrnIndex,X_WARNING,
+		   "Read only %i of %i bytes of BIOS image\n",
+		   read_len, size);
+	return read_len;
+    }
+#endif
+    return size;
+}
+
+/*
+ * rhdR5XXDoReadPCIBios(): enables access to R5xx BIOS, wraps rhdDoReadPCIBios()
+ */
+static int
+rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+{
+    int ret;
+#ifdef NOT_YET
+    CARD32 save_198, save_c, save_8;
+
+    save_198 = RHDRegRead(rhdPtr, 0x198);
+    save_8 = RHDRegRead(rhdPtr, CLOCK_CNTL_INDEX);
+
+    RHDRegMask(rhdPtr, 0x198, 0x0, 0x200);
+    RHDRegWrite(rhdPtr, CLOCK_CNTL_INDEX, PLL_WR_EN | SPLL_FUNC_CNTL);
+    while (!((save_c = RHDRegRead(rhdPtr, CLOCK_CNTL_DATA))
+	   & SPLL_CHG_STATUS)) {};
+    RHDRegMask(rhdPtr, CLOCK_CNTL_DATA, SPLL_BYPASS_EN, SPLL_BYPASS_EN);
+#endif
+    ret = rhdDoReadPCIBios(rhdPtr, ptr);
+#ifdef NOTYET
+    while (!(RHDRegRead(rhdPtr, CLOCK_CNTL_DATA)
+	   & SPLL_CHG_STATUS)) {};
+    RHDRegWrite(rhdPtr, CLOCK_CNTL_DATA, save_c);
+    RHDRegWrite(rhdPtr,  CLOCK_CNTL_INDEX, save_8);
+    RHDRegWrite(rhdPtr, 0x198, save_198);
+#endif
+
+    return ret;
+}
+
+/*
+ *
+ */
+static int
+rhdR6XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+{
+    int ret;
+    CARD32 save_600;
+
+    save_600 = RHDRegRead(rhdPtr, 0x600);
+    RHDRegMask(rhdPtr, 0x600, 0x02000000, 0x02000000);
+
+    ret = rhdDoReadPCIBios(rhdPtr, ptr);
+
+    RHDRegWrite(rhdPtr, 0x600, save_600);
+
+    return ret;
+}
+
+/*
+ *
+ */
+int
+RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+{
+    if (rhdPtr->ChipSet < RHD_R600)
+	return rhdR5XXDoReadPCIBios(rhdPtr, ptr);
+    else
+	return rhdR6XXDoReadPCIBios(rhdPtr, ptr);
+}

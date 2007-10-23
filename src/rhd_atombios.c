@@ -641,36 +641,8 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 	}
     } else {
 	if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
-#ifdef XSERVER_LIBPCIACCESS
-	    BIOSImageSize = rhdPtr->PciInfo->rom_size;
-#else
-	    int read_len;
-	    BIOSImageSize = 1 << rhdPtr->PciInfo->biosSize;
-#endif
-	    if (!(ptr = xcalloc(1, BIOSImageSize))) {
-		xf86DrvMsg(scrnIndex,X_ERROR,
-			   "Cannot allocate %i bytes of memory "
-			   "for BIOS image\n",BIOSImageSize);
+	    if (!(BIOSImageSize = RHDReadPCIBios(rhdPtr, &ptr)))
 		return ATOM_FAILED;
-	    }
-	    xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from PCI ROM\n");
-#ifdef XSERVER_LIBPCIACCESS
-	    if (pci_device_read_rom(rhdPtr->PciInfo, ptr)) {
-		xf86DrvMsg(scrnIndex,X_ERROR,
-			   "Cannot read BIOS image\n");
-		goto error;
-	    }
-#else
-	    if ((read_len =
-		 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, ptr, BIOSImageSize) < 0)) {
-		xf86DrvMsg(scrnIndex,X_ERROR,
-			   "Cannot read BIOS image\n");
-		goto error;
-	    } else if (read_len != BIOSImageSize)
-		xf86DrvMsg(scrnIndex,X_WARNING,
-			   "Read only %i of %i bytes of BIOS image\n",
-			   read_len, BIOSImageSize);
-#endif
 	} else {
 	    int read_len;
 	    unsigned char tmp[32];
@@ -698,6 +670,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 	    }
 	}
     }
+
     if (!(atomDataPtr = xcalloc(1, sizeof(atomDataTables)))) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"Cannot allocate memory for "
 		   "ATOM BIOS data tabes\n");

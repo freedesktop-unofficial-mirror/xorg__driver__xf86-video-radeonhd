@@ -270,6 +270,10 @@ enum _r5xxRegs {
     R5_DC_I2C_ARBITRATION 	=	0x7D50  /* (RW) */
 };
 
+enum _r5xxSPLLRegs {
+    SPLL_FUNC_CNTL      =       0x0  /* (RW) */
+};
+
 enum _r6xxRegs {
     /* I2C */
     R6_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
@@ -327,6 +331,10 @@ enum {
     /* CLOCK_CNTL_DATA */
 #define PLL_DATA         0xffffffff
 
+    /* SPLL_FUNC_CNTL */
+    SPLL_CHG_STATUS      = (0x1 << 29),
+    SPLL_BYPASS_EN       = (0x1 << 25),
+    
     /* MC_IND_INDEX */
     MC_IND_ADDR		 = (0xffff << 0),
     MC_IND_SEQ_RBS_0     = (0x1 << 16),
