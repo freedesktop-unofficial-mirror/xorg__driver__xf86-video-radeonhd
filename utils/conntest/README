@@ -1,6 +1,6 @@
-************
-* conntest *
-************
+*********************
+* radeonhd conntest *
+*********************
 
 A helper utility to test the status of the connectors of the AMD GPG
 Radeon R5xx and R6xx graphics devices.
@@ -23,13 +23,13 @@ The optional option -s will scan the known I2C for additional slaves (besides
 the DDC slave on 0xA0). Depending on your hardware this may take long.
 
 To dump the content of the VBIOS run:
-./conntest <pci tag> -d
+./rhd_conntest <pci tag> -d
 This will dump the VBIOS to the file:
   <device_id>.<subsystem_vendor_id>.<subsystem_id>.vga.rom
 to the current directory. Should the id information be unavailable the VBIOS
 will be dumped to the file 'posted.vga.rom'.
 
-DO NOT try to run conntest on the secondary PCI function. (1:0.1 in our
+DO NOT try to run rhd_conntest on the secondary PCI function. (1:0.1 in our
 example). For R5xx this is just a fake device to fool some Microsoft operating
 systems, and is of no use to us. For R6xx this is a HDMI sound device, and is
 of no use for a video driver.
@@ -79,8 +79,8 @@ support for your card.
 Create a small text file. Each step, mention which cable was connected where.
 
 Go over each connector seperately, and connect the analogue (VGA) cable once
-and connect the DVI cable once (when possible). Each time running conntest and
-saving the data conntest spews out.
+and connect the DVI cable once (when possible). Each time running rhd_conntest
+and saving the data rhd_conntest spews out.
 
 Make sure that only one cable is attached at each time.
 
@@ -97,14 +97,14 @@ support for your card.
 
 Create a small text file. Each step, mention which cable was connected where.
 
-First, run conntest without an external monitor attached. This will show us if
-or whether a DDC bus is attached to the internal panel. Save the data.
+First, run rhd_conntest without an external monitor attached. This will show
+us if or whether a DDC bus is attached to the internal panel. Save the data.
 
 Then attach a monitor through the analogue (VGA) connection, use the adaptor
-plug when needed. Run conntest and save the data.
+plug when needed. Run rhd_conntest and save the data.
 
-When available, attach a monitor through its DVI connection. Run conntest and
-save the data.
+When available, attach a monitor through its DVI connection. Run rhd_conntest
+and save the data.
 
 The resulting file, plus further information about the make and model of your
 laptop will hopefully provide all the information the developers of the
