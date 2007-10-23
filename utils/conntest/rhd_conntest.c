@@ -909,7 +909,7 @@ RS69I2CSetupStatus(void *map, int line)
 {
     CARD32 ddc;
     CARD16 prescale;
-    
+
     prescale = getDDCSpeed();
     RegMask(map, 0x28, 0x200, 0x200);
     RegMask(map, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
@@ -917,13 +917,13 @@ RS69I2CSetupStatus(void *map, int line)
     switch (AtomData.GPIO_I2C_Info->asGPIO_Info[line & 0xf]
 	    .usClkMaskRegisterIndex) {
 	case 0x1f90:
-	    ddc = 0; /* ddc3 */
+	    ddc = 0; /* ddc1 */
 	    break;
-	case 0x1f94: /* ddc1 */
+	case 0x1f94: /* ddc2 */
 	    ddc = 1;
 	    break;
 	default:
-	    ddc = 2; /* ddc0 */
+	    ddc = 2; /* ddc3 */
 	    break;
     }
 #ifdef DEBUG

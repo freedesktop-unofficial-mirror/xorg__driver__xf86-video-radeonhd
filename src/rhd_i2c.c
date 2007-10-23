@@ -380,13 +380,13 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
     /* add SDVO handling later */
     switch (atomBiosArg.val) {
 	case 0x1f90:
-	    ddc = 0; /* ddc3 */
+	    ddc = 0; /* ddc1 */
 	    break;
-	case 0x1f94: /* ddc1 */
+	case 0x1f94: /* ddc2 */
 	    ddc = 1;
 	    break;
 	default:
-	    ddc = 2; /* ddc0 */
+	    ddc = 2; /* ddc3 */
 	    break;
     }
     RHDDebug(I2CPtr->scrnIndex,"%s: DDC Line: %i val: %i port: 0x%x\n",
