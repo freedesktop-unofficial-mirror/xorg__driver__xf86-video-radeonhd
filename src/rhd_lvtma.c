@@ -507,7 +507,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	return NULL;
     }
 
-    if (rhdPtr->ChipSet >= RHD_RS690) {
+    if (rhdPtr->ChipSet >= RHD_R600) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: any other device than"
 		   " an R5xx is still unsupported.\n", __func__);
 	return NULL;
