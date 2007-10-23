@@ -25,16 +25,6 @@ AH_TOP([# define _CONFIG_H])
 AH_TOP([# include "xorg-server.h"])
 AH_BOTTOM([#endif])
 
-AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR],
-		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\1/")],
-		[Major Version])
-AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR],
-		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\2/")],
-		[Minor Version])
-AC_DEFINE_UNQUOTED([PACKAGE_VERSION_PATCHLEVEL],
-		[$(echo $PACKAGE_VERSION | sed -e "s/\([[0-9]]\+\)\.\([[0-9]]\+\)\.\([[0-9]]\+\)/\3/")],
-		[Patchlevel Version])
-
 AC_ARG_WITH(xorg-module-dir,
             AC_HELP_STRING([--with-xorg-module-dir=DIR],
                            [Default xorg module directory [[default=$libdir/xorg/modules]]]),
@@ -178,6 +168,21 @@ AC_SUBST([DRIVER_NAME])
 
 # XORG_MANPAGE_SECTIONS
 XORG_RELEASE_VERSION
+
+dnl These are also defined in XORG_RELEASE_VERSION since 2006-11-30.
+dnl So we check whether XORG_RELEASE_VERSION has already done this
+dnl for us.
+if test "x$PVM$PVP" = "x"; then
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR],
+		[$(echo $PACKAGE_VERSION | cut -d . -f 1)],
+		[Major Version])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR],
+		[$(echo $PACKAGE_VERSION | cut -d . -f 2)],
+		[Minor Version])
+AC_DEFINE_UNQUOTED([PACKAGE_VERSION_PATCHLEVEL],
+		[$(echo $PACKAGE_VERSION | cut -d . -f 3)],
+		[Patchlevel Version])
+fi
 
 AC_OUTPUT([
 	Makefile
