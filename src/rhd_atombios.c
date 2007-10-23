@@ -1164,6 +1164,7 @@ rhdAtomGPIOI2CInfoQuery(atomBiosHandlePtr handle,
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
     CARD32 *val = &data->val;
+    unsigned short size;
 
     RHDFUNC(handle);
 
@@ -1171,17 +1172,18 @@ rhdAtomGPIOI2CInfoQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->GPIO_I2C_Info),
-	    &frev,&crev,NULL)) {
+	    &frev,&crev,&size)) {
 	return ATOM_FAILED;
     }
 
     switch (func) {
 	case ATOM_GPIO_I2C_CLK_MASK:
-	    if (*val >= ATOM_MAX_SUPPORTED_DEVICE) {
+	    if ((sizeof(ATOM_COMMON_TABLE_HEADER)
+		 + (*val * sizeof(ATOM_GPIO_I2C_ASSIGMENT))) > size) {
 		xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: GPIO_I2C Device "
-			   "num %lu bigger than max %u\n",__func__,
+			   "num %lu exeeds table size %u\n",__func__,
 			   (unsigned long)val,
-			   ATOM_MAX_SUPPORTED_DEVICE);
+			   size);
 		return ATOM_FAILED;
 	    }
 
@@ -1562,7 +1564,8 @@ rhdAtomParseGPIOLutForHPD(atomBiosHandlePtr handle,
 {
     atomDataTablesPtr atomDataPtr;
     ATOM_GPIO_PIN_LUT *gpio_pin_lut;
-    int i;
+    unsigned short size;
+    int i = 0;
 
     RHDFUNC(handle);
 
@@ -1571,16 +1574,19 @@ rhdAtomParseGPIOLutForHPD(atomBiosHandlePtr handle,
     *HPD = RHD_HPD_NONE;
 
     if (!rhdAtomGetTableRevisionAndSize(
-	    &atomDataPtr->GPIO_Pin_LUT->sHeader, NULL, NULL, NULL)) {
+	    &atomDataPtr->GPIO_Pin_LUT->sHeader, NULL, NULL, &size)) {
 	xf86DrvMsg(handle->scrnIndex, X_ERROR,
 		   "%s: No valid GPIO pin LUT in AtomBIOS\n",__func__);
 	return;
     }
     gpio_pin_lut = atomDataPtr->GPIO_Pin_LUT;
 
-    /* we count up to 10 because we don't know better :{ */
-    for (i = 0; i < 10; i++) {
+    while (1) {
 	if (gpio_pin_lut->asGPIO_Pin[i].ucGPIO_ID  == pinID) {
+
+	    if ((sizeof(ATOM_COMMON_TABLE_HEADER)
+		  + (i * sizeof(ATOM_GPIO_PIN_ASSIGNMENT))) > size)
+		return;
 
 	    RHDDebug(handle->scrnIndex,
 		     "   %s: GPIO PinID: %i Index: %x Shift: %i\n",
@@ -1595,16 +1601,17 @@ rhdAtomParseGPIOLutForHPD(atomBiosHandlePtr handle,
 		switch (gpio_pin_lut->asGPIO_Pin[i].ucGpioPinBitShift) {
 		    case 0:
 			*HPD = RHD_HPD_0;
-			break;
+			return;
 		    case 8:
 			*HPD = RHD_HPD_1;
-			break;
+			return;
 		    case 16:
 			*HPD = RHD_HPD_2;
-			break;
+			return;
 		}
 	    }
 	}
+	i++;
     }
 }
 
