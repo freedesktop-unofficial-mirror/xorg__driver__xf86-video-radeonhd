@@ -1,4 +1,4 @@
-AM_CFLAGS = @XORG_CFLAGS@
+AM_CFLAGS = @WARN_CFLAGS@ @XORG_CFLAGS@
 radeonhd_drv_la_LTLIBRARIES = radeonhd_drv.la
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
 radeonhd_drv_ladir = @moduledir@/drivers

@@ -19,10 +19,6 @@ AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_PROG_CC
 
-if test "x$GCC" = "xyes"; then
-        CFLAGS="$CFLAGS -Wall -pedantic"
-fi
-
 
 AH_TOP([#ifndef _CONFIG_H])
 AH_TOP([# define _CONFIG_H])
@@ -127,7 +123,54 @@ AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 
 # libraries checks.
 
+# compiler flags
+
+WARN_CFLAGS=""
+
+# Extra Warnings
+# Due to xorg/os.h: -Wno-variadic-macros
+AC_LANG_CONFTEST([AC_LANG_PROGRAM([[]])])
+for w in \
+  -Wall \
+  -Wextra -Wno-unused-parameter \
+  -pedantic -Wno-long-long -Wno-variadic-macros \
+  -Werror-implicit-function-declaration \
+  -Wstrict-aliasing -Wstrict-overflow \
+  -Wpointer-arith -Woverlength-strings -Wvolatile-register-var -Wshadow \
+  -Winit-self -Wswitch-enum -Wbad-function-cast \
+  -Wstrict-prototypes -Wold-style-definition \
+  -Wnested-externs -Wunreachable-code -Wdisabled-optimization \
+  -Wi-dont-exist-go-away-for-testing ;
+do
+  AC_MSG_CHECKING([whether $CC supports $w])
+  if $CC $w -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
+    AC_MSG_RESULT([yes])
+    WARN_CFLAGS="$WARN_CFLAGS $w"
+  else
+    AC_MSG_RESULT([no])
+  fi
+done
+# Optimizations
+case "x$CFLAGS" in
+dnl Automake needs extra escaping
+  [*-O[2-9]*)]
+    AC_MSG_NOTICE([Doing optimized build, checking for additional options])
+    for w in -finline-functions ; do
+      AC_MSG_CHECKING([whether $CC supports $w])
+      if $CC $w -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
+	AC_MSG_RESULT([yes])
+        CFLAGS="$CFLAGS -finline-functions"
+      else
+	AC_MSG_RESULT([no])
+      fi
+    done
+    ;;
+esac
+
+# Substitute
+
 AC_SUBST([XORG_CFLAGS])
+AC_SUBST([WARN_CFLAGS])
 AC_SUBST([moduledir])
 
 DRIVER_NAME=radeonhd
