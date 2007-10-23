@@ -130,7 +130,6 @@ typedef struct RHDRec {
     OptionInfoPtr       Options;
     RHDOpt              noAccel;
     RHDOpt              swCursor;
-    RHDOpt              onPciBurst;
     RHDOpt		shadowFB;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
