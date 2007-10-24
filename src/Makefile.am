@@ -1,6 +1,7 @@
-AM_CFLAGS = @WARN_CFLAGS@ @XORG_CFLAGS@
+AM_CFLAGS = @XORG_CFLAGS@ @WARN_CFLAGS@
 radeonhd_drv_la_LTLIBRARIES = radeonhd_drv.la
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
+radeonhd_drv_la_CFLAGS = $(AM_CFLAGS) @PEDANTIC_CFLAGS@
 radeonhd_drv_ladir = @moduledir@/drivers
 
 radeonhd_drv_la_SOURCES = \
@@ -55,7 +56,7 @@ endif
 if ATOM_BIOS_PARSER
 
 noinst_LTLIBRARIES = libatom.la
-libatom_la_CFLAGS = $(AM_CFLAGS) -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_FUNCTIONS
+libatom_la_CFLAGS = $(AM_CFLAGS) @ATOMBIOS_CFLAGS@ -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_FUNCTIONS
 # libatom_la_LDFLAGS = -module -avoid-version
 
 libatom_la_SOURCES = \

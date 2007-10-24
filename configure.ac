@@ -116,9 +116,6 @@ AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 
 # compiler flags
 
-WARN_CFLAGS=""
-
-# Extra Warnings
 dnl AC_PROG_CC_FLAG(flag,action-if-found,action-if-not-found)
 AC_DEFUN([AC_PROG_CC_FLAG],[
   AC_LANG_CONFTEST([AC_LANG_PROGRAM([[]])])
@@ -132,12 +129,13 @@ AC_DEFUN([AC_PROG_CC_FLAG],[
   fi
 ])
 
+# Extra Warnings
 # Due to xorg/os.h: -Wno-variadic-macros
 # For testing: make CFLAGS="-O2 -Wshadow -Wunreachable-code -fno-inline-functions"
+WARN_CFLAGS=""
 for w in \
   -Wall \
   -Wextra -Wno-unused-parameter \
-  -pedantic -Wno-long-long -Wno-variadic-macros \
   -Werror-implicit-function-declaration \
   -Wstrict-aliasing -Wstrict-overflow \
   -Wpointer-arith -Woverlength-strings -Wvolatile-register-var \
@@ -147,6 +145,19 @@ for w in \
 do
   AC_PROG_CC_FLAG($w,[WARN_CFLAGS="$WARN_CFLAGS $w"],)
 done
+
+# Due to AtomBIOS spitting out too much with -pedantic
+PEDANTIC_CFLAGS=""
+for w in -pedantic -Wno-long-long -Wno-variadic-macros ; do
+  AC_PROG_CC_FLAG($w,[PEDANTIC_CFLAGS="$PEDANTIC_CFLAGS $w"],)
+done
+
+# AtomBios special flags
+ATOMBIOS_CFLAGS=""
+for w in -std=c99 -Wno-unknown-pragmas ; do
+  AC_PROG_CC_FLAG($w,[ATOMBIOS_CFLAGS="$ATOMBIOS_CFLAGS $w"],)
+done
+
 # Optimizations
 case "x$CFLAGS" in
 dnl Automake needs extra escaping
@@ -162,6 +173,8 @@ esac
 
 AC_SUBST([XORG_CFLAGS])
 AC_SUBST([WARN_CFLAGS])
+AC_SUBST([PEDANTIC_CFLAGS])
+AC_SUBST([ATOMBIOS_CFLAGS])
 AC_SUBST([moduledir])
 
 DRIVER_NAME=radeonhd
