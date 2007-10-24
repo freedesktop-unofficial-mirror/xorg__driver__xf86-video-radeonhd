@@ -1,1 +1,125 @@
 Driver for AMD GPG r5xx/r6xx Chipsets
+=======================================================================
+
+radeonhd is the X.org X11 driver for AMD GPG (ATI) r5xx/r6xx chipsets.
+
+More detailed notes about
+  * supported chipsets
+  * how to configure radeonhd
+  * known radeonhd bugs
+etc. are available in the included radeonhd(4) man page.
+
+
+
+More Resources
+==============
+
+The mailing list on radeonhd:
+   http://lists.opensuse.org/radeonhd/
+
+Overview over recent updates to radeonhd:
+   http://gitweb.freedesktop.org/?p=xorg/driver/xf86-video-radeonhd
+
+The git repository with the radeonhd source code:
+   git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd
+
+Report bugs at:
+   https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
+   (component radeonhd)
+
+
+
+Installation
+============
+
+With X.Org 7.0 and later:
+
+   $ ./autogen.sh
+   $ make
+   $ make install
+
+This will litter all kinds of compiled files throughout your source tree.
+
+With X.Org prior to 7.0:
+
+   $ xmkmf -a
+   $ make EXTRA_INCLUDES="-I/usr/include/xorg" all
+   $ make install
+
+This uses imake and is for compatibility with older systems.
+
+To avoid building in your source tree, do:
+
+   $ mkdir _b && cd _b
+   $ autogen -vis ..
+   $ ../configure --enable-maintainer-mode
+   $ make
+   $ make install
+
+Runs the build in _b/ - and if something is completely messed up, you can
+safely remove the _b/ directory and create a new one without affecting any
+source files.
+
+Hint: If you happen to have multiple branches in your git source tree, you
+      can have per-branch _b-BRANCH/ build trees and _i-BRANCH/ install
+      trees. ("... configure ... --prefix=$PWD/_i-BRANCH")
+
+Note that neither of these methods will apply to the rhd_conntest tool.
+To build the rhd_conntest tool, you need to run
+
+   $ (cd utils/conntest && make)
+
+from the source tree, regardless of the method chosen above to build the
+radeonhd.so driver module itself.
+
+
+
+Getting and updating the radeonhd source code
+=============================================
+
+radeonhd is maintained in the git repository found at
+
+   git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd
+
+You can find information on using git at the git website http://git.or.cz/
+and a short intro at
+   http://www.freedesktop.org/wiki/Infrastructure/git/Developers
+
+You can get a copy of the repository like this:
+
+   $ git clone git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd
+   $ git clone git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd my-radeonhd
+
+This will create a directory xf86-video-radeonhd in the current directory
+by default, or the given directoy my-radeonhd otherwise.
+
+If you have not made any local changes and want to update you source code
+with the newest stuff from the official radeonhd repository, you can run this:
+
+   $ git pull
+
+If you HAVE made local changes and committed them locally to your master
+branch, you will be better off running
+
+   $ git fetch -v
+   $ git rebase origin
+
+If you're using more branches, read the git docs.
+
+
+
+Feeding back source code
+========================
+
+You can easily create patches to send to the developers using git.
+
+   $ vi some_file.c
+   $ git status
+   $ git diff
+   $ git add some_file.c
+   $ git commit
+
+   $ git format-patches origin
+
+Then you can sift through the 0*.patch files and choose a few to send to
+the radeonhd mailing list.
