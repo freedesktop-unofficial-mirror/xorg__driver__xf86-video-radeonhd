@@ -350,8 +350,8 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    /* Given cursor pos is always relative to frame - make absolute */
-	    Crtc->Cursor->X = x + pScrn->frameX0;
-	    Crtc->Cursor->Y = y + pScrn->frameY0;
+	    Cursor->X = x + pScrn->frameX0;
+	    Cursor->Y = y + pScrn->frameY0;
 
 	    lockCursor   (Cursor, TRUE);
 	    displayCursor(Crtc);
