@@ -120,6 +120,7 @@ WARN_CFLAGS=""
 
 # Extra Warnings
 # Due to xorg/os.h: -Wno-variadic-macros
+# For testing: make CFLAGS="-O2 -Wshadow -Wunreachable-code -fno-inline-functions"
 AC_LANG_CONFTEST([AC_LANG_PROGRAM([[]])])
 for w in \
   -Wall \
@@ -127,11 +128,10 @@ for w in \
   -pedantic -Wno-long-long -Wno-variadic-macros \
   -Werror-implicit-function-declaration \
   -Wstrict-aliasing -Wstrict-overflow \
-  -Wpointer-arith -Woverlength-strings -Wvolatile-register-var -Wshadow \
-  -Winit-self -Wswitch-enum -Wbad-function-cast \
+  -Wpointer-arith -Woverlength-strings -Wvolatile-register-var \
+  -Winit-self -Wbad-function-cast \
   -Wstrict-prototypes -Wold-style-definition \
-  -Wnested-externs -Wunreachable-code -Wdisabled-optimization \
-  -Wi-dont-exist-go-away-for-testing ;
+  -Wnested-externs -Wdisabled-optimization ;
 do
   AC_MSG_CHECKING([whether $CC supports $w])
   if $CC $w -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
