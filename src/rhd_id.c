@@ -580,7 +580,7 @@ rhdCards[] =
     /* 0x958B : M76 : Gemini ATI Mobility Radeon HD 2600 XT */
     /* 0x958C : RV630 : ATI FireGL V5600  */
     /* 0x958D : RV630 : ATI FireGL V3600  */
-    { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
+    { 0, 0, 0, NULL, {{0, NULL, 0, 0, {0, 0}}} } /* KEEP THIS: End marker. */
 };
 
 /*
