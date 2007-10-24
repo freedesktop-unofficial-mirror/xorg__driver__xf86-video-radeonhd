@@ -180,8 +180,9 @@ AC_SUBST([moduledir])
 DRIVER_NAME=radeonhd
 AC_SUBST([DRIVER_NAME])
 
-dnl m4_pattern_forbid([XORG_RELEASE_VERSION])dnl
+m4_pattern_forbid([XORG_MANPAGE_SECTIONS])dnl
 XORG_MANPAGE_SECTIONS
+m4_pattern_forbid([XORG_RELEASE_VERSION])dnl
 XORG_RELEASE_VERSION
 
 dnl These are also defined in XORG_RELEASE_VERSION since 2006-11-30.
