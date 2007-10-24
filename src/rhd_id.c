@@ -82,7 +82,7 @@ resRange res_none[] = { _END };
 # define RHD_DEVICE_MATCH(d, i) \
     { 0x1002, (d), PCI_MATCH_ANY, PCI_MATCH_ANY, 0, 0, (i) }
 # define PCI_ID_LIST struct pci_id_match RHDDeviceMatch[]
-# define LIST_END { 0, 0, 0 }
+# define LIST_END { 0, 0, (~0), (~0), 0, 0, 0 }
 #else
 # define RHD_DEVICE_ENTRY(d, i, r) \
     { (i), (d), r }
@@ -267,11 +267,15 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE, "\n");
 }
 
-#if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS)
 /*
  * Some macros to help us make connector tables less messy.
  * There are, after all, a limited number of possibilities at the moment.
  */
+#define ID_CONNECTORINFO_EMPTY \
+     { {RHD_CONNECTOR_NONE, "NULL", RHD_DDC_NONE, RHD_HPD_NONE, \
+       { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE}}}
+
+#if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS)
 
 #define VGA_A0_DVI_BA10 \
   { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
@@ -366,10 +370,6 @@ RHDIdentify(int flags)
        { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE}}}
 
 #else /* if !defined(USE_ID_CONNECTORS) && defined(ATOM_BIOS) */
-
-#define ID_CONNECTORINFO_EMPTY \
-     { {RHD_CONNECTOR_NONE, "NULL", RHD_DDC_NONE, RHD_HPD_NONE, \
-       { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE}}}
 
 #define VGA_A0_DVI_BA10         ID_CONNECTORINFO_EMPTY
 #define VGA_A0_DVI_BB10         ID_CONNECTORINFO_EMPTY
@@ -580,7 +580,7 @@ rhdCards[] =
     /* 0x958B : M76 : Gemini ATI Mobility Radeon HD 2600 XT */
     /* 0x958C : RV630 : ATI FireGL V5600  */
     /* 0x958D : RV630 : ATI FireGL V3600  */
-    { 0, 0, 0, NULL } /* KEEP THIS: End marker. */
+    { 0, 0, 0, NULL, ID_CONNECTORINFO_EMPTY } /* KEEP THIS: End marker. */
 };
 
 /*
