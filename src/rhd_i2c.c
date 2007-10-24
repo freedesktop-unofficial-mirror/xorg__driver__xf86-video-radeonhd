@@ -332,8 +332,6 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     } else
 	return rhd5xxWriteReadChunk(i2cDevPtr, WriteBuffer, nWrite,
 	    ReadBuffer, nRead);
-
-    return FALSE;
 }
 
 /* RS690 */
