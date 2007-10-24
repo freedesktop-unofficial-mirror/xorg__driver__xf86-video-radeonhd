@@ -250,7 +250,7 @@ enum {
     LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
 
     /* I2C in separate enum */
-    
+
     /* HPD */
     DC_GPIO_HPD_MASK               = 0x7E90,
     DC_GPIO_HPD_A                  = 0x7E94,
@@ -334,7 +334,7 @@ enum {
     /* SPLL_FUNC_CNTL */
     SPLL_CHG_STATUS      = (0x1 << 29),
     SPLL_BYPASS_EN       = (0x1 << 25),
-    
+
     /* MC_IND_INDEX */
     MC_IND_ADDR		 = (0xffff << 0),
     MC_IND_SEQ_RBS_0     = (0x1 << 16),

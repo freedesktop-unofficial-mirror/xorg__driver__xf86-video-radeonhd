@@ -101,7 +101,7 @@ RhdGetOptValString(const OptionInfoRec *table, int token,
 
 
 void
-RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size)
+RhdDebugDump(int scrnIndex, unsigned char *start, int size)
 {
     int i,j;
     char *c = (char *)start;

@@ -284,7 +284,7 @@ typedef struct _atomBiosHandle {
     pointer *scratchBase;
     CARD32 fbBase;
     PCITAG PciTag;
-    int BIOSImageSize;
+    unsigned int BIOSImageSize;
 } atomBiosHandleRec;
 
 enum {
@@ -322,7 +322,7 @@ rhdAtomAnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
 static int
 rhdAtomAnalyzeRomHdr(unsigned char *rombase,
               ATOM_ROM_HEADER *hdr,
-              int *data_offset)
+              unsigned int *data_offset)
 {
     if (!rhdAtomAnalyzeCommonHdr(&hdr->sHeader)) {
         return FALSE;
@@ -435,10 +435,10 @@ rhdAtomAnalyzeMasterDataTable(unsigned char *base,
 
 static Bool
 rhdAtomGetDataTable(int scrnIndex, unsigned char *base,
-		    atomDataTables *atomDataPtr, int BIOSImageSize)
+		    atomDataTables *atomDataPtr, unsigned int BIOSImageSize)
 {
-    int  data_offset;
-    unsigned short atom_romhdr_off =  *(unsigned short*)
+    unsigned int  data_offset;
+    unsigned int atom_romhdr_off =  *(unsigned short*)
         (base + OFFSET_TO_POINTER_TO_ATOM_ROM_HEADER);
     ATOM_ROM_HEADER *atom_rom_hdr =
         (ATOM_ROM_HEADER *)(base + atom_romhdr_off);
@@ -624,7 +624,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     unsigned char *ptr;
     atomDataTablesPtr atomDataPtr;
     atomBiosHandlePtr handle = NULL;
-    int BIOSImageSize = 0;
+    unsigned int BIOSImageSize = 0;
     data->atomhandle = NULL;
 
     RHDFUNCI(scrnIndex);
@@ -753,7 +753,7 @@ rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
 {
     atomDataTablesPtr atomDataPtr;
     CARD32 *val = &data->val;
-    int index = *val;
+    int idx = *val;
 
     atomDataPtr = handle->atomDataPtr;
     if (!rhdAtomGetTableRevisionAndSize(
@@ -766,19 +766,19 @@ rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
 
     switch (func) {
 	case ATOM_TMDS_FREQUENCY:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].usFrequency;
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].usFrequency;
 	    break;
 	case ATOM_TMDS_PLL_CHARGE_PUMP:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_ChargePump;
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_ChargePump;
 	    break;
 	case ATOM_TMDS_PLL_DUTY_CYCLE:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_DutyCycle;
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_DutyCycle;
 	    break;
 	case ATOM_TMDS_PLL_VCO_GAIN:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_VCO_Gain;
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_VCO_Gain;
 	    break;
 	case ATOM_TMDS_PLL_VOLTAGE_SWING:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[index].ucPLL_VoltageSwing;
+	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_VoltageSwing;
 	    break;
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
@@ -959,8 +959,7 @@ rhdAtomLvdsGetTimings(atomBiosHandlePtr handle, AtomBiosRequestID func,
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
     }
-
-    return ATOM_FAILED;
+/*NOTREACHED*/
 }
 
 static AtomBiosResult
@@ -1349,7 +1348,7 @@ rhdAtomFirmwareInfoQuery(atomBiosHandlePtr handle,
      xf86DrvMsg(handle->scrnIndex,X_ERROR,"%s: %s %i exceeds maximum %i\n", \
 		__func__,name,n,max), TRUE) : FALSE)
 
-const static struct _rhd_connector_objs
+static const struct _rhd_connector_objs
 {
     char *name;
     rhdConnectorType con;
@@ -1375,9 +1374,9 @@ const static struct _rhd_connector_objs
     { "HARDCODE_DVI", RHD_CONNECTOR_NONE },
     { "DISPLAYPORT", RHD_CONNECTOR_NONE}
 };
-const static int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(struct _rhd_connector_objs);
+static const int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(struct _rhd_connector_objs);
 
-const static struct _rhd_encoders
+static const struct _rhd_encoders
 {
     char *name;
     rhdOutputType ot;
@@ -1413,9 +1412,9 @@ const static struct _rhd_encoders
     { "AN9801", RHD_OUTPUT_NONE },
     { "DP501",  RHD_OUTPUT_NONE },
 };
-const static int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
+static const int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 
-const static struct _rhd_connectors
+static const struct _rhd_connectors
 {
     char *name;
     rhdConnectorType con;
@@ -1437,9 +1436,9 @@ const static struct _rhd_connectors
     {"UNKNOWN", RHD_CONNECTOR_NONE, FALSE },
     {"DVI+DIN", RHD_CONNECTOR_NONE, FALSE }
 };
-const static int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_connectors);
+static const int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_connectors);
 
-const static struct _rhd_devices
+static const struct _rhd_devices
 {
     char *name;
     rhdOutputType ot;
@@ -1455,14 +1454,14 @@ const static struct _rhd_devices
     {" CV", RHD_OUTPUT_NONE },
     {" DFP3", RHD_OUTPUT_LVTMA }
 };
-const static int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
+static const int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
 
-const static rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
-const static int n_hwddc = sizeof(hwddc) / sizeof(rhdDDC);
+static const rhdDDC hwddc[] = { RHD_DDC_0, RHD_DDC_1, RHD_DDC_2, RHD_DDC_3 };
+static const int n_hwddc = sizeof(hwddc) / sizeof(rhdDDC);
 
-const static rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
+static const rhdOutputType acc_dac[] = { RHD_OUTPUT_NONE, RHD_OUTPUT_DACA,
 				  RHD_OUTPUT_DACB, RHD_OUTPUT_DAC_EXTERNAL };
-const static int n_acc_dac = sizeof(acc_dac) / sizeof (rhdOutputType);
+static const int n_acc_dac = sizeof(acc_dac) / sizeof (rhdOutputType);
 
 /*
  *
@@ -2029,7 +2028,7 @@ rhdAtomExec (atomBiosHandlePtr handle,
     RHDPtr rhdPtr = RHDPTRI(handle);
     Bool ret = FALSE;
     char *msg;
-    int index = data->exec.index;
+    int idx = data->exec.index;
     void *pspace = data->exec.pspace;
     pointer *dataSpace = data->exec.dataSpace;
 
@@ -2049,7 +2048,7 @@ rhdAtomExec (atomBiosHandlePtr handle,
 	} else
 	    *dataSpace = (CARD8*)handle->scratchBase;
     }
-    ret = ParseTableWrapper(pspace, index, handle,
+    ret = ParseTableWrapper(pspace, idx, handle,
 			    handle->BIOSBase,
 			    &msg);
     if (!ret)
@@ -2156,27 +2155,27 @@ CailDelayMicroSeconds(VOID *CAIL, UINT32 delay)
 }
 
 UINT32
-CailReadATIRegister(VOID* CAIL, UINT32 index)
+CailReadATIRegister(VOID* CAIL, UINT32 idx)
 {
     UINT32 ret;
     CAILFUNC(CAIL);
 
-    ret  =  RHDRegRead(((atomBiosHandlePtr)CAIL), index << 2);
-    DEBUGP(ErrorF("%s(%x) = %x\n",__func__,index << 2,ret));
+    ret  =  RHDRegRead(((atomBiosHandlePtr)CAIL), idx << 2);
+    DEBUGP(ErrorF("%s(%x) = %x\n",__func__,idx << 2,ret));
     return ret;
 }
 
 VOID
-CailWriteATIRegister(VOID *CAIL, UINT32 index, UINT32 data)
+CailWriteATIRegister(VOID *CAIL, UINT32 idx, UINT32 data)
 {
     CAILFUNC(CAIL);
 
-    RHDRegWrite(((atomBiosHandlePtr)CAIL),index << 2,data);
-    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,index << 2,data));
+    RHDRegWrite(((atomBiosHandlePtr)CAIL),idx << 2,data);
+    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx << 2,data));
 }
 
 UINT32
-CailReadFBData(VOID* CAIL, UINT32 index)
+CailReadFBData(VOID* CAIL, UINT32 idx)
 {
     UINT32 ret;
 
@@ -2185,11 +2184,11 @@ CailReadFBData(VOID* CAIL, UINT32 index)
     if (((atomBiosHandlePtr)CAIL)->fbBase) {
 	CARD8 *FBBase = (CARD8*)
 	    RHDPTRI((atomBiosHandlePtr)CAIL)->FbBase;
-	ret =  *((CARD32*)(FBBase + (((atomBiosHandlePtr)CAIL)->fbBase) + index));
-	DEBUGP(ErrorF("%s(%x) = %x\n",__func__,index,ret));
+	ret =  *((CARD32*)(FBBase + (((atomBiosHandlePtr)CAIL)->fbBase) + idx));
+	DEBUGP(ErrorF("%s(%x) = %x\n",__func__,idx,ret));
     } else if (((atomBiosHandlePtr)CAIL)->scratchBase) {
-	ret = *(CARD32*)((CARD8*)(((atomBiosHandlePtr)CAIL)->scratchBase) + index);
-	DEBUGP(ErrorF("%s(%x) = %x\n",__func__,index,ret));
+	ret = *(CARD32*)((CARD8*)(((atomBiosHandlePtr)CAIL)->scratchBase) + idx);
+	DEBUGP(ErrorF("%s(%x) = %x\n",__func__,idx,ret));
     } else {
 	xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,X_ERROR,
 		   "%s: no fbbase set\n",__func__);
@@ -2199,17 +2198,17 @@ CailReadFBData(VOID* CAIL, UINT32 index)
 }
 
 VOID
-CailWriteFBData(VOID *CAIL, UINT32 index, UINT32 data)
+CailWriteFBData(VOID *CAIL, UINT32 idx, UINT32 data)
 {
     CAILFUNC(CAIL);
 
-    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,index,data));
+    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx,data));
     if (((atomBiosHandlePtr)CAIL)->fbBase) {
 	CARD8 *FBBase = (CARD8*)
 	    RHDPTRI((atomBiosHandlePtr)CAIL)->FbBase;
-	*((CARD32*)(FBBase + (((atomBiosHandlePtr)CAIL)->fbBase) + index)) = data;
+	*((CARD32*)(FBBase + (((atomBiosHandlePtr)CAIL)->fbBase) + idx)) = data;
     } else if (((atomBiosHandlePtr)CAIL)->scratchBase) {
-	*(CARD32*)((CARD8*)(((atomBiosHandlePtr)CAIL)->scratchBase) + index) = data;
+	*(CARD32*)((CARD8*)(((atomBiosHandlePtr)CAIL)->scratchBase) + idx) = data;
     } else
 	xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,X_ERROR,
 		   "%s: no fbbase set\n",__func__);
@@ -2238,23 +2237,23 @@ CailWriteMC(VOID *CAIL, ULONG Address, ULONG data)
 #ifdef XSERVER_LIBPCIACCESS
 
 VOID
-CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
+CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 idx,UINT16 size)
 {
     pci_device_cfg_read(RHDPTRI((atomBiosHandlePtr)CAIL)->PciInfo,
-				ret,index << 2 , size >> 3, NULL);
+				ret,idx << 2 , size >> 3, NULL);
 }
 
 VOID
-CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 index,UINT16 size)
+CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 {
     pci_device_cfg_write(RHDPTRI((atomBiosHandlePtr)CAIL)->PciInfo,
-			 src, index << 2, size >> 3, NULL);
+			 src, idx << 2, size >> 3, NULL);
 }
 
 #else
 
 VOID
-CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
+CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 idx,UINT16 size)
 {
     PCITAG tag = ((atomBiosHandlePtr)CAIL)->PciTag;
 
@@ -2262,13 +2261,13 @@ CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
 
     switch (size) {
 	case 8:
-	    *(CARD8*)ret = pciReadByte(tag,index << 2);
+	    *(CARD8*)ret = pciReadByte(tag,idx << 2);
 	    break;
 	case 16:
-	    *(CARD16*)ret = pciReadWord(tag,index << 2);
+	    *(CARD16*)ret = pciReadWord(tag,idx << 2);
 	    break;
 	case 32:
-	    *(CARD32*)ret = pciReadLong(tag,index << 2);
+	    *(CARD32*)ret = pciReadLong(tag,idx << 2);
 	    break;
 	default:
 	xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,
@@ -2277,26 +2276,26 @@ CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 index,UINT16 size)
 	return;
 	    break;
     }
-    DEBUGP(ErrorF("%s(%x) = %x\n",__func__,index,*(unsigned int*)ret));
+    DEBUGP(ErrorF("%s(%x) = %x\n",__func__,idx,*(unsigned int*)ret));
 
 }
 
 VOID
-CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 index,UINT16 size)
+CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 {
     PCITAG tag = ((atomBiosHandlePtr)CAIL)->PciTag;
 
     CAILFUNC(CAIL);
-    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,index,(*(unsigned int*)src)));
+    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx,(*(unsigned int*)src)));
     switch (size) {
 	case 8:
-	    pciWriteByte(tag,index << 2,*(CARD8*)src);
+	    pciWriteByte(tag,idx << 2,*(CARD8*)src);
 	    break;
 	case 16:
-	    pciWriteWord(tag,index << 2,*(CARD16*)src);
+	    pciWriteWord(tag,idx << 2,*(CARD16*)src);
 	    break;
 	case 32:
-	    pciWriteLong(tag,index << 2,*(CARD32*)src);
+	    pciWriteLong(tag,idx << 2,*(CARD32*)src);
 	    break;
 	default:
 	    xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,X_ERROR,

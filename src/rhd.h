@@ -186,7 +186,7 @@ typedef struct RHDRec {
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
-int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
+unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
 CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
 #define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
 void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
@@ -227,7 +227,7 @@ void RHDDebugVerb(int scrnIndex, int verb, const char *format, ...);
 void RHDDebugContVerb(int verb, const char *format, ...);
 #define RHDFUNC(ptr) RHDDebug((ptr)->scrnIndex, "FUNCTION: %s\n", __func__)
 #define RHDFUNCI(scrnIndex) RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__)
-void RhdDebugDump(int scrnIndex, unsigned char *start, unsigned long size);
+void RhdDebugDump(int scrnIndex, unsigned char *start, int size);
 #ifdef RHD_DEBUG
 # define DEBUGP(x) {x;}
 #else
