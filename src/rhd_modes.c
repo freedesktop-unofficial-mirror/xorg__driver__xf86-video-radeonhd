@@ -1442,7 +1442,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 				   "(%dx%d): %s\n", Mode->name,
 				   Mode->HDisplay, Mode->VDisplay,
 				   rhdModeStatusToString(ret1));
-		    else if (ret1 != MODE_OK)
+		    else if (ret2 != MODE_OK)
 			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
 				   "(%dx%d): %s\n", Mode->name,
 				   Mode->HDisplay, Mode->VDisplay,
