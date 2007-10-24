@@ -1673,13 +1673,13 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 /*
  *  rhdDoReadPCIBios(): do the actual reading, return size and copy in ptr
  */
-static int
+static unsigned int
 rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
 #ifdef XSERVER_LIBPCIACCESS
-    int size = rhdPtr->PciInfo->rom_size;
+    unsinged int size = rhdPtr->PciInfo->rom_size;
 #else
-    int size = 1 << rhdPtr->PciInfo->biosSize;
+    unsigned int size = 1 << rhdPtr->PciInfo->biosSize;
     int read_len;
 #endif
 
@@ -1705,11 +1705,11 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 		   "Cannot read BIOS image\n");
 	xfree(*ptr);
 	return 0;
-    } else if (read_len != size) {
+    } else if ((unsigned int)read_len != size) {
 	xf86DrvMsg(rhdPtr->scrnIndex,X_WARNING,
 		   "Read only %i of %i bytes of BIOS image\n",
 		   read_len, size);
-	return read_len;
+	return (unsigned int)read_len;
     }
 #endif
     return size;
@@ -1718,10 +1718,10 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 /*
  * rhdR5XXDoReadPCIBios(): enables access to R5xx BIOS, wraps rhdDoReadPCIBios()
  */
-static int
+static unsigned int
 rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
-    int ret;
+    unsigned int ret;
 #ifdef NOT_YET
     CARD32 save_198, save_c, save_8;
 
@@ -1749,10 +1749,10 @@ rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 /*
  *
  */
-static int
+static unsigned int
 rhdR6XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
-    int ret;
+    unsigned int ret;
     CARD32 save_600;
 
     save_600 = RHDRegRead(rhdPtr, 0x600);
@@ -1768,7 +1768,7 @@ rhdR6XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 /*
  *
  */
-int
+unsigned int
 RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
     if (rhdPtr->ChipSet < RHD_R600)

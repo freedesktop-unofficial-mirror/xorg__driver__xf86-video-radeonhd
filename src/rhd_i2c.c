@@ -410,7 +410,7 @@ rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     rhdI2CPtr I2C = (rhdI2CPtr)I2CPtr->DriverPrivate.ptr;
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
-    int index = 1;
+    int idx = 1;
 
     enum {
 	TRANS_WRITE_READ,
@@ -463,12 +463,12 @@ rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
 	    data = RS69_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
-		| (index++ << 16);
+		| (idx++ << 16);
 	    RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, data);
 	}
     }
     if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
-	data = RS69_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (index++ << 16);
+	data = RS69_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (idx++ << 16);
 	RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, data);
     }
     /* Go! */
@@ -476,7 +476,7 @@ rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
     if (rhdRS69I2CStatus(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
 	RHDRegWrite(I2CPtr, RS69_DC_I2C_DATA, RS69_DC_I2C_INDEX_WRITE
-		    | RS69_DC_I2C_DATA_RW  | /* index++ */3 << 16);
+		    | RS69_DC_I2C_DATA_RW  | /* idx++ */3 << 16);
 	while (nRead--) {
 	    data = RHDRegRead(I2CPtr, RS69_DC_I2C_DATA);
 	    *(ReadBuffer++) = (data >> 8) & 0xff;
@@ -578,7 +578,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     rhdI2CPtr I2C = (rhdI2CPtr)I2CPtr->DriverPrivate.ptr;
     CARD8 line = I2C->line;
     int prescale = I2C->prescale;
-    int index = 1;
+    int idx = 1;
 
     enum {
 	TRANS_WRITE_READ,
@@ -631,12 +631,12 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     if (trans != TRANS_READ) { /* we have bytes to write */
 	while (nWrite--) {
 	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
-		| (index++ << 16);
+		| (idx++ << 16);
 	    RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
 	}
     }
     if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
-	data = R6_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (index++ << 16);
+	data = R6_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (idx++ << 16);
 	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, data);
     }
     /* Go! */
@@ -644,7 +644,7 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
     if (rhdR6xxI2CStatus(I2CPtr)) {
 	/* Hopefully this doesn't write data to index */
 	RHDRegWrite(I2CPtr, R6_DC_I2C_DATA, R6_DC_I2C_INDEX_WRITE
-		    | R6_DC_I2C_DATA_RW  | /* index++ */3 << 16);
+		    | R6_DC_I2C_DATA_RW  | /* idx++ */3 << 16);
 	while (nRead--) {
 	    data = RHDRegRead(I2CPtr, R6_DC_I2C_DATA);
 	    *(ReadBuffer++) = (data >> 8) & 0xff;
