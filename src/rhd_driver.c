@@ -1693,7 +1693,7 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 
 #ifdef XSERVER_LIBPCIACCESS
     if (pci_device_read_rom(rhdPtr->PciInfo, ptr)) {
-	xf86DrvMsg(scrnIndex,X_ERROR,
+	xf86DrvMsg(rhdPtr->scrnIndex,X_ERROR,
 		   "Cannot read BIOS image\n");
 	xfree(*ptr);
 	return 0;
