@@ -1677,7 +1677,7 @@ static unsigned int
 rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
 #ifdef XSERVER_LIBPCIACCESS
-    unsinged int size = rhdPtr->PciInfo->rom_size;
+    unsigned int size = rhdPtr->PciInfo->rom_size;
 #else
     unsigned int size = 1 << rhdPtr->PciInfo->biosSize;
     int read_len;
