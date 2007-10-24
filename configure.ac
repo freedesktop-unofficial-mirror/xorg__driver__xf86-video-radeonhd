@@ -119,9 +119,21 @@ AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 WARN_CFLAGS=""
 
 # Extra Warnings
+dnl AC_PROG_CC_FLAG(flag,action-if-found,action-if-not-found)
+AC_DEFUN([AC_PROG_CC_FLAG],[
+  AC_LANG_CONFTEST([AC_LANG_PROGRAM([[]])])
+  AC_MSG_CHECKING([whether $CC supports $1])
+  if $CC $1 -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
+    AC_MSG_RESULT([yes])
+    $2
+  else
+    AC_MSG_RESULT([no])
+    $3
+  fi
+])
+
 # Due to xorg/os.h: -Wno-variadic-macros
 # For testing: make CFLAGS="-O2 -Wshadow -Wunreachable-code -fno-inline-functions"
-AC_LANG_CONFTEST([AC_LANG_PROGRAM([[]])])
 for w in \
   -Wall \
   -Wextra -Wno-unused-parameter \
@@ -133,13 +145,7 @@ for w in \
   -Wstrict-prototypes -Wold-style-definition \
   -Wnested-externs -Wdisabled-optimization ;
 do
-  AC_MSG_CHECKING([whether $CC supports $w])
-  if $CC $w -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
-    AC_MSG_RESULT([yes])
-    WARN_CFLAGS="$WARN_CFLAGS $w"
-  else
-    AC_MSG_RESULT([no])
-  fi
+  AC_PROG_CC_FLAG($w,[WARN_CFLAGS="$WARN_CFLAGS $w"],)
 done
 # Optimizations
 case "x$CFLAGS" in
@@ -147,13 +153,7 @@ dnl Automake needs extra escaping
   [*-O[2-9]*)]
     AC_MSG_NOTICE([Doing optimized build, checking for additional options])
     for w in -finline-functions ; do
-      AC_MSG_CHECKING([whether $CC supports $w])
-      if $CC $w -c -o /dev/null conftest.c >/dev/null 2>&1 ; then
-	AC_MSG_RESULT([yes])
-        CFLAGS="$CFLAGS -finline-functions"
-      else
-	AC_MSG_RESULT([no])
-      fi
+      AC_PROG_CC_FLAG($w,[CFLAGS="$CFLAGS -finline-functions"],)
     done
     ;;
 esac
