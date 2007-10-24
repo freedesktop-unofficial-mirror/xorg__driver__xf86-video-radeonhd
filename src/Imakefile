@@ -1,5 +1,6 @@
 #define IHaveModules
 #include <Server.tmpl>
+#include "../RadeonHD.tmpl"
 
 #define ATOM_BIOS_PARSER
 
@@ -79,12 +80,6 @@ ATOM_BIOS_DEFINES = -DATOM_BIOS=1
 ATOM_BIOS_PARSER_INCLUDES = -I./AtomBios
 ATOM_BIOS_PARSER_DEFINES = -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_FUNCTIONS -DATOM_BIOS_PARSER=1
 #endif
-
-VER_SED_EXPR = [^0-9]*\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)[^0-9]*
-VER_GREP = grep -A 4 AC_INIT $(TOP)/configure.ac
-PACKAGE_VERSION_MAJOR      = `$(VER_GREP) | sed -n "s/$(VER_SED_EXPR)/\\1/p"`
-PACKAGE_VERSION_MINOR      = `$(VER_GREP) | sed -n "s/$(VER_SED_EXPR)/\\2/p"`
-PACKAGE_VERSION_PATCHLEVEL = `$(VER_GREP) | sed -n "s/$(VER_SED_EXPR)/\\3/p"`
 
 DEFINES  = $(INCLUDES) $(ATOM_BIOS_INCLUDES) $(ATOM_BIOS_PARSER_INCLUDES) \
            $(ATOM_BIOS_DEFINES) $(ATOM_BIOS_PARSER_DEFINES) \
