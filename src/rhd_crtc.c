@@ -90,7 +90,7 @@ DxFBValid(struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height, int bpp,
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
     CARD16 Pitch;
-    int BytesPerPixel;
+    unsigned int BytesPerPixel;
     CARD8 PitchMask = 0xFF;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);

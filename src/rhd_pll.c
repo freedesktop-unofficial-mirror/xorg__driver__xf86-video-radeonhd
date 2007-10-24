@@ -669,7 +669,7 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 	    break;
 
         for (RefDiv = 1; RefDiv <= REF_DIV_LIMIT; RefDiv++) {
-	    int Diff;
+	    CARD32 Diff;
 
 	    FBDiv = (CARD32) ((Ratio * PostDiv * RefDiv) + 0.5);
 
