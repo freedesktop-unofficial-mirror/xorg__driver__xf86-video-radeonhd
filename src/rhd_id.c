@@ -390,16 +390,16 @@ RHDIdentify(int flags)
 #endif /* if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS) */
 
 /*
- * Workaround for MCS-59 connectors
+ * Workaround for DMS-59 connectors
  */
-#define MCS59 \
-  { {RHD_CONNECTOR_VGA, "MCS-59 VGA 1", RHD_DDC_0, RHD_HPD_NONE, \
+#define DMS59 \
+  { {RHD_CONNECTOR_VGA, "DMS-59 VGA 1", RHD_DDC_0, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}, \
-    {RHD_CONNECTOR_VGA, "MCS-59 VGA 2", RHD_DDC_1, RHD_HPD_NONE, \
+    {RHD_CONNECTOR_VGA, "DMS-59 VGA 2", RHD_DDC_1, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE}}, \
-    {RHD_CONNECTOR_DVI, "MCS-59 DVI-D 1", RHD_DDC_0, RHD_HPD_0, \
+    {RHD_CONNECTOR_DVI, "DMS-59 DVI-D 1", RHD_DDC_0, RHD_HPD_0, \
        { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE}}, \
-    {RHD_CONNECTOR_DVI, "MCS-59 DVI-D 2", RHD_DDC_1, RHD_HPD_1, \
+    {RHD_CONNECTOR_DVI, "DMS-59 DVI-D 2", RHD_DDC_1, RHD_HPD_1, \
        { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}}
 
 /*
@@ -462,7 +462,7 @@ rhdCards[] =
     /* 0x7180 : RV516 : Radeon X1300/X1550 */
     /* 0x7181 : RV516 : Radeon X1600 */
     /* 0x7183 : RV516 : Radeon X1300/X1550 */
-    { 0x7183, 0x1028, 0x0D02, "Dell ATI Radeon X1300", MCS59 },
+    { 0x7183, 0x1028, 0x0D02, "Dell ATI Radeon X1300", DMS59 },
     /* 0x7186 : M64 : Mobility Radeon X1450 */
     /* 0x7187 : RV516 : Radeon X1300/X1550 */
     /* 0x7188 : M64 : Mobility Radeon X2300 */
