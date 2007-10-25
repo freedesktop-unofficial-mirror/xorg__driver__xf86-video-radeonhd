@@ -1,0 +1,5 @@
+#define IHaveModules
+#include <Server.tmpl>
+#include "../RadeonHD.tmpl"
+
+InstallModuleManPage(radeonhd)
