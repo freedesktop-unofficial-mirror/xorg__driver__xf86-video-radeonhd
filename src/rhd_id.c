@@ -224,6 +224,7 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x958B, RHD_M76   ), /* Gemini ATI Mobility Radeon HD 2600 XT */
     RHD_DEVICE_MATCH(  0x958C, RHD_RV630 ), /* FireGL V5600 */
     RHD_DEVICE_MATCH(  0x958D, RHD_RV630 ), /* FireGL V3600 */
+    RHD_DEVICE_MATCH(  0x958E, RHD_RV630 ), /* ATI Radeon HD 2600 LE */
     LIST_END
 };
 
@@ -248,7 +249,7 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE, "\t"
 	    "R600   : Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650.\n\t"
 	    "RV610  : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000.\n\t"
-	    "RV630  : Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600.\n\t"
+	    "RV630  : Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600.\n\t"
 	    "M52    : Mobility Radeon X1300.\n\t"
 	    "M54    : Mobility Radeon X1400; M54-GL.\n\t"
 	    "M56    : Mobility Radeon X1600; Mobility FireGL V5200.\n\t"
@@ -580,6 +581,7 @@ rhdCards[] =
     /* 0x958B : M76 : Gemini ATI Mobility Radeon HD 2600 XT */
     /* 0x958C : RV630 : ATI FireGL V5600  */
     /* 0x958D : RV630 : ATI FireGL V3600  */
+    /* 0x958E : RV630 : ATI Radeon HD 2600 LE  */
     { 0, 0, 0, NULL, ID_CONNECTORINFO_EMPTY } /* KEEP THIS: End marker. */
 };
 
