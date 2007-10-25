@@ -137,10 +137,9 @@ As the
 .B radeonhd
 driver is still in an early stage of development, many non-obvious things 
 do not work yet. Other places to check for known bugs and solutions are the 
-bugtracker
-\%https://bugs.freedesktop.org/
-(Product \*qxorg\*q, Component \*qDriver/radeonhd\*q) and the mailing
-list archives at
+bugtracker at
+\%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
+and the mailing list archives at
 \%http://lists.opensuse.org/radeonhd/
 .SS No valid modeline found
 If the

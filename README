@@ -24,8 +24,7 @@ The git repository with the radeonhd source code:
    git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd
 
 Report bugs at:
-   https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
-   (component radeonhd)
+   https://bugs.freedesktop.org/enter_bug.cgi?product=xorg&component=Driver/radeonhd
 
 
 
