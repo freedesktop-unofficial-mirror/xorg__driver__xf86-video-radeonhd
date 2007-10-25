@@ -50,7 +50,7 @@ struct rhdOutput {
     int scrnIndex;
 
     char *Name;
-    int Id;
+    enum _rhdOutputType Id;
 
     Bool Active;
 
