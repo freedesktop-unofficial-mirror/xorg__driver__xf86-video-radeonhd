@@ -182,15 +182,17 @@ typedef enum {
     OPTION_SW_CURSOR,
     OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
-    OPTION_FORCEREDUCED
+    OPTION_FORCEREDUCED,
+    OPTION_USECONFIGUREDMONITOR
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
-    { OPTION_NOACCEL,	      "NoAccel",         OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_SW_CURSOR,	      "SWcursor",        OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_SHADOWFB,        "shadowfb",        OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR,  {0}, FALSE },
-    { OPTION_FORCEREDUCED,    "forcereduced",    OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -626,29 +628,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
-    if (!rhdPtr->ConfigMonitor) {
-	int i;
-
-	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
-	    if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
-		break;
-
-	if (i == RHD_CONNECTORS_MAX) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "No monitor information found. Attaching default.\n");
-	    rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
-	    if (rhdPtr->ConfigMonitor) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Default Monitor \"%s\":\n",
-			   rhdPtr->ConfigMonitor->Name);
-		RHDMonitorPrint(rhdPtr->ConfigMonitor);
-	    }
-	}
-    } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
-		   rhdPtr->ConfigMonitor->Name);
-	RHDMonitorPrint(rhdPtr->ConfigMonitor);
-    }
+    /* set up rhdPtr->ConfigMonitor */
+    if (!xf86GetOptValBool(rhdPtr->Options, OPTION_USECONFIGUREDMONITOR, &ret))
+	ret = FALSE;
+    RHDConfigMonitorSet(pScrn->scrnIndex, ret);
 
     rhdModeLayoutPrint(rhdPtr);
 
@@ -1469,7 +1452,6 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
 	xf86Msg(X_NONE, "\n");
     xf86Msg(X_NONE, "\n");
 }
-
 
 /*
  *
