@@ -432,10 +432,10 @@ PLL1Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreActive) {
-	RHDRegWrite(PLL, P1PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
-
 	PLL1SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		   PLL->StorePostDiv, PLL->StoreControl);
+	RHDRegMask(PLL, P1PLL_INT_SS_CNTL,
+		   PLL->StoreSpreadSpectrum, 0x00000001);
     } else {
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
@@ -463,10 +463,10 @@ PLL2Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreActive) {
-	RHDRegWrite(PLL, P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
-
 	PLL2SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		   PLL->StorePostDiv, PLL->StoreControl);
+	RHDRegMask(PLL, P2PLL_INT_SS_CNTL,
+		   PLL->StoreSpreadSpectrum, 0x00000001);
     } else {
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
