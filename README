@@ -68,6 +68,32 @@ will be available as ./utils/conntest/rhd_conntest after the "make" run.
 
 
 
+Common problems during builds
+=============================
+
+Problem:
+--------
+
+,----[ output of ./autogen.sh ]----
+|autoreconf: running: /usr/bin/autoconf
+|configure.ac:35: error: possibly undefined macro: XORG_DRIVER_CHECK_EXT
+|      If this token and others are legitimate, please use m4_pattern_allow.
+|      See the Autoconf documentation.
+|autoreconf: /usr/bin/autoconf failed with exit status: 1
+`----
+
+Solution:
+---------
+
+Your system lacks one or more of these files in /usr/share/aclocal:
+    xorg-macros.m4 xorg-server.m4 xorgversion.m4
+
+Make sure you have all required X.org development packages installed. These
+may be called xorg-dev, xorg-x11-server-sdk and xorg-x11-util-macros, or
+something similar.
+
+
+
 Getting and updating the radeonhd source code
 =============================================
 
