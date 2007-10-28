@@ -141,16 +141,6 @@ bugtracker at
 \%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
 and the mailing list archives at
 \%http://lists.opensuse.org/radeonhd/
-.SS No valid modeline found
-If the
-.I "Section \*qScreen\*q"
-in your __xconfigfile__ contains a
-.I "Monitor \*qfoobar\*q"
-line, 
-.B radeonhd
-often does not find a valid modeline for the attached display when an 
-internal laptop flat panel is used and aborts. Workaround: Comment out the 
-\*qMonitor\*q line.
 .SS Laptop backlight brightness cannot be changed
 While
 .B radeonhd
