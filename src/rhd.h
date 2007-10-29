@@ -179,6 +179,9 @@ typedef struct RHDRec {
     struct rhdMonitor  *ConfigMonitor;
 
     rhdShadowPtr	shadowPtr;
+
+    /* RandR compatibility layer */
+    struct rhdRandr    *randr;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
