@@ -101,6 +101,7 @@
 #include "rhd_i2c.h"
 #include "rhd_shadow.h"
 #include "rhd_card.h"
+#include "rhd_randr.h"
 
 /* ??? */
 #include "servermd.h"
@@ -619,6 +620,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
+    RHDRandrPreInit(pScrn);
+
     /* Pick anything for now */
     if (!rhdModeLayoutSelect(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -767,6 +770,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     rhdPtr = RHDPTR(pScrn);
     RHDFUNC(pScrn);
 
+    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
+	rhdPtr->randr = NULL;
+    }
     /*
      * Whack the hardware
      */
@@ -785,7 +792,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     rhdSave(rhdPtr);
 
     /* now init the new mode */
-    rhdModeInit(pScrn, pScrn->currentMode);
+    if (rhdPtr->randr)
+	RHDRandrModeInit(pScrn);
+    else
+	rhdModeInit(pScrn, pScrn->currentMode);
 
     /* @@@ add code to unblank the screen */
 
@@ -947,7 +957,10 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    rhdModeInit(pScrn, pScrn->currentMode);
+    if (rhdPtr->randr)
+	RHDRandrModeInit(pScrn);
+    else
+	rhdModeInit(pScrn, pScrn->currentMode);
 
     /* @@@ video overlays can be initialized here */
 
@@ -973,7 +986,13 @@ RHDLeaveVT(int scrnIndex, int flags)
 static Bool
 RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 {
-    rhdModeInit(xf86Screens[scrnIndex], mode);
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->randr)
+	RHDRandrSwitchMode(pScrn, mode);
+    else
+	rhdModeInit(xf86Screens[scrnIndex], mode);
 
     return TRUE;
 }
