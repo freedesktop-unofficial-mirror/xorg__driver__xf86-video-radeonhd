@@ -175,6 +175,7 @@ AC_SUBST([XORG_CFLAGS])
 AC_SUBST([WARN_CFLAGS])
 AC_SUBST([PEDANTIC_CFLAGS])
 AC_SUBST([ATOMBIOS_CFLAGS])
+AC_SUBST([RANDR_VERSION],[`pkg-config --modversion randrproto`])
 AC_SUBST([moduledir])
 
 DRIVER_NAME=radeonhd
