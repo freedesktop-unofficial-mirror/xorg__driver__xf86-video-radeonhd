@@ -48,4 +48,8 @@ DisplayModePtr RHDModeCopy(DisplayModePtr Mode);
 Bool RHDGetVirtualFromConfig(ScrnInfoPtr pScrn);
 void RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent);
 
+int RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
+		   struct rhdConnector *Connector, struct rhdOutput *Output,
+		   struct rhdMonitor *Monitor);
+
 #endif /* _RHD_MODES_H */

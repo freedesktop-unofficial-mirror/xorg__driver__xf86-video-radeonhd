@@ -29,6 +29,7 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
+#include "xf86Parser.h"
 
 #include "rhd.h"
 #include "rhd_crtc.h"
@@ -1463,3 +1464,107 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 	    Mode = Mode->next;
     }
 }
+
+/*
+ * RandR entry point: fixup per Crtc and Output (in RandR speech)
+ * Due to misconceptions we might end up fixing *everything* here.
+ */
+int
+RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
+	       struct rhdConnector *Connector, struct rhdOutput *Output,
+	       struct rhdMonitor *Monitor)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i, Status;
+
+    ASSERT(Connector);
+    ASSERT(Output);
+    RHDFUNC(Output);
+
+    Status = rhdModeSanity(Mode);
+    if (Status != MODE_OK)
+        return Status;
+
+    rhdModeFillOutCrtcValues(Mode);
+
+    /* We don't want to loop around this forever */
+    for (i = 10; i; i--) {
+        Mode->CrtcHAdjusted = FALSE;
+        Mode->CrtcVAdjusted = FALSE;
+
+	/* Sanitize */
+        Status = rhdModeCrtcSanity(Mode);
+        if (Status != MODE_OK)
+            return Status;
+        if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+            continue;
+
+	if (Crtc) {
+	    /* Check FB */
+	    Status = Crtc->FBValid(Crtc, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
+				   pScrn->bitsPerPixel, rhdPtr->FbFreeStart,
+				   rhdPtr->FbFreeSize, NULL);
+	    if (Status != MODE_OK)
+		return Status;
+
+	    /* Check Crtc */
+	    Status = Crtc->ModeValid(Crtc, Mode);
+	    if (Status != MODE_OK)
+		return Status;
+	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		continue;
+
+	    /* Check PLL */
+	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
+	    if (Status != MODE_OK)
+		return Status;
+	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		continue;
+	}
+
+	/* Check Output */
+	Status = Output->ModeValid(Output, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+	if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+	    continue;
+
+	/* Check the monitor attached to this output */
+	if (Connector->Monitor)
+	    Status = rhdMonitorValid(Connector->Monitor, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+	if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+	    continue;
+
+	/* Seems to be good */
+	break;
+    }
+
+    if (!i) {
+	/* Mode has been bouncing around for ages, on adjustments */
+	xf86DrvMsg(Output->scrnIndex, X_ERROR,
+		   "%s: Mode \"%s\" (%dx%d:%3.1fMhz) was thrown around"
+		   " for too long.\n", __func__, Mode->name,
+		   Mode->HDisplay, Mode->VDisplay, Mode->Clock/1000.0);
+	return MODE_ERROR;
+    }
+
+    /* throw them at the configured monitor */
+    if (Monitor) {
+	Status = rhdMonitorValid(Monitor, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+    }
+
+    /* Did we set up virtual resolution already? */
+    if ((pScrn->virtualX > 0) && (pScrn->virtualY > 0)) {
+        if (pScrn->virtualX < Mode->CrtcHDisplay)
+            return MODE_VIRTUAL_X;
+        if (pScrn->virtualY < Mode->CrtcVDisplay)
+            return MODE_VIRTUAL_Y;
+    }
+
+    return MODE_OK;
+}
+
