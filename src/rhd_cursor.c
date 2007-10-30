@@ -49,6 +49,9 @@
 
 /* System headers */
 #include <assert.h>
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
 
 /*
  * Bit-banging ONLY

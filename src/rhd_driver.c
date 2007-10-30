@@ -105,6 +105,10 @@
 /* ??? */
 #include "servermd.h"
 
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
+
 /* Mandatory functions */
 static const OptionInfoRec *	RHDAvailableOptions(int chipid, int busid);
 #ifdef XSERVER_LIBPCIACCESS

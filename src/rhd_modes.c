@@ -38,6 +38,10 @@
 #include "rhd_connector.h"
 #include "rhd_monitor.h"
 
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
+
 /*
  * Define a set of own mode errors.
  */
