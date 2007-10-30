@@ -165,7 +165,7 @@ static Bool
 rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
 			DisplayModePtr mode,
 			DisplayModePtr adjusted_mode)
-{ }
+{ return TRUE; }
 static void
 rhdRRCrtcPrepareDUMMY(xf86CrtcPtr crtc)
 { }
