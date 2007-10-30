@@ -35,14 +35,11 @@
 
 //#ifdef RANDR_12_INTERFACE   // TODO
 
-/* All drivers should typically include these */
 #include "xf86.h"
-
 #include "randrstr.h"
-/* Missing in xf86Crtc.h */
-#include "xf86i2c.h"
+#include "xf86i2c.h"		/* Missing in xf86Crtc.h */
 #include "xf86Crtc.h"
-//#include "servermd.h"
+#include "xf86Parser.h"
 
 /* Driver specific headers */
 #include "rhd.h"
@@ -50,6 +47,7 @@
 #include "rhd_crtc.h"
 #include "rhd_output.h"
 #include "rhd_connector.h"
+#include "rhd_modes.h"
 
 /* System headers */
 #include <ctype.h>
@@ -107,6 +105,21 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
     RHDFUNC(rhdPtr);
 }
 
+/* Lock CRTC prior to mode setting, mostly for DRI.
+ * Returns whether unlock is needed */
+static Bool
+rhdRRCrtcLock (xf86CrtcPtr crtc)
+{
+    return FALSE;
+}
+
+#if 0
+/**
+ * Unlock CRTC after mode setting, mostly for DRI
+ */
+void
+(*unlock) (xf86CrtcPtr crtc);
+
 /**
  * Callback to adjust the mode to be set in the CRTC.
  *
@@ -128,6 +141,7 @@ rhdRRCrtcModeFixup(xf86CrtcPtr    crtc,
     RHDFUNC(rhdPtr);
     return FALSE;
 }
+#endif
 
 /**
  * This function applies the specified mode (possibly adjusted by the CRTC
@@ -143,16 +157,29 @@ rhdRRCrtcModeSet(xf86CrtcPtr    crtc,
     RHDFUNC(rhdPtr);
 }
 
+/* Dummys, because they are not tested for NULL */
+static Bool
+rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
+			DisplayModePtr mode,
+			DisplayModePtr adjusted_mode)
+{ }
+static void
+rhdRRCrtcPrepareDUMMY(xf86CrtcPtr crtc)
+{ }
+static void
+rhdRRCrtcCommitDUMMY(xf86CrtcPtr crtc)
+{ }
+
+#if 0
 /* Set the color ramps for the CRTC to the given values. */
 static void
-rhdRRCrtcGamaSet(xf86CrtcPtr crtc,
+rhdRRCrtcGammaSet(xf86CrtcPtr crtc,
 		 CARD16 *red, CARD16 *green, CARD16 *blue, int size)
 {
     RHDPtr rhdPtr = RHDPTR(crtc->scrn);
     RHDFUNC(rhdPtr);
 }
 
-#if 0
     void
     crtc->funcs->prepare (xf86CrtcPtr crtc)
 
@@ -212,38 +239,98 @@ rhdRROutputDpms(xf86OutputPtr       output,
     RHDFUNC(rhdPtr);
 }
 
-/**
- * Callback for testing a video mode for a given output.
- *
- * This function should only check for cases where a mode can't be supported
- * on the output specifically, and not represent generic CRTC limitations.
- *
- * \return MODE_OK if the mode is valid, or another MODE_* otherwise.
- */
-static int
-rhdRROutputModeValid(xf86OutputPtr    output,
-		     DisplayModePtr    pMode)
+/* Helper: setup Crtc for validation & fixup */
+static Bool
+setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
+	  DisplayModePtr Mode)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
-    RHDFUNC(rhdPtr);
-    return MODE_NOMODE;
+    struct rhdOutput *o;
+    int i;
+
+#if 1
+    ErrorF("***** setupCrtc for Output %s\n", Output->Name);
+    for (i = 0; i < 2; i++) {
+	ErrorF("*** Crtc %p is %sactive\n", (void*) rhdPtr->Crtc[i],
+	       rhdPtr->Crtc[i]->Active ? "":"in");
+    }
+    for (o = rhdPtr->Outputs; o; o = o->Next) {
+	ErrorF("*** Output %s has Crtc %p and is %sactive\n",
+	       o->Name, (void*) o->Crtc, o->Active ? "":"in");
+    }
+#endif
+    /* ATM: if already assigned, use the same */
+    if (Output->Crtc == Crtc)
+	return TRUE;
+    ASSERT(!Output->Crtc);
+    ASSERT(!Output->Active);
+    ASSERT(!Crtc->Active);
+
+    /* Setup - static ATM */
+    Output->Crtc = Crtc;
+    Crtc->PLL = rhdPtr->PLLs[i];
+    Crtc->LUT = rhdPtr->LUT[i];
+
+    return TRUE;
 }
 
-/**
- * Callback to adjust the mode to be set in the CRTC.
- *
- * This allows an output to adjust the clock or even the entire set of
- * timings, which is used for panels with fixed timings or for
- * buses with clock limitations.
- */
-static Bool
-rhdRROutputModeFixup(xf86OutputPtr output,
-		     DisplayModePtr mode,
-		     DisplayModePtr adjusted_mode)
+/* RandR has a weird sense of how validation and fixup should be handled:
+ * - Fixup and validation can interfere, they would have to be looped
+ * - Validation should be done after fixup
+ * - There is no crtc validation AT ALL
+ * - The necessity of adjusted_mode is questionable
+ * - Outputs and crtcs are checked independently, and one at a time.
+ *   This can interfere, the driver should know the complete setup for
+ *   validation and fixup.
+ *   We also cannot emulate, because we never know when validation is finished.
+ * Therefore we only use a single function for all and have to work around
+ * not knowing what the other crtcs might be needed for. */
+static int
+rhdRROutputModeValid(xf86OutputPtr  out,
+		     DisplayModePtr Mode)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
+    RHDPtr             rhdPtr = RHDPTR(out->scrn);
+    rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdCrtc    *Crtc   = NULL;
+
     RHDFUNC(rhdPtr);
-    return FALSE;
+    ASSERT(rout->Connector);
+    ASSERT(rout->Output);
+
+    if (out->crtc)
+	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+
+    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) )
+	return MODE_ERROR;
+    
+    return RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
+			  NULL);	// TODO
+}
+
+static Bool
+rhdRROutputModeFixup(xf86OutputPtr  out,
+		     DisplayModePtr Mode,
+		     DisplayModePtr AdjustedMode)
+{
+    RHDPtr             rhdPtr = RHDPTR(out->scrn);
+    rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdCrtc    *Crtc   = NULL;
+
+    RHDFUNC(rhdPtr);
+    ASSERT(rout->Connector);
+    ASSERT(rout->Output);
+
+    if (out->crtc)
+	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+
+    if (! setupCrtc(rhdPtr, Crtc, rout->Output, AdjustedMode) )
+	return FALSE;
+    
+    if (RHDRRModeFixup(out->scrn, AdjustedMode,
+		       Crtc, rout->Connector, rout->Output,
+		       NULL)	// TODO
+	!= MODE_OK)
+	return FALSE;
+    return TRUE;
 }
 
 /**
@@ -262,18 +349,14 @@ rhdRROutputModeSet(xf86OutputPtr  output,
     RHDFUNC(rhdPtr);
 }
 
-/**
- * Probe for a connected output, and return detect_status.
- * XF86OutputStatusConnected, XF86OutputStatusDisconnected,
- * XF86OutputStatusUnknown
- */
+/* Probe for a connected output, and return detect_status. */
 static xf86OutputStatus
-rhdRROutputDetect(xf86OutputPtr	    output)
+rhdRROutputDetect(xf86OutputPtr output)
 {
     RHDPtr rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
-    RHDFUNC(rhdPtr);
 
+    RHDFUNC(rhdPtr);
     if (rout->Output->Sense) {
 	if (rout->Output->Sense(rout->Output, rout->Connector->Type))
 	    return XF86OutputStatusConnected;
@@ -283,19 +366,19 @@ rhdRROutputDetect(xf86OutputPtr	    output)
     return XF86OutputStatusUnknown;
 }
 
-/**
- * Query the device for the modes it provides.
- *
- * This function may also update MonInfo, mm_width, and mm_height.
- *
- * \return singly-linked list of modes or NULL if no modes found.
- */
+/* Query the device for the modes it provides. Set MonInfo, mm_width/height. */
 static DisplayModePtr
-rhdRROutputGetModes(xf86OutputPtr	    output)
+rhdRROutputGetModes(xf86OutputPtr output)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
+    RHDPtr            rhdPtr = RHDPTR(output->scrn);
+    rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
+    xf86MonPtr	      edid_mon;
+
     RHDFUNC(rhdPtr);
-    return NULL;
+    edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
+    xf86OutputSetEDID (output, edid_mon);
+    
+    return xf86OutputGetEDIDModes (output);
 }
 
 #if 0
@@ -308,6 +391,14 @@ rhdRROutputGetModes(xf86OutputPtr	    output)
 		    RRPropertyValuePtr value);
 #endif
 
+/* Dummys, because they are not tested for NULL */
+static void
+rhdRROutputPrepareDUMMY(xf86OutputPtr out)
+{ }
+static void
+rhdRROutputCommitDUMMY(xf86OutputPtr out)
+{ }
+
 
 /*
  * Xorg Interface
@@ -317,35 +408,31 @@ static const xf86CrtcConfigFuncsRec rhdRRCrtcConfigFuncs = {
     rhdRRXF86CrtcResize
 };
 
-////////// i830_display.c
 static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcDpms,
     /*rhdRRCrtcSave*/ NULL, /*rhdRRCrtcRestore*/ NULL,
-    /*rhdRRCrtcLock*/ NULL, /*rhdRRCrtcUnlock*/ NULL,
-    rhdRRCrtcModeFixup,
-    /*rhdRRCrtcPrepare*/ NULL, rhdRRCrtcModeSet, /*rhdRRCrtcCommit*/ NULL,
-    rhdRRCrtcGamaSet,
+    rhdRRCrtcLock, /*rhdRRCrtcUnlock*/ NULL,
+    rhdRRCrtcModeFixupDUMMY,
+    rhdRRCrtcPrepareDUMMY, rhdRRCrtcModeSet, rhdRRCrtcCommitDUMMY,
+    /*rhdRRCrtcGammaSet*/ NULL,
     /*rhdRRCrtcShadowAllocate, rhdRRCrtcShadowCreate, rhdRRCrtcShadowDestroy,*/ NULL, NULL, NULL,
     /*set_cursor_colors*/ NULL, /*set_cursor_position*/ NULL,
     /*show_cursor*/ NULL, /*hide_cursor*/ NULL,
     /*load_cursor_image*/ NULL, /*load_cursor_argb*/ NULL,
-    /*rhdRRCrtcDestory*/ NULL
+    /*rhdRRCrtcDestroy*/ NULL
 };
 
-/////////// i830_crt.c / i830_lvds.c / i830_dvo.c / i830_sdvo.c / i830_tv.c
 static const xf86OutputFuncsRec rhdRROutputFuncs = {
     /*create_resources*/ NULL, rhdRROutputDpms,
     /*rhdRROutputSave*/ NULL, /*rhdRROutputRestore*/ NULL,
     rhdRROutputModeValid, rhdRROutputModeFixup,
-    /*rhdRROutputPrepare*/ NULL, /*rhdRROutputCommit*/ NULL,
+    rhdRROutputPrepareDUMMY, rhdRROutputCommitDUMMY,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
 #ifdef RANDR_12_INTERFACE
     /*rhdRROutputSetProperty*/ NULL,
 #endif
     /*destroy*/ NULL
 };
-
-//xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
 
 /* Helper: Create xf86OutputRec with unique name per Connector/Output combo */
 static xf86OutputPtr
@@ -358,7 +445,7 @@ createRandrOutput(ScrnInfoPtr pScrn,
 
     ASSERT (conn);
     ASSERT (out);
-    rro = xnfcalloc(sizeof(rhdRandrOutputRec), 1);
+    rro = xnfcalloc(1, sizeof(rhdRandrOutputRec));
     rro->Connector = conn;
     rro->Output    = out;
     sprintf(rro->Name, "%.30s/%.30s", conn->Name, out->Name);
@@ -370,12 +457,12 @@ createRandrOutput(ScrnInfoPtr pScrn,
     xo = xf86OutputCreate(pScrn, &rhdRROutputFuncs, rro->Name);
     ASSERT(xo);
     xo->driver_private = rro;
-    xo->possible_crtcs  = 0x03;		// TODO
-    xo->possible_clones = 0;		// TODO - probably after setup
-    xo->interlaceAllowed = FALSE;	// TODO
-    xo->doubleScanAllowed = FALSE;	// TODO
-    xo->subpixel_order = SubPixelUnknown;	// TODO SubPixelUnknown SubPixelHorizontalRGB SubPixelHorizontalBGR SubPixelVerticalRGB SubPixelVerticalBGR SubPixelNone
-    //xo->use_screen_monitor = TRUE;	// TODO unknown
+    xo->possible_crtcs  = ~0;		/* No limitations */
+    xo->possible_clones = ~0;		/* No limitations */
+    xo->interlaceAllowed = FALSE;
+    xo->doubleScanAllowed = FALSE;
+    xo->subpixel_order = SubPixelUnknown;
+    xo->use_screen_monitor = FALSE;
     return xo;
 }
 
@@ -427,7 +514,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     }
     *RandrOutput = NULL;
 
-    if (!xf86InitialConfiguration(pScrn, FALSE)) { /* canGrow; not for XAA */
+    if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandR: No valid modes.\n");
 	return FALSE;
     }
@@ -444,7 +531,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase))	// TODO: support or not?
+    if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase)) // TODO: support or not?
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
