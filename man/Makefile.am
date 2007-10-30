@@ -35,8 +35,6 @@ EXTRA_DIST = @DRIVER_NAME@.man
 
 CLEANFILES = $(driverman_DATA)
 
-SED = sed
-
 # Strings to replace in man pages
 XORGRELSTRING = @PACKAGE_STRING@
   XORGMANNAME = X Version 11
