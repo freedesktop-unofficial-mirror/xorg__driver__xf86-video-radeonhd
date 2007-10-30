@@ -30,6 +30,7 @@
 #include "xf86.h"
 
 #include "rhd.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 

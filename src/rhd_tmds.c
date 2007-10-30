@@ -39,6 +39,7 @@
 
 #include "rhd.h"
 #include "rhd_crtc.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
 
@@ -62,13 +63,20 @@ struct rhdTMDSPrivate {
  *
  */
 static Bool
-TMDSASense(struct rhdOutput *Output, int Type)
+TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 Enable, Control, Detect;
     Bool ret;
 
     RHDFUNC(Output);
+
+    if (Type != RHD_CONNECTOR_DVI) {
+	xf86DrvMsg(Output->scrnIndex, X_WARNING,
+		   "%s: connector type %d is not supported.\n",
+		   __func__, Type);
+	return FALSE;
+    }
 
     Enable = RHDRegRead(Output, TMDSA_TRANSMITTER_ENABLE);
     Control = RHDRegRead(Output, TMDSA_TRANSMITTER_CONTROL);

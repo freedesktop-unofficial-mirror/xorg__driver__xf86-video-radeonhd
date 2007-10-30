@@ -33,9 +33,9 @@
 #include "xf86_ansic.h"
 
 #include "rhd.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_crtc.h"
-#include "rhd_connector.h"
 #include "rhd_regs.h"
 
 
@@ -119,14 +119,21 @@ DACASense(struct rhdOutput *Output, Bool TV)
  * TV detection is for later.
  */
 static Bool
-DACASenseCRT(struct rhdOutput *Output, int Type)
+DACASenseCRT(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDFUNC(Output);
 
-    if (Type != RHD_CONNECTOR_TV)
+    switch (Type) {
+    case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_VGA:
 	return (DACASense(Output, FALSE) & 0xFF);
-    else
+    case RHD_CONNECTOR_TV:
+    default:
+	xf86DrvMsg(Output->scrnIndex, X_WARNING,
+		   "%s: connector type %d is not supported.\n",
+		   __func__, Type);
 	return FALSE;
+    }
 }
 
 /*
@@ -195,14 +202,21 @@ DACBSense(struct rhdOutput *Output, Bool TV)
  * TV detection is for later.
  */
 static Bool
-DACBSenseCRT(struct rhdOutput *Output, int Type)
+DACBSenseCRT(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDFUNC(Output);
 
-    if (Type != RHD_CONNECTOR_TV)
+    switch (Type) {
+    case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_VGA:
 	return (DACBSense(Output, FALSE) & 0xFF);
-    else
+    case RHD_CONNECTOR_TV:
+    default:
+	xf86DrvMsg(Output->scrnIndex, X_WARNING,
+		   "%s: connector type %d is not supported.\n",
+		   __func__, Type);
 	return FALSE;
+    }
 }
 
 /*

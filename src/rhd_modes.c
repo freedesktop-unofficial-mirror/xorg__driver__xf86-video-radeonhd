@@ -33,9 +33,9 @@
 #include "rhd.h"
 #include "rhd_crtc.h"
 #include "rhd_pll.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_modes.h"
-#include "rhd_connector.h"
 #include "rhd_monitor.h"
 
 #ifndef _XF86_ANSIC_H

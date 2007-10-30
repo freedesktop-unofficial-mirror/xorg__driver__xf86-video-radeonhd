@@ -57,7 +57,7 @@ struct rhdOutput {
     struct rhdCrtc *Crtc;
     struct rhdConnector *Connector;
 
-    Bool (*Sense) (struct rhdOutput *Output, int Type);
+    Bool (*Sense) (struct rhdOutput *Output, enum rhdConnectorType Type);
     ModeStatus (*ModeValid) (struct rhdOutput *Output, DisplayModePtr Mode);
     void (*Mode) (struct rhdOutput *Output);
     void (*Power) (struct rhdOutput *Output, int Power);
