@@ -58,12 +58,10 @@ A more up-to-date list can be found on the wiki page.
 The
 .B radeonhd
 driver supports video cards based on the following ATI chips:
-.\" The following list was generated from "X -logverbose 7" by the following command:
-.\" sed -n '/^\t[RM][A-Z0-9]\+ * : /{ s/\.$//; s/^\t\([A-Z0-9]\+\) \+: \(.*\)/.TP 8\n.B \1\n\2/; p};' /var/log/Xorg.0.log
-.\" TODO: Note that this line doesn't deal with multi-line output correctly
-.\" The list replicates the output of RHDIdentify() in src/rhd_id.c.
 .PP
 .PD 0
+.\" This list is generated from the RHDIdentify() function in src/rhd_id.c.
+.\" START_DEVICE_LIST marker - do not delete
 .TP 8
 .B RV505
 Radeon X1550, X1550 64bit
@@ -105,13 +103,14 @@ Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000
 Radeon HD 3450, HD 3470
 .TP 8
 .B RV630
-Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600
+Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630;
+FireGL V3600/V5600
 .TP 8
 .B RV635
 Radeon HD 3650, HD 3670
 .TP 8
 .B RV670
-Radeon HD 3850, HD 3870, FireGL V7700
+Radeon HD 3690, 3850, HD 3870, FireGL V7700, FireStream 9170
 .TP 8
 .B R680
 Radeon HD 3870 X2
@@ -150,19 +149,24 @@ Mobility Radeon HD 2400; Radeon E2400
 Mobility Radeon HD 2400 XT
 .TP 8
 .B M76
-Mobility Radeon HD 2600; (Gemini ATI) Mobility Radeon HD 2600 XT
+Mobility Radeon HD 2600;
+(Gemini ATI) Mobility Radeon HD 2600 XT
 .TP 8
 .B M82
 Mobility Radeon HD 3400
-.TP 8
-.B M86
-Mobility Radeon HD 3600
 .TP 8
 .B RS600
 Radeon Xpress 1200, Xpress 1250
 .TP 8
 .B RS690
 Radeon X1200, X1250, X1270
+.TP 8
+.B RS780
+Radeon HD 3200 Series
+.TP 8
+.B RV770
+Radeon HD 4800 Series
+.\" END_DEVICE_LIST marker - do not delete
 .PD
 .\"
 .\"

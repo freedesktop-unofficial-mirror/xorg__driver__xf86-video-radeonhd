@@ -319,6 +319,7 @@ void
 RHDIdentify(int flags)
 {
     xf86Msg(X_INFO, "%s: X driver for the following AMD GPG (ATI) graphics devices:\n", RHD_NAME);
+    /* START_DEVICE_LIST marker - do not delete */
     xf86Msg(X_NONE,
 	    "\tRV505 : Radeon X1550, X1550 64bit.\n"
 	    "\tRV515 : Radeon X1300, X1550, X1600; FireGL V3300, V3350.\n"
@@ -361,6 +362,7 @@ RHDIdentify(int flags)
 	    "\tRS780 : Radeon HD 3200 Series.\n"
 	    "\tRV770 : Radeon HD 4800 Series.\n"
 	    /* NOT YET "\tRS740  : RS740, RS740M\n" */ );
+    /* END_DEVICE_LIST marker - do not delete */
     xf86Msg(X_NONE, "\n");
 
     xf86Msg(X_INFO, "%s: version %s, built from %s\n\n",

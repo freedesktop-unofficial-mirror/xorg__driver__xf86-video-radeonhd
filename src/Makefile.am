@@ -108,3 +108,35 @@ libatom_la_SOURCES = \
 radeonhd_drv_la_LIBADD = libatom.la
 
 endif
+
+if MAINTAINER_MODE
+SRCMAN = $(top_srcdir)/man/radeonhd.man
+
+CLEANFILES += radeonhd.man.new
+radeonhd.man.new: rhd_id.c $(SRCMAN)
+	echo "Generating radeon.man.new..."; \
+	(	$(SED) -n '1,/^\.\\" START_DEVICE_LIST marker - do not delete/p' "$(SRCMAN)"; \
+		$(SED)	-e '1,/^[ 	]*\/\* START_DEVICE_LIST marker - do not delete \*\/ *$$/d' \
+			-e '/^[ 	]*\/\* END_DEVICE_LIST marker - do not delete \*\/ *$$/,$$d' \
+			-e '/^[ 	]\{1,\}xf86Msg(X_NONE,/d' \
+			-e '/^[ 	]\{1,\}\/\*/d' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*;\)\\n"$$/.TP 8\n.B \1\n\2/' \
+			-e 's/^[ 	]\{1,\}"\\t\\t\(.*\)\.\\n"\();\)\{,1\}$$/\1/' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*\)\.\\n"\();\)\{,1\}$$/.TP 8\n.B \1\n\2/' \
+			"$(srcdir)/rhd_id.c"; \
+		$(SED) -n '/^\.\\" END_DEVICE_LIST marker - do not delete/,$$p' "$(SRCMAN)" \
+	) > radeonhd.man.new
+
+# Update man page from rhd_id.c RHDIdentify() output.
+# The exit(1) makes sure the update does not go unnoticed.
+all-local: radeonhd.man.new
+	@if diff -u "$(SRCMAN)" radeonhd.man.new; then \
+		echo "radeon(4) man page is current."; \
+	else \
+		echo "WARNING: New man pages differs from old one."; \
+		echo "         Please check the changes to $(SRCMAN) and commit them together with your"; \
+		echo "         changes to $(srcdir)/rhd_id.c."; \
+		mv -f radeonhd.man.new "$(SRCMAN)"; \
+		exit 1; \
+	fi
+endif
