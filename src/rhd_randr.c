@@ -479,6 +479,11 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     xf86OutputPtr *RandrOutput;
 
     RHDFUNC(rhdPtr);
+    if (rhdPtr->noRandr.val.bool) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "RandR 1.2 support disabled due to configuration\n");
+	return FALSE;
+    }
 
     randr = xnfcalloc(1, sizeof(struct rhdRandr));
     xf86CrtcConfigInit(pScrn, &rhdRRCrtcConfigFuncs);

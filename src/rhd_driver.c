@@ -183,7 +183,8 @@ typedef enum {
     OPTION_SW_CURSOR,
     OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
-    OPTION_FORCEREDUCED
+    OPTION_FORCEREDUCED,
+    OPTION_NORANDR
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -192,6 +193,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_SHADOWFB,        "shadowfb",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,    "forcereduced",    OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_NORANDR,         "NoRandr",         OPTV_BOOLEAN, {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -1687,6 +1689,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
 		     TRUE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR, &rhdPtr->noRandr,
+		     FALSE);
 }
 
 /*
