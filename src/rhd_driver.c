@@ -772,10 +772,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     rhdPtr = RHDPTR(pScrn);
     RHDFUNC(pScrn);
 
-    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
-	rhdPtr->randr = NULL;
-    }
     /*
      * Whack the hardware
      */
@@ -792,6 +788,12 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* save previous mode */
     rhdSave(rhdPtr);
+
+    /* init randr */
+    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
+	rhdPtr->randr = NULL;
+    }
 
     /* now init the new mode */
     if (rhdPtr->randr)

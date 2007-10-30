@@ -250,17 +250,6 @@ setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
     struct rhdOutput *o;
     int i;
 
-#if 1
-    ErrorF("***** setupCrtc for Output %s\n", Output->Name);
-    for (i = 0; i < 2; i++) {
-	ErrorF("*** Crtc %p is %sactive\n", (void*) rhdPtr->Crtc[i],
-	       rhdPtr->Crtc[i]->Active ? "":"in");
-    }
-    for (o = rhdPtr->Outputs; o; o = o->Next) {
-	ErrorF("*** Output %s has Crtc %p and is %sactive\n",
-	       o->Name, (void*) o->Crtc, o->Active ? "":"in");
-    }
-#endif
     /* ATM: if already assigned, use the same */
     if (Output->Crtc == Crtc)
 	return TRUE;
@@ -306,7 +295,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 	return MODE_ERROR;
     
     return RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
-			  NULL);	// TODO
+			  NULL);	// TODO: Monitor
 }
 
 static Bool
@@ -330,7 +319,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     
     if (RHDRRModeFixup(out->scrn, AdjustedMode,
 		       Crtc, rout->Connector, rout->Output,
-		       NULL)	// TODO
+		       NULL)	// TODO: Monitor
 	!= MODE_OK)
 	return FALSE;
     return TRUE;
@@ -527,7 +516,8 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	return FALSE;
     }
     rhdPtr->randr = randr;
-xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RandR 1.2 support enabled, but not finished yet\n");
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	       "RandR 1.2 support enabled, but not finished yet\n");
 
     return TRUE;
 }
@@ -542,8 +532,6 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase)) // TODO: support or not?
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
-	return FALSE;
-    if (!xf86SetDesiredModes(pScrn))			// TODO: needed or not?
 	return FALSE;
     return TRUE;
 }
