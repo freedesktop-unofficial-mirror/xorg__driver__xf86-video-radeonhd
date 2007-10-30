@@ -39,6 +39,7 @@
 #include "rhd_monitor.h"
 
 #ifndef _XF86_ANSIC_H
+#include <stdio.h>
 #include <string.h>
 #endif
 

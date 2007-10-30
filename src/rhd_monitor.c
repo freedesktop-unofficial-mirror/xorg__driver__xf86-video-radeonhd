@@ -41,6 +41,10 @@
 # include "rhd_atombios.h"
 #endif
 
+#ifndef _XF86_ANSIC_H
+#include <strings.h>
+#endif
+
 /* From rhd_edid.c */
 void RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID);
 
