@@ -48,6 +48,9 @@
 #include "rhd_output.h"
 #include "rhd_connector.h"
 #include "rhd_modes.h"
+#include "rhd_monitor.h"
+#include "rhd_vga.h"
+#include "rhd_pll.h"
 
 /* System headers */
 #ifndef _XF86_ANSIC_H
@@ -146,21 +149,13 @@ rhdRRCrtcModeFixup(xf86CrtcPtr    crtc,
 }
 #endif
 
-/**
- * This function applies the specified mode (possibly adjusted by the CRTC
- * and/or Outputs).
- */
-static void
-rhdRRCrtcModeSet(xf86CrtcPtr    crtc, 
-		 DisplayModePtr mode,
-		 DisplayModePtr adjusted_mode,
-		 int x, int y)
-{
-    RHDPtr rhdPtr = RHDPTR(crtc->scrn);
-    RHDFUNC(rhdPtr);
-}
-
 /* Dummys, because they are not tested for NULL */
+static void
+rhdRRCrtcModeSetDUMMY(xf86CrtcPtr    crtc, 
+		      DisplayModePtr mode,
+		      DisplayModePtr adjusted_mode,
+		      int x, int y)
+{ }
 static Bool
 rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
 			DisplayModePtr mode,
@@ -328,20 +323,105 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     return TRUE;
 }
 
-/**
- * Callback for setting up a video mode after fixups have been made.
- *
- * This is only called while the output is disabled.  The dpms callback
- * must be all that's necessary for the output, to turn the output on
- * after this function is called.
- */
+/* Set video mode.
+ * Again, randr calls for Crtc and Output separately, while order should be
+ * up to the driver. So let's do everything here. */
 static void
-rhdRROutputModeSet(xf86OutputPtr  output,
+rhdRROutputModeSet(xf86OutputPtr  out,
 		   DisplayModePtr mode,
 		   DisplayModePtr adjusted_mode)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
+    RHDPtr rhdPtr = RHDPTR(out->scrn);
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+    rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdCrtc    *Crtc   = NULL;
+    struct rhdMonitor *Monitor = NULL;
+
     RHDFUNC(rhdPtr);
+    ASSERT(rout->Connector);
+    ASSERT(rout->Output);
+    ASSERT(out->crtc);
+    Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+
+    Crtc->Active = TRUE;
+    rout->Output->Active = TRUE;
+    rout->Output->Crtc   = Crtc;
+    rout->Output->Connector = rout->Connector;
+
+    /* TODO: what of the following to mode setup, what to validate / fixup */
+    Monitor = RHDMonitorInit(rout->Connector);
+
+    if (!Monitor && (rout->Connector->Type == RHD_CONNECTOR_PANEL)) {
+	// TODO: do this in fixup?!?
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach a"
+		   " monitor to connector \"%s\"\n", rout->Connector->Name);
+	rout->Output->Active = FALSE;
+    } else {
+	rout->Connector->Monitor = Monitor;
+	if (Monitor) {
+	    /* If this is a digitally attached monitor, enable
+	     * * reduced blanking.
+	     * * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
+	     * */
+	    if ((rout->Output->Id == RHD_OUTPUT_TMDSA) ||
+		(rout->Output->Id == RHD_OUTPUT_LVTMA))
+		Monitor->ReducedAllowed = TRUE;
+
+#if 0
+	    /* allow user to override settings globally */
+	    if (ForceReduced.set)
+		Monitor->ReducedAllowed = ForceReduced.val.bool;
+#endif
+
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		       "Connector \"%s\" uses Monitor \"%s\":\n",
+		       rout->Connector->Name, Monitor->Name);
+	    RHDMonitorPrint(Monitor);
+	} else
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		       "Connector \"%s\": Failed to retrieve Monitor"
+		       " information.\n", rout->Connector->Name);
+ }
+
+    /* Bitbanging */
+    pScrn->vtSema = TRUE;
+
+    /* no active outputs == no mess */
+    RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
+
+    /* Disable CRTCs to stop noise from appearing. */
+    // TODO: only disable current, implement dpms for others
+    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_RESET);
+    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_RESET);
+
+    /* now disable our VGA Mode */
+    RHDVGADisable(rhdPtr);
+
+    /* Set up D1 and appendages */
+    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
+		pScrn->depth, rhdPtr->FbFreeStart);
+    Crtc->ModeSet(Crtc, mode);
+    RHDPLLSet(Crtc->PLL, mode->Clock);
+    Crtc->PLLSelect(Crtc, Crtc->PLL);
+    Crtc->LUTSelect(Crtc, Crtc->LUT);
+    RHDOutputsMode(rhdPtr, Crtc);
+
+    // TODO: nuke ASA dpms is implemented
+    /* shut down that what we don't use */
+    RHDPLLsShutdownInactive(rhdPtr);
+    RHDOutputsShutdownInactive(rhdPtr);
+
+    if (rhdPtr->Crtc[0]->Active)
+	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_ON);
+    else
+	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_SHUTDOWN);
+
+    if (rhdPtr->Crtc[1]->Active)
+	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_ON);
+    else
+	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_SHUTDOWN);
+
+    RHDOutputsPower(rhdPtr, RHD_POWER_ON);
 }
 
 /* Probe for a connected output, and return detect_status. */
@@ -408,7 +488,7 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     /*rhdRRCrtcSave*/ NULL, /*rhdRRCrtcRestore*/ NULL,
     rhdRRCrtcLock, /*rhdRRCrtcUnlock*/ NULL,
     rhdRRCrtcModeFixupDUMMY,
-    rhdRRCrtcPrepareDUMMY, rhdRRCrtcModeSet, rhdRRCrtcCommitDUMMY,
+    rhdRRCrtcPrepareDUMMY, rhdRRCrtcModeSetDUMMY, rhdRRCrtcCommitDUMMY,
     /*rhdRRCrtcGammaSet*/ NULL,
     /*rhdRRCrtcShadowAllocate, rhdRRCrtcShadowCreate, rhdRRCrtcShadowDestroy,*/ NULL, NULL, NULL,
     /*set_cursor_colors*/ NULL, /*set_cursor_position*/ NULL,
