@@ -397,7 +397,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     EntityInfoPtr pEnt = NULL;
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
-    DisplayModePtr Modes;
+    DisplayModePtr Modes;		/* Non-RandR-case only */
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -627,11 +627,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     RHDRandrPreInit(pScrn);
 
-    /* Pick anything for now */
-    if (!rhdModeLayoutSelect(rhdPtr)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "Failed to detect a connected monitor\n");
-	goto error1;
+    if (! rhdPtr->randr) {
+	/* Pick anything for now */
+	if (!rhdModeLayoutSelect(rhdPtr)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Failed to detect a connected monitor\n");
+	    goto error1;
+	}
     }
 
     rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
@@ -715,21 +717,24 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
 
-    Modes = RHDModesPoolCreate(pScrn, FALSE);
-    if (!Modes) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
-	goto error1;
+    if (! rhdPtr->randr) {
+	Modes = RHDModesPoolCreate(pScrn, FALSE);
+	if (!Modes) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
+	    goto error1;
+	}
+
+	if (!pScrn->virtualX || !pScrn->virtualY)
+	    RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
+
+	RHDModesAttach(pScrn, Modes);
     }
-
-    if (!pScrn->virtualX || !pScrn->virtualY)
-        RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
-
-    RHDModesAttach(pScrn, Modes);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
                pScrn->virtualY, pScrn->displayWidth);
-    xf86PrintModes(pScrn);
+    if (! rhdPtr->randr)
+	xf86PrintModes(pScrn);
 
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);
