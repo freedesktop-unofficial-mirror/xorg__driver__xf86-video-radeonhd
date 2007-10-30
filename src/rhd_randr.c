@@ -50,7 +50,10 @@
 #include "rhd_modes.h"
 
 /* System headers */
+#ifndef _XF86_ANSIC_H
 #include <ctype.h>
+#include <string.h>
+#endif
 
 
 /*
