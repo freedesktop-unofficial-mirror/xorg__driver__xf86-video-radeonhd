@@ -52,7 +52,6 @@
 #include "rhd_connector.h"
 
 /* System headers */
-#include <assert.h>
 #include <ctype.h>
 
 
@@ -357,8 +356,8 @@ createRandrOutput(ScrnInfoPtr pScrn,
     xf86OutputPtr xo;
     rhdRandrOutputPtr rro;
 
-    assert (conn);
-    assert (out);
+    ASSERT (conn);
+    ASSERT (out);
     rro = xnfcalloc(sizeof(rhdRandrOutputRec), 1);
     rro->Connector = conn;
     rro->Output    = out;
@@ -369,7 +368,7 @@ createRandrOutput(ScrnInfoPtr pScrn,
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "RandR: Added Connector %s\n", rro->Name);
     xo = xf86OutputCreate(pScrn, &rhdRROutputFuncs, rro->Name);
-    assert(xo);
+    ASSERT(xo);
     xo->driver_private = rro;
     xo->possible_crtcs  = 0x03;		// TODO
     xo->possible_clones = 0;		// TODO - probably after setup
@@ -398,7 +397,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 
     for (i = 0; i < 2; i++) {
 	randr->RandrCrtc[i] = xf86CrtcCreate(pScrn, &rhdRRCrtcFuncs);
-	assert(randr->RandrCrtc[i]);
+	ASSERT(randr->RandrCrtc[i]);
 	randr->RandrCrtc[i]->driver_private = rhdPtr->Crtc[i];
     }
 
