@@ -554,8 +554,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     }
-        xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
-               pScrn->videoRam);
+    xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
+	       pScrn->videoRam);
 
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
@@ -592,11 +592,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
-	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
+	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg)
+	    == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
 
 	    if (!xf86LoadSubModule(pScrn, "ddc")) {
-		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Failed to load DDC module\n",__func__);
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+			   "%s: Failed to load DDC module\n",__func__);
 		goto error1;
 	    }
 	} else {
@@ -604,7 +606,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load I2C module\n",__func__);
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "%s: Failed to load I2C module\n",__func__);
 	goto error1;
     }
 
@@ -644,8 +647,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		       "No monitor information found. Attaching default.\n");
 	    rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
 	    if (rhdPtr->ConfigMonitor) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Default Monitor \"%s\":\n",
-			   rhdPtr->ConfigMonitor->Name);
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		     "Default Monitor \"%s\":\n", rhdPtr->ConfigMonitor->Name);
 		RHDMonitorPrint(rhdPtr->ConfigMonitor);
 	    }
 	}
@@ -1229,7 +1232,8 @@ rhdMapFB(RHDPtr rhdPtr)
      * address registers in there also use. This can be different from the
      * address in the BAR */
     if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS) << 16;
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS)
+			       << 16;
     else
 	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
 
@@ -1386,7 +1390,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		Found = TRUE;
 
 		if (Monitor) {
-		    /* If this is a digitally attached monitor, enable reduced blanking.
+		    /* If this is a digitally attached monitor, enable
+		     * reduced blanking.
 		     * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
 		     */
 		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
