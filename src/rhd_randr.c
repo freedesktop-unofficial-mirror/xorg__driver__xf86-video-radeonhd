@@ -247,7 +247,6 @@ static Bool
 setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
 	  DisplayModePtr Mode)
 {
-    struct rhdOutput *o;
     int i;
 
     /* ATM: if already assigned, use the same */
@@ -259,6 +258,10 @@ setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
 
     /* Setup - static ATM */
     Output->Crtc = Crtc;
+    for (i = 0; i < 2; i++)
+	if (Crtc == rhdPtr->Crtc[i])
+	    break;
+    ASSERT(i<2);
     Crtc->PLL = rhdPtr->PLLs[i];
     Crtc->LUT = rhdPtr->LUT[i];
 
