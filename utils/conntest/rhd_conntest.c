@@ -29,7 +29,6 @@
  */
 
 #include <stdio.h>
-#include <sys/io.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
