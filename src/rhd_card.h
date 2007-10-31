@@ -35,11 +35,18 @@ struct rhdConnectorInfo {
     rhdOutputType Output[MAX_OUTPUTS_PER_CONNECTOR];
 };
 
+/* Some card specific flags, where and when needed */
+enum rhdCardFlag {
+    RHD_CARD_FLAG_NONE  = 0,
+    RHD_CARD_FLAG_DMS59 = 1 /* DMS59 connector is only reported as two DVI-I */
+};
+
 struct rhdCard {
     CARD16 device;
     CARD16 card_vendor;
     CARD16 card_device;
     char *name;
+    enum rhdCardFlag flags;
 
     struct rhdConnectorInfo ConnectorInfo[RHD_CONNECTORS_MAX];
 };
