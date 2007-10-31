@@ -634,33 +634,34 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		       "Failed to detect a connected monitor\n");
 	    goto error1;
 	}
-    }
 
-    rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
-    if (!rhdPtr->ConfigMonitor) {
-	int i;
+	rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
+	if (!rhdPtr->ConfigMonitor) {
+	    int i;
 
-	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
-	    if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
-		break;
+	    for (i = 0; i < RHD_CONNECTORS_MAX; i++)
+		if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
+		    break;
 
-	if (i == RHD_CONNECTORS_MAX) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "No monitor information found. Attaching default.\n");
-	    rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
-	    if (rhdPtr->ConfigMonitor) {
+	    if (i == RHD_CONNECTORS_MAX) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		     "Default Monitor \"%s\":\n", rhdPtr->ConfigMonitor->Name);
-		RHDMonitorPrint(rhdPtr->ConfigMonitor);
+			"No monitor information found. Attaching default.\n");
+		rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
+		if (rhdPtr->ConfigMonitor) {
+		    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+			       "Default Monitor \"%s\":\n",
+			       rhdPtr->ConfigMonitor->Name);
+		    RHDMonitorPrint(rhdPtr->ConfigMonitor);
+		}
 	    }
+	} else {
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
+		       rhdPtr->ConfigMonitor->Name);
+	    RHDMonitorPrint(rhdPtr->ConfigMonitor);
 	}
-    } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
-		   rhdPtr->ConfigMonitor->Name);
-	RHDMonitorPrint(rhdPtr->ConfigMonitor);
-    }
 
-    rhdModeLayoutPrint(rhdPtr);
+	rhdModeLayoutPrint(rhdPtr);
+    }
 
     /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
