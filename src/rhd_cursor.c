@@ -282,10 +282,12 @@ rhdSaveCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	/* Even save cursor state for non-active screens */
+	if (Crtc->scrnIndex == pScrn->scrnIndex)
 	    saveCursor(Crtc->Cursor);
     }
 }
@@ -297,6 +299,7 @@ rhdRestoreCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
@@ -317,6 +320,7 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
