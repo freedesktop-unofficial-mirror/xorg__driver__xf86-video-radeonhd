@@ -40,6 +40,8 @@
 #include "xf86i2c.h"		/* Missing in xf86Crtc.h */
 #include "xf86Crtc.h"
 #include "xf86Parser.h"
+#define DPMS_SERVER
+#include "X11/extensions/dpms.h"
 
 /* Driver specific headers */
 #include "rhd.h"
@@ -82,10 +84,11 @@ typedef struct _rhdRandrOutput {
  */
 
 static Bool
-rhdRRXF86CrtcResize(ScrnInfoPtr scrn, int width, int height)
+rhdRRXF86CrtcResize(ScrnInfoPtr pScrn, int width, int height)
 {
-    scrn->virtualX = width;
-    scrn->virtualY = height; 
+    RHDFUNC(pScrn);
+    pScrn->virtualX = width;
+    pScrn->virtualY = height; 
     return TRUE;
 }
 
@@ -93,22 +96,34 @@ rhdRRXF86CrtcResize(ScrnInfoPtr scrn, int width, int height)
  * xf86Crtc callback functions
  */
 
-/**
- * Turns the crtc on/off, or sets intermediate power levels if available.
- *
- * Unsupported intermediate modes drop to the lower power setting.  If the
- * mode is DPMSModeOff, the crtc must be disabled sufficiently for it to
- * be safe to call mode_set.
- *
- * Where 'mode' is one of DPMSModeOff, DPMSModeSuspend, DPMSModeStandby or
- * DPMSModeOn. This requests that the crtc go to the specified power state.
- * When changing power states, the output dpms functions are invoked before the
- * crtc dpms functions. */
+/* Turns the crtc on/off, or sets intermediate power levels if available. */
 static void
 rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
 {
     RHDPtr rhdPtr = RHDPTR(crtc->scrn);
-    RHDFUNC(rhdPtr);
+    struct rhdCrtc *Crtc = (struct rhdCrtc *) crtc->driver_private;
+
+    RHDDebug(Crtc->scrnIndex, "%s: Crtc %d : %s\n", __func__,
+	     Crtc==rhdPtr->Crtc[0]?0:1,
+	     mode==DPMSModeOn ? "On" : mode==DPMSModeOff ? "Off" : "Other");
+
+    switch (mode) {
+    case DPMSModeOn:
+	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_ON);
+	Crtc->Power(Crtc, RHD_POWER_ON);
+	break;
+    case DPMSModeSuspend:
+    case DPMSModeStandby:
+	Crtc->Power(Crtc, RHD_POWER_RESET);
+	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_RESET);
+	break;
+    case DPMSModeOff:
+	Crtc->Power(Crtc, RHD_POWER_SHUTDOWN);
+	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_SHUTDOWN);
+	break;
+    default:
+	ASSERT(!"Unknown DPMS mode");
+    }
 }
 
 /* Lock CRTC prior to mode setting, mostly for DRI.
@@ -222,19 +237,31 @@ had been allocated.
  * xf86Output callback functions
  */
 
-/**
- * Turns the output on/off, or sets intermediate power levels if available.
- *
- * Unsupported intermediate modes drop to the lower power setting.  If the
- * mode is DPMSModeOff, the output must be disabled, as the DPLL may be
- * disabled afterwards.
- */
+/* Turns the output on/off, or sets intermediate power levels if available. */
 static void
-rhdRROutputDpms(xf86OutputPtr       output,
+rhdRROutputDpms(xf86OutputPtr       out,
 		int                 mode)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
-    RHDFUNC(rhdPtr);
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+
+    RHDDebug(rout->Output->scrnIndex, "%s: Output %s : %s\n", __func__,
+	     rout->Name,
+	     mode==DPMSModeOn ? "On" : mode==DPMSModeOff ? "Off" : "Other");
+
+    switch (mode) {
+    case DPMSModeOn:
+	rout->Output->Power(rout->Output, RHD_POWER_ON);
+	break;
+    case DPMSModeSuspend:
+    case DPMSModeStandby:
+	rout->Output->Power(rout->Output, RHD_POWER_RESET);
+	break;
+    case DPMSModeOff:
+	rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
+	break;
+    default:
+	ASSERT(!"Unknown DPMS mode");
+    }
 }
 
 /* Helper: setup Crtc for validation & fixup */
@@ -282,7 +309,8 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
 
-    RHDFUNC(rhdPtr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
+	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
 
@@ -298,25 +326,25 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 
 static Bool
 rhdRROutputModeFixup(xf86OutputPtr  out,
-		     DisplayModePtr Mode,
-		     DisplayModePtr AdjustedMode)
+		     DisplayModePtr OrigMode,
+		     DisplayModePtr Mode)
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
 
-    RHDFUNC(rhdPtr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
+	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
 
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
-    if (! setupCrtc(rhdPtr, Crtc, rout->Output, AdjustedMode) )
+    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) )
 	return FALSE;
     
-    if (RHDRRModeFixup(out->scrn, AdjustedMode,
-		       Crtc, rout->Connector, rout->Output,
+    if (RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
 		       NULL)	// TODO: Monitor
 	!= MODE_OK)
 	return FALSE;
@@ -328,8 +356,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
  * up to the driver. So let's do everything here. */
 static void
 rhdRROutputModeSet(xf86OutputPtr  out,
-		   DisplayModePtr mode,
-		   DisplayModePtr adjusted_mode)
+		   DisplayModePtr OrigMode,
+		   DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTR(out->scrn);
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
@@ -337,7 +365,8 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     struct rhdCrtc    *Crtc   = NULL;
     struct rhdMonitor *Monitor = NULL;
 
-    RHDFUNC(rhdPtr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
+	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
     ASSERT(out->crtc);
@@ -386,42 +415,30 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     /* Bitbanging */
     pScrn->vtSema = TRUE;
 
-    /* no active outputs == no mess */
-    RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
+    /* no active output == no mess */
+    rout->Output->Power(rout->Output, RHD_POWER_RESET);
 
     /* Disable CRTCs to stop noise from appearing. */
-    // TODO: only disable current, implement dpms for others
-    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_RESET);
-    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_RESET);
+    // TODO: necessary? output is off...
+    Crtc->Power(Crtc, RHD_POWER_RESET);
 
     /* now disable our VGA Mode */
+    // TODO: only once
     RHDVGADisable(rhdPtr);
 
     /* Set up D1 and appendages */
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		pScrn->depth, rhdPtr->FbFreeStart);
-    Crtc->ModeSet(Crtc, mode);
-    RHDPLLSet(Crtc->PLL, mode->Clock);
+    Crtc->ModeSet(Crtc, Mode);
+    RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
     Crtc->PLLSelect(Crtc, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
     RHDOutputsMode(rhdPtr, Crtc);
+    Crtc->Power(Crtc, RHD_POWER_ON);
+    rout->Output->Power(rout->Output, RHD_POWER_ON);
 
-    // TODO: nuke ASA dpms is implemented
-    /* shut down that what we don't use */
-    RHDPLLsShutdownInactive(rhdPtr);
-    RHDOutputsShutdownInactive(rhdPtr);
-
-    if (rhdPtr->Crtc[0]->Active)
-	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_ON);
-    else
-	rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_SHUTDOWN);
-
-    if (rhdPtr->Crtc[1]->Active)
-	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_ON);
-    else
-	rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_SHUTDOWN);
-
-    RHDOutputsPower(rhdPtr, RHD_POWER_ON);
+    /* TODO: necessary? dpms should do that. shut down that what we don't use */
+    //RHDPLLsShutdownInactive(rhdPtr);
 }
 
 /* Probe for a connected output, and return detect_status. */
@@ -431,7 +448,7 @@ rhdRROutputDetect(xf86OutputPtr output)
     RHDPtr rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
 
-    RHDFUNC(rhdPtr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
     if (rout->Output->Sense) {
 	if (rout->Output->Sense(rout->Output, rout->Connector->Type))
 	    return XF86OutputStatusConnected;
@@ -449,7 +466,7 @@ rhdRROutputGetModes(xf86OutputPtr output)
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
     xf86MonPtr	      edid_mon;
 
-    RHDFUNC(rhdPtr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
     edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
     xf86OutputSetEDID (output, edid_mon);
     
@@ -612,6 +629,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    RHDFUNC(rhdPtr);
     if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase)) // TODO: support or not?
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
