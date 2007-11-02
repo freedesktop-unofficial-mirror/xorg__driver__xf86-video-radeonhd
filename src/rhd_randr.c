@@ -33,19 +33,28 @@
 # include "config.h"
 #endif
 
-//#ifdef RANDR_12_INTERFACE   // TODO
-
+/* Xserver interface */
 #include "xf86.h"
-#include "randrstr.h"
-#include "xf86i2c.h"		/* Missing in xf86Crtc.h */
+#ifdef RANDR
+# include "randrstr.h"
+#endif
+
+/* Driver specific headers */
+#include "rhd.h"
+#include "rhd_randr.h"
+
+
+#ifdef RANDR_12_INTERFACE
+
+
+/* Xserver interface */
+#include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
 #include "xf86Crtc.h"
 #include "xf86Parser.h"
 #define DPMS_SERVER
 #include "X11/extensions/dpms.h"
 
 /* Driver specific headers */
-#include "rhd.h"
-#include "rhd_randr.h"
 #include "rhd_crtc.h"
 #include "rhd_output.h"
 #include "rhd_connector.h"
@@ -648,4 +657,30 @@ RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     return xf86SetSingleMode(pScrn, mode, RR_Rotate_0);
 }
+
+
+#else /* RANDR_12_INTERFACE */
+
+
+Bool
+RHDRandrPreInit(ScrnInfoPtr pScrn)
+{
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	       "RandR 1.2 support disabled (not available at compile time)\n");
+    return FALSE;
+}
+
+Bool
+RHDRandrScreenInit(ScreenPtr pScreen)
+{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+
+Bool
+RHDRandrModeInit(ScrnInfoPtr pScrn)
+{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+
+Bool
+RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
+{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+
+#endif /* RANDR_12_INTERFACE */
 
