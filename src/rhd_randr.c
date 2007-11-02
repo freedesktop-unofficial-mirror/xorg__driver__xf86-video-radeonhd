@@ -26,7 +26,7 @@
 /*
  * RandR interface.
  *
- * Only supports RandR 1.2 ATM.
+ * Only supports RandR 1.2 ATM or no RandR at all.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -75,13 +75,13 @@
  * Driver internal data
  */
 
-/* Outputs and Connectors are combined for RandR due to missing abstraction */
+/* List of allocated RandR Crtc and Output description structs */
 struct rhdRandr {
     xf86CrtcPtr    RandrCrtc[2];
     xf86OutputPtr *RandrOutput;  /* NULL-terminated */
 } ;
 
-/* Driver private for Randr outputs due to missing abstraction */
+/* Outputs and Connectors are combined for RandR due to missing abstraction */
 typedef struct _rhdRandrOutput {
     char                 Name[64];
     struct rhdConnector *Connector;
@@ -148,33 +148,10 @@ rhdRRCrtcLock (xf86CrtcPtr crtc)
 }
 
 #if 0
-/**
- * Unlock CRTC after mode setting, mostly for DRI
- */
-void
-(*unlock) (xf86CrtcPtr crtc);
-
-/**
- * Callback to adjust the mode to be set in the CRTC.
- *
- * This allows a CRTC to adjust the clock or even the entire set of
- * timings, which is used for panels with fixed timings or for
- * buses with clock limitations.
- *
- * This call gives the CRTC a chance to see what mode will be set and to
- * comment on the mode by changing 'adjusted_mode' as needed. This function
- * shall not modify the state of the crtc hardware at all. If the CRTC cannot
- * accept this mode, this function may return FALSE.
- */
-static Bool
-rhdRRCrtcModeFixup(xf86CrtcPtr    crtc, 
-		   DisplayModePtr mode,
-		   DisplayModePtr adjusted_mode)
-{
-    RHDPtr rhdPtr = RHDPTR(crtc->scrn);
-    RHDFUNC(rhdPtr);
-    return FALSE;
-}
+/* Unlock CRTC after mode setting, mostly for DRI */
+static void
+rhdRRCrtcUnlock (xf86CrtcPtr crtc)
+{ }
 #endif
 
 /* Dummys, because they are not tested for NULL */
@@ -205,19 +182,6 @@ rhdRRCrtcGammaSet(xf86CrtcPtr crtc,
     RHDPtr rhdPtr = RHDPTR(crtc->scrn);
     RHDFUNC(rhdPtr);
 }
-
-    void
-    crtc->funcs->prepare (xf86CrtcPtr crtc)
-
-This call is made just before the mode is set to make the hardware ready for
-the operation. A usual function to perform here is to disable the crtc so
-that mode setting can occur with clocks turned off and outputs deactivated.
-
-    void
-    crtc->funcs->commit (xf86CrtcPtr crtc)
-
-Once the mode has been applied to the CRTC and Outputs, this function is
-invoked to let the hardware turn things back on.
 
     void *
     crtc->funcs->shadow_allocate (xf86CrtcPtr crtc, int width, int height)
@@ -284,7 +248,6 @@ setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
 {
     int i;
 
-    /* ATM: if already assigned, use the same */
     if (Output->Crtc == Crtc)
 	return TRUE;
     ASSERT(!Output->Crtc || !Output->Crtc->Active);
@@ -340,6 +303,9 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     return Status;
 }
 
+/* The crtc is only known on fixup time. Now it's actually to late to reject a
+ * mode and give a reasonable answer why (return is bool), but we'll better not
+ * set a mode than scrap our hardware */
 static Bool
 rhdRROutputModeFixup(xf86OutputPtr  out,
 		     DisplayModePtr OrigMode,
@@ -471,7 +437,7 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     rout->Output->Power(rout->Output, RHD_POWER_ON);
 }
 
-/* Probe for a connected output, and return detect_status. */
+/* Probe for a connected output. */
 static xf86OutputStatus
 rhdRROutputDetect(xf86OutputPtr output)
 {
@@ -532,7 +498,7 @@ static const xf86CrtcConfigFuncsRec rhdRRCrtcConfigFuncs = {
 
 static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcDpms,
-    /*rhdRRCrtcSave*/ NULL, /*rhdRRCrtcRestore*/ NULL,
+    /*save*/ NULL, /*restore*/ NULL,
     rhdRRCrtcLock, /*rhdRRCrtcUnlock*/ NULL,
     rhdRRCrtcModeFixupDUMMY,
     rhdRRCrtcPrepareDUMMY, rhdRRCrtcModeSetDUMMY, rhdRRCrtcCommitDUMMY,
@@ -546,7 +512,7 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
 
 static const xf86OutputFuncsRec rhdRROutputFuncs = {
     /*create_resources*/ NULL, rhdRROutputDpms,
-    /*rhdRROutputSave*/ NULL, /*rhdRROutputRestore*/ NULL,
+    /*save*/ NULL, /*restore*/ NULL,
     rhdRROutputModeValid, rhdRROutputModeFixup,
     rhdRROutputPrepareDUMMY, rhdRROutputCommitDUMMY,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
@@ -667,12 +633,14 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     return TRUE;
 }
 
+/* ModeInit: Set modes according to current layout */
 Bool
 RHDRandrModeInit(ScrnInfoPtr pScrn)
 {
-    return xf86SetDesiredModes(pScrn);			// TODO: needed or not?
+    return xf86SetDesiredModes(pScrn);
 }
 
+/* SwitchMode: Legacy: Set one mode */
 Bool
 RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
@@ -693,15 +661,16 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 
 Bool
 RHDRandrScreenInit(ScreenPtr pScreen)
-{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+{ ASSERT(0); return FALSE; }
 
 Bool
 RHDRandrModeInit(ScrnInfoPtr pScrn)
-{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+{ ASSERT(0); return FALSE; }
 
 Bool
 RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
-{ ASSERT(!"No RandR 1.2 support on compile time"); return FALSE; }
+{ ASSERT(0); return FALSE; }
+
 
 #endif /* RANDR_12_INTERFACE */
 
