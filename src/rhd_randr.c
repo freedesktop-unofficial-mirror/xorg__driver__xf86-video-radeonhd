@@ -67,6 +67,7 @@
 #ifndef _XF86_ANSIC_H
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 #endif
 
 
