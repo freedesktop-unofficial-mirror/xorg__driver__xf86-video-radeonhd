@@ -119,17 +119,20 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
 
     switch (mode) {
     case DPMSModeOn:
-	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_ON);
+	if (Crtc->PLL)
+	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_ON);
 	Crtc->Power(Crtc, RHD_POWER_ON);
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
 	Crtc->Power(Crtc, RHD_POWER_RESET);
-	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_RESET);
+	if (Crtc->PLL)
+	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_RESET);
 	break;
     case DPMSModeOff:
 	Crtc->Power(Crtc, RHD_POWER_SHUTDOWN);
-	Crtc->PLL->Power(Crtc->PLL, RHD_POWER_SHUTDOWN);
+	if (Crtc->PLL)
+	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_SHUTDOWN);
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
@@ -284,11 +287,11 @@ setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
     /* ATM: if already assigned, use the same */
     if (Output->Crtc == Crtc)
 	return TRUE;
-    ASSERT(!Output->Crtc);
+    ASSERT(!Output->Crtc || !Output->Crtc->Active);
     ASSERT(!Output->Active);
     ASSERT(!Crtc->Active);
 
-    /* Setup - static ATM */
+    /* PLL & LUT setup - static at the moment */
     Output->Crtc = Crtc;
     for (i = 0; i < 2; i++)
 	if (Crtc == rhdPtr->Crtc[i])
@@ -316,22 +319,22 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 		     DisplayModePtr Mode)
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
+    ScrnInfoPtr        pScrn = xf86Screens[rhdPtr->scrnIndex];
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
-    struct rhdCrtc    *Crtc   = NULL;
+    int                Status;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
 
-    if (out->crtc)
-	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
-
-    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) )
-	return MODE_ERROR;
-    
-    return RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
-			  NULL);	// TODO: Monitor
+    /* If out->crtc is not NULL, it is not necessarily the Crtc that will
+     * be used, so let's better skip crtc based checks... */
+    Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
+			    rout->Output, NULL);	// TODO: Monitor
+    RHDDebug(rhdPtr->scrnIndex, "%s: %s -> Status %d\n", __func__,
+	     Mode->name, Status);
+    return Status;
 }
 
 static Bool
