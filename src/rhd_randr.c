@@ -397,12 +397,18 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     ASSERT(rout->Output);
     ASSERT(out->crtc);
     Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+    ASSERT(Crtc == rout->Output->Crtc);
+
+    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) ) {
+	ASSERT(!"Cannot setup crtc");
+    }
 
     Crtc->Active = TRUE;
     rout->Output->Active = TRUE;
     rout->Output->Crtc   = Crtc;
     rout->Output->Connector = rout->Connector;
 
+#if 0
     /* TODO: what of the following to mode setup, what to validate / fixup */
     Monitor = RHDMonitorInit(rout->Connector);
 
@@ -436,7 +442,8 @@ rhdRROutputModeSet(xf86OutputPtr  out,
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 		       "Connector \"%s\": Failed to retrieve Monitor"
 		       " information.\n", rout->Connector->Name);
- }
+    }
+#endif
 
     /* Bitbanging */
     pScrn->vtSema = TRUE;
@@ -462,9 +469,6 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     RHDOutputsMode(rhdPtr, Crtc);
     Crtc->Power(Crtc, RHD_POWER_ON);
     rout->Output->Power(rout->Output, RHD_POWER_ON);
-
-    /* TODO: necessary? dpms should do that. shut down that what we don't use */
-    //RHDPLLsShutdownInactive(rhdPtr);
 }
 
 /* Probe for a connected output, and return detect_status. */
