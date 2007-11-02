@@ -781,10 +781,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     rhdPtr = RHDPTR(pScrn);
     RHDFUNC(pScrn);
 
-    /*
-     * Whack the hardware
-     */
-
+    /* map IO and FB */
     if (!rhdMapMMIO(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	return FALSE;
@@ -798,41 +795,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* save previous mode */
     rhdSave(rhdPtr);
 
-    /* init randr */
-    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
-	rhdPtr->randr = NULL;
-    }
-
-    /* now init the new mode */
-    if (rhdPtr->randr)
-	RHDRandrModeInit(pScrn);
-    else
-	rhdModeInit(pScrn, pScrn->currentMode);
-
-    /* @@@ add code to unblank the screen */
-
-    /* fix viewport */
-    RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
-
-    /*
-     * now init DIX
-     */
-
-    miClearVisualTypes();
-
-    /* Setup the visuals we support. */
-
-    if (!miSetVisualTypes(pScrn->depth,
-      		      miGetDefaultVisualMask(pScrn->depth),
-		      pScrn->rgbBits, pScrn->defaultVisual))
-         return FALSE;
-
-    if (!miSetPixmapDepths ()) return FALSE;
-
-    /* @@@ do shadow stuff here */
-
-    /* init fb */
+    /* init FB */
     ret = RHDShadowScreenInit(pScreen);
     if (!ret)
 	ret = fbScreenInit(pScreen,
@@ -857,6 +820,17 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    }
 	}
     }
+
+    /* init DIX */
+    miClearVisualTypes();
+
+    /* Setup the visuals we support. */
+    if (!miSetVisualTypes(pScrn->depth,
+      		      miGetDefaultVisualMask(pScrn->depth),
+		      pScrn->rgbBits, pScrn->defaultVisual))
+         return FALSE;
+
+    if (!miSetPixmapDepths ()) return FALSE;
 
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
@@ -888,6 +862,21 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
     xf86SetSilkenMouse(pScreen);
+
+    /* init randr */
+    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
+	rhdPtr->randr = NULL;
+    }
+
+    /* now init the new mode */
+    if (rhdPtr->randr)
+	RHDRandrModeInit(pScrn);
+    else
+	rhdModeInit(pScrn, pScrn->currentMode);
+
+    /* fix viewport */
+    RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
     /* Initialise cursor functions */
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
