@@ -38,7 +38,8 @@ rhd_pll.c \
 rhd_tmds.c \
 rhd_vga.c \
 rhd_shadow.c \
-$(ATOM_BIOS_PARSER_SRCS)
+$(ATOM_BIOS_PARSER_SRCS) \
+git_version.h
 
 OBJS = \
 rhd_atombios.o \
@@ -83,6 +84,7 @@ ATOM_BIOS_PARSER_DEFINES = -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_F
 
 DEFINES  = $(INCLUDES) $(ATOM_BIOS_INCLUDES) $(ATOM_BIOS_PARSER_INCLUDES) \
            $(ATOM_BIOS_DEFINES) $(ATOM_BIOS_PARSER_DEFINES) \
+           $(RHD_GIT_DEFINES) \
            $(RHD_VERSION_DEFINES)
 
 ObjectModuleTarget(radeonhd, $(OBJS))

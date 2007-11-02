@@ -1,3 +1,7 @@
+BUILT_SOURCES =
+CLEANFILES =
+include $(top_srcdir)/RadeonHD.am
+
 EXTRA_DIST = Imakefile
 
 AM_CFLAGS = @XORG_CFLAGS@ @WARN_CFLAGS@
@@ -41,6 +45,9 @@ radeonhd_drv_la_SOURCES = \
 	rhd_regs.h \
 	rhd_vga.h \
 	rhd_shadow.h
+
+nodist_radeonhd_drv_la_SOURCES = \
+	git_version.h
 
 if ATOM_BIOS
 radeonhd_drv_la_SOURCES += \

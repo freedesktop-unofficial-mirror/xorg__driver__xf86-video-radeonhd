@@ -1,4 +1,4 @@
-/* imake template for radeonhd driver */
+/* imake template for radeonhd driver -*- makefile -*- */
 
 VER_GREP                   = grep -A 4 AC_INIT $(TOP)/configure.ac
 VER_SED                    = sed -n '2s/[^0-9]*\([0-9][^,]*\).*/\1/p'
@@ -15,6 +15,18 @@ RHD_VERSION_DEFINES = \
            -DPACKAGE_VERSION_MAJOR="$(PACKAGE_VERSION_MAJOR)" \
            -DPACKAGE_VERSION_MINOR="$(PACKAGE_VERSION_MINOR)" \
            -DPACKAGE_VERSION_PATCHLEVEL="$(PACKAGE_VERSION_PATCHLEVEL)"
+
+
+/*
+ * The only way to make sure the git version check is run and git_version.h is
+ * updated before a compile. Creating a normal make rule cannot do that.
+ */
+GIT_VERSION_CMD = $(SHELL) $(TOP)/git_version.sh
+RHD_GIT_DEFINES = \
+	`env GIT_DIR="$(TOP)/.git" $(GIT_VERSION_CMD) -s $(TOP) -o git_version.h`
+
+clean::
+	RemoveFile(git_version.h)
 
 /* vim: syntax=make
  */

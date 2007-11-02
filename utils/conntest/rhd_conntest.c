@@ -38,6 +38,11 @@
 #include <pci/pci.h>
 #include <unistd.h>
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+#include "git_version.h"
+
 #ifndef ULONG
 typedef unsigned int ULONG;
 # define ULONG ULONG
@@ -1455,6 +1460,9 @@ main(int argc, char *argv[])
     int i;
     unsigned char *rombase;
     int size;
+
+    printf("%s: version %s, built from %s\n",
+	   "rhd_conntest", PACKAGE_VERSION, GIT_MESSAGE);
 
     /* init libpci */
     pciAccess = pci_alloc();

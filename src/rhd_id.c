@@ -26,6 +26,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "git_version.h"
 
 #include "xf86.h"
 #include "xf86Resources.h"
@@ -266,6 +267,9 @@ RHDIdentify(int flags)
 	    "RS690  : Radeon X1200.\n\t"
 	    "RS740  : RS740, RS740M\n");
     xf86Msg(X_NONE, "\n");
+
+    xf86Msg(X_NONE, "%s: version %s, built from %s\n\n",
+	    RHD_NAME, PACKAGE_VERSION, GIT_MESSAGE);
 }
 
 /*
