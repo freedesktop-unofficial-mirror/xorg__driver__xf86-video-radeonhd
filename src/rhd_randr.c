@@ -319,9 +319,12 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 		     DisplayModePtr Mode)
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
-    ScrnInfoPtr        pScrn = xf86Screens[rhdPtr->scrnIndex];
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     int                Status;
+
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
+    if (Mode && !Mode->name && out->crtc->mode.name)
+	Mode->name = xstrdup(out->crtc->mode.name);
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
@@ -346,6 +349,10 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
 
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
+    if (Mode && !Mode->name && out->crtc->mode.name)
+	Mode->name = xstrdup(out->crtc->mode.name);
+
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
@@ -359,8 +366,10 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     
     if (RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
 		       NULL)	// TODO: Monitor
-	!= MODE_OK)
+	!= MODE_OK) {
+	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED\n", __func__, Mode->name);
 	return FALSE;
+    }
     return TRUE;
 }
 
@@ -377,6 +386,10 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
     struct rhdMonitor *Monitor = NULL;
+
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
+    if (!Mode->name && out->crtc->mode.name)
+	Mode->name = xstrdup(out->crtc->mode.name);
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
