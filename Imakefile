@@ -2,7 +2,7 @@
 
 #define IHaveSubdirs
 
-SUBDIRS = src man
+SUBDIRS = src man utils/conntest
 
 MakeSubdirs($(SUBDIRS))
 ForceSubdirs($(SUBDIRS))

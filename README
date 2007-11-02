@@ -64,13 +64,8 @@ Hint: If you happen to have multiple branches in your git source tree, you
       can have per-branch _b-BRANCH/ build trees and _i-BRANCH/ install
       trees. ("... configure ... --prefix=$PWD/_i-BRANCH")
 
-Note that neither of these methods will apply to the rhd_conntest tool.
-To build the rhd_conntest tool, you need to run
-
-   $ (cd utils/conntest && make)
-
-from the source tree, regardless of the method chosen above to build the
-radeonhd.so driver module itself.
+Note that none of these methods will install the rhd_conntest tool, but it
+will be available as ./utils/conntest/rhd_conntest after the "make" run.
 
 
 

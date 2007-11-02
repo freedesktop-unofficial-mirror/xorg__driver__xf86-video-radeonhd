@@ -204,4 +204,5 @@ AC_OUTPUT([
 	Makefile
 	man/Makefile
 	src/Makefile
+	utils/conntest/Makefile
 ])

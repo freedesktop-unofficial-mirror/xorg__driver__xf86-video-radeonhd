@@ -1,3 +1,5 @@
+EXTRA_DIST = Imakefile
+
 AM_CFLAGS = @XORG_CFLAGS@ @WARN_CFLAGS@
 radeonhd_drv_la_LTLIBRARIES = radeonhd_drv.la
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
