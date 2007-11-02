@@ -97,10 +97,19 @@ static Bool
 rhdRRXF86CrtcResize(ScrnInfoPtr pScrn, int width, int height)
 {
     RHDFUNC(pScrn);
+    /* This is strange... if we set virtualX/virtualY like the intel driver
+     * does, we limit ourself in the future to this maximum size.
+     * The check for this is internally in RandR, no idea why the intel driver
+     * actually works this way...
+     * Even more curious: if we DON'T update virtual, everything seems to
+     * work as expected... */
+#if 0
     pScrn->virtualX = width;
     pScrn->virtualY = height; 
+#endif
     return TRUE;
 }
+
 
 /*
  * xf86Crtc callback functions
