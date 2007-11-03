@@ -4,7 +4,12 @@ include $(top_srcdir)/RadeonHD.am
 
 EXTRA_DIST = README Imakefile
 
+EXTRA_PROGRAMS = rhd_conntest
+if HAVE_PCI_PCI_H
+if HAVE_ZLIB
 noinst_PROGRAMS = rhd_conntest
+endif
+endif
 
 # Including config.h requires xorg-config.h, so we need the XORG_CFLAGS here
 AM_CFLAGS   = @XORG_CFLAGS@ @WARN_CFLAGS@

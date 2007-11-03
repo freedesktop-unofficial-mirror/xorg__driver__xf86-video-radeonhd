@@ -48,6 +48,13 @@ sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 # Header files checks.
 AC_HEADER_STDC
 
+AC_CHECK_HEADER([pci/pci.h],
+                [AC_DEFINE([HAVE_PCI_PCI_H], [1],
+                           [Define to 1 if you have <pci/pci.h>.])
+                 have_pci_pci_h=yes],
+                [AC_MSG_WARN([Caution: Will not compile rhd_conntest without pciutils headers.])])
+AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
+
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $XORG_CFLAGS"
 
@@ -113,6 +120,8 @@ AM_CONDITIONAL(ATOM_BIOS, test x$support_atombios = xyes)
 AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 
 # libraries checks.
+AC_CHECK_LIB([z], [gzopen], [have_zlib=yes], [have_zlib=no])
+AM_CONDITIONAL([HAVE_ZLIB], [test "x$have_zlib" = "xyes"])
 
 # compiler flags
 
