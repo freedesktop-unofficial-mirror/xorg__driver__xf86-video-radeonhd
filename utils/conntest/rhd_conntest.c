@@ -656,6 +656,9 @@ getDDCSpeed(void)
 	case 4:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
 	    break;
+	default:
+	    /* no AtomBIOS info; use save default */
+	    clock = 70000;
     }
     clock *= 10;
 
@@ -668,6 +671,8 @@ getDDCSpeed(void)
 	case RHD_R600:
 	    ret = (clock) / TARGET_HW_I2C_CLOCK;
 	    break;
+	default:
+	    ret = 0;
     }
 #ifdef DEBUG
     printf("%s: Clock: %i Prescale: 0x%x\n",__func__,clock,ret);
@@ -745,10 +750,11 @@ static Bool
 R6xxI2CSetupStatus(void *map, int channel)
 {
     channel &= 0xf;
-    CARD32 clock;
     CARD16 i2c_speed;
 
-    clock = getDDCSpeed();
+    i2c_speed = getDDCSpeed();
+    if (!i2c_speed)
+	return FALSE;
 
     switch (channel) {
     case 0:
@@ -915,6 +921,9 @@ RS69I2CSetupStatus(void *map, int line)
     CARD16 prescale;
 
     prescale = getDDCSpeed();
+    if (!prescale)
+	return FALSE;
+
     RegMask(map, 0x28, 0x200, 0x200);
     RegMask(map, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
     /* add SDVO handling later */
@@ -1058,6 +1067,8 @@ R5xxDDCProbe(void *map, int Channel, unsigned char slave)
     CARD16 prescale;
 
     prescale = getDDCSpeed();
+    if (!prescale)
+	return FALSE;
 
     RegMask(map, 0x28, 0x200, 0x200);
 
