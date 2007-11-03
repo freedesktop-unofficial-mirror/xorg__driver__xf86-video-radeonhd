@@ -9,6 +9,13 @@ More detailed notes about
   * known radeonhd bugs
 etc. are available in the included radeonhd(4) man page.
 
+This README file contains the following sections:
+  * More Resources
+  * Installation
+  * Common problems during builds
+  * Getting and updating the radeonhd source code
+  * Feeding back source code
+
 
 
 More Resources
