@@ -70,8 +70,9 @@ Hint: If you happen to have multiple branches in your git source tree, you
       can have per-branch _b-BRANCH/ build trees and _i-BRANCH/ install
       trees. ("... configure ... --prefix=$PWD/_i-BRANCH")
 
-Note that none of these methods will install the rhd_conntest tool, but it
-will be available as ./utils/conntest/rhd_conntest after the "make" run.
+Note that none of these methods will install the rhd_conntest tool. The
+"xmkmf" method always requires a separate "make" run in utils/conntest. The
+other two will build rhd_conntest by default if its requirements are met.
 
 
 
