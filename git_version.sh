@@ -15,8 +15,10 @@
 # The caller may have found these programs for us
 EGREP="${EGREP-"grep -E"}"
 SED="${SED-sed}"
-GIT_DIR="${GIT_DIR-.git}"
-export GIT_DIR
+
+# Initialize
+GIT_DIR=".git"
+working_dir="$(pwd)"
 
 # Who am I?
 self="$(basename "$0")"
@@ -81,6 +83,9 @@ else
     exec 1> "${outfile}.new"
 fi
 
+# Done with creating output files, so we can change to source dir
+cd "$srcdir"
+
 # Write program header
 cat<<EOF
 /*
@@ -102,15 +107,15 @@ if [ "x$git_tools" != "x" ]; then
         echo ""
 
         # Commit SHA-ID
-        git_shaid=`cd "$srcdir" && git-whatchanged | $SED -n '1s/^commit \(.\{8\}\).*/\1/p'`
+        git_shaid=`git-whatchanged | $SED -n '1s/^commit \(.\{8\}\).*/\1/p'`
         echo "/* Git SHA ID of last commit */"
         echo "#define GIT_SHAID \"${git_shaid}..\""
         echo ""
 
         # Branch -- use git-status instead of git-branch
-        git_branch=`cd "$srcdir" && git-status | $SED -n 's/^#\ On\ branch\ \(.*\)/\1/p'`
+        git_branch=`git-status | $SED -n 's/^#\ On\ branch\ \(.*\)/\1/p'`
         if [ "x$git_branch" = "x" ]; then
-            git_branch=`cd "$srcdir" && git-branch | $SED -n 's/^* //p'`
+            git_branch=`git-branch | $SED -n 's/^* //p'`
         fi
         if [ "x$git_branch" = "x" ]; then
             git_branch="<<unknown/master>>"
@@ -120,7 +125,7 @@ if [ "x$git_tools" != "x" ]; then
         echo ""
 
         # Any uncommitted changes we should know about?
-        git_uncommitted=`cd "$srcdir" && git-status | $EGREP "(Changed but not updated|Updated but not checked in|Changes to be committed)"`
+        git_uncommitted=`git-status | $EGREP "(Changed but not updated|Updated but not checked in|Changes to be committed)"`
         if [ "x$git_uncommitted" != "x" ]; then
             echo "/* Local changes might be breaking things */"
             echo "#define GIT_UNCOMMITTED 1"
@@ -186,6 +191,9 @@ int main(int argc, char *argv[])
 }
 EOF
 fi
+
+# Change back to working dir for the remaining output file manipulations.
+cd "$working_dir"
 
 # If necessary, overwrite outdated output file with new one
 if [ "x$outfile" != "x-" ]
