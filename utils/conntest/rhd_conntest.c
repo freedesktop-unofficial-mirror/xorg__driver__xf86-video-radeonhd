@@ -1425,6 +1425,18 @@ AnalyzeMasterDataTable(unsigned char *base,
     return TRUE;
 }
 
+void
+print_help(const char* progname, const char* message, const char* msgarg)
+{
+	if (message != NULL)
+	    fprintf(stderr, "%s %s\n", message, msgarg);
+	fprintf(stderr, "Usage: %s [options] PCI-tag\n"
+			"       Options: -d: dumpBios\n"
+			"                -s: scanDDCBus\n"
+			"       PCI-tag: bus:dev.func\n\n",
+		progname);
+}
+
 /*
  *
  */
@@ -1481,16 +1493,19 @@ main(int argc, char *argv[])
     pci_scan_bus(pciAccess);
 
     if (argc < 2) {
-	fprintf(stderr, "Missing argument: please provide a PCI tag "
-		"of the form: bus:dev.func\n");
+	print_help(argv[0], "Missing argument: please provide a PCI tag\n",
+		   "");
 	return 1;
     }
 
     for (i = 1; i < argc; i++) {
 	if (!strncmp("-d",argv[i],3)) {
 	    dumpBios = TRUE;
-	} else if (!strncmp("-s",argv[i],3)){
+	} else if (!strncmp("-s",argv[i],3)) {
 	    scanDDCBus = TRUE;
+	} else if (!strncmp("-",argv[i],1)) {
+	    print_help(argv[0], "Unknown option", argv[i]);
+	    return 1;
 	} else {
 	    ret = sscanf(argv[i], "%x:%x.%x", &bus, &dev, &func);
 	    if (ret != 3) {
@@ -1502,9 +1517,9 @@ main(int argc, char *argv[])
 		}
 	    }
 	    if (ret != 3) {
-		fprintf(stderr, "Unable to parse the PCI tag argument (%s)."
-			" Please use: bus:dev.func\n", argv[i]);
-		return 1;
+	        print_help(argv[0], "Unable to parse the PCI tag argument: ",
+			   argv[i]);
+	        return 1;
 	    }
 	    deviceSet = TRUE;
 	}
