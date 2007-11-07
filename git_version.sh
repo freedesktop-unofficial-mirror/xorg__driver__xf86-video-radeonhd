@@ -5,6 +5,7 @@
 # Copyright (c) 2006-2007 Luc Verhaegen <libv@skynet.be>
 # Copyright (C) 2007 Hans Ulrich Niedermann <hun@n-dimensional.de>
 #
+# The author thanks the nice people on #git for the assistance!
 #
 # Simple testing of this script:
 #   /sbin/busybox sh git_version.sh --example > moo.c \
@@ -13,7 +14,6 @@
 #   (bash should also do)
 
 # The caller may have found these programs for us
-EGREP="${EGREP-"grep -E"}"
 SED="${SED-sed}"
 
 # Initialize
@@ -98,40 +98,40 @@ cat<<EOF
 
 EOF
 
+# Detect git tools (should work with old and new git versions)
+git_found=yes
+for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index
+do
+    [ x`which $git_tool 2>/dev/null` = "x" ] && { git_found=no; break; }
+done
+
 # Determine and write git specific defines
-git_tools=`which git-whatchanged`
-if [ "x$git_tools" != "x" ]; then
+if [ "x$git_found" = "xyes" ]; then
     if [ -e "$GIT_DIR/index" ]; then
         echo "/* This is a git repository */"
         echo "#define GIT_USED 1"
         echo ""
 
         # Commit SHA-ID
-        git_shaid=`git-whatchanged | $SED -n '1s/^commit \(.\{8\}\).*/\1/p'`
+        git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
         echo "/* Git SHA ID of last commit */"
         echo "#define GIT_SHAID \"${git_shaid}\""
         echo ""
 
-        # Branch -- use git-status instead of git-branch
-        git_branch=`git-status | $SED -n 's/^#\ On\ branch\ \(.*\)/\1/p'`
-        if [ "x$git_branch" = "x" ]; then
-            git_branch=`git-branch | $SED -n 's/^* //p'`
-        fi
-        if [ "x$git_branch" = "x" ]; then
-            git_branch="<<unknown/master>>"
-        fi
+        # Branch
+        git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         echo "/* Branch this tree is on */"
         echo "#define GIT_BRANCH \"$git_branch\""
         echo ""
 
         # Any uncommitted changes we should know about?
-        git_uncommitted=`git-status | $EGREP "(Changed but not updated|Updated but not checked in|Changes to be committed)"`
-        if [ "x$git_uncommitted" != "x" ]; then
-            echo "/* Local changes might be breaking things */"
-            echo "#define GIT_UNCOMMITTED 1"
-        else
+        # Or technically: Are the working tree or index dirty?
+        if git-diff-files --quiet && git-diff-index --cached --quiet HEAD; then
             echo "/* SHA-ID uniquely defines the state of this code */"
             echo "#undef GIT_UNCOMMITTED"
+        else
+            echo "/* Local changes might be breaking things */"
+            echo "#define GIT_UNCOMMITTED 1"
         fi
     else
         echo "/* This is not a git repository */"
