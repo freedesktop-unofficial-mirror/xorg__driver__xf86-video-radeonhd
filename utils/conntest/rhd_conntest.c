@@ -1484,7 +1484,7 @@ main(int argc, char *argv[])
     unsigned char *rombase;
     int size;
 
-    printf("%s: version %s, built from %s\n",
+    printf("%s: v%s, %s\n",
 	   "rhd_conntest", PACKAGE_VERSION, GIT_MESSAGE);
 
     /* init libpci */
