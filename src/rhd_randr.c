@@ -160,17 +160,20 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
 	if (Crtc->PLL)
 	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_ON);
 	Crtc->Power(Crtc, RHD_POWER_ON);
+	Crtc->Active = TRUE;
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
 	Crtc->Power(Crtc, RHD_POWER_RESET);
 	if (Crtc->PLL)
 	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_RESET);
+	Crtc->Active = FALSE;
 	break;
     case DPMSModeOff:
 	Crtc->Power(Crtc, RHD_POWER_SHUTDOWN);
 	if (Crtc->PLL)
 	    Crtc->PLL->Power(Crtc->PLL, RHD_POWER_SHUTDOWN);
+	Crtc->Active = FALSE;
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
@@ -268,13 +271,16 @@ rhdRROutputDpms(xf86OutputPtr       out,
     switch (mode) {
     case DPMSModeOn:
 	rout->Output->Power(rout->Output, RHD_POWER_ON);
+	rout->Output->Active = TRUE;
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
 	rout->Output->Power(rout->Output, RHD_POWER_RESET);
+	rout->Output->Active = FALSE;
 	break;
     case DPMSModeOff:
 	rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
+	rout->Output->Active = FALSE;
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
