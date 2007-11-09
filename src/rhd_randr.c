@@ -196,25 +196,89 @@ rhdRRCrtcUnlock (xf86CrtcPtr crtc)
 { }
 #endif
 
-/* Dummys, because they are not tested for NULL */
+/* Helper: setup PLL and LUT for Crtc */
 static void
-rhdRRCrtcModeSetDUMMY(xf86CrtcPtr    crtc, 
-		      DisplayModePtr mode,
-		      DisplayModePtr adjusted_mode,
-		      int x, int y)
-{ }
+setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc)
+{
+    int i;
+
+    /* PLL & LUT setup - static at the moment */
+    if (Crtc->PLL)
+	return;
+    for (i = 0; i < 2; i++)
+	if (Crtc == rhdPtr->Crtc[i])
+	    break;
+    ASSERT(i<2);
+    Crtc->PLL = rhdPtr->PLLs[i];
+    Crtc->LUT = rhdPtr->LUT[i];
+}
+
+/* Set video mode.
+ * randr calls for Crtc and Output separately, while order should be
+ * up to the driver. Well. */
+static void
+rhdRRCrtcPrepare(xf86CrtcPtr crtc)
+{
+    RHDPtr          rhdPtr = RHDPTR(crtc->scrn);
+    ScrnInfoPtr     pScrn  = xf86Screens[rhdPtr->scrnIndex];
+    struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
+
+    RHDFUNC(rhdPtr);
+    setupCrtc(rhdPtr, Crtc);
+    pScrn->vtSema = TRUE;
+
+    /* Disable CRTCs to stop noise from appearing. */
+    Crtc->Power(Crtc, RHD_POWER_RESET);
+
+    /* now disable our VGA Mode */
+    RHDVGADisable(rhdPtr);
+}
+static void
+rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
+		 DisplayModePtr OrigMode, DisplayModePtr Mode,
+		 int x, int y)
+{
+    RHDPtr          rhdPtr = RHDPTR(crtc->scrn);
+    ScrnInfoPtr     pScrn  = xf86Screens[rhdPtr->scrnIndex];
+    struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
+
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
+    if (!Mode->name && crtc->mode.name)
+	Mode->name = xstrdup(crtc->mode.name);
+
+    RHDDebug(rhdPtr->scrnIndex, "%s: %s : %s\n", __func__,
+	     Crtc->Name, Mode->name);
+
+    /* Set up mode */
+    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
+		pScrn->depth, rhdPtr->FbFreeStart);
+    Crtc->FrameSet(Crtc, x, y);
+    Crtc->ModeSet(Crtc, Mode);
+    RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
+    Crtc->PLLSelect(Crtc, Crtc->PLL);
+    Crtc->LUTSelect(Crtc, Crtc->LUT);
+}
+static void
+rhdRRCrtcCommit(xf86CrtcPtr crtc)
+{
+    RHDPtr          rhdPtr = RHDPTR(crtc->scrn);
+    struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
+
+    RHDFUNC(rhdPtr);
+
+    Crtc->Active = TRUE;
+    Crtc->Power(Crtc, RHD_POWER_ON);
+
+    RHDDebugRandrState(rhdPtr, Crtc->Name);
+}
+
+
+/* Dummy, because not tested for NULL */
 static Bool
 rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
 			DisplayModePtr mode,
 			DisplayModePtr adjusted_mode)
 { return TRUE; }
-static void
-rhdRRCrtcPrepareDUMMY(xf86CrtcPtr crtc)
-{ }
-static void
-rhdRRCrtcCommitDUMMY(xf86CrtcPtr crtc)
-{ }
-
 #if 0
 /* Set the color ramps for the CRTC to the given values. */
 static void
@@ -288,26 +352,6 @@ rhdRROutputDpms(xf86OutputPtr       out,
     RHDDebugRandrState(rhdPtr, "POST-OutputDpms");
 }
 
-/* Helper: setup Crtc for validation & fixup */
-static Bool
-setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
-	  DisplayModePtr Mode)
-{
-    int i;
-
-    /* PLL & LUT setup - static at the moment */
-    if (Crtc->PLL)
-	return TRUE;
-    for (i = 0; i < 2; i++)
-	if (Crtc == rhdPtr->Crtc[i])
-	    break;
-    ASSERT(i<2);
-    Crtc->PLL = rhdPtr->PLLs[i];
-    Crtc->LUT = rhdPtr->LUT[i];
-
-    return TRUE;
-}
-
 /* RandR has a weird sense of how validation and fixup should be handled:
  * - Fixup and validation can interfere, they would have to be looped
  * - Validation should be done after fixup
@@ -369,9 +413,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
-
-    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) )
-	return FALSE;
+    setupCrtc(rhdPtr, Crtc);
     
     /* Monitor is handled by RandR */
     if (RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
@@ -382,65 +424,59 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     return TRUE;
 }
 
-/* Set video mode.
+/* Set output mode.
  * Again, randr calls for Crtc and Output separately, while order should be
- * up to the driver. So let's do everything here. */
+ * up to the driver. There wouldn't be a need for prepare/set/commit then.
+ * We cannot do everything in OutputModeSet, because the viewport isn't known
+ * here. */
 static void
-rhdRROutputModeSet(xf86OutputPtr  out,
-		   DisplayModePtr OrigMode,
-		   DisplayModePtr Mode)
+rhdRROutputPrepare(xf86OutputPtr out)
 {
-    RHDPtr rhdPtr = RHDPTR(out->scrn);
-    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
-    rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
-    struct rhdCrtc    *Crtc   = NULL;
-    struct rhdMonitor *Monitor = NULL;
+    RHDPtr            rhdPtr = RHDPTR(out->scrn);
+    ScrnInfoPtr       pScrn  = xf86Screens[rhdPtr->scrnIndex];
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
 
-    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
-    if (!Mode->name && out->crtc->mode.name)
-	Mode->name = xstrdup(out->crtc->mode.name);
-
-    ASSERT(out->crtc);
-    ASSERT(rout->Connector);
-    ASSERT(rout->Output);
-    Crtc = (struct rhdCrtc *) out->crtc->driver_private;
-    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
-	     rout->Name, Mode->name, Crtc->Name);
-
-    rout->Output->Crtc = Crtc;
-    if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) ) {
-	ASSERT(!"Cannot setup crtc");
-    }
-
-    Crtc->Active = TRUE;
-    rout->Output->Active = TRUE;
-    rout->Output->Crtc   = Crtc;
-    rout->Output->Connector = rout->Connector;
-
-    /* Bitbanging */
+    RHDFUNC(rhdPtr);
     pScrn->vtSema = TRUE;
 
     /* no active output == no mess */
     rout->Output->Power(rout->Output, RHD_POWER_RESET);
 
-    /* Disable CRTCs to stop noise from appearing. */
-    Crtc->Power(Crtc, RHD_POWER_RESET);
-
-    /* now disable our VGA Mode */
-    RHDVGADisable(rhdPtr);
-
-    /* Set up D1 and appendages */
-    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		pScrn->depth, rhdPtr->FbFreeStart);
-    Crtc->ModeSet(Crtc, Mode);
-    RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
-    Crtc->PLLSelect(Crtc, Crtc->PLL);
-    Crtc->LUTSelect(Crtc, Crtc->LUT);
-    rout->Output->Mode(rout->Output);
-    Crtc->Power(Crtc, RHD_POWER_ON);
-    rout->Output->Power(rout->Output, RHD_POWER_ON);
-    RHDDebugRandrState(rhdPtr, "POST-ModeSet");
 }
+static void
+rhdRROutputModeSet(xf86OutputPtr  out,
+		   DisplayModePtr OrigMode, DisplayModePtr Mode)
+{
+    RHDPtr            rhdPtr = RHDPTR(out->scrn);
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdCrtc   *Crtc   = (struct rhdCrtc *) out->crtc->driver_private;
+
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
+    if (!Mode->name && out->crtc->mode.name)
+	Mode->name = xstrdup(out->crtc->mode.name);
+
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
+	     rout->Name, Mode->name, Crtc->Name);
+
+    /* Set up mode */
+    rout->Output->Crtc = Crtc;
+    rout->Output->Mode(rout->Output);
+}
+static void
+rhdRROutputCommit(xf86OutputPtr out)
+{
+    RHDPtr            rhdPtr = RHDPTR(out->scrn);
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+
+    RHDFUNC(rhdPtr);
+
+    rout->Output->Active    = TRUE;
+    rout->Output->Connector = rout->Connector;
+    rout->Output->Power(rout->Output, RHD_POWER_ON);
+
+    RHDDebugRandrState(rhdPtr, rout->Name);
+}
+
 
 /* Probe for a connected output. */
 static xf86OutputStatus
@@ -484,14 +520,6 @@ rhdRROutputGetModes(xf86OutputPtr output)
 		    RRPropertyValuePtr value);
 #endif
 
-/* Dummys, because they are not tested for NULL */
-static void
-rhdRROutputPrepareDUMMY(xf86OutputPtr out)
-{ }
-static void
-rhdRROutputCommitDUMMY(xf86OutputPtr out)
-{ }
-
 
 /*
  * Xorg Interface
@@ -506,7 +534,7 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     /*save*/ NULL, /*restore*/ NULL,
     rhdRRCrtcLock, /*rhdRRCrtcUnlock*/ NULL,
     rhdRRCrtcModeFixupDUMMY,
-    rhdRRCrtcPrepareDUMMY, rhdRRCrtcModeSetDUMMY, rhdRRCrtcCommitDUMMY,
+    rhdRRCrtcPrepare, rhdRRCrtcModeSet, rhdRRCrtcCommit,
     /*rhdRRCrtcGammaSet*/ NULL,
     /*rhdRRCrtcShadowAllocate, rhdRRCrtcShadowCreate, rhdRRCrtcShadowDestroy,*/ NULL, NULL, NULL,
     /*set_cursor_colors*/ NULL, /*set_cursor_position*/ NULL,
@@ -519,7 +547,7 @@ static const xf86OutputFuncsRec rhdRROutputFuncs = {
     /*create_resources*/ NULL, rhdRROutputDpms,
     /*save*/ NULL, /*restore*/ NULL,
     rhdRROutputModeValid, rhdRROutputModeFixup,
-    rhdRROutputPrepareDUMMY, rhdRROutputCommitDUMMY,
+    rhdRROutputPrepare, rhdRROutputCommit,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
 #ifdef RANDR_12_INTERFACE
     /*rhdRROutputSetProperty*/ NULL,
