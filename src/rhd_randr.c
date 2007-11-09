@@ -246,14 +246,14 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     if (!Mode->name && crtc->mode.name)
 	Mode->name = xstrdup(crtc->mode.name);
 
-    RHDDebug(rhdPtr->scrnIndex, "%s: %s : %s\n", __func__,
-	     Crtc->Name, Mode->name);
+    RHDDebug(rhdPtr->scrnIndex, "%s: %s : %s at %d/%d\n", __func__,
+	     Crtc->Name, Mode->name, x, y);
 
     /* Set up mode */
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		pScrn->depth, rhdPtr->FbFreeStart);
-    Crtc->FrameSet(Crtc, x, y);
     Crtc->ModeSet(Crtc, Mode);
+    Crtc->FrameSet(Crtc, x, y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
     Crtc->PLLSelect(Crtc, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
