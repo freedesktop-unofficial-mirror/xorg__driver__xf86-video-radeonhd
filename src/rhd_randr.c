@@ -55,6 +55,7 @@
 #include "X11/extensions/dpms.h"
 
 /* Driver specific headers */
+#include "rhd.h"
 #include "rhd_crtc.h"
 #include "rhd_output.h"
 #include "rhd_connector.h"
@@ -89,6 +90,35 @@ typedef struct _rhdRandrOutput {
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 
+/* Debug: print out state */
+void
+RHDDebugRandrState (RHDPtr rhdPtr, const char *msg)
+{
+    int i;
+    xf86OutputPtr *ro;
+    ErrorF("*** State at %s:\n", msg);
+    for (i = 0; i < 2; i++) {
+	xf86CrtcPtr    rc = rhdPtr->randr->RandrCrtc[i];
+	struct rhdCrtc *c = (struct rhdCrtc *) rc->driver_private;
+	ErrorF("   RRCrtc #%d [rhd %s]: active %d [%d]  mode %s (%dx%d)\n",
+	       i, c->Name, rc->enabled, c->Active,
+	       rc->mode.name ? rc->mode.name : "unnamed",
+	       rc->mode.HDisplay, rc->mode.VDisplay);
+    }
+    for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
+	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
+	ErrorF("   RROut  '%s':  Crtc %s [%s]  active [%d]  %s\n",
+	       (*ro)->name,
+	       (*ro)->crtc ? ((struct rhdCrtc *)(*ro)->crtc->driver_private)->Name : "null",
+	       o->Output->Crtc ? o->Output->Crtc->Name : "null",
+	       o->Output->Active,
+	       (*ro)->status == XF86OutputStatusConnected ? "connected" :
+	       (*ro)->status == XF86OutputStatusDisconnected ? "disconnected" :
+	       (*ro)->status == XF86OutputStatusUnknown ? "unknownState" :
+	       "badState" );
+    }
+}
+
 /*
  * xf86CrtcConfig callback functions
  */
@@ -119,11 +149,10 @@ rhdRRXF86CrtcResize(ScrnInfoPtr pScrn, int width, int height)
 static void
 rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
 {
-    RHDPtr rhdPtr = RHDPTR(crtc->scrn);
+    RHDPtr rhdPtr        = RHDPTR(crtc->scrn);
     struct rhdCrtc *Crtc = (struct rhdCrtc *) crtc->driver_private;
 
-    RHDDebug(Crtc->scrnIndex, "%s: Crtc %d : %s\n", __func__,
-	     Crtc==rhdPtr->Crtc[0]?0:1,
+    RHDDebug(Crtc->scrnIndex, "%s: %s: %s\n", __func__, Crtc->Name,
 	     mode==DPMSModeOn ? "On" : mode==DPMSModeOff ? "Off" : "Other");
 
     switch (mode) {
@@ -146,6 +175,7 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
     default:
 	ASSERT(!"Unknown DPMS mode");
     }
+    RHDDebugRandrState(rhdPtr, "POST-CrtcDpms");
 }
 
 /* Lock CRTC prior to mode setting, mostly for DRI.
@@ -228,7 +258,8 @@ static void
 rhdRROutputDpms(xf86OutputPtr       out,
 		int                 mode)
 {
-    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+    RHDPtr rhdPtr          = RHDPTR(out->scrn);
+    rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
 
     RHDDebug(rout->Output->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name,
@@ -248,6 +279,7 @@ rhdRROutputDpms(xf86OutputPtr       out,
     default:
 	ASSERT(!"Unknown DPMS mode");
     }
+    RHDDebugRandrState(rhdPtr, "POST-OutputDpms");
 }
 
 /* Helper: setup Crtc for validation & fixup */
@@ -366,12 +398,12 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     if (!Mode->name && out->crtc->mode.name)
 	Mode->name = xstrdup(out->crtc->mode.name);
 
-    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
-	     rout->Name, Mode->name);
+    ASSERT(out->crtc);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
-    ASSERT(out->crtc);
     Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
+	     rout->Name, Mode->name, Crtc->Name);
     ASSERT(Crtc == rout->Output->Crtc);
 
     if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) ) {
@@ -444,6 +476,7 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     RHDOutputsMode(rhdPtr, Crtc);
     Crtc->Power(Crtc, RHD_POWER_ON);
     rout->Output->Power(rout->Output, RHD_POWER_ON);
+    RHDDebugRandrState(rhdPtr, "POST-ModeSet");
 }
 
 /* Probe for a connected output. */
@@ -639,6 +672,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
+    RHDDebugRandrState(rhdPtr, "POST-ScreenInit");
     return TRUE;
 }
 
@@ -646,7 +680,11 @@ RHDRandrScreenInit(ScreenPtr pScreen)
 Bool
 RHDRandrModeInit(ScrnInfoPtr pScrn)
 {
-    return xf86SetDesiredModes(pScrn);
+    Bool ret;
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    ret = xf86SetDesiredModes(pScrn);
+    RHDDebugRandrState(rhdPtr, "POST-ModeInit");
+    return ret;
 }
 
 /* SwitchMode: Legacy: Set one mode */
