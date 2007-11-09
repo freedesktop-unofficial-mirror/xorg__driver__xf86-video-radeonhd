@@ -47,6 +47,10 @@
 #include "rhd_crtc.h"
 #include "rhd_regs.h"
 
+/* System headers */
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
 
 /*
  * Bit-banging ONLY

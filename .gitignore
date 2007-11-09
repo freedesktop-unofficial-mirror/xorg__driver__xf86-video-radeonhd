@@ -1,7 +1,9 @@
 *~
+*.i
 *.la
 *.lo
 *.o
+*.s
 *.so
 Makefile.bak
 Makefile

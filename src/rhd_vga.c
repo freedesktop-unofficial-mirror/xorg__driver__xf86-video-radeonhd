@@ -33,6 +33,10 @@
 #include "rhd_vga.h"
 #include "rhd_regs.h"
 
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
+
 /*
  *
  */

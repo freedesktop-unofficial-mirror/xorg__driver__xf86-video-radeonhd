@@ -33,8 +33,8 @@
 #include "xf86_ansic.h"
 
 #include "rhd.h"
-#include "rhd_output.h"
 #include "rhd_connector.h"
+#include "rhd_output.h"
 #include "rhd_regs.h"
 #include "rhd_monitor.h"
 #include "rhd_card.h"

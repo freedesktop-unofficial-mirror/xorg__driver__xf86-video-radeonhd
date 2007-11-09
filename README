@@ -9,6 +9,13 @@ More detailed notes about
   * known radeonhd bugs
 etc. are available in the included radeonhd(4) man page.
 
+This README file contains the following sections:
+  * More Resources
+  * Installation
+  * Common problems during builds
+  * Getting and updating the radeonhd source code
+  * Feeding back source code
+
 
 
 More Resources
@@ -24,8 +31,7 @@ The git repository with the radeonhd source code:
    git://anongit.freedesktop.org/git/xorg/driver/xf86-video-radeonhd
 
 Report bugs at:
-   https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
-   (component radeonhd)
+   https://bugs.freedesktop.org/enter_bug.cgi?product=xorg&component=Driver/radeonhd
 
 
 
@@ -64,13 +70,35 @@ Hint: If you happen to have multiple branches in your git source tree, you
       can have per-branch _b-BRANCH/ build trees and _i-BRANCH/ install
       trees. ("... configure ... --prefix=$PWD/_i-BRANCH")
 
-Note that neither of these methods will apply to the rhd_conntest tool.
-To build the rhd_conntest tool, you need to run
+Note that none of these methods will install the rhd_conntest tool. The
+"xmkmf" method always requires a separate "make" run in utils/conntest. The
+other two will build rhd_conntest by default if its requirements are met.
 
-   $ (cd utils/conntest && make)
 
-from the source tree, regardless of the method chosen above to build the
-radeonhd.so driver module itself.
+
+Common problems during builds
+=============================
+
+Problem:
+--------
+
+,----[ output of ./autogen.sh ]----
+|autoreconf: running: /usr/bin/autoconf
+|configure.ac:35: error: possibly undefined macro: XORG_DRIVER_CHECK_EXT
+|      If this token and others are legitimate, please use m4_pattern_allow.
+|      See the Autoconf documentation.
+|autoreconf: /usr/bin/autoconf failed with exit status: 1
+`----
+
+Solution:
+---------
+
+Your system lacks one or more of these files in /usr/share/aclocal:
+    xorg-macros.m4 xorg-server.m4 xorgversion.m4
+
+Make sure you have all required X.org development packages installed. These
+may be called xorg-dev, xorg-x11-server-sdk and xorg-x11-util-macros, or
+something similar.
 
 
 

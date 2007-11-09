@@ -2,7 +2,8 @@
 
 #define IHaveSubdirs
 
-SUBDIRS = src
+SUBDIRS = src man utils/conntest
+DEFAULT_BUILD_SUBDIRS = src man
 
-MakeSubdirs($(SUBDIRS))
-ForceSubdirs($(SUBDIRS))
+MakeSubdirs($(DEFAULT_BUILD_SUBDIRS))
+ForceSubdirs($(DEFAULT_BUILD_SUBDIRS))

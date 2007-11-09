@@ -27,7 +27,7 @@
 #define _RHD_CONNECTOR_H
 
 /* so that we can map which is which */
-typedef enum _rhdConnectorType {
+typedef enum rhdConnectorType {
     RHD_CONNECTOR_NONE  = 0,
     RHD_CONNECTOR_VGA,
     RHD_CONNECTOR_DVI,

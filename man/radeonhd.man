@@ -77,7 +77,7 @@ Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650
 Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000
 .TP 8
 .B RV630
-Radeon HD 2600 Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600
+Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600
 .TP 8
 .B M52
 Mobility Radeon X1300
@@ -137,21 +137,10 @@ As the
 .B radeonhd
 driver is still in an early stage of development, many non-obvious things 
 do not work yet. Other places to check for known bugs and solutions are the 
-bugtracker
-\%https://bugs.freedesktop.org/
-(Product \*qxorg\*q, Component \*qDriver/radeonhd\*q) and the mailing
-list archives at
+bugtracker at
+\%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
+and the mailing list archives at
 \%http://lists.opensuse.org/radeonhd/
-.SS No valid modeline found
-If the
-.I "Section \*qScreen\*q"
-in your __xconfigfile__ contains a
-.I "Monitor \*qfoobar\*q"
-line, 
-.B radeonhd
-often does not find a valid modeline for the attached display when an 
-internal laptop flat panel is used and aborts. Workaround: Comment out the 
-\*qMonitor\*q line.
 .SS Laptop backlight brightness cannot be changed
 While
 .B radeonhd

@@ -29,7 +29,6 @@
  */
 
 #include <stdio.h>
-#include <sys/io.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -38,6 +37,11 @@
 #include <sys/mman.h>
 #include <pci/pci.h>
 #include <unistd.h>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+#include "git_version.h"
 
 #ifndef ULONG
 typedef unsigned int ULONG;
@@ -652,6 +656,9 @@ getDDCSpeed(void)
 	case 4:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
 	    break;
+	default:
+	    /* no AtomBIOS info; use save default */
+	    clock = 70000;
     }
     clock *= 10;
 
@@ -664,6 +671,8 @@ getDDCSpeed(void)
 	case RHD_R600:
 	    ret = (clock) / TARGET_HW_I2C_CLOCK;
 	    break;
+	default:
+	    ret = 0;
     }
 #ifdef DEBUG
     printf("%s: Clock: %i Prescale: 0x%x\n",__func__,clock,ret);
@@ -741,10 +750,11 @@ static Bool
 R6xxI2CSetupStatus(void *map, int channel)
 {
     channel &= 0xf;
-    CARD32 clock;
     CARD16 i2c_speed;
 
-    clock = getDDCSpeed();
+    i2c_speed = getDDCSpeed();
+    if (!i2c_speed)
+	return FALSE;
 
     switch (channel) {
     case 0:
@@ -911,6 +921,9 @@ RS69I2CSetupStatus(void *map, int line)
     CARD16 prescale;
 
     prescale = getDDCSpeed();
+    if (!prescale)
+	return FALSE;
+
     RegMask(map, 0x28, 0x200, 0x200);
     RegMask(map, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
     /* add SDVO handling later */
@@ -1054,6 +1067,8 @@ R5xxDDCProbe(void *map, int Channel, unsigned char slave)
     CARD16 prescale;
 
     prescale = getDDCSpeed();
+    if (!prescale)
+	return FALSE;
 
     RegMask(map, 0x28, 0x200, 0x200);
 
@@ -1410,6 +1425,18 @@ AnalyzeMasterDataTable(unsigned char *base,
     return TRUE;
 }
 
+void
+print_help(const char* progname, const char* message, const char* msgarg)
+{
+	if (message != NULL)
+	    fprintf(stderr, "%s %s\n", message, msgarg);
+	fprintf(stderr, "Usage: %s [options] PCI-tag\n"
+			"       Options: -d: dumpBios\n"
+			"                -s: scanDDCBus\n"
+			"       PCI-tag: bus:dev.func\n\n",
+		progname);
+}
+
 /*
  *
  */
@@ -1457,22 +1484,28 @@ main(int argc, char *argv[])
     unsigned char *rombase;
     int size;
 
+    printf("%s: version %s, built from %s\n",
+	   "rhd_conntest", PACKAGE_VERSION, GIT_MESSAGE);
+
     /* init libpci */
     pciAccess = pci_alloc();
     pci_init(pciAccess);
     pci_scan_bus(pciAccess);
 
     if (argc < 2) {
-	fprintf(stderr, "Missing argument: please provide a PCI tag "
-		"of the form: bus:dev.func\n");
+	print_help(argv[0], "Missing argument: please provide a PCI tag\n",
+		   "");
 	return 1;
     }
 
     for (i = 1; i < argc; i++) {
 	if (!strncmp("-d",argv[i],3)) {
 	    dumpBios = TRUE;
-	} else if (!strncmp("-s",argv[i],3)){
+	} else if (!strncmp("-s",argv[i],3)) {
 	    scanDDCBus = TRUE;
+	} else if (!strncmp("-",argv[i],1)) {
+	    print_help(argv[0], "Unknown option", argv[i]);
+	    return 1;
 	} else {
 	    ret = sscanf(argv[i], "%x:%x.%x", &bus, &dev, &func);
 	    if (ret != 3) {
@@ -1484,9 +1517,9 @@ main(int argc, char *argv[])
 		}
 	    }
 	    if (ret != 3) {
-		fprintf(stderr, "Unable to parse the PCI tag argument (%s)."
-			" Please use: bus:dev.func\n", argv[i]);
-		return 1;
+	        print_help(argv[0], "Unable to parse the PCI tag argument: ",
+			   argv[i]);
+	        return 1;
 	    }
 	    deviceSet = TRUE;
 	}

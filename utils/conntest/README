@@ -8,8 +8,9 @@ Radeon R5xx and R6xx graphics devices.
 Build:
 ------
 
-Descend into xf86-video-radeonhd/utils/conntest/
-Run make.
+ * Make sure the pciutils development files and zlib are installed.
+ * Descend into xf86-video-radeonhd/utils/conntest/
+ * Run "make".
 
 Usage:
 ------

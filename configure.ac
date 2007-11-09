@@ -3,7 +3,7 @@
 AC_PREREQ(2.57)
 AC_INIT([xf86-video-radeonhd],
         0.0.2,
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg&component=Driver/radeonhd],
         xf86-video-radeonhd)
 
 AC_CONFIG_SRCDIR([Makefile.am])
@@ -47,6 +47,13 @@ sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 
 # Header files checks.
 AC_HEADER_STDC
+
+AC_CHECK_HEADER([pci/pci.h],
+                [AC_DEFINE([HAVE_PCI_PCI_H], [1],
+                           [Define to 1 if you have <pci/pci.h>.])
+                 have_pci_pci_h=yes],
+                [AC_MSG_WARN([Caution: Will not compile rhd_conntest without pciutils headers.])])
+AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
 
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $XORG_CFLAGS"
@@ -113,6 +120,8 @@ AM_CONDITIONAL(ATOM_BIOS, test x$support_atombios = xyes)
 AM_CONDITIONAL(ATOM_BIOS_PARSER, test x$support_atombios_parser = xyes)
 
 # libraries checks.
+AC_CHECK_LIB([z], [gzopen], [have_zlib=yes], [have_zlib=no])
+AM_CONDITIONAL([HAVE_ZLIB], [test "x$have_zlib" = "xyes"])
 
 # compiler flags
 
@@ -181,8 +190,9 @@ AC_SUBST([moduledir])
 DRIVER_NAME=radeonhd
 AC_SUBST([DRIVER_NAME])
 
-dnl m4_pattern_forbid([XORG_RELEASE_VERSION])dnl
+m4_pattern_forbid([XORG_MANPAGE_SECTIONS])dnl
 XORG_MANPAGE_SECTIONS
+m4_pattern_forbid([XORG_RELEASE_VERSION])dnl
 XORG_RELEASE_VERSION
 
 dnl These are also defined in XORG_RELEASE_VERSION since 2006-11-30.
@@ -204,4 +214,5 @@ AC_OUTPUT([
 	Makefile
 	man/Makefile
 	src/Makefile
+	utils/conntest/Makefile
 ])

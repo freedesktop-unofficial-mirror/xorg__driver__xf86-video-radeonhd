@@ -41,6 +41,13 @@
 # include "rhd_atombios.h"
 #endif
 
+#ifndef _XF86_ANSIC_H
+#include <strings.h>
+#endif
+
+/* From rhd_edid.c */
+void RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID);
+
 /*
  *
  */
@@ -80,20 +87,17 @@ RHDMonitorPrint(struct rhdMonitor *Monitor)
 /*
  *
  */
-struct rhdMonitor *
-RHDMonitorConfig(MonPtr Config)
+static struct rhdMonitor *
+rhdMonitorFromConfig(int scrnIndex, MonPtr Config)
 {
     struct rhdMonitor *Monitor;
     DisplayModePtr Mode;
     int i;
 
-    if (!Config || !Config->id ||
-	!strcasecmp(Config->id, "<default monitor>"))
-	return NULL;
-
     Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 
     Monitor->Name = xnfstrdup(Config->id);
+    Monitor->scrnIndex = scrnIndex;
 
     if (Config->nHsync) {
         Monitor->numHSync = Config->nHsync;
@@ -142,18 +146,16 @@ RHDMonitorConfig(MonPtr Config)
 /*
  *
  */
-struct rhdMonitor *
-RHDMonitorDefault(int scrnIndex)
+static struct rhdMonitor *
+rhdMonitorFromDefault(int scrnIndex, MonPtr Config)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     struct rhdMonitor *Monitor;
     DisplayModePtr Mode;
 
     Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 
-    Monitor->scrnIndex = scrnIndex;
-
     Monitor->Name = xnfstrdup("Default (SVGA)");
+    Monitor->scrnIndex = scrnIndex;
 
     /* timing for pathetic 14" svga monitors */
     Monitor->numHSync = 3;
@@ -169,11 +171,63 @@ RHDMonitorDefault(int scrnIndex)
     Monitor->VRefresh[0].hi = 61;
 
     /* Try to add configged modes anyway */
-    if (pScrn->confScreen->monitor)
-	for (Mode = pScrn->confScreen->monitor->Modes; Mode; Mode = Mode->next)
+    if (Config)
+	for (Mode = Config->Modes; Mode; Mode = Mode->next)
 	    Monitor->Modes = RHDModesAdd(Monitor->Modes, RHDModeCopy(Mode));
 
     return Monitor;
+}
+
+/*
+ * This function tries to handle a configured monitor correctly.
+ *
+ * This either can be forced through the option, or is used when
+ * no monitors are autodetected.
+ */
+void
+RHDConfigMonitorSet(int scrnIndex, Bool UseConfig)
+{
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    MonPtr Config = pScrn->confScreen->monitor;
+    Bool HasConfig;
+
+    int i;
+
+    if (Config && Config->id && strcasecmp(Config->id, "<default monitor>"))
+	HasConfig = TRUE;
+    else
+	HasConfig = FALSE;
+
+    for (i = 0; i < RHD_CONNECTORS_MAX; i++)
+	if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
+	    break;
+
+    if (i == RHD_CONNECTORS_MAX)
+	xf86DrvMsg(scrnIndex, X_INFO, "No monitors autodetected; "
+		   "attempting to work around this.\n");
+    else if (HasConfig) {
+	xf86DrvMsg(scrnIndex, X_WARNING, "A Monitor section has been specified"
+		   " in the config file.\n");
+	xf86Msg(X_NONE, "     This might badly affect mode validation, and might "
+		"make X fail.\n");
+	xf86Msg(X_NONE, "     Unless this section is absolutely necessary, comment"
+		" out the line\n" "\t\tMonitor \"%s\"\n"
+		"     from the Screen section in your config file.\n", Config->id);
+    }
+
+    if ((i == RHD_CONNECTORS_MAX) || UseConfig) {
+	if (HasConfig)
+	    rhdPtr->ConfigMonitor = rhdMonitorFromConfig(scrnIndex, Config);
+	else
+	    rhdPtr->ConfigMonitor = rhdMonitorFromDefault(scrnIndex, Config);
+
+	xf86DrvMsg(scrnIndex, X_INFO, "Created monitor from %s: \"%s\":\n",
+		   HasConfig ? "config" : "default",
+		   rhdPtr->ConfigMonitor->Name);
+
+	RHDMonitorPrint(rhdPtr->ConfigMonitor);
+    }
 }
 
 /*

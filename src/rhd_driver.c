@@ -90,10 +90,10 @@
 #include "rhd_regs.h"
 #include "rhd_cursor.h"
 #include "rhd_atombios.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
-#include "rhd_connector.h"
 #include "rhd_monitor.h"
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
@@ -105,6 +105,10 @@
 
 /* ??? */
 #include "servermd.h"
+
+#ifndef _XF86_ANSIC_H
+#include <string.h>
+#endif
 
 /* Mandatory functions */
 static const OptionInfoRec *	RHDAvailableOptions(int chipid, int busid);
@@ -184,16 +188,18 @@ typedef enum {
     OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
+    OPTION_USECONFIGUREDMONITOR,
     OPTION_NORANDR
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
-    { OPTION_NOACCEL,	      "NoAccel",         OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_SW_CURSOR,	      "SWcursor",        OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_SHADOWFB,        "shadowfb",        OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_IGNORECONNECTOR, "ignoreconnector", OPTV_ANYSTR,  {0}, FALSE },
-    { OPTION_FORCEREDUCED,    "forcereduced",    OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_NORANDR,         "NoRandr",         OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -628,37 +634,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDRandrPreInit(pScrn);
 
     if (! rhdPtr->randr) {
-	/* Pick anything for now */
-	if (!rhdModeLayoutSelect(rhdPtr)) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Failed to detect a connected monitor\n");
-	    goto error1;
-	}
-
-	rhdPtr->ConfigMonitor = RHDMonitorConfig(pScrn->confScreen->monitor);
-	if (!rhdPtr->ConfigMonitor) {
-	    int i;
-
-	    for (i = 0; i < RHD_CONNECTORS_MAX; i++)
-		if (rhdPtr->Connector[i] && rhdPtr->Connector[i]->Monitor)
-		    break;
-
-	    if (i == RHD_CONNECTORS_MAX) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-			"No monitor information found. Attaching default.\n");
-		rhdPtr->ConfigMonitor = RHDMonitorDefault(pScrn->scrnIndex);
-		if (rhdPtr->ConfigMonitor) {
-		    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-			       "Default Monitor \"%s\":\n",
-			       rhdPtr->ConfigMonitor->Name);
-		    RHDMonitorPrint(rhdPtr->ConfigMonitor);
-		}
-	    }
-	} else {
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Configured Monitor \"%s\":\n",
-		       rhdPtr->ConfigMonitor->Name);
-	    RHDMonitorPrint(rhdPtr->ConfigMonitor);
-	}
+	/* set up rhdPtr->ConfigMonitor */
+	if (!xf86GetOptValBool(rhdPtr->Options, OPTION_USECONFIGUREDMONITOR, &ret))
+	    ret = FALSE;
+	RHDConfigMonitorSet(pScrn->scrnIndex, ret);
 
 	rhdModeLayoutPrint(rhdPtr);
     }
@@ -1266,6 +1245,36 @@ rhdUnmapFB(RHDPtr rhdPtr)
 /*
  *
  */
+static void
+rhdOutputConnectorCheck(struct rhdConnector *Connector)
+{
+    struct rhdOutput *Output;
+    int i;
+
+    /* First, try to sense */
+    for (i = 0; i < 2; i++) {
+	Output = Connector->Output[i];
+	if (Output && Output->Sense && Output->Sense(Output, Connector->Type)) {
+	    Output->Connector = Connector;
+	    break;
+	}
+    }
+
+    if (i == 2) {
+	/* now just enable the ones without sensing */
+	for (i = 0; i < 2; i++) {
+	    Output = Connector->Output[i];
+	    if (Output && !Output->Sense) {
+		Output->Connector = Connector;
+		break;
+	    }
+	}
+    }
+}
+
+/*
+ *
+ */
 static Bool
 rhdModeLayoutSelect(RHDPtr rhdPtr)
 {
@@ -1274,7 +1283,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     Bool Found = FALSE;
     char *ignore = NULL;
     RHDOpt ForceReduced;
-    int i = 0, j;
+    Bool ConnectorIsDMS59 = FALSE;
+    int i = 0;
 
     RHDFUNC(rhdPtr);
 
@@ -1292,9 +1302,19 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 	Output->Connector = NULL;
     }
 
+    /* quick and dirty option so that some output choice exists */
     ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
     RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED, &ForceReduced,
 		     FALSE);
+
+    /* handle cards with DMS-59 connectors appropriately. The DMS-59 to VGA
+       adapter does not raise HPD at all, so we need a fallback there. */
+    if (rhdPtr->Card) {
+	ConnectorIsDMS59 = rhdPtr->Card->flags & RHD_CARD_FLAG_DMS59;
+	if (ConnectorIsDMS59)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Card %s has a DMS-59"
+		       " connector.\n", rhdPtr->Card->name);
+    }
 
     /* Check on the basis of Connector->HPD */
     for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
@@ -1313,53 +1333,17 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 	    if (Connector->HPDCheck(Connector)) {
 		Connector->HPDAttached = TRUE;
 
-		/* First, try to sense */
-		for (j = 0; j < 2; j++) {
-		    Output = Connector->Output[j];
-		    if (Output && Output->Sense &&
-			Output->Sense(Output, Connector->Type)) {
-			Output->Connector = Connector;
-			break;
-		    }
-		}
-
-		if (j == 2) {
-		    /* now just enable the ones without sensing */
-		    for (j = 0; j < 2; j++) {
-			Output = Connector->Output[j];
-			if (Output && !Output->Sense) {
-			    Output->Connector = Connector;
-			    break;
-			}
-		    }
-		}
-	    } else
+		rhdOutputConnectorCheck(Connector);
+	    } else {
 		Connector->HPDAttached = FALSE;
-	} else {
-	    /* First, try to sense */
-	    for (j = 0; j < 2; j++) {
-		Output = Connector->Output[j];
-		if (Output && Output->Sense &&
-		    Output->Sense(Output, Connector->Type)) {
-		    Output->Connector = Connector;
-		    break;
-		}
+		if (ConnectorIsDMS59)
+		    rhdOutputConnectorCheck(Connector);
 	    }
-
-	    if (j == 2) {
-		/* now just enable the ones without sensing */
-		for (j = 0; j < 2; j++) {
-		    Output = Connector->Output[j];
-		    if (Output && !Output->Sense) {
-			Output->Connector = Connector;
-			break;
-		    }
-		}
-	    }
-	}
+	} else
+	    rhdOutputConnectorCheck(Connector);
     }
 
-    j = 0;
+    i = 0; /* counter for CRTCs */
     for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 	if (Output->Connector) {
 	    struct rhdMonitor *Monitor = NULL;
@@ -1377,8 +1361,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 
 		Output->Active = TRUE;
 
-		Output->Crtc = rhdPtr->Crtc[j & 1]; /* ;) */
-		j++;
+		Output->Crtc = rhdPtr->Crtc[i & 1]; /* ;) */
+		i++;
 
 		Output->Crtc->Active = TRUE;
 
@@ -1492,7 +1476,6 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
 	xf86Msg(X_NONE, "\n");
     xf86Msg(X_NONE, "\n");
 }
-
 
 /*
  *

@@ -34,10 +34,15 @@
 #include "rhd.h"
 #include "rhd_crtc.h"
 #include "rhd_pll.h"
+#include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_modes.h"
-#include "rhd_connector.h"
 #include "rhd_monitor.h"
+
+#ifndef _XF86_ANSIC_H
+#include <stdio.h>
+#include <string.h>
+#endif
 
 /*
  * Define a set of own mode errors.
