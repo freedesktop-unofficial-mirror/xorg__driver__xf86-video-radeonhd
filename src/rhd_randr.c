@@ -289,14 +289,9 @@ setupCrtc(RHDPtr rhdPtr, struct rhdCrtc *Crtc, struct rhdOutput *Output,
 {
     int i;
 
-    if (Output->Crtc == Crtc)
-	return TRUE;
-    ASSERT(!Output->Crtc || !Output->Crtc->Active);
-    ASSERT(!Output->Active);
-    ASSERT(!Crtc->Active);
-
     /* PLL & LUT setup - static at the moment */
-    Output->Crtc = Crtc;
+    if (Crtc->PLL)
+	return TRUE;
     for (i = 0; i < 2; i++)
 	if (Crtc == rhdPtr->Crtc[i])
 	    break;
@@ -404,8 +399,8 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     Crtc = (struct rhdCrtc *) out->crtc->driver_private;
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
 	     rout->Name, Mode->name, Crtc->Name);
-    ASSERT(Crtc == rout->Output->Crtc);
 
+    rout->Output->Crtc = Crtc;
     if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) ) {
 	ASSERT(!"Cannot setup crtc");
     }
