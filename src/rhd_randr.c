@@ -474,7 +474,7 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
     Crtc->PLLSelect(Crtc, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
-    RHDOutputsMode(rhdPtr, Crtc);
+    rout->Output->Mode(rout->Output);
     Crtc->Power(Crtc, RHD_POWER_ON);
     rout->Output->Power(rout->Output, RHD_POWER_ON);
     RHDDebugRandrState(rhdPtr, "POST-ModeSet");
