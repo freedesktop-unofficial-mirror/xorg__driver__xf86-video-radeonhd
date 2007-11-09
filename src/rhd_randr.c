@@ -184,7 +184,7 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
 /* Lock CRTC prior to mode setting, mostly for DRI.
  * Returns whether unlock is needed */
 static Bool
-rhdRRCrtcLock (xf86CrtcPtr crtc)
+rhdRRCrtcLock(xf86CrtcPtr crtc)
 {
     return FALSE;
 }
@@ -338,8 +338,9 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 
     /* If out->crtc is not NULL, it is not necessarily the Crtc that will
      * be used, so let's better skip crtc based checks... */
+    /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
-			    rout->Output, NULL);	// TODO: Monitor
+			    rout->Output, NULL);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s -> Status %d\n", __func__,
 	     Mode->name, Status);
     return Status;
@@ -372,9 +373,9 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     if (! setupCrtc(rhdPtr, Crtc, rout->Output, Mode) )
 	return FALSE;
     
+    /* Monitor is handled by RandR */
     if (RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
-		       NULL)	// TODO: Monitor
-	!= MODE_OK) {
+		       NULL) != MODE_OK) {
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED\n", __func__, Mode->name);
 	return FALSE;
     }
@@ -416,43 +417,6 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     rout->Output->Crtc   = Crtc;
     rout->Output->Connector = rout->Connector;
 
-#if 0
-    /* TODO: what of the following to mode setup, what to validate / fixup */
-    Monitor = RHDMonitorInit(rout->Connector);
-
-    if (!Monitor && (rout->Connector->Type == RHD_CONNECTOR_PANEL)) {
-	// TODO: do this in fixup?!?
-	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach a"
-		   " monitor to connector \"%s\"\n", rout->Connector->Name);
-	rout->Output->Active = FALSE;
-    } else {
-	rout->Connector->Monitor = Monitor;
-	if (Monitor) {
-	    /* If this is a digitally attached monitor, enable
-	     * * reduced blanking.
-	     * * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
-	     * */
-	    if ((rout->Output->Id == RHD_OUTPUT_TMDSA) ||
-		(rout->Output->Id == RHD_OUTPUT_LVTMA))
-		Monitor->ReducedAllowed = TRUE;
-
-#if 0
-	    /* allow user to override settings globally */
-	    if (ForceReduced.set)
-		Monitor->ReducedAllowed = ForceReduced.val.bool;
-#endif
-
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		       "Connector \"%s\" uses Monitor \"%s\":\n",
-		       rout->Connector->Name, Monitor->Name);
-	    RHDMonitorPrint(Monitor);
-	} else
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-		       "Connector \"%s\": Failed to retrieve Monitor"
-		       " information.\n", rout->Connector->Name);
-    }
-#endif
-
     /* Bitbanging */
     pScrn->vtSema = TRUE;
 
@@ -460,11 +424,9 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     rout->Output->Power(rout->Output, RHD_POWER_RESET);
 
     /* Disable CRTCs to stop noise from appearing. */
-    // TODO: necessary? output is off...
     Crtc->Power(Crtc, RHD_POWER_RESET);
 
     /* now disable our VGA Mode */
-    // TODO: only once
     RHDVGADisable(rhdPtr);
 
     /* Set up D1 and appendages */
