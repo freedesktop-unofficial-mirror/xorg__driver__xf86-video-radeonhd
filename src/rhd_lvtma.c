@@ -47,7 +47,13 @@
 #include "rhd_atombios.h"
 #endif
 
-struct rhdLVTMAPrivate {
+/*
+ *
+ * Handling for LVTMA block as LVDS.
+ *
+ */
+
+struct LVDSPrivate {
     Bool DualLink;
     Bool LVDS24Bit;
     Bool FPDI; /* LDI otherwise */
@@ -97,7 +103,7 @@ LVDSModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 LVDSSet(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -176,7 +182,7 @@ LVDSSet(struct rhdOutput *Output)
 static void
 LVDSPWRSEQInit(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     CARD32 tmp = 0;
 
     tmp = Private->PowerDigToDE >> 2;
@@ -204,7 +210,7 @@ LVDSPWRSEQInit(struct rhdOutput *Output)
 static void
 LVDSEnable(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     CARD32 tmp = 0;
     int i;
 
@@ -247,7 +253,7 @@ LVDSEnable(struct rhdOutput *Output)
 static void
 LVDSDisable(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     CARD32 tmp = 0;
     int i;
 
@@ -323,9 +329,9 @@ LVDSPower(struct rhdOutput *Output, int Power)
  *
  */
 static void
-LVTMASave(struct rhdOutput *Output)
+LVDSSave(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -352,9 +358,9 @@ LVTMASave(struct rhdOutput *Output)
  * Currently it's a dumb register dump.
  */
 static void
-LVTMARestore(struct rhdOutput *Output)
+LVDSRestore(struct rhdOutput *Output)
 {
-    struct rhdLVTMAPrivate *Private = (struct rhdLVTMAPrivate *) Output->Private;
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
 
@@ -381,30 +387,15 @@ LVTMARestore(struct rhdOutput *Output)
 }
 
 /*
- *
- */
-static void
-LVTMADestroy(struct rhdOutput *Output)
-{
-    RHDFUNC(Output);
-
-    if (!Output->Private)
-	return;
-
-    xfree(Output->Private);
-    Output->Private = NULL;
-}
-
-/*
  * Here we pretty much assume that ATOM has either initialised the panel already
  * or that we can find information from ATOM BIOS data tables. We know that the
  * latter assumption is false for some values, but there is no getting around
  * ATI clinging desperately to a broken concept.
  */
-static struct rhdLVTMAPrivate *
-rhdLVDSInfoRetrieve(RHDPtr rhdPtr)
+static struct LVDSPrivate *
+LVDSInfoRetrieve(RHDPtr rhdPtr)
 {
-    struct rhdLVTMAPrivate *Private = xnfcalloc(sizeof(struct rhdLVTMAPrivate), 1);
+    struct LVDSPrivate *Private = xnfcalloc(sizeof(struct LVDSPrivate), 1);
     CARD32 tmp;
 
     /* These values are not available from atombios data tables at all. */
@@ -492,6 +483,241 @@ rhdLVDSInfoRetrieve(RHDPtr rhdPtr)
 
 /*
  *
+ * Handling for LVTMA block as TMDS.
+ *
+ */
+struct rhdTMDSBPrivate {
+    Bool Stored;
+
+    CARD32 StoreControl;
+    CARD32 StoreSource;
+    CARD32 StoreFormat;
+    CARD32 StoreForce;
+    CARD32 StoreReduction;
+    CARD32 StoreDCBalancer;
+    CARD32 StoreDataSynchro;
+    CARD32 StoreMode;
+    CARD32 StoreTXEnable;
+    CARD32 StoreMacro;
+    CARD32 StoreTXControl;
+    CARD32 StoreTXAdjust;
+    CARD32 StoreTestOutput;
+};
+
+/*
+ *
+ */
+static ModeStatus
+TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+    RHDFUNC(Output);
+
+    if (Mode->Clock < 25000)
+	return MODE_CLOCK_LOW;
+
+    if (Mode->Clock > 165000)
+	return MODE_CLOCK_HIGH;
+
+    return MODE_OK;
+}
+
+/*
+ * TODO: use only when atombios tables fail us.
+ */
+static void
+TMDSBVoltageControl(RHDPtr rhdPtr)
+{
+    switch (rhdPtr->PciDeviceID) {
+    case 0x71C1: /* RV535: Radeon X1650 */
+	RHDRegWrite(rhdPtr, LVTMA_MACRO_CONTROL, 0x0062041D);
+	return;
+    case 0x7146:
+    case 0x71D2:
+	RHDRegWrite(rhdPtr, LVTMA_MACRO_CONTROL, 0x00F1061D);
+	return;
+    default:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: unhandled chipset: 0x%04X.\n", __func__,
+		   rhdPtr->PciDeviceID);
+	break;
+    }
+}
+
+/*
+ *
+ */
+static void
+TMDSBSet(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
+    RHDFUNC(Output);
+
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
+    RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
+
+    /* Clear out some HPD events first: this should be under driver control. */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x0000000C);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00070000);
+    RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000010);
+
+    /* Disable the transmitter */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00001D1F);
+
+    /* Disable bit reduction and reset temporal dither */
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x02000000, 0x02000000);
+    usleep(2);
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x02000000);
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0xF0000000); /* not documented */
+
+    /* reset phase on vsync and use RGB */
+    RHDRegMask(Output, LVTMA_CNTL, 0x00001000, 0x00011000);
+
+    /* Select CRTC, select syncA, no stereosync */
+    RHDRegMask(Output, LVTMA_SOURCE_SELECT, Output->Crtc->Id, 0x00010101);
+
+    /* Single link, for now */
+    RHDRegWrite(Output, LVTMA_COLOR_FORMAT, 0);
+    RHDRegMask(Output, LVTMA_CNTL, 0, 0x01000000);
+
+    /* Disable force data */
+    RHDRegMask(Output, LVTMA_FORCE_OUTPUT_CNTL, 0, 0x00000001);
+
+    /* DC balancer enable */
+    RHDRegMask(Output, LVTMA_DCBALANCER_CONTROL, 0x00000001, 0x00000001);
+
+    TMDSBVoltageControl(rhdPtr);
+
+    /* use IDCLK */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
+    /* incoherent mode */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+    /* LVTMA only: use clock selected by previous write */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
+    /* clear LVDS clock pattern */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x03FF0000);
+
+    /* reset transmitter */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+    usleep(2);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
+    usleep(20);
+
+    /* restart data synchronisation */
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
+    usleep(2);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000001);
+}
+
+/*
+ *
+ */
+static void
+TMDSBPower(struct rhdOutput *Output, int Power)
+{
+    RHDFUNC(Output);
+
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
+
+    switch (Power) {
+    case RHD_POWER_ON:
+	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
+	usleep(2);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
+	return;
+    case RHD_POWER_RESET:
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	return;
+    case RHD_POWER_SHUTDOWN:
+    default:
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+	usleep(2);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000001);
+	return;
+    }
+}
+
+/*
+ *
+ */
+static void
+TMDSBSave(struct rhdOutput *Output)
+{
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+
+    Private->StoreControl = RHDRegRead(Output, LVTMA_CNTL);
+    Private->StoreSource = RHDRegRead(Output, LVTMA_SOURCE_SELECT);
+    Private->StoreFormat = RHDRegRead(Output, LVTMA_COLOR_FORMAT);
+    Private->StoreForce = RHDRegRead(Output, LVTMA_FORCE_OUTPUT_CNTL);
+    Private->StoreReduction = RHDRegRead(Output, LVTMA_BIT_DEPTH_CONTROL);
+    Private->StoreDCBalancer = RHDRegRead(Output, LVTMA_DCBALANCER_CONTROL);
+
+    Private->StoreDataSynchro = RHDRegRead(Output, LVTMA_DATA_SYNCHRONIZATION);
+    Private->StoreMode = RHDRegRead(Output, LVTMA_MODE);
+    Private->StoreTXEnable = RHDRegRead(Output, LVTMA_TRANSMITTER_ENABLE);
+    Private->StoreMacro = RHDRegRead(Output, LVTMA_MACRO_CONTROL);
+    Private->StoreTXControl = RHDRegRead(Output, LVTMA_TRANSMITTER_CONTROL);
+    Private->StoreTestOutput = RHDRegRead(Output, LVTMA_REG_TEST_OUTPUT);
+
+    Private->Stored = TRUE;
+}
+
+/*
+ *
+ */
+static void
+TMDSBRestore(struct rhdOutput *Output)
+{
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+
+    if (!Private->Stored) {
+	xf86DrvMsg(Output->scrnIndex, X_ERROR,
+		   "%s: No registers stored.\n", __func__);
+	return;
+    }
+
+    RHDRegWrite(Output, LVTMA_CNTL, Private->StoreControl);
+    RHDRegWrite(Output, LVTMA_SOURCE_SELECT, Private->StoreSource);
+    RHDRegWrite(Output, LVTMA_COLOR_FORMAT, Private->StoreFormat);
+    RHDRegWrite(Output, LVTMA_FORCE_OUTPUT_CNTL, Private->StoreForce);
+    RHDRegWrite(Output, LVTMA_BIT_DEPTH_CONTROL, Private->StoreReduction);
+    RHDRegWrite(Output, LVTMA_DCBALANCER_CONTROL, Private->StoreDCBalancer);
+
+    RHDRegWrite(Output, LVTMA_DATA_SYNCHRONIZATION, Private->StoreDataSynchro);
+    RHDRegWrite(Output, LVTMA_MODE, Private->StoreMode);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTXEnable);
+    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacro);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL, Private->StoreTXControl);
+    RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, Private->StoreTestOutput);
+}
+
+/*
+ *
+ */
+static void
+LVTMADestroy(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+
+    if (!Output->Private)
+	return;
+
+    xfree(Output->Private);
+    Output->Private = NULL;
+}
+
+/*
+ *
  */
 struct rhdOutput *
 RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
@@ -501,7 +727,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     RHDFUNC(rhdPtr);
 
     /* Stop everything except LVDS at this time */
-    if (Type != RHD_CONNECTOR_PANEL) {
+    if ((Type != RHD_CONNECTOR_PANEL) && (Type != RHD_CONNECTOR_DVI)) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unhandled connector type:"
 		   " %d\n", __func__, Type);
 	return NULL;
@@ -516,19 +742,30 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output = xnfcalloc(sizeof(struct rhdOutput), 1);
 
     Output->scrnIndex = rhdPtr->scrnIndex;
-    Output->Name = "LVDS/TMDS";
     Output->Id = RHD_OUTPUT_LVTMA;
 
-    Output->Sense = NULL;
-
-    Output->ModeValid = LVDSModeValid;
-    Output->Mode = LVDSSet;
-    Output->Power = LVDSPower;
-    Output->Save = LVTMASave;
-    Output->Restore = LVTMARestore;
+    Output->Sense = NULL; /* not implemented in hw */
     Output->Destroy = LVTMADestroy;
 
-    Output->Private = rhdLVDSInfoRetrieve(rhdPtr);
+    if (Type == RHD_CONNECTOR_PANEL) {
+	Output->Name = "LVDS";
+	Output->ModeValid = LVDSModeValid;
+	Output->Mode = LVDSSet;
+	Output->Power = LVDSPower;
+	Output->Save = LVDSSave;
+	Output->Restore = LVDSRestore;
+
+	Output->Private = LVDSInfoRetrieve(rhdPtr);
+    } else {
+	Output->Name = "TMDS B";
+	Output->ModeValid = TMDSBModeValid;
+	Output->Mode = TMDSBSet;
+	Output->Power = TMDSBPower;
+	Output->Save = TMDSBSave;
+	Output->Restore = TMDSBRestore;
+
+	Output->Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
+    }
 
     return Output;
 }
