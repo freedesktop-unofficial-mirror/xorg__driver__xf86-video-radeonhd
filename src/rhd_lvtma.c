@@ -524,23 +524,43 @@ TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  * TODO: use only when atombios tables fail us.
  */
+struct R5xxTMDSBMacro {
+    CARD16 Device;
+    CARD32 Macro;
+} R5xxTMDSBMacro[] = {
+    { 0x7104, 0x00F20616 }, /* R520  */
+    { 0x7146, 0x00F1061D }, /* RV515 */
+    { 0x7147, 0x0082041D }, /* RV505 */
+    { 0x7152, 0x00F2061C }, /* RV515 */
+    { 0x71C1, 0x0062041D }, /* RV535 */
+    { 0x71C2, 0x00F1061D }, /* RV530 */
+    { 0x71D2, 0x00F1061D }, /* RV530 */
+    { 0x7249, 0x00F1061D }, /* R580  */
+    { 0x7280, 0x0042041F }, /* RV570 */
+    { 0x7288, 0x0042041F }, /* RV570 */
+    { 0, 0} /* End marker */
+};
+
 static void
-TMDSBVoltageControl(RHDPtr rhdPtr)
+TMDSBVoltageControl(struct rhdOutput *Output)
 {
-    switch (rhdPtr->PciDeviceID) {
-    case 0x71C1: /* RV535: Radeon X1650 */
-	RHDRegWrite(rhdPtr, LVTMA_MACRO_CONTROL, 0x0062041D);
-	return;
-    case 0x7146:
-    case 0x71D2:
-	RHDRegWrite(rhdPtr, LVTMA_MACRO_CONTROL, 0x00F1061D);
-	return;
-    default:
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: unhandled chipset: 0x%04X.\n", __func__,
-		   rhdPtr->PciDeviceID);
-	break;
-    }
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    int i;
+
+    if (rhdPtr->ChipSet < RHD_R600) {
+	for (i = 0; R5xxTMDSBMacro[i].Device; i++)
+	    if (R5xxTMDSBMacro[i].Device == rhdPtr->PciDeviceID) {
+		RHDRegWrite(Output, LVTMA_MACRO_CONTROL, R5xxTMDSBMacro[i].Macro);
+		return;
+	    }
+
+	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
+		   __func__, rhdPtr->PciDeviceID);
+	xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_MACRO_CONTROL: 0x%08X\n",
+		   (unsigned int) RHDRegRead(Output, LVTMA_MACRO_CONTROL));
+    } else
+	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
+		   __func__, rhdPtr->PciDeviceID);
 }
 
 /*
@@ -549,8 +569,6 @@ TMDSBVoltageControl(RHDPtr rhdPtr)
 static void
 TMDSBSet(struct rhdOutput *Output)
 {
-    RHDPtr rhdPtr = RHDPTRI(Output);
-
     RHDFUNC(Output);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
@@ -587,7 +605,7 @@ TMDSBSet(struct rhdOutput *Output)
     /* DC balancer enable */
     RHDRegMask(Output, LVTMA_DCBALANCER_CONTROL, 0x00000001, 0x00000001);
 
-    TMDSBVoltageControl(rhdPtr);
+    TMDSBVoltageControl(Output);
 
     /* use IDCLK */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
