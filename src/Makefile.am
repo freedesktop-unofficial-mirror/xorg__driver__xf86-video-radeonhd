@@ -43,6 +43,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_monitor.h \
 	rhd_output.h \
 	rhd_pll.h \
+	rhd_randr.h \
 	rhd_regs.h \
 	rhd_vga.h \
 	rhd_shadow.h
