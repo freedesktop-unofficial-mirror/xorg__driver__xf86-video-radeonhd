@@ -522,9 +522,9 @@ TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 }
 
 /*
- * TODO: use only when atombios tables fail us.
+ * This information is not provided in an atombios data table.
  */
-struct R5xxTMDSBMacro {
+static struct R5xxTMDSBMacro {
     CARD16 Device;
     CARD32 Macro;
 } R5xxTMDSBMacro[] = {
@@ -532,6 +532,7 @@ struct R5xxTMDSBMacro {
     { 0x7146, 0x00F1061D }, /* RV515 */
     { 0x7147, 0x0082041D }, /* RV505 */
     { 0x7152, 0x00F2061C }, /* RV515 */
+    { 0x7183, 0x00b2050C }, /* RV530 */
     { 0x71C1, 0x0062041D }, /* RV535 */
     { 0x71C2, 0x00F1061D }, /* RV530 */
     { 0x71D2, 0x00F1061D }, /* RV530 */
