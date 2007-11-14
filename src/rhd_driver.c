@@ -996,13 +996,15 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdCrtc *Crtc;
 
-    Crtc = rhdPtr->Crtc[0];
-    if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
-	Crtc->FrameSet(Crtc, x, y);
+    if (! rhdPtr->randr) {
+	Crtc = rhdPtr->Crtc[0];
+	if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
+	    Crtc->FrameSet(Crtc, x, y);
 
-    Crtc = rhdPtr->Crtc[1];
-    if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
-	Crtc->FrameSet(Crtc, x, y);
+	Crtc = rhdPtr->Crtc[1];
+	if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
+	    Crtc->FrameSet(Crtc, x, y);
+    }
 
     if (rhdPtr->CursorInfo)
 	rhdShowCursor(pScrn);
