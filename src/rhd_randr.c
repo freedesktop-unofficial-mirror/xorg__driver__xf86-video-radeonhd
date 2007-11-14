@@ -96,26 +96,29 @@ RHDDebugRandrState (RHDPtr rhdPtr, const char *msg)
 {
     int i;
     xf86OutputPtr *ro;
-    ErrorF("*** State at %s:\n", msg);
+    RHDDebug(rhdPtr->scrnIndex, "State at %s:\n", msg);
     for (i = 0; i < 2; i++) {
 	xf86CrtcPtr    rc = rhdPtr->randr->RandrCrtc[i];
 	struct rhdCrtc *c = (struct rhdCrtc *) rc->driver_private;
-	ErrorF("   RRCrtc #%d [rhd %s]: active %d [%d]  mode %s (%dx%d)\n",
-	       i, c->Name, rc->enabled, c->Active,
-	       rc->mode.name ? rc->mode.name : "unnamed",
-	       rc->mode.HDisplay, rc->mode.VDisplay);
+	RHDDebugCont("   RRCrtc #%d [rhd %s]: active %d [%d]  "
+		     "mode %s (%dx%d)\n",
+		     i, c->Name, rc->enabled, c->Active,
+		     rc->mode.name ? rc->mode.name : "unnamed",
+		     rc->mode.HDisplay, rc->mode.VDisplay);
     }
     for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
-	ErrorF("   RROut  '%s':  Crtc %s [%s]  active [%d]  %s\n",
-	       (*ro)->name,
-	       (*ro)->crtc ? ((struct rhdCrtc *)(*ro)->crtc->driver_private)->Name : "null",
-	       o->Output->Crtc ? o->Output->Crtc->Name : "null",
-	       o->Output->Active,
-	       (*ro)->status == XF86OutputStatusConnected ? "connected" :
-	       (*ro)->status == XF86OutputStatusDisconnected ? "disconnected" :
-	       (*ro)->status == XF86OutputStatusUnknown ? "unknownState" :
-	       "badState" );
+	ASSERT(!strcmp((*ro)->name,o->Name));
+	RHDDebugCont("   RROut  %s [Out %s Conn %s]  Crtc %s [%s]  "
+		     "active [%d]  %s\n",
+		     (*ro)->name, o->Output->Name, o->Connector->Name,
+		     (*ro)->crtc ? ((struct rhdCrtc *)(*ro)->crtc->driver_private)->Name : "null",
+		     o->Output->Crtc ? o->Output->Crtc->Name : "null",
+		     o->Output->Active,
+		     (*ro)->status == XF86OutputStatusConnected ? "connected" :
+		     (*ro)->status == XF86OutputStatusDisconnected ? "disconnected" :
+		     (*ro)->status == XF86OutputStatusUnknown ? "unknownState" :
+		     "badState" );
     }
 }
 
