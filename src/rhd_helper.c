@@ -32,7 +32,6 @@
 
 #include "rhd.h"
 
-#include <sys/types.h>
 #include <signal.h>
 
 void
