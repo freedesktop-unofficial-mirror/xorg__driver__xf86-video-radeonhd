@@ -634,6 +634,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDRandrPreInit(pScrn);
 
     if (! rhdPtr->randr) {
+	/* Pick anything for now */
+	if (!rhdModeLayoutSelect(rhdPtr)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Failed to detect a connected monitor\n");
+	    goto error1;
+	}
+
 	/* set up rhdPtr->ConfigMonitor */
 	if (!xf86GetOptValBool(rhdPtr->Options, OPTION_USECONFIGUREDMONITOR, &ret))
 	    ret = FALSE;
