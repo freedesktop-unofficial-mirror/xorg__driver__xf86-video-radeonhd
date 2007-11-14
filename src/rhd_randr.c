@@ -324,30 +324,59 @@ had been allocated.
  */
 
 /* Turns the output on/off, or sets intermediate power levels if available. */
+/* Something that cannot be solved with the current RandR model is that
+ * multiple connectors might be attached to the same output. They cannot be
+ * driven with different crtcs then, but RandR sees them as different outputs
+ * because of a missing abstraction layer. This implementation will silently
+ * set one crtc or the other, and maybe even won't warn. */
 static void
 rhdRROutputDpms(xf86OutputPtr       out,
 		int                 mode)
 {
     RHDPtr rhdPtr          = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
+    xf86OutputPtr    *ro;
+    struct rhdCrtc   *Crtc = out->crtc ? 
+        (struct rhdCrtc *) out->crtc->driver_private : NULL;
+    const char *outUsedBy = NULL;
 
-    RHDDebug(rout->Output->scrnIndex, "%s: Output %s : %s\n", __func__,
-	     rout->Name,
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__, rout->Name,
 	     mode==DPMSModeOn ? "On" : mode==DPMSModeOff ? "Off" : "Other");
 
+    for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
+	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
+	if (o->Output == rout->Output && (*ro)->crtc)
+	    outUsedBy = (*ro)->name;
+    }
     switch (mode) {
     case DPMSModeOn:
 	rout->Output->Power(rout->Output, RHD_POWER_ON);
 	rout->Output->Active = TRUE;
+        ASSERT(Crtc);
+        rout->Output->Crtc = Crtc;
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
-	rout->Output->Power(rout->Output, RHD_POWER_RESET);
+	if (outUsedBy)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		   "While resetting %s: output %s is also used by %s - "
+		   "ignoring\n",
+		   out->name, rout->Output->Name, outUsedBy);
+	else
+	    rout->Output->Power(rout->Output, RHD_POWER_RESET);
 	rout->Output->Active = FALSE;
+        rout->Output->Crtc = NULL;
 	break;
     case DPMSModeOff:
-	rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
+	if (outUsedBy)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		   "While switching off %s: output %s is also used by %s - "
+		   "ignoring\n",
+		   out->name, rout->Output->Name, outUsedBy);
+	else
+	    rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
 	rout->Output->Active = FALSE;
+        rout->Output->Crtc = NULL;
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
@@ -444,7 +473,7 @@ rhdRROutputPrepare(xf86OutputPtr out)
 
     /* no active output == no mess */
     rout->Output->Power(rout->Output, RHD_POWER_RESET);
-
+    rout->Output->Crtc = NULL;
 }
 static void
 rhdRROutputModeSet(xf86OutputPtr  out,
@@ -462,6 +491,10 @@ rhdRROutputModeSet(xf86OutputPtr  out,
 	     rout->Name, Mode->name, Crtc->Name);
 
     /* Set up mode */
+    if (rout->Output->Crtc)
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "Output %s has already CRTC attached - "
+		   "assuming ouput/connector clash\n", rout->Name);
     rout->Output->Crtc = Crtc;
     rout->Output->Mode(rout->Output);
 }
