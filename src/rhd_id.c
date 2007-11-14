@@ -268,7 +268,7 @@ RHDIdentify(int flags)
 	    "RS740  : RS740, RS740M\n");
     xf86Msg(X_NONE, "\n");
 
-    xf86Msg(X_NONE, "%s: version %s, built from %s\n\n",
+    xf86Msg(X_INFO, "%s: version %s, built from %s\n\n",
 	    RHD_NAME, PACKAGE_VERSION, GIT_MESSAGE);
 }
 
