@@ -532,6 +532,7 @@ rhdCards[] =
     /* 0x7297 : RV560 : RV560 */
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 */
+    { 0x791F, 0x103C, 0x30C2, "Radeon X1250", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY },
     /* 0x796C : RS740 : RS740 */
     /* 0x796D : RS740 : RS740M */
     /* 0x796E : RS740 : RS740 */
