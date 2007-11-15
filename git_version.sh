@@ -102,44 +102,78 @@ EOF
 git_found=yes
 for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index
 do
-    [ x`which $git_tool 2>/dev/null` = "x" ] && { git_found=no; break; }
+    if [ x`which $git_tool 2>/dev/null` = "x" ]; then
+        git_found="'$git_tool' not found"
+        break
+    fi
 done
 
-# Determine and write git specific defines
-if [ "x$git_found" = "xyes" ]; then
-    if [ -e "$GIT_DIR/index" ]; then
-        echo "/* This is a git repository */"
-        echo "#define GIT_USED 1"
-        echo ""
-
-        # Commit SHA-ID
+# Determine git specific defines
+unset git_errors ||:
+git_repo=no
+if [ -e "$GIT_DIR/index" ]; then
+    git_repo=yes
+    if [ "x$git_found" = "xyes" ]; then
         git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
+        if [ "x$git_shaid" = "x" ]; then
+            git_errors="${git_errors+"${git_errors}; "}error running 'git-rev-parse HEAD'"
+        fi
+        git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
+        if [ "x$git_branch" = "x" ]; then
+                git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
+        fi
+        git_dirty=yes
+        if git-diff-files --quiet && git-diff-index --cached --quiet HEAD; then
+            git_dirty=no
+        fi
+    fi
+fi
+
+# Write git specific defines
+if [ "x$git_errors" = "x" ]; then
+    echo "/* No errors occured while running git */"
+    echo "#undef GIT_ERRORS"
+else
+    echo "/* Some errors occured while running git */"
+    echo "#define GIT_ERRORS \"${git_errors}\""
+fi
+echo ""
+
+if [ "x$git_found" = "xyes" ]; then
+    echo "/* git utilities found */"
+    echo "#undef GIT_NOT_FOUND"
+else
+    echo "/* git utilities not found */"
+    echo "#define GIT_NOT_FOUND \"${git_found}\""
+fi
+echo ""
+
+if [ "x$git_repo" = "xno" ]; then
+    echo "/* No git repo found, probably building from dist tarball */"
+    echo "#undef GIT_REPO"
+else
+    echo "/* git repo found */"
+    echo "#define GIT_REPO 1"
+    echo ""
+    if [ "x$git_found" = "xyes" ]; then
         echo "/* Git SHA ID of last commit */"
         echo "#define GIT_SHAID \"${git_shaid}\""
         echo ""
 
-        # Branch
-        git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         echo "/* Branch this tree is on */"
         echo "#define GIT_BRANCH \"$git_branch\""
         echo ""
 
         # Any uncommitted changes we should know about?
         # Or technically: Are the working tree or index dirty?
-        if git-diff-files --quiet && git-diff-index --cached --quiet HEAD; then
+        if [ "x$git_dirty" = "xno" ]; then
             echo "/* SHA-ID uniquely defines the state of this code */"
-            echo "#undef GIT_UNCOMMITTED"
+            echo "#undef GIT_DIRTY"
         else
             echo "/* Local changes might be breaking things */"
-            echo "#define GIT_UNCOMMITTED 1"
+            echo "#define GIT_DIRTY 1"
         fi
-    else
-        echo "/* This is not a git repository */"
-        echo "#undef GIT_USED"
     fi
-else
-    echo "/* git is not installed */"
-    echo "#undef GIT_USED"
 fi
 
 # Define a few immediately useful message strings
@@ -150,21 +184,30 @@ cat<<EOF
  * forms a proper sentence.
  */
 
-#ifdef GIT_USED
+#ifdef GIT_DIRTY
+# define GIT_DIRTY_MSG " + changes"
+#else /* !GIT_DIRTY */
+# define GIT_DIRTY_MSG ""
+#endif /* GIT_DIRTY */
 
-# ifdef GIT_UNCOMMITTED
-#  define GIT_WITH_WITHOUT_UNCOMMITTED " + changes"
-# else
-#  define GIT_WITH_WITHOUT_UNCOMMITTED ""
-# endif /* GIT_UNCOMMITTED */
+#ifdef GIT_ERRORS
+# define GIT_ERROR_MSG " with error: " GIT_ERRORS
+#else /* !GIT_ERRORS */
+# define GIT_ERROR_MSG ""
+#endif /* GIT_ERRORS */
 
-# define GIT_MESSAGE \\
-        "git branch " GIT_BRANCH ", " \\
-        "commit " GIT_SHAID GIT_WITH_WITHOUT_UNCOMMITTED
-
-#else
-# define GIT_MESSAGE "non-git sources"
-#endif /* GIT_USED */
+#ifdef GIT_REPO
+# ifdef GIT_NOT_FOUND
+#  define GIT_MESSAGE "git sources without git: " GIT_NOT_FOUND
+# else /* !GIT_NOT_FOUND */
+#  define GIT_MESSAGE \\
+       "git branch " GIT_BRANCH ", " \\
+       "commit " GIT_SHAID GIT_DIRTY_MSG \\
+       GIT_ERROR_MSG
+# endif /* GIT_NOT_FOUND */
+#else /* !GIT_REPO */
+# define GIT_MESSAGE "non-git sources" GIT_ERROR_MSG
+#endif /* GIT_REPO */
 
 #endif /* ${ifndef_symbol} */
 EOF
