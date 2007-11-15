@@ -13,6 +13,16 @@
 #     && ./moo
 #   (bash should also do)
 
+# Help messages
+USAGE="[<option>...]"
+LONG_USAGE="\
+Options:
+  -h, --help             Print this help message.
+
+  -x, --example          Print complete example program.
+  -o, --output FILENAME  Set output file name.
+  -s, --srcdir DIRNAME   Set source tree dir name."
+
 # The caller may have found these programs for us
 SED="${SED-sed}"
 
@@ -33,7 +43,7 @@ srcdir="$(pwd)"
 while [ "x$1" != "x" ]
 do
     case "$1" in
-        --example)
+        -x|--example)
             print_example=:
             ;;
         -o|--output)
@@ -49,8 +59,9 @@ do
                 exit 1
             fi
             ;;
-        --help)
-            echo "Supported params: --help, --example, -o|--output"
+        -h|--help)
+            echo "Usage: ${self} $USAGE"
+            [ -n "$LONG_USAGE" ] && echo "$LONG_USAGE"
             exit
             ;;
 	-s|--srcdir)
@@ -58,11 +69,11 @@ do
 		if test -d "$1"; then
 		    srcdir="$1"
 		else
-		    echo "$self: Fatal: \"$1\" not a directory."
+		    echo "$self: Fatal: \"$1\" not a directory." >&2
 		    exit 1
 		fi
 	    else
-		echo "$self: Fatal: \"$1\" option requires directory parameter."
+		echo "$self: Fatal: \"$1\" option requires directory parameter." >&2
 		exit 1
 	    fi
 	    ;;
@@ -230,6 +241,10 @@ then
 #include <stdio.h>
 #include <string.h>
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 int main(int argc, char *argv[])
 {
     const char *const idx = strrchr(argv[0], '/');
@@ -252,13 +267,14 @@ if [ "x$outfile" != "x-" ]
 then
     if [ -f "$outfile" ]; then
         if cmp "$outfile" "$outfile.new" > /dev/null; then
-            echo "$self: Output is unchanged, keeping $outfile" >&2
+            # echo "$self: Output is unchanged, keeping $outfile" >&2
             rm -f "$outfile.new"
         else
             echo "$self: Output has changed, updating $outfile" >&2
             mv -f "$outfile.new" "$outfile"
         fi
     else
+        echo "$self: Output is new file, creating $outfile" >&2
         mv -f "$outfile.new" "$outfile"
     fi
 fi
