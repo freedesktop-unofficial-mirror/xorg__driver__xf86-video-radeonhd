@@ -100,7 +100,7 @@ EOF
 
 # Detect git tools (should work with old and new git versions)
 git_found=yes
-for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index
+for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index git
 do
     if [ x`which $git_tool 2>/dev/null` = "x" ]; then
         git_found="'$git_tool' not found"
@@ -110,6 +110,13 @@ done
 
 # Determine git specific defines
 unset git_errors ||:
+if [ "x$git_found" = "xyes" ]; then
+    git_version=`git --version`
+    if [ "x$git_version" = "x" ]; then
+        git_errors="${git_errors+"${git_errors}; "}error running 'git --version'"
+    fi
+fi
+
 git_repo=no
 if [ -e "$GIT_DIR/index" ]; then
     git_repo=yes
@@ -142,9 +149,11 @@ echo ""
 if [ "x$git_found" = "xyes" ]; then
     echo "/* git utilities found */"
     echo "#undef GIT_NOT_FOUND"
+    echo "#define GIT_VERSION \"${git_version}\""
 else
     echo "/* git utilities not found */"
     echo "#define GIT_NOT_FOUND \"${git_found}\""
+    echo "#undef GIT_VERSION"
 fi
 echo ""
 
