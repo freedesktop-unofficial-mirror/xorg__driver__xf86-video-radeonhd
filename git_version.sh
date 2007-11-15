@@ -21,6 +21,7 @@ Options:
 
   -k, --keep-if-no-repo  Keep old output file if no git repo found.
   -o, --output FILENAME  Set output file name.
+  -q, --quiet            Quiet output.
   -s, --srcdir DIRNAME   Set source tree dir name.
   -x, --example          Print complete example program."
 
@@ -39,6 +40,7 @@ ifndef_symbol="GIT_VERSION_H"
 outfile="-"
 print_example=false
 keep_if_no_repo=no
+quiet=false
 srcdir="$(pwd)"
 
 # Parse command line parameter, affecting defaults
@@ -60,6 +62,9 @@ do
                 echo "$self: Fatal: \"$1\" option requires parameter." >&2
                 exit 1
             fi
+            ;;
+        -q|--quiet)
+            quiet=:
             ;;
         -h|--help)
             echo "Usage: ${self} $USAGE"
@@ -282,10 +287,10 @@ if [ "x$outfile" != "x-" ]
 then
     if [ -f "$outfile" ]; then
         if [ "x$keep_if_no_repo" = "xyes" ] && [ "x$git_repo" = "xno" ]; then
-            echo "$self: Not a git repo, keeping existing $outfile" >&2
+            "$quiet" || echo "$self: Not a git repo, keeping existing $outfile" >&2
             rm -f "$outfile.new"
         elif cmp "$outfile" "$outfile.new" > /dev/null; then
-            # echo "$self: Output is unchanged, keeping $outfile" >&2
+            "$quiet" || echo "$self: Output is unchanged, keeping $outfile" >&2
             rm -f "$outfile.new"
         else
             echo "$self: Output has changed, updating $outfile" >&2
