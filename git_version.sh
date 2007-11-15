@@ -19,9 +19,10 @@ LONG_USAGE="\
 Options:
   -h, --help             Print this help message.
 
-  -x, --example          Print complete example program.
+  -k, --keep-if-no-repo  Keep old output file if no git repo found.
   -o, --output FILENAME  Set output file name.
-  -s, --srcdir DIRNAME   Set source tree dir name."
+  -s, --srcdir DIRNAME   Set source tree dir name.
+  -x, --example          Print complete example program."
 
 # The caller may have found these programs for us
 SED="${SED-sed}"
@@ -37,6 +38,7 @@ self="$(basename "$0")"
 ifndef_symbol="GIT_VERSION_H"
 outfile="-"
 print_example=false
+keep_if_no_repo=no
 srcdir="$(pwd)"
 
 # Parse command line parameter, affecting defaults
@@ -63,6 +65,9 @@ do
             echo "Usage: ${self} $USAGE"
             [ -n "$LONG_USAGE" ] && echo "$LONG_USAGE"
             exit
+            ;;
+        -k|--keep-if-no-repo)
+            keep_if_no_repo=yes
             ;;
 	-s|--srcdir)
 	    if shift; then
@@ -106,6 +111,9 @@ cat<<EOF
 
 #ifndef ${ifndef_symbol}
 #define ${ifndef_symbol} 1
+
+/* whether this is a dist tarball or not */
+#undef GIT_IS_DIST
 
 EOF
 
@@ -216,17 +224,24 @@ cat<<EOF
 # define GIT_ERROR_MSG ""
 #endif /* GIT_ERRORS */
 
+#ifdef GIT_IS_DIST
+# define GIT_DIST_MSG "dist of "
+#else /* !GIT_IS_DIST */
+# define GIT_DIST_MSG ""
+#endif /* GIT_IS_DIST */
+
 #ifdef GIT_REPO
 # ifdef GIT_NOT_FOUND
-#  define GIT_MESSAGE "git sources without git: " GIT_NOT_FOUND
+#  define GIT_MESSAGE GIT_DIST_MSG "git sources without git: " GIT_NOT_FOUND
 # else /* !GIT_NOT_FOUND */
 #  define GIT_MESSAGE \\
+       GIT_DIST_MSG \\
        "git branch " GIT_BRANCH ", " \\
        "commit " GIT_SHAID GIT_DIRTY_MSG \\
        GIT_ERROR_MSG
 # endif /* GIT_NOT_FOUND */
 #else /* !GIT_REPO */
-# define GIT_MESSAGE "non-git sources" GIT_ERROR_MSG
+# define GIT_MESSAGE GIT_DIST_MSG "non-git sources" GIT_ERROR_MSG
 #endif /* GIT_REPO */
 
 #endif /* ${ifndef_symbol} */
@@ -266,7 +281,10 @@ cd "$working_dir"
 if [ "x$outfile" != "x-" ]
 then
     if [ -f "$outfile" ]; then
-        if cmp "$outfile" "$outfile.new" > /dev/null; then
+        if [ "x$keep_if_no_repo" = "xyes" ] && [ "x$git_repo" = "xno" ]; then
+            echo "$self: Not a git repo, keeping existing $outfile" >&2
+            rm -f "$outfile.new"
+        elif cmp "$outfile" "$outfile.new" > /dev/null; then
             # echo "$self: Output is unchanged, keeping $outfile" >&2
             rm -f "$outfile.new"
         else
