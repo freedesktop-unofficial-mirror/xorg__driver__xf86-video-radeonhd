@@ -146,7 +146,7 @@ if [ -e "$GIT_DIR/index" ]; then
         fi
         git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         if [ "x$git_branch" = "x" ]; then
-                git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
+            git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
         fi
         git_dirty=yes
         if git-diff-files --quiet && git-diff-index --cached --quiet HEAD; then
