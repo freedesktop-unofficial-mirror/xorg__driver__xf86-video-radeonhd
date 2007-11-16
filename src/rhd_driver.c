@@ -781,6 +781,17 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* save previous mode */
     rhdSave(rhdPtr);
 
+    /* init DIX */
+    miClearVisualTypes();
+
+    /* Setup the visuals we support. */
+    if (!miSetVisualTypes(pScrn->depth,
+      		      miGetDefaultVisualMask(pScrn->depth),
+		      pScrn->rgbBits, pScrn->defaultVisual))
+         return FALSE;
+
+    if (!miSetPixmapDepths ()) return FALSE;
+
     /* init FB */
     ret = RHDShadowScreenInit(pScreen);
     if (!ret)
@@ -806,17 +817,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    }
 	}
     }
-
-    /* init DIX */
-    miClearVisualTypes();
-
-    /* Setup the visuals we support. */
-    if (!miSetVisualTypes(pScrn->depth,
-      		      miGetDefaultVisualMask(pScrn->depth),
-		      pScrn->rgbBits, pScrn->defaultVisual))
-         return FALSE;
-
-    if (!miSetPixmapDepths ()) return FALSE;
 
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
