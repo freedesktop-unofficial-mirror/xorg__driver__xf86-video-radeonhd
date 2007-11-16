@@ -73,7 +73,7 @@
 
 
 /*
- * Driver internal data
+ * Driver internal
  */
 
 /* List of allocated RandR Crtc and Output description structs */
@@ -121,6 +121,7 @@ RHDDebugRandrState (RHDPtr rhdPtr, const char *msg)
 		     "badState" );
     }
 }
+
 
 /*
  * xf86CrtcConfig callback functions
@@ -275,23 +276,14 @@ rhdRRCrtcCommit(xf86CrtcPtr crtc)
     RHDDebugRandrState(rhdPtr, Crtc->Name);
 }
 
-
 /* Dummy, because not tested for NULL */
 static Bool
 rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
 			DisplayModePtr mode,
 			DisplayModePtr adjusted_mode)
 { return TRUE; }
-#if 0
-/* Set the color ramps for the CRTC to the given values. */
-static void
-rhdRRCrtcGammaSet(xf86CrtcPtr crtc,
-		 CARD16 *red, CARD16 *green, CARD16 *blue, int size)
-{
-    RHDPtr rhdPtr = RHDPTR(crtc->scrn);
-    RHDFUNC(rhdPtr);
-}
 
+#if 0 /* Needed if we want to support rotation w/o own hardware support */
     void *
     crtc->funcs->shadow_allocate (xf86CrtcPtr crtc, int width, int height)
 
@@ -315,7 +307,6 @@ value returned by shadow_allocate.
 Destroys any associated shadow objects. If pPixmap is NULL, then a pixmap
 was not created, but 'data' may still be non-NULL indicating that the shadow
 had been allocated.
-
 #endif
 
 
@@ -490,11 +481,14 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
 	     rout->Name, Mode->name, Crtc->Name);
 
-    /* Set up mode */
-    if (rout->Output->Crtc)
+    /* RandR might want to set up several outputs (RandR speech) with different
+     * crtcs, while the outputs differ in fact only by the connector and thus
+     * cannot be used by different crtcs */
+    if (rout->Output->Crtc && rout->Output->Crtc != Crtc)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		   "Output %s has already CRTC attached - "
 		   "assuming ouput/connector clash\n", rout->Name);
+    /* Set up mode */
     rout->Output->Crtc = Crtc;
     rout->Output->Mode(rout->Output);
 }
@@ -567,29 +561,29 @@ static const xf86CrtcConfigFuncsRec rhdRRCrtcConfigFuncs = {
 
 static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcDpms,
-    /*save*/ NULL, /*restore*/ NULL,
-    rhdRRCrtcLock, /*rhdRRCrtcUnlock*/ NULL,
+    NULL, NULL,						/* Save,Restore */
+    rhdRRCrtcLock, NULL,				/* rhdRRCrtcUnlock */
     rhdRRCrtcModeFixupDUMMY,
     rhdRRCrtcPrepare, rhdRRCrtcModeSet, rhdRRCrtcCommit,
-    /*rhdRRCrtcGammaSet*/ NULL,
-    /*rhdRRCrtcShadowAllocate, rhdRRCrtcShadowCreate, rhdRRCrtcShadowDestroy,*/ NULL, NULL, NULL,
-    /*set_cursor_colors*/ NULL, /*set_cursor_position*/ NULL,
-    /*show_cursor*/ NULL, /*hide_cursor*/ NULL,
-    /*load_cursor_image*/ NULL, /*load_cursor_argb*/ NULL,
-    /*rhdRRCrtcDestroy*/ NULL
+    NULL,						/* CrtcGammaSet */
+    /* rhdRRCrtcShadowAllocate,rhdRRCrtcShadowCreate,rhdRRCrtcShadowDestroy */
+    NULL, NULL, NULL,
+    /* SetCursorColors,SetCursorPosition,ShowCursor,HideCursor,
+     * LoadCursorImage,LoadCursorArgb,CrtcDestroy */
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 static const xf86OutputFuncsRec rhdRROutputFuncs = {
-    /*create_resources*/ NULL, rhdRROutputDpms,
-    /*save*/ NULL, /*restore*/ NULL,
+    NULL,						/* CreateResources */
+    rhdRROutputDpms,
+    NULL, NULL,						/* Save,Restore */
     rhdRROutputModeValid, rhdRROutputModeFixup,
     rhdRROutputPrepare, rhdRROutputCommit,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
-#ifdef RANDR_12_INTERFACE
-    /*rhdRROutputSetProperty*/ NULL,
-#endif
-    /*destroy*/ NULL
+    NULL,						/* rhdRROutputSetProperty */ /* Only(!) RANDR_12_INTERFACE */
+    NULL						/* Destroy */
 };
+
 
 /* Helper: Create xf86OutputRec with unique name per Connector/Output combo */
 static xf86OutputPtr
@@ -614,8 +608,8 @@ createRandrOutput(ScrnInfoPtr pScrn,
     xo = xf86OutputCreate(pScrn, &rhdRROutputFuncs, rro->Name);
     ASSERT(xo);
     xo->driver_private = rro;
-    xo->possible_crtcs  = ~0;		/* No limitations */
-    xo->possible_clones = ~0;		/* No limitations */
+    xo->possible_crtcs  = ~0;				/* No limitations */
+    xo->possible_clones = ~0;				/* No limitations */
     xo->interlaceAllowed = FALSE;
     xo->doubleScanAllowed = FALSE;
     xo->subpixel_order = SubPixelUnknown;
@@ -623,7 +617,7 @@ createRandrOutput(ScrnInfoPtr pScrn,
     return xo;
 }
 
-/* Call in PreInit after connectors and outputs have been set up */
+/* Call in PreInit after memory + io has been set up */
 Bool
 RHDRandrPreInit(ScrnInfoPtr pScrn)
 {
@@ -695,7 +689,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(rhdPtr);
-    if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase)) // TODO: support or not?
+    if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase))
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
