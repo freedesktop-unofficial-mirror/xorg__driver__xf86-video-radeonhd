@@ -53,6 +53,7 @@
 #include "xf86Parser.h"
 #define DPMS_SERVER
 #include "X11/extensions/dpms.h"
+#include "X11/Xatom.h"
 
 /* Driver specific headers */
 #include "rhd.h"
@@ -89,6 +90,68 @@ typedef struct _rhdRandrOutput {
     struct rhdOutput    *Output;
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
+#define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
+#define ATOM_CONNECTOR_TYPE   "RANDR_CONNECTOR_TYPE"
+#define ATOM_CONNECTOR_NUMBER "RANDR_CONNECTOR_NUMBER"
+#define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
+
+static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
+	    atomOutputNumber;
+
+
+/* Get RandR property values */
+static const char *
+rhdGetSignalFormat(rhdRandrOutputPtr ro)
+{
+    switch (ro->Output->Id) {
+    case RHD_OUTPUT_DACA:
+    case RHD_OUTPUT_DACB:
+	switch (ro->Connector->Type) {
+	case RHD_CONNECTOR_VGA:
+	case RHD_CONNECTOR_DVI:
+	    return "VGA";
+	case RHD_CONNECTOR_TV:		/* TODO: depending on current format */
+	default:
+	    return "unknown";
+	}
+    case RHD_OUTPUT_LVTMA:
+    case RHD_OUTPUT_LVDS:
+#if RHD_OUTPUT_LVTMB != RHD_OUTPUT_LVDS
+    case RHD_OUTPUT_LVTMB:
+#endif
+	switch (ro->Connector->Type) {
+	case RHD_CONNECTOR_DVI:
+	    return "TMDS";
+	case RHD_CONNECTOR_PANEL:
+	    return "LVDS";
+	default:
+	    return "unknown";
+	}
+    case RHD_OUTPUT_TMDSA:
+#if RHD_OUTPUT_TMDSB != RHD_OUTPUT_LVDS
+    case RHD_OUTPUT_TMDSB:
+#endif
+	return "TMDS";
+    default:
+	return "unknown";
+    }
+}
+static const char *
+rhdGetConnectorType(rhdRandrOutputPtr ro)
+{
+    switch (ro->Connector->Type) {
+    case RHD_CONNECTOR_VGA:
+	return "VGA";
+    case RHD_CONNECTOR_DVI:
+	return "DVI";			/* TODO: DVI-I/A/D / HDMI */
+    case RHD_CONNECTOR_PANEL:
+	return "PANEL";
+    case RHD_CONNECTOR_TV:
+	return "TV";
+    default:
+	return "unknown";
+    }
+}
 
 /* Debug: print out state */
 void
@@ -314,6 +377,48 @@ had been allocated.
  * xf86Output callback functions
  */
 
+static void
+rhdRROutputCreateResources(xf86OutputPtr out)
+{
+    RHDPtr rhdPtr          = RHDPTR(out->scrn);
+    rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdOutput *o;
+    const char       *val;
+    CARD32            num;
+
+    RHDFUNC(rhdPtr);
+    /* Set up potential RandR 1.3 properties */
+    RRConfigureOutputProperty(out->randr_output, atomSignalFormat,
+			      FALSE, FALSE, TRUE, 0, NULL);
+    RRConfigureOutputProperty(out->randr_output, atomConnectorType,
+			      FALSE, FALSE, TRUE, 0, NULL);
+    RRConfigureOutputProperty(out->randr_output, atomConnectorNumber,
+			      FALSE, FALSE, TRUE, 0, NULL);
+    val = rhdGetSignalFormat(rout);
+    RRChangeOutputProperty(out->randr_output, atomSignalFormat,
+			   XA_STRING, 8, PropModeReplace,
+			   strlen(val), (char *) val, FALSE, FALSE);
+    val = rhdGetConnectorType(rout);
+    RRChangeOutputProperty(out->randr_output, atomConnectorType,
+			   XA_STRING, 8, PropModeReplace,
+			   strlen(val), (char *) val, FALSE, FALSE);
+    for (num = 0; num < RHD_CONNECTORS_MAX; num++)
+	if (rout->Connector == rhdPtr->Connector[num])
+	    break;
+    ASSERT(num < RHD_CONNECTORS_MAX);
+    num++;		/* For RANDR_CONNECTOR_NUMBER 0 is unknown */
+    RRChangeOutputProperty(out->randr_output, atomConnectorNumber,
+			   XA_INTEGER, 32, PropModeReplace,
+			   1, &num, FALSE, FALSE);
+    for (num = 1, o = rhdPtr->Outputs; o; num++, o = o->Next)
+	if (rout->Output == o)
+	    break;
+    ASSERT(o);
+    RRChangeOutputProperty(out->randr_output, atomOutputNumber,
+			   XA_INTEGER, 32, PropModeReplace,
+			   1, &num, FALSE, FALSE);
+}
+
 /* Turns the output on/off, or sets intermediate power levels if available. */
 /* Something that cannot be solved with the current RandR model is that
  * multiple connectors might be attached to the same output. They cannot be
@@ -497,6 +602,7 @@ rhdRROutputCommit(xf86OutputPtr out)
 {
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+    const char       *val;
 
     RHDFUNC(rhdPtr);
 
@@ -504,6 +610,11 @@ rhdRROutputCommit(xf86OutputPtr out)
     rout->Output->Connector = rout->Connector;
     rout->Output->Power(rout->Output, RHD_POWER_ON);
 
+    /* Some outputs may have physical protocol changes (e.g. TV) */
+    val = rhdGetSignalFormat(rout);
+    RRChangeOutputProperty(out->randr_output, atomConnectorType,
+			   XA_STRING, 8, PropModeReplace,
+			   strlen(val), (char *) val, TRUE, FALSE);
     RHDDebugRandrState(rhdPtr, rout->Name);
 }
 
@@ -540,15 +651,14 @@ rhdRROutputGetModes(xf86OutputPtr output)
     return xf86OutputGetEDIDModes (output);
 }
 
-#if 0
-    /**
-     * Callback when an output's property has changed.
-     */
-    Bool
-    (*set_property)(xf86OutputPtr output,
-		    Atom property,
-		    RRPropertyValuePtr value);
-#endif
+/* An output's property has changed. */
+static Bool
+rhdRROutputSetProperty(xf86OutputPtr output,
+		       Atom property,
+		       RRPropertyValuePtr value)
+{
+    return FALSE;	/* We don't have mutable properties yet */
+}
 
 
 /*
@@ -574,13 +684,12 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
 };
 
 static const xf86OutputFuncsRec rhdRROutputFuncs = {
-    NULL,						/* CreateResources */
-    rhdRROutputDpms,
+    rhdRROutputCreateResources, rhdRROutputDpms,
     NULL, NULL,						/* Save,Restore */
     rhdRROutputModeValid, rhdRROutputModeFixup,
     rhdRROutputPrepare, rhdRROutputCommit,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
-    NULL,						/* rhdRROutputSetProperty */ /* Only(!) RANDR_12_INTERFACE */
+    rhdRROutputSetProperty,		       /* Only(!) RANDR_12_INTERFACE */
     NULL						/* Destroy */
 };
 
@@ -590,9 +699,9 @@ static xf86OutputPtr
 createRandrOutput(ScrnInfoPtr pScrn,
 		  struct rhdConnector *conn, struct rhdOutput *out)
 {
-    char *c;
     xf86OutputPtr xo;
     rhdRandrOutputPtr rro;
+    char *c;
 
     ASSERT (conn);
     ASSERT (out);
@@ -632,6 +741,16 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		   "RandR 1.2 support disabled due to configuration\n");
 	return FALSE;
     }
+
+    /* Create atoms for potential RandR 1.3 properties */
+    atomSignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
+				   sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
+    atomConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
+				   sizeof(ATOM_CONNECTOR_TYPE)-1, TRUE);
+    atomConnectorNumber = MakeAtom(ATOM_CONNECTOR_NUMBER,
+				   sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
+    atomOutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
+				   sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
 
     randr = xnfcalloc(1, sizeof(struct rhdRandr));
     xf86CrtcConfigInit(pScrn, &rhdRRCrtcConfigFuncs);
