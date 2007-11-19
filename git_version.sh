@@ -109,7 +109,7 @@ if [ "x$git_tools" != "x" ]; then
         # Commit SHA-ID
         git_shaid=`git-whatchanged | $SED -n '1s/^commit \(.\{8\}\).*/\1/p'`
         echo "/* Git SHA ID of last commit */"
-        echo "#define GIT_SHAID \"${git_shaid}..\""
+        echo "#define GIT_SHAID \"${git_shaid}\""
         echo ""
 
         # Branch -- use git-status instead of git-branch
