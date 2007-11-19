@@ -173,11 +173,11 @@ RHDDebugRandrState (RHDPtr rhdPtr, const char *msg)
 	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
 	ASSERT(!strcmp((*ro)->name,o->Name));
 	RHDDebugCont("   RROut  %s [Out %s Conn %s]  Crtc %s [%s]  "
-		     "active [%d]  %s\n",
+		     "[%sactive]  %s\n",
 		     (*ro)->name, o->Output->Name, o->Connector->Name,
 		     (*ro)->crtc ? ((struct rhdCrtc *)(*ro)->crtc->driver_private)->Name : "null",
 		     o->Output->Crtc ? o->Output->Crtc->Name : "null",
-		     o->Output->Active,
+		     o->Output->Active ? "" : "in",
 		     (*ro)->status == XF86OutputStatusConnected ? "connected" :
 		     (*ro)->status == XF86OutputStatusDisconnected ? "disconnected" :
 		     (*ro)->status == XF86OutputStatusUnknown ? "unknownState" :
@@ -448,31 +448,33 @@ rhdRROutputDpms(xf86OutputPtr       out,
     case DPMSModeOn:
 	rout->Output->Power(rout->Output, RHD_POWER_ON);
 	rout->Output->Active = TRUE;
-        ASSERT(Crtc);
-        rout->Output->Crtc = Crtc;
+	ASSERT(Crtc);
+	rout->Output->Crtc = Crtc;
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
-	if (outUsedBy)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+	if (outUsedBy) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 		   "While resetting %s: output %s is also used by %s - "
 		   "ignoring\n",
 		   out->name, rout->Output->Name, outUsedBy);
-	else
-	    rout->Output->Power(rout->Output, RHD_POWER_RESET);
+	    break;
+	}
+	rout->Output->Power(rout->Output, RHD_POWER_RESET);
 	rout->Output->Active = FALSE;
-        rout->Output->Crtc = NULL;
+	rout->Output->Crtc = NULL;
 	break;
     case DPMSModeOff:
-	if (outUsedBy)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+	if (outUsedBy) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
 		   "While switching off %s: output %s is also used by %s - "
 		   "ignoring\n",
 		   out->name, rout->Output->Name, outUsedBy);
-	else
-	    rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
+	    break;
+	}
+	rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
 	rout->Output->Active = FALSE;
-        rout->Output->Crtc = NULL;
+	rout->Output->Crtc = NULL;
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
