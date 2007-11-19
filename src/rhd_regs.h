@@ -236,7 +236,10 @@ enum {
     /* LVTMA */
     LVTMA_CNTL                     = 0x7A80,
     LVTMA_SOURCE_SELECT            = 0x7A84,
+    LVTMA_COLOR_FORMAT             = 0x7A88,
+    LVTMA_FORCE_OUTPUT_CNTL        = 0x7A8C,
     LVTMA_BIT_DEPTH_CONTROL        = 0x7A94,
+    LVTMA_DCBALANCER_CONTROL       = 0x7AD0,
     LVTMA_DATA_SYNCHRONIZATION     = 0x7AD8,
     LVTMA_PWRSEQ_REF_DIV           = 0x7AE4,
     LVTMA_PWRSEQ_DELAY1            = 0x7AE8,
@@ -248,6 +251,7 @@ enum {
     LVTMA_TRANSMITTER_ENABLE       = 0x7B04,
     LVTMA_MACRO_CONTROL            = 0x7B0C,
     LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
+    LVTMA_REG_TEST_OUTPUT          = 0x7B14,
 
     /* I2C in separate enum */
 

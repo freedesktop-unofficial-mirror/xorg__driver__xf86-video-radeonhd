@@ -122,71 +122,70 @@ TMDSAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 }
 
 /*
- * TODO: use only when atombios tables fail us.
+ * This information is not provided in an atombios data table.
  */
+static struct R5xxTMDSAMacro {
+    CARD16 Device;
+    CARD32 Macro;
+} R5xxTMDSAMacro[] = {
+    { 0x7104, 0x00C00414 }, /* R520  */
+    { 0x7147, 0x00C00418 }, /* RV505 */
+    { 0x7146, 0x00C0041F }, /* RV515 */
+    { 0x7152, 0x00A00415 }, /* RV515 */
+    { 0x7183, 0x00600412 }, /* RV530 */
+    { 0x71C1, 0x00C0041F }, /* RV535 */
+    { 0x71C2, 0x00A00416 }, /* RV530 */
+    { 0x71C5, 0x00A00416 }, /* M56   */
+    { 0x71D2, 0x00A00513 }, /* RV530 */
+    { 0x7249, 0x00A00513 }, /* R580  */
+    { 0x7280, 0x00C0041F }, /* RV570 */
+    { 0x7288, 0x00C0041F }, /* RV570 */
+    { 0x9400, 0x00910519 }, /* R600: */
+    { 0, 0} /* End marker */
+};
+
+static struct Rv6xxTMDSAMacro {
+    CARD16 Device;
+    CARD32 PLL;
+    CARD32 TX;
+} Rv6xxTMDSAMacro[] = {
+    { 0x94C1, 0x00010416, 0x00010308 }, /* RV610 */
+    { 0x94C3, 0x00010416, 0x00010308 }, /* RV610 */
+    { 0x9588, 0x00010416, 0x00010388 }, /* RV630 */
+    { 0x9589, 0x00010416, 0x00010388 }, /* RV630 */
+    { 0, 0, 0} /* End marker */
+};
+
 static void
-TMDSAVoltageControl(RHDPtr rhdPtr)
+TMDSAVoltageControl(struct rhdOutput *Output)
 {
-    switch (rhdPtr->PciDeviceID) {
-    case 0x7104: /* R520 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00C00414);
-	break;
-    case 0x7147: /* RV505 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00C00418);
-	break;
-    case 0x7146: /* RV515 */
-    case 0x71C1: /* RV535 */
-    case 0x7280: /* RV570 */
-    case 0x7288: /* RV570 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00C0041F);
-	break;
-    case 0x7152: /* RV515 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00A00415);
-	break;
-    case 0x71C2: /* RV530 */
-    case 0x71C5: /* M56 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00A00416);
-	break;
-    case 0x71D2: /* RV530 */
-    case 0x7249: /* R580 */
-	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00A00513);
-	break;
-    case 0x9400: /* R600 */
- 	RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00910519);
-	/* RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00910419); */ /* HDMI */
-	/* RHDRegWrite(rhdPtr, TMDSA_MACRO_CONTROL, 0x00610519); */ /* DVI, PLL <= 7500 */
-	break;
-    case 0x94C1: /* RV610 */
-    case 0x94C3: /* RV610 */
-	RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x00010416);
-	RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x00010308);
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    int i;
 
-	/* HDMI: */
-	/* RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x0001040A);
-	   RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x00000008); */
+    if (rhdPtr->ChipSet < RHD_RV610) {
+	for (i = 0; R5xxTMDSAMacro[i].Device; i++)
+	    if (R5xxTMDSAMacro[i].Device == rhdPtr->PciDeviceID) {
+		RHDRegWrite(Output, TMDSA_MACRO_CONTROL, R5xxTMDSAMacro[i].Macro);
+		return;
+	    }
 
-	/* DVI, PLL <= 75Mhz */
-	/* RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x00030410);
-	   RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x0000003); */
-	break;
-    case 0x9588: /* RV630 */
-    case 0x9589: /* RV630 */
-	RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x00010416);
-	RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x00010388);
-
-	/* HDMI: */
-	/* RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x0001040A);
-	   RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x00000088); */
-
-	/* DVI, PLL <= 75Mhz */
-	/* RHDRegWrite(rhdPtr, TMDSA_PLL_ADJUST, 0x00030410);
-	   RHDRegWrite(rhdPtr, TMDSA_TRANSMITTER_ADJUST, 0x00000033); */
-	break;
-    default:
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: unhandled chipset: 0x%04X.\n", __func__,
-		   rhdPtr->PciDeviceID);
-	break;
+	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
+		   __func__, rhdPtr->PciDeviceID);
+	xf86DrvMsg(Output->scrnIndex, X_INFO, "TMDSA_MACRO_CONTROL: 0x%08X\n",
+		   (unsigned int) RHDRegRead(Output, TMDSA_MACRO_CONTROL));
+    } else {
+	for (i = 0; Rv6xxTMDSAMacro[i].Device; i++)
+	    if (Rv6xxTMDSAMacro[i].Device == rhdPtr->PciDeviceID) {
+		RHDRegWrite(Output, TMDSA_PLL_ADJUST, Rv6xxTMDSAMacro[i].PLL);
+		RHDRegWrite(Output, TMDSA_TRANSMITTER_ADJUST, Rv6xxTMDSAMacro[i].TX);
+		return;
+	    }
+	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
+		   __func__, rhdPtr->PciDeviceID);
+	xf86DrvMsg(Output->scrnIndex, X_INFO, "TMDSA_PLL_ADJUST: 0x%08X\n",
+		   (unsigned int) RHDRegRead(Output, TMDSA_PLL_ADJUST));
+	xf86DrvMsg(Output->scrnIndex, X_INFO, "TMDSA_TRANSMITTER_ADJUST: 0x%08X\n",
+		   (unsigned int) RHDRegRead(Output, TMDSA_TRANSMITTER_ADJUST));
     }
 }
 
@@ -236,7 +235,7 @@ TMDSASet(struct rhdOutput *Output)
     /* DC balancer enable */
     RHDRegMask(Output, TMDSA_DCBALANCER_CONTROL, 0x00000001, 0x00000001);
 
-    TMDSAVoltageControl(rhdPtr);
+    TMDSAVoltageControl(Output);
 
     /* use IDCLK */
     RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000010);
