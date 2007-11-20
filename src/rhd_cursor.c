@@ -328,13 +328,14 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
-	    displayCursor    (Crtc);
+	    if (Crtc->Active)
+		displayCursor(Crtc);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -385,7 +386,7 @@ rhdSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    lockCursor       (Cursor, TRUE);
@@ -411,7 +412,7 @@ rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    Cursor->Width  = bits->width;
@@ -450,7 +451,7 @@ rhdLoadCursorARGB(ScrnInfoPtr pScrn, CursorPtr cur)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    Cursor->Width = cur->bits->width;
