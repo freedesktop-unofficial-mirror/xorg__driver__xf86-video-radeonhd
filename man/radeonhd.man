@@ -178,6 +178,11 @@ Overview about radeonhd development code
 .RS 4
 \%http://gitweb.freedesktop.org/?p=xorg/driver/xf86-video-radeonhd
 .RE
+.IP " 3." 4
+The radeonhd wiki (home) page
+.RS 4
+\%http://wiki.x.org/wiki/radeonhd
+.RE
 .\"
 .\"
 .SH AUTHORS
