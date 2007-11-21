@@ -182,6 +182,7 @@ Overview about radeonhd development code
 .\"
 .SH AUTHORS
 .nf
+Man page authors:
 Hans Ulrich Niedermann   \fIhun@n-dimensional.de\fP
 .fi
 .\" vim: syntax=nroff
