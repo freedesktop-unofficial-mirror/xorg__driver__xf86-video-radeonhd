@@ -696,17 +696,14 @@ static const xf86OutputFuncsRec rhdRROutputFuncs = {
 };
 
 
-/* Helper: Create xf86OutputRec with unique name per Connector/Output combo */
-static xf86OutputPtr
+/* Helper: Create rhdRandrOutput with unique name per Connector/Output combo */
+static rhdRandrOutputPtr
 createRandrOutput(ScrnInfoPtr pScrn,
 		  struct rhdConnector *conn, struct rhdOutput *out)
 {
-    xf86OutputPtr xo;
     rhdRandrOutputPtr rro;
     char *c;
 
-    ASSERT (conn);
-    ASSERT (out);
     rro = xnfcalloc(1, sizeof(rhdRandrOutputRec));
     rro->Connector = conn;
     rro->Output    = out;
@@ -715,7 +712,15 @@ createRandrOutput(ScrnInfoPtr pScrn,
 	if (isspace(*c))
 	    *c='_';
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-	       "RandR: Added Connector %s\n", rro->Name);
+	       "RandR: Adding output %s\n", rro->Name);
+    return rro;
+}
+
+/* Helper: Create and set up xf86Output */
+static xf86OutputPtr
+createXF86Output(ScrnInfoPtr pScrn, rhdRandrOutputPtr rro)
+{
+    xf86OutputPtr xo;
     xo = xf86OutputCreate(pScrn, &rhdRROutputFuncs, rro->Name);
     ASSERT(xo);
     xo->driver_private = rro;
@@ -735,7 +740,8 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdRandr *randr;
     int i, j, numCombined = 0;
-    xf86OutputPtr *RandrOutput;
+    rhdRandrOutputPtr *RandrOutput, *r;
+    char *outputorder;
 
     RHDFUNC(rhdPtr);
     if (rhdPtr->noRandr.val.bool) {
@@ -775,8 +781,8 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		    numCombined++;
 	    }
     }
-    randr->RandrOutput = RandrOutput = 
-	xnfcalloc(numCombined+1, sizeof(struct xf86OutputPtr *));
+    RandrOutput = r =
+	xnfcalloc(numCombined+1, sizeof(struct rhdRandrOutputPtr *));
 
     /* Create combined unique output names */
     for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
@@ -785,11 +791,52 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	    for (j = 0; j < MAX_OUTPUTS_PER_CONNECTOR; j++) {
 		struct rhdOutput *out = conn->Output[j];
 		if (out)
-		    *RandrOutput++ = createRandrOutput(pScrn, conn, out);
+		    *r++ = createRandrOutput(pScrn, conn, out);
 	    }
 	}
     }
-    *RandrOutput = NULL;
+
+    /* Reorder for xinerama screen enumeration if requested */
+    outputorder = rhdPtr->rrOutputOrder.val.string;
+    if (outputorder && *outputorder) {
+    	rhdRandrOutputPtr *RandrOutputReorder = r =
+	    xnfcalloc(numCombined+1, sizeof(struct xf86OutputPtr *));
+	while (*outputorder) {
+	    char *end = strchr(outputorder, ' ');
+	    int len = end ? end-outputorder : (signed) strlen(outputorder);
+	    end = strchr(outputorder, ',');
+	    if (end)
+		len = end-outputorder < len ? end-outputorder : len;
+	    for (i = 0; i < numCombined; i++) {
+		if (RandrOutput[i] &&
+		    strncmp(RandrOutput[i]->Name, outputorder, len) == 0 &&
+		    RandrOutput[i]->Name[len] == 0) {
+		    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+			       "RandR: Reordering output %s\n",
+			       RandrOutput[i]->Name);
+		    *r++ = RandrOutput[i];
+		    RandrOutput[i] = NULL;
+		}
+	    }
+	    outputorder += len;
+	    while (*outputorder == ' ' || *outputorder == ',')
+		outputorder++;
+	}
+	for (i = 0; i < numCombined; i++)
+	    if (RandrOutput[i])
+		*r++ = RandrOutput[i];
+	ASSERT(r - RandrOutputReorder == numCombined);
+	xfree(RandrOutput);
+	RandrOutput = RandrOutputReorder;
+    }
+
+    /* Initialize RandR structures */
+    randr->RandrOutput =
+	xnfcalloc(numCombined+1, sizeof(struct xf86OutputPtr *));
+    for (i = 0; i < numCombined; i++) {
+	randr->RandrOutput[i] = createXF86Output(pScrn, RandrOutput[i]);
+    }
+    xfree(RandrOutput);
 
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandR: No valid modes.\n");
