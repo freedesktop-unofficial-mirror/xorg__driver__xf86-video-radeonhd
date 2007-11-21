@@ -131,6 +131,8 @@ typedef struct RHDRec {
     RHDOpt              noAccel;
     RHDOpt              swCursor;
     RHDOpt		shadowFB;
+    RHDOpt		noRandr;
+    RHDOpt		rrOutputOrder;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbIntAddress; /* card internal address of FB */
@@ -179,10 +181,22 @@ typedef struct RHDRec {
     struct rhdMonitor  *ConfigMonitor;
 
     rhdShadowPtr	shadowPtr;
+
+    /* RandR compatibility layer */
+    struct rhdRandr    *randr;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
 #define RHDPTRI(p) 	(RHDPTR(xf86Screens[(p)->scrnIndex]))
+
+#if defined(__GNUC__)
+#  define NORETURN __attribute__((noreturn))
+#  define CONST    __attribute__((pure))
+#else
+#  define NORETURN
+#  define CONST
+#endif
+
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
@@ -212,12 +226,21 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
 char *RhdAppendString(char *s1, const char *s2);
+void RhdAssertFailed(const char *str,
+		     const char *file, int line, const char *func) NORETURN;
 
 /* Extra debugging verbosity: decimates gdb usage */
 
 /* __func__ is really nice, but not universal */
 #if !defined(__GNUC__) && !defined(C99)
 #define __func__ "unknown"
+#endif
+
+#ifndef NO_ASSERT
+#  define ASSERT(x) do { if (!(x)) RhdAssertFailed \
+			 (#x, __FILE__, __LINE__, __func__); } while(0)
+#else
+#  define ASSERT(x) ((void)0)
 #endif
 
 #define LOG_DEBUG 7

@@ -23,33 +23,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _RHD_MODES_H
-#define _RHD_MODES_H
-
 /*
- * In case this isn't in xf86str.h yet.
+ * RandR interface.
+ *
+ * Only supports RandR 1.2 ATM.
  */
-#ifndef M_T_PREFERRED
-#define M_T_PREFERRED 0x08
+
+#ifndef _RHD_RANDR_H
+#define _RHD_RANDR_H
+
+Bool RHDRandrPreInit(ScrnInfoPtr pScrn);
+Bool RHDRandrScreenInit(ScreenPtr pScreen);
+Bool RHDRandrModeInit(ScrnInfoPtr pScrn);
+Bool RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
+
 #endif
-#ifndef M_T_DRIVER
-#define M_T_DRIVER 0x40
-#endif
-
-DisplayModePtr RHDCVTMode(int HDisplay, int VDisplay, float VRefresh,
-			  Bool Reduced, Bool Interlaced);
-void RHDPrintModeline(DisplayModePtr mode);
-DisplayModePtr RHDModesAdd(DisplayModePtr Modes, DisplayModePtr Additions);
-
-DisplayModePtr RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent);
-void RHDModesAttach(ScrnInfoPtr pScrn, DisplayModePtr Modes);
-DisplayModePtr RHDModeCopy(DisplayModePtr Mode);
-
-Bool RHDGetVirtualFromConfig(ScrnInfoPtr pScrn);
-void RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent);
-
-int RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
-		   struct rhdConnector *Connector, struct rhdOutput *Output,
-		   struct rhdMonitor *Monitor);
-
-#endif /* _RHD_MODES_H */

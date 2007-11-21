@@ -48,7 +48,6 @@
 #include "rhd_regs.h"
 
 /* System headers */
-#include <assert.h>
 #ifndef _XF86_ANSIC_H
 #include <string.h>
 #endif
@@ -80,12 +79,12 @@ setCursorPos(struct rhdCursor *Cursor, CARD32 x, CARD32 y,
 	     CARD32 hotx, CARD32 hoty)
 {
     /* R600 only has 13 bits, but well... */
-    assert (x < 0x10000);
-    assert (y < 0x10000);
+    ASSERT (x < 0x10000);
+    ASSERT (y < 0x10000);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_POSITION, x << 16 | y);
     /* Note: unknown whether hotspot may be outside width/height */
-    assert (hotx < MAX_CURSOR_WIDTH);
-    assert (hoty < MAX_CURSOR_HEIGHT);
+    ASSERT (hotx < MAX_CURSOR_WIDTH);
+    ASSERT (hoty < MAX_CURSOR_HEIGHT);
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_HOT_SPOT, hotx << 16 | hoty);
 }
 
@@ -107,8 +106,8 @@ setCursorImage(struct rhdCursor *Cursor)
 
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
 		rhdPtr->FbIntAddress + Cursor->Base);
-    assert ((Cursor->Width > 0) && (Cursor->Width  <= MAX_CURSOR_WIDTH));
-    assert ((Cursor->Height > 0) && (Cursor->Height <= MAX_CURSOR_HEIGHT));
+    ASSERT ((Cursor->Width > 0) && (Cursor->Width  <= MAX_CURSOR_WIDTH));
+    ASSERT ((Cursor->Height > 0) && (Cursor->Height <= MAX_CURSOR_HEIGHT));
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE,
 		(Cursor->Width - 1) << 16 | (Cursor->Height - 1));
 }
@@ -287,10 +286,12 @@ rhdSaveCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex)
+	/* Even save cursor state for non-active screens */
+	if (Crtc->scrnIndex == pScrn->scrnIndex)
 	    saveCursor(Crtc->Cursor);
     }
 }
@@ -302,6 +303,7 @@ rhdRestoreCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
@@ -322,16 +324,18 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
 
+    RHDFUNC(pScrn);
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
-	    displayCursor    (Crtc);
+	    if (Crtc->Active)
+		displayCursor(Crtc);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -382,7 +386,7 @@ rhdSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    lockCursor       (Cursor, TRUE);
@@ -408,7 +412,7 @@ rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    Cursor->Width  = bits->width;
@@ -447,7 +451,7 @@ rhdLoadCursorARGB(ScrnInfoPtr pScrn, CursorPtr cur)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex) {
+	if (Crtc->scrnIndex == pScrn->scrnIndex) {
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    Cursor->Width = cur->bits->width;

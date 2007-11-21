@@ -36,6 +36,7 @@
 #include <stdio.h>
 #endif
 
+#include "rhd.h"
 #include "rhd_modes.h"
 #include "rhd_monitor.h"
 

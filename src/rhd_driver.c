@@ -101,6 +101,7 @@
 #include "rhd_i2c.h"
 #include "rhd_shadow.h"
 #include "rhd_card.h"
+#include "rhd_randr.h"
 
 /* ??? */
 #include "servermd.h"
@@ -187,7 +188,9 @@ typedef enum {
     OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
-    OPTION_USECONFIGUREDMONITOR
+    OPTION_USECONFIGUREDMONITOR,
+    OPTION_NORANDR,
+    OPTION_RROUTPUTORDER
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -197,6 +200,8 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -400,7 +405,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     EntityInfoPtr pEnt = NULL;
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
-    DisplayModePtr Modes;
+    DisplayModePtr Modes;		/* Non-RandR-case only */
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
@@ -557,8 +562,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     }
-        xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
-               pScrn->videoRam);
+    xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
+	       pScrn->videoRam);
 
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
@@ -595,11 +600,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
-	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg) == RHD_I2C_SUCCESS) {
+	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg)
+	    == RHD_I2C_SUCCESS) {
 	    rhdPtr->I2C = i2cArg.I2CBusList;
 
 	    if (!xf86LoadSubModule(pScrn, "ddc")) {
-		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Failed to load DDC module\n",__func__);
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+			   "%s: Failed to load DDC module\n",__func__);
 		goto error1;
 	    }
 	} else {
@@ -607,7 +614,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
     } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "%s: Failed to load I2C module\n",__func__);
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "%s: Failed to load I2C module\n",__func__);
 	goto error1;
     }
 
@@ -625,19 +633,23 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    /* Pick anything for now */
-    if (!rhdModeLayoutSelect(rhdPtr)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "Failed to detect a connected monitor\n");
-	goto error1;
+    RHDRandrPreInit(pScrn);
+
+    if (! rhdPtr->randr) {
+	/* Pick anything for now */
+	if (!rhdModeLayoutSelect(rhdPtr)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Failed to detect a connected monitor\n");
+	    goto error1;
+	}
+
+	/* set up rhdPtr->ConfigMonitor */
+	if (!xf86GetOptValBool(rhdPtr->Options, OPTION_USECONFIGUREDMONITOR, &ret))
+	    ret = FALSE;
+	RHDConfigMonitorSet(pScrn->scrnIndex, ret);
+
+	rhdModeLayoutPrint(rhdPtr);
     }
-
-    /* set up rhdPtr->ConfigMonitor */
-    if (!xf86GetOptValBool(rhdPtr->Options, OPTION_USECONFIGUREDMONITOR, &ret))
-	ret = FALSE;
-    RHDConfigMonitorSet(pScrn->scrnIndex, ret);
-
-    rhdModeLayoutPrint(rhdPtr);
 
     /* @@@ rgb bits boilerplate */
     if (pScrn->depth == 8)
@@ -694,21 +706,24 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    goto error1;
 	}
 
-    Modes = RHDModesPoolCreate(pScrn, FALSE);
-    if (!Modes) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
-	goto error1;
+    if (! rhdPtr->randr) {
+	Modes = RHDModesPoolCreate(pScrn, FALSE);
+	if (!Modes) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No valid modes found\n");
+	    goto error1;
+	}
+
+	if (!pScrn->virtualX || !pScrn->virtualY)
+	    RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
+
+	RHDModesAttach(pScrn, Modes);
     }
-
-    if (!pScrn->virtualX || !pScrn->virtualY)
-        RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
-
-    RHDModesAttach(pScrn, Modes);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
                pScrn->virtualY, pScrn->displayWidth);
-    xf86PrintModes(pScrn);
+    if (! rhdPtr->randr)
+	xf86PrintModes(pScrn);
 
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);
@@ -754,10 +769,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     rhdPtr = RHDPTR(pScrn);
     RHDFUNC(pScrn);
 
-    /*
-     * Whack the hardware
-     */
-
+    /* map IO and FB */
     if (!rhdMapMMIO(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	return FALSE;
@@ -771,22 +783,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* save previous mode */
     rhdSave(rhdPtr);
 
-    /* now init the new mode */
-    rhdModeInit(pScrn, pScrn->currentMode);
-
-    /* @@@ add code to unblank the screen */
-
-    /* fix viewport */
-    RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
-
-    /*
-     * now init DIX
-     */
-
+    /* init DIX */
     miClearVisualTypes();
 
     /* Setup the visuals we support. */
-
     if (!miSetVisualTypes(pScrn->depth,
       		      miGetDefaultVisualMask(pScrn->depth),
 		      pScrn->rgbBits, pScrn->defaultVisual))
@@ -794,9 +794,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     if (!miSetPixmapDepths ()) return FALSE;
 
-    /* @@@ do shadow stuff here */
-
-    /* init fb */
+    /* init FB */
     ret = RHDShadowScreenInit(pScreen);
     if (!ret)
 	ret = fbScreenInit(pScreen,
@@ -852,6 +850,21 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
     xf86SetSilkenMouse(pScreen);
+
+    /* init randr */
+    if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
+	rhdPtr->randr = NULL;
+    }
+
+    /* now init the new mode */
+    if (rhdPtr->randr)
+	RHDRandrModeInit(pScrn);
+    else
+	rhdModeInit(pScrn, pScrn->currentMode);
+
+    /* fix viewport */
+    RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
     /* Initialise cursor functions */
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
@@ -934,7 +947,10 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    rhdModeInit(pScrn, pScrn->currentMode);
+    if (rhdPtr->randr)
+	RHDRandrModeInit(pScrn);
+    else
+	rhdModeInit(pScrn, pScrn->currentMode);
 
     /* @@@ video overlays can be initialized here */
 
@@ -960,7 +976,13 @@ RHDLeaveVT(int scrnIndex, int flags)
 static Bool
 RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 {
-    rhdModeInit(xf86Screens[scrnIndex], mode);
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->randr)
+	RHDRandrSwitchMode(pScrn, mode);
+    else
+	rhdModeInit(xf86Screens[scrnIndex], mode);
 
     return TRUE;
 }
@@ -976,13 +998,15 @@ RHDAdjustFrame(int scrnIndex, int x, int y, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdCrtc *Crtc;
 
-    Crtc = rhdPtr->Crtc[0];
-    if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
-	Crtc->FrameSet(Crtc, x, y);
+    if (! rhdPtr->randr) {
+	Crtc = rhdPtr->Crtc[0];
+	if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
+	    Crtc->FrameSet(Crtc, x, y);
 
-    Crtc = rhdPtr->Crtc[1];
-    if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
-	Crtc->FrameSet(Crtc, x, y);
+	Crtc = rhdPtr->Crtc[1];
+	if ((Crtc->scrnIndex == scrnIndex) && Crtc->Active)
+	    Crtc->FrameSet(Crtc, x, y);
+    }
 
     if (rhdPtr->CursorInfo)
 	rhdShowCursor(pScrn);
@@ -1193,7 +1217,8 @@ rhdMapFB(RHDPtr rhdPtr)
      * address registers in there also use. This can be different from the
      * address in the BAR */
     if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS) << 16;
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS)
+			       << 16;
     else
 	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
 
@@ -1355,7 +1380,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		Found = TRUE;
 
 		if (Monitor) {
-		    /* If this is a digitally attached monitor, enable reduced blanking.
+		    /* If this is a digitally attached monitor, enable
+		     * reduced blanking.
 		     * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
 		     */
 		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
@@ -1659,6 +1685,10 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
 		     TRUE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR, &rhdPtr->noRandr,
+		     FALSE);
+    RhdGetOptValString(rhdPtr->Options, OPTION_RROUTPUTORDER,
+		       &rhdPtr->rrOutputOrder, FALSE);
 }
 
 /*

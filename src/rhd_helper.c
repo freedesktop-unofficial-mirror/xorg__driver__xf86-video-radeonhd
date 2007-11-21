@@ -32,6 +32,8 @@
 
 #include "rhd.h"
 
+#include <signal.h>
+
 void
 RhdGetOptValBool(const OptionInfoRec *table, int token,
                  RHDOptPtr optp, Bool def)
@@ -190,3 +192,18 @@ RhdAppendString(char *s1, const char *s2)
 	return result;
     }
 }
+
+extern void xf86abort(void) NORETURN;
+void RhdAssertFailed(const char *str,
+		     const char *file, int line, const char *func)
+{
+    ErrorF("%s:%d: %s: Assertion '%s' failed.\n", file, line, func, str);
+
+#if 0			/* Set to 1 to get backtraces */
+    kill(getpid(), SIGSEGV);
+    xf86abort();	/* Not executed, but make gcc happy */
+#else
+    FatalError("Server aborting\n");
+#endif
+}
+

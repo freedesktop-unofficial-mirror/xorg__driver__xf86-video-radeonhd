@@ -2,7 +2,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([xf86-video-radeonhd],
-        0.0.2,
+        0.0.3,
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg&component=Driver/radeonhd],
         xf86-video-radeonhd)
 
@@ -184,6 +184,7 @@ AC_SUBST([XORG_CFLAGS])
 AC_SUBST([WARN_CFLAGS])
 AC_SUBST([PEDANTIC_CFLAGS])
 AC_SUBST([ATOMBIOS_CFLAGS])
+AC_SUBST([RANDR_VERSION],[`pkg-config --modversion randrproto`])
 AC_SUBST([moduledir])
 
 DRIVER_NAME=radeonhd
