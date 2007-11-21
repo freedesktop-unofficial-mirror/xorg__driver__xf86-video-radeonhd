@@ -455,8 +455,8 @@ rhdRROutputDpms(xf86OutputPtr       out,
     case DPMSModeStandby:
 	if (outUsedBy) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-		   "While resetting %s: output %s is also used by %s - "
-		   "ignoring\n",
+		   "RandR: While resetting %s: output %s is also used "
+		   "by %s - ignoring\n",
 		   out->name, rout->Output->Name, outUsedBy);
 	    break;
 	}
@@ -467,8 +467,8 @@ rhdRROutputDpms(xf86OutputPtr       out,
     case DPMSModeOff:
 	if (outUsedBy) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-		   "While switching off %s: output %s is also used by %s - "
-		   "ignoring\n",
+		   "RandR: While switching off %s: output %s is also used "
+		   "by %s - ignoring\n",
 		   out->name, rout->Output->Name, outUsedBy);
 	    break;
 	}
@@ -593,7 +593,7 @@ rhdRROutputModeSet(xf86OutputPtr  out,
      * cannot be used by different crtcs */
     if (rout->Output->Crtc && rout->Output->Crtc != Crtc)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "Output %s has already CRTC attached - "
+		   "RandR: Output %s has already CRTC attached - "
 		   "assuming ouput/connector clash\n", rout->Name);
     /* Set up mode */
     rout->Output->Crtc = Crtc;
