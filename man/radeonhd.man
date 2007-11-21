@@ -154,6 +154,16 @@ has control over the display, the normal laptop's \*qbrighter\*q and \*qdarker\*
 Workaround: Until
 .B radeonhd
 does proper ACPI event handling, you can switch to a VGA text console, adjust the brightness there, and then switch back to X11.
+.SS radeonhd 0.0.3 (with RandR) shows no or broken picture, xrandr fails, etc.
+radeonhd development caused a few bugs in __xservername__ and a number
+of bugs in xrandr(__appmansuffix__) to be discovered. If you are using
+xrandr(1) versions older than 2007-11-10, you should try updating
+xrandr(1). As a workaround, you can also deactivate the
+.B radeonhd
+RandR support by
+adding
+.B "Option \*qnoRandR\*q"
+to the __xconfigfile__ Device section.
 .\"
 .\"
 .SH SEE ALSO
