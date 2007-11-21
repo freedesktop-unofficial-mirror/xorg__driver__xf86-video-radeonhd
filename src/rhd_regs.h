@@ -240,18 +240,40 @@ enum {
     LVTMA_FORCE_OUTPUT_CNTL        = 0x7A8C,
     LVTMA_BIT_DEPTH_CONTROL        = 0x7A94,
     LVTMA_DCBALANCER_CONTROL       = 0x7AD0,
-    LVTMA_DATA_SYNCHRONIZATION     = 0x7AD8,
-    LVTMA_PWRSEQ_REF_DIV           = 0x7AE4,
-    LVTMA_PWRSEQ_DELAY1            = 0x7AE8,
-    LVTMA_PWRSEQ_DELAY2            = 0x7AEC,
-    LVTMA_PWRSEQ_CNTL              = 0x7AF0,
-    LVTMA_PWRSEQ_STATE             = 0x7AF4,
-    LVTMA_LVDS_DATA_CNTL           = 0x7AFC,
-    LVTMA_MODE                     = 0x7B00,
-    LVTMA_TRANSMITTER_ENABLE       = 0x7B04,
-    LVTMA_MACRO_CONTROL            = 0x7B0C,
-    LVTMA_TRANSMITTER_CONTROL      = 0x7B10,
-    LVTMA_REG_TEST_OUTPUT          = 0x7B14,
+
+    /* no longer shared between both r5xx and r6xx */
+    LVTMA_R500_DATA_SYNCHRONIZATION = 0x7AD8,
+    LVTMA_R500_PWRSEQ_REF_DIV       = 0x7AE4,
+    LVTMA_R500_PWRSEQ_DELAY1        = 0x7AE8,
+    LVTMA_R500_PWRSEQ_DELAY2        = 0x7AEC,
+    LVTMA_R500_PWRSEQ_CNTL          = 0x7AF0,
+    LVTMA_R500_PWRSEQ_STATE         = 0x7AF4,
+    LVTMA_R500_LVDS_DATA_CNTL       = 0x7AFC,
+    LVTMA_R500_MODE                 = 0x7B00,
+    LVTMA_R500_TRANSMITTER_ENABLE   = 0x7B04,
+    LVTMA_R500_MACRO_CONTROL        = 0x7B0C,
+    LVTMA_R500_TRANSMITTER_CONTROL  = 0x7B10,
+    LVTMA_R500_REG_TEST_OUTPUT      = 0x7B14,
+
+    /* R600 adds an undocumented register at 0x7AD8,
+     * shifting all subsequent registers by exactly one. */
+    LVTMA_R600_DATA_SYNCHRONIZATION = 0x7ADC,
+    LVTMA_R600_PWRSEQ_REF_DIV       = 0x7AE8,
+    LVTMA_R600_PWRSEQ_DELAY1        = 0x7AEC,
+    LVTMA_R600_PWRSEQ_DELAY2        = 0x7AF0,
+    LVTMA_R600_PWRSEQ_CNTL          = 0x7AF4,
+    LVTMA_R600_PWRSEQ_STATE         = 0x7AF8,
+    LVTMA_R600_LVDS_DATA_CNTL       = 0x7B00,
+    LVTMA_R600_MODE                 = 0x7B04,
+    LVTMA_R600_TRANSMITTER_ENABLE   = 0x7B08,
+    LVTMA_R600_MACRO_CONTROL        = 0x7B10,
+    LVTMA_R600_TRANSMITTER_CONTROL  = 0x7B14,
+    LVTMA_R600_REG_TEST_OUTPUT      = 0x7B18,
+
+    LVTMA_RS690_NOT_DOCUMENTED      = 0x7B18,
+
+    LVTMA_TRANSMITTER_ADJUST        = 0x7B24, /* RV630 */
+    LVTMA_PREEMPHASIS_CONTROL       = 0x7B28, /* RV630 */
 
     /* I2C in separate enum */
 
