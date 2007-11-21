@@ -126,17 +126,23 @@ RS740, RS740M
 Please refer to __xconfigfile__(__filemansuffix__) for general
 configuration details.  This section only covers configuration details
 specific to this driver.
+.TP
+.BI "Option \*qRROutputOrder\*q \*q" <list_of_outputs> \*q
+If your outputs are ordered in the wrong way with respect to Xinerama
+emulation, you can reorder them by adding their names (separated by
+spaces or commas) to the
+.I <list_of_outputs>.
 .PP
-See the source code (
+For information on more options, please see the source code (
 .I src/rhd_driver.c
-) for now. Sorry.
+) for now.
 .\"
 .\"
 .SH KNOWN BUGS
 As the
 .B radeonhd
-driver is still in an early stage of development, many non-obvious things 
-do not work yet. Other places to check for known bugs and solutions are the 
+driver is still in an early stage of development, many non-obvious things
+do not work yet. Other places to check for known bugs and solutions are the
 bugtracker at
 \%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
 and the mailing list archives at
