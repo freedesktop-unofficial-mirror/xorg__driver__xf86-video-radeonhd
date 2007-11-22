@@ -13,7 +13,7 @@ git_version.stamp:
 			cp "$(srcdir)/git_version.h" "git_version.h"; \
 		fi; \
 	fi
-	env GIT_DIR="$(top_srcdir)/.git" $(GIT_VERSION_CMD) -k -s $(top_srcdir) -o git_version.h
+	$(GIT_VERSION_CMD) -k -s $(top_srcdir) -o git_version.h
 	@if test -s "$(srcdir)/git_version.h"; then \
 		if cmp "$(srcdir)/git_version.h" "git_version.h"; then :; \
 		else \

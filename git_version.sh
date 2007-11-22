@@ -25,11 +25,10 @@ Options:
   -s, --srcdir DIRNAME   Set source tree dir name.
   -x, --example          Print complete example program."
 
-# The caller may have found these programs for us
-SED="${SED-sed}"
+# The caller may have set these for us
+SED="${SED-"sed"}"
 
 # Initialize
-GIT_DIR=".git"
 working_dir="$(pwd)"
 
 # Who am I?
@@ -142,7 +141,8 @@ if [ "x$git_found" = "xyes" ]; then
 fi
 
 git_repo=no
-if [ -e "$GIT_DIR/index" ]; then
+# "git-rev-parse --git-dir" since git-0.99.7
+if [ "x$(git-rev-parse --git-dir 2> /dev/null)" != "x" ]; then
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
         git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`

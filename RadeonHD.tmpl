@@ -23,7 +23,7 @@ RHD_VERSION_DEFINES = \
  */
 GIT_VERSION_CMD = $(SHELL) $(TOP)/git_version.sh
 RHD_GIT_DEFINES = \
-	`env GIT_DIR="$(TOP)/.git" $(GIT_VERSION_CMD) -q -k -s $(TOP) -o git_version.h`
+	`$(GIT_VERSION_CMD) -q -k -s $(TOP) -o git_version.h`
 
 clean::
 	RemoveFile(git_version.h)
