@@ -492,7 +492,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
        will SIGSEGV otherwise */
     pScrn->monitor = pScrn->confScreen->monitor;
 
-    if (!xf86SetDepthBpp(pScrn, 16, 0, 0, Support32bppFb)) {
+    if (!xf86SetDepthBpp(pScrn, 24, 0, 0, Support32bppFb)) {
 	goto error0;
     } else {
 	/* Check that the returned depth is one we support */
