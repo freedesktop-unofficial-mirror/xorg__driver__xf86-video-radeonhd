@@ -154,7 +154,9 @@ if [ "x$(git-rev-parse --git-dir 2> /dev/null)" != "x" ]; then
             git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
         fi
         git_dirty=yes
-        if git-diff-files --quiet && git-diff-index --cached --quiet HEAD; then
+        # git-1.4 does not understand "git-diff-files --quiet"
+        # git-1.4 does not understand "git-diff-index --cached --quiet HEAD"
+        if [ "x$(git-diff-files)" = "x" ] && [ "x$(git-diff-index --cached HEAD)" = "x" ]; then
             git_dirty=no
         fi
     fi
