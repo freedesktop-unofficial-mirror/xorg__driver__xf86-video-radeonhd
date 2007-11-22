@@ -238,7 +238,7 @@ TMDSASet(struct rhdOutput *Output)
     TMDSAVoltageControl(Output);
 
     /* use IDCLK */
-    RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000010);
+    RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000010, 0x00000010);
 
     /* reset transmitter */
     RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
