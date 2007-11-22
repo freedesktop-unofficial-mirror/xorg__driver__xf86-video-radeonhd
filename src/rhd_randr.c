@@ -644,10 +644,11 @@ rhdRROutputGetModes(xf86OutputPtr output)
 {
     RHDPtr            rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
-    xf86MonPtr	      edid_mon;
+    xf86MonPtr	      edid_mon = NULL;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
-    edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
+    if (rout->Connector->DDC)
+	edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
     xf86OutputSetEDID (output, edid_mon);
     
     return xf86OutputGetEDIDModes (output);
