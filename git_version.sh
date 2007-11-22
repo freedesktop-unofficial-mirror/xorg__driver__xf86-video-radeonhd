@@ -145,10 +145,12 @@ git_repo=no
 if [ "x$(git-rev-parse --git-dir 2> /dev/null)" != "x" ]; then
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
+        # git-1.4 and probably earlier understand "git-rev-parse HEAD"
         git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
         if [ "x$git_shaid" = "x" ]; then
             git_errors="${git_errors+"${git_errors}; "}error running 'git-rev-parse HEAD'"
         fi
+        # git-1.4 and probably earlier understand "git-symbolic-ref HEAD"
         git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         if [ "x$git_branch" = "x" ]; then
             git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
