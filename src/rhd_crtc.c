@@ -174,18 +174,18 @@ DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
 
     switch (bpp) {
     case 8:
-	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0, 0x10703);
+	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0, 0xF10703);
 	break;
     case 15:
-	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x00001, 0x10703);
+	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x000001, 0xF10703);
 	break;
     case 16:
-	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x00101, 0x10703);
+	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x000101, 0xF10703);
 	break;
     case 24:
     case 32:
     default:
-	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x00002, 0x10703);
+	RHDRegMask(Crtc, RegOff + D1GRPH_CONTROL, 0x000002, 0xF10703);
 	break;
     /* TODO: 64bpp ;p */
     }
