@@ -127,6 +127,7 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 {
     char *str = NULL;
     char *typec;
+    char *str1, *str2;
 
     assert(state != NULL); 
 
@@ -163,8 +164,16 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 	    return str;
 
 	case RHD_CONNECTOR_TV:
-	    return strdup(ConnectorInfo->Name);
+	    str1 = strdup(ConnectorInfo->Name);
+	    str = xalloc(20);
+	    str2 = strchr(str1, ' ');
+	    if (str2) *(str2) = '\0';
+	    snprintf(str, 20, "TV %s",str1);
+	    xfree(str1);
+
+	    return str;
     }
+    return NULL;
 }
 
 /*
