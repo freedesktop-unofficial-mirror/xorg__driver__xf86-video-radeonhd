@@ -50,7 +50,6 @@
 /* Xserver interface */
 #include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
 #include "xf86Crtc.h"
-#include "xf86Parser.h"
 #define DPMS_SERVER
 #include "X11/extensions/dpms.h"
 #include "X11/Xatom.h"
