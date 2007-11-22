@@ -113,6 +113,60 @@ RHDHPDCheck(struct rhdConnector *Connector)
     return (RHDRegRead(Connector, DC_GPIO_HPD_Y) & Connector->HPDMask);
 }
 
+struct rhdCsState {
+    int vga_cnt;
+    int dvi_cnt;
+};
+
+/*
+ *
+ */
+static char *
+rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo, 
+		      struct rhdCsState **state)
+{
+    char *str = NULL;
+    char *typec;
+
+    assert(state != NULL); 
+
+    if (!*state) {
+	if (!(*state = xcalloc(sizeof(struct rhdCsState), 1)))
+	    return NULL;
+    }
+    switch (ConnectorInfo->Type) {
+	case RHD_CONNECTOR_NONE:
+	    return NULL;
+	case RHD_CONNECTOR_DVI:
+	    if (ConnectorInfo->Output[0] && ConnectorInfo->Output[1])
+		typec = "I";
+	    else if (ConnectorInfo->Output[0] == RHD_OUTPUT_DACA 
+		     || ConnectorInfo->Output[0] == RHD_OUTPUT_DACB
+		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACA
+		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACB
+		)
+		typec = "A";
+	    else 
+		typec = "D";
+	    str = xalloc(12);
+	    snprintf(str, 11, "DVI-%s %i",typec, ++(*state)->dvi_cnt);
+	    return str;
+
+	case RHD_CONNECTOR_VGA:
+	    str = xalloc(10);
+	    snprintf(str, 9, "VGA %i",++(*state)->vga_cnt);
+	    return str;
+
+	case RHD_CONNECTOR_PANEL:
+	    str = xalloc(10);
+	    snprintf(str, 9, "PANEL");
+	    return str;
+
+	case RHD_CONNECTOR_TV:
+	    return strdup(ConnectorInfo->Name);
+    }
+}
+
 /*
  *
  */
@@ -122,6 +176,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     struct rhdConnectorInfo *ConnectorInfo;
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
+    struct rhdCsState *csstate = NULL;
     int i, j, k, l;
     Bool InfoAllocated = FALSE;
 
@@ -168,7 +223,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	Connector->scrnIndex = rhdPtr->scrnIndex;
 
 	Connector->Type = ConnectorInfo[i].Type;
-	Connector->Name = xf86strdup(ConnectorInfo[i].Name);
+	Connector->Name = rhdConnectorSynthName(&ConnectorInfo[i], &csstate);
 
 	/* Get the DDC bus of this connector */
 	if (ConnectorInfo[i].DDC != RHD_DDC_NONE) {
@@ -252,6 +307,8 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	rhdPtr->Connector[j] = Connector;
 	j++;
     }
+    if (csstate)
+	xfree(csstate);
 
     /* Deallocate what atombios code allocated */
     if (ConnectorInfo && InfoAllocated) {
