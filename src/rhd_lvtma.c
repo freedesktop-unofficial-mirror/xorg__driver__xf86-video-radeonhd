@@ -142,7 +142,7 @@ LVDSModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
  *
  */
 static void
-R5xxLVDSSet(struct rhdOutput *Output)
+LVDSSet(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -222,7 +222,7 @@ R5xxLVDSSet(struct rhdOutput *Output)
  *
  */
 static void
-R5xxLVDSPWRSEQInit(struct rhdOutput *Output)
+LVDSPWRSEQInit(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -252,7 +252,7 @@ R5xxLVDSPWRSEQInit(struct rhdOutput *Output)
  *
  */
 static void
-R5xxLVDSEnable(struct rhdOutput *Output)
+LVDSEnable(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -261,7 +261,7 @@ R5xxLVDSEnable(struct rhdOutput *Output)
 
     RHDFUNC(Output);
 
-    R5xxLVDSPWRSEQInit(Output);
+    LVDSPWRSEQInit(Output);
 
     /* set up the transmitter */
     RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001E, 0x0000001E);
@@ -296,7 +296,7 @@ R5xxLVDSEnable(struct rhdOutput *Output)
  *
  */
 static void
-R5xxLVDSDisable(struct rhdOutput *Output)
+LVDSDisable(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -308,7 +308,7 @@ R5xxLVDSDisable(struct rhdOutput *Output)
     if (!(RHDRegRead(Output, LVTMA_PWRSEQ_CNTL) & 0x00000010))
 	return;
 
-    R5xxLVDSPWRSEQInit(Output);
+    LVDSPWRSEQInit(Output);
 
     RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0, 0x00000010);
 
@@ -351,20 +351,20 @@ LVDSShutdown(struct rhdOutput *Output)
  *
  */
 static void
-R5xxLVDSPower(struct rhdOutput *Output, int Power)
+LVDSPower(struct rhdOutput *Output, int Power)
 {
     RHDFUNC(Output);
 
     switch (Power) {
     case RHD_POWER_ON:
-	R5xxLVDSEnable(Output);
+	LVDSEnable(Output);
 	break;
     case RHD_POWER_RESET:
 	/*	LVDSDisable(Output);
 		break;*/
     case RHD_POWER_SHUTDOWN:
     default:
-	R5xxLVDSDisable(Output);
+	LVDSDisable(Output);
 	/* LVDSShutdown(Output); */
 	break;
     }
@@ -375,7 +375,7 @@ R5xxLVDSPower(struct rhdOutput *Output, int Power)
  *
  */
 static void
-R5xxLVDSSave(struct rhdOutput *Output)
+LVDSSave(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -405,7 +405,7 @@ R5xxLVDSSave(struct rhdOutput *Output)
  * Currently it's a dumb register dump.
  */
 static void
-R5xxLVDSRestore(struct rhdOutput *Output)
+LVDSRestore(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -441,7 +441,7 @@ R5xxLVDSRestore(struct rhdOutput *Output)
  * ATI clinging desperately to a broken concept.
  */
 static struct LVDSPrivate *
-R5xxLVDSInfoRetrieve(RHDPtr rhdPtr)
+LVDSInfoRetrieve(RHDPtr rhdPtr)
 {
     struct LVDSPrivate *Private = xnfcalloc(sizeof(struct LVDSPrivate), 1);
     CARD32 tmp;
@@ -873,16 +873,10 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
     RHDFUNC(rhdPtr);
 
-    /* Stop everything except LVDS at this time */
+    /* Stop weird connector types */
     if ((Type != RHD_CONNECTOR_PANEL) && (Type != RHD_CONNECTOR_DVI)) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unhandled connector type:"
 		   " %d\n", __func__, Type);
-	return NULL;
-    }
-
-    if ((Type == RHD_CONNECTOR_PANEL) && (rhdPtr->ChipSet >= RHD_R600)) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: any other device than"
-		   " an R5xx is still unsupported.\n", __func__);
 	return NULL;
     }
 
@@ -896,20 +890,18 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
     if (Type == RHD_CONNECTOR_PANEL) {
 	Output->Name = "LVDS";
+
 	Output->ModeValid = LVDSModeValid;
+	Output->Mode = LVDSSet;
+	Output->Power = LVDSPower;
+	Output->Save = LVDSSave;
+	Output->Restore = LVDSRestore;
 
-	if (rhdPtr->ChipSet < RHD_R600) {
-	    Output->Mode = R5xxLVDSSet;
-	    Output->Power = R5xxLVDSPower;
-	    Output->Save = R5xxLVDSSave;
-	    Output->Restore = R5xxLVDSRestore;
-	    Output->Private = R5xxLVDSInfoRetrieve(rhdPtr);
-	}
-
+	Output->Private = LVDSInfoRetrieve(rhdPtr);
     } else {
 	Output->Name = "TMDS B";
-	Output->ModeValid = TMDSBModeValid;
 
+	Output->ModeValid = TMDSBModeValid;
 	Output->Mode = TMDSBSet;
 	Output->Power = TMDSBPower;
 	Output->Save = TMDSBSave;
