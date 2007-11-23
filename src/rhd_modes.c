@@ -29,7 +29,6 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
-#include "xf86Parser.h"
 
 #include "rhd.h"
 #include "rhd_crtc.h"
