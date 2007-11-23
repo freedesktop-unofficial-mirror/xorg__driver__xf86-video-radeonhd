@@ -291,6 +291,9 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
 	return 0x01130704;
     case RHD_RV610:
     case RHD_RV630:
+    case RHD_M72:
+    case RHD_M74:
+    case RHD_M76:
 	/* charge pump and loop filter differ per FB divider */
 	if (FeedbackDivider >= 0x6C)
 	    return 0x159EC704;
