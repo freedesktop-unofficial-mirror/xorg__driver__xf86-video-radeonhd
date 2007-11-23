@@ -646,11 +646,31 @@ rhdRROutputGetModes(xf86OutputPtr output)
     xf86MonPtr	      edid_mon = NULL;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
+#if 0
     if (rout->Connector->DDC)
 	edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
     xf86OutputSetEDID (output, edid_mon);
     
     return xf86OutputGetEDIDModes (output);
+#endif
+    if (rout->Connector->Monitor) {
+	/* Modes and EDID are already freed by RandR (OutputSetEDID+return) */
+	rout->Connector->Monitor->Modes = NULL;
+	rout->Connector->Monitor->EDID = NULL;
+	RHDMonitorDestroy(rout->Connector->Monitor);
+    }
+    /* TODO: use xf86OutputGetEDID/OutputSetEDID if requested */
+    if ( (rout->Connector->Monitor = RHDMonitorInit(rout->Connector)) ) {
+	/* If digitally attached, enable reduced blanking */
+	if (rout->Output->Id == RHD_OUTPUT_TMDSA ||
+	    rout->Output->Id == RHD_OUTPUT_LVTMA)
+	    rout->Connector->Monitor->ReducedAllowed = TRUE;
+	/* TODO: per-output ForceReduced option */
+	xf86OutputSetEDID (output, rout->Connector->Monitor->EDID);
+	return rout->Connector->Monitor->Modes;
+   }
+   xf86OutputSetEDID (output, NULL);
+   return NULL;
 }
 
 /* An output's property has changed. */
@@ -844,7 +864,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     }
     rhdPtr->randr = randr;
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-	       "RandR 1.2 support enabled, but not finished yet\n");
+	       "RandR 1.2 support enabled\n");
 
     return TRUE;
 }
