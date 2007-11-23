@@ -255,12 +255,10 @@ rhdRRCrtcLock(xf86CrtcPtr crtc)
     return FALSE;
 }
 
-#if 0
 /* Unlock CRTC after mode setting, mostly for DRI */
 static void
 rhdRRCrtcUnlock (xf86CrtcPtr crtc)
 { }
-#endif
 
 /* Helper: setup PLL and LUT for Crtc */
 static void
@@ -694,7 +692,7 @@ static const xf86CrtcConfigFuncsRec rhdRRCrtcConfigFuncs = {
 static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcDpms,
     NULL, NULL,						/* Save,Restore */
-    rhdRRCrtcLock, NULL,				/* rhdRRCrtcUnlock */
+    rhdRRCrtcLock, rhdRRCrtcUnlock,
     rhdRRCrtcModeFixupDUMMY,
     rhdRRCrtcPrepare, rhdRRCrtcModeSet, rhdRRCrtcCommit,
     NULL,						/* CrtcGammaSet */
