@@ -587,12 +587,11 @@ R6xxTMDSBVoltageControl(struct rhdOutput *Output)
     RHDPtr rhdPtr = RHDPTRI(Output);
     int i;
 
-    if (rhdPtr->ChipSet == RHD_RS690) {
+    if (rhdPtr->ChipSet == RHD_RS690)
 	RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0001642F);
-	RHDRegWrite(Output, LVTMA_RS690_NOT_DOCUMENTED, 0x01120000);
-    } else if (rhdPtr->ChipSet == RHD_R600) {
+    else if (rhdPtr->ChipSet == RHD_R600)
 	RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00020213);
-    } else { /* RV6x0 and up */
+    else { /* RV6x0 and up */
 	for (i = 0; RV6xxTMDSBMacro[i].Device; i++)
 	    if (RV6xxTMDSBMacro[i].Device == rhdPtr->PciDeviceID) {
 		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, RV6xxTMDSBMacro[i].Macro);
@@ -683,10 +682,15 @@ R5xxTMDSBSet(struct rhdOutput *Output)
 static void
 R6xxTMDSBSet(struct rhdOutput *Output)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
     RHDFUNC(Output);
 
     RHDRegMask(Output, LVTMA_R600_MODE, 0x00000001, 0x00000001); /* select TMDS */
-    RHDRegMask(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000, 0x00100000); /* !r500 */
+    if (rhdPtr->ChipSet == RHD_RS690)
+	RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x01120000);
+    else
+	RHDRegMask(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
 
     /* Clear out some HPD events first: this should be under driver control. */
     RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x0000000C);
@@ -862,12 +866,10 @@ R6xxTMDSBSave(struct rhdOutput *Output)
     Private->StoreTXControl = RHDRegRead(Output, LVTMA_R600_TRANSMITTER_CONTROL);
     Private->StoreTestOutput = RHDRegRead(Output, LVTMA_R600_REG_TEST_OUTPUT);
 
-   if (rhdPtr->ChipSet == RHD_RS690) {
-       Private->StoreRs690Unknown = RHDRegRead(Output, LVTMA_RS690_NOT_DOCUMENTED);
-   } else if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
+    if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
        Private->StoreRv600TXAdjust = RHDRegRead(Output, LVTMA_TRANSMITTER_ADJUST);
        Private->StoreRv600PreEmphasis = RHDRegRead(Output, LVTMA_PREEMPHASIS_CONTROL);
-   }
+    }
 
     Private->Stored = TRUE;
 }
@@ -934,9 +936,7 @@ R6xxTMDSBRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_R600_TRANSMITTER_CONTROL, Private->StoreTXControl);
     RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, Private->StoreTestOutput);
 
-    if (rhdPtr->ChipSet == RHD_RS690)
-	RHDRegWrite(Output, LVTMA_RS690_NOT_DOCUMENTED, Private->StoreRs690Unknown);
-    else if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
+    if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
 	RHDRegWrite(Output, LVTMA_TRANSMITTER_ADJUST, Private->StoreRv600TXAdjust);
 	RHDRegWrite(Output, LVTMA_PREEMPHASIS_CONTROL, Private->StoreRv600PreEmphasis);
     }
