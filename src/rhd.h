@@ -131,7 +131,9 @@ typedef struct RHDRec {
     RHDOpt              noAccel;
     RHDOpt              swCursor;
     RHDOpt		shadowFB;
+    RHDOpt		forceReduced;
     RHDOpt		noRandr;
+    RHDOpt		rrUseXF86Edid;
     RHDOpt		rrOutputOrder;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */

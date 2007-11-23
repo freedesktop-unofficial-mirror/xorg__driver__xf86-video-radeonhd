@@ -190,6 +190,7 @@ typedef enum {
     OPTION_FORCEREDUCED,
     OPTION_USECONFIGUREDMONITOR,
     OPTION_NORANDR,
+    OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER
 } RHDOpts;
 
@@ -201,6 +202,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
@@ -1295,7 +1297,6 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     struct rhdConnector *Connector;
     Bool Found = FALSE;
     char *ignore = NULL;
-    RHDOpt ForceReduced;
     Bool ConnectorIsDMS59 = FALSE;
     int i = 0;
 
@@ -1317,8 +1318,6 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 
     /* quick and dirty option so that some output choice exists */
     ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED, &ForceReduced,
-		     FALSE);
 
     /* handle cards with DMS-59 connectors appropriately. The DMS-59 to VGA
        adapter does not raise HPD at all, so we need a fallback there. */
@@ -1391,8 +1390,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 			Monitor->ReducedAllowed = TRUE;
 
 		    /* allow user to override settings globally */
-		    if (ForceReduced.set)
-			Monitor->ReducedAllowed = ForceReduced.val.bool;
+		    if (rhdPtr->forceReduced.set)
+			Monitor->ReducedAllowed = rhdPtr->forceReduced.val.bool;
 
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			       "Connector \"%s\" uses Monitor \"%s\":\n",
@@ -1681,14 +1680,18 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     /* Process the options */
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
 
-    RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL, &rhdPtr->noAccel,
-		     FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR, &rhdPtr->swCursor,
-		     FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB, &rhdPtr->shadowFB,
-		     TRUE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR, &rhdPtr->noRandr,
-		     FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL,
+		     &rhdPtr->noAccel, FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR,
+		     &rhdPtr->swCursor, FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB,
+		     &rhdPtr->shadowFB, TRUE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED,
+		     &rhdPtr->forceReduced, FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR,
+		     &rhdPtr->noRandr, FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_RRUSEXF86EDID,
+		     &rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString(rhdPtr->Options, OPTION_RROUTPUTORDER,
 		       &rhdPtr->rrOutputOrder, FALSE);
 }
