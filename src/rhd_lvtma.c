@@ -48,6 +48,47 @@
 #endif
 
 /*
+ * First of all, make it more managable to code for both R500 and R600, as
+ * there was a 1 register shift, right in the middle of the register block.
+ * There are of course much nicer ways to do the workaround i am doing here,
+ * but speed is not an issue here.
+ */
+static inline CARD16
+LVTMARegisterShift(int ChipSet, CARD16 R500, CARD16 R600)
+{
+    if (ChipSet >= RHD_RS690)
+	return R600;
+    else
+	return R500;
+}
+
+#define LVTMAREGSHIFT(r500, r600) LVTMARegisterShift(rhdPtr->ChipSet, (r500), (r600))
+
+#define LVTMA_DATA_SYNCHRONIZATION \
+    LVTMAREGSHIFT(LVTMA_R500_DATA_SYNCHRONIZATION, LVTMA_R600_DATA_SYNCHRONIZATION)
+#define LVTMA_PWRSEQ_REF_DIV \
+    LVTMAREGSHIFT(LVTMA_R500_PWRSEQ_REF_DIV, LVTMA_R600_PWRSEQ_REF_DIV)
+#define LVTMA_PWRSEQ_DELAY1 \
+    LVTMAREGSHIFT(LVTMA_R500_PWRSEQ_DELAY1, LVTMA_R600_PWRSEQ_DELAY1)
+#define LVTMA_PWRSEQ_DELAY2 \
+    LVTMAREGSHIFT(LVTMA_R500_PWRSEQ_DELAY2, LVTMA_R600_PWRSEQ_DELAY2)
+#define LVTMA_PWRSEQ_CNTL \
+    LVTMAREGSHIFT(LVTMA_R500_PWRSEQ_CNTL, LVTMA_R600_PWRSEQ_CNTL)
+#define LVTMA_PWRSEQ_STATE \
+    LVTMAREGSHIFT(LVTMA_R500_PWRSEQ_STATE, LVTMA_R600_PWRSEQ_STATE)
+#define LVTMA_LVDS_DATA_CNTL \
+    LVTMAREGSHIFT(LVTMA_R500_LVDS_DATA_CNTL, LVTMA_R600_LVDS_DATA_CNTL)
+#define LVTMA_MODE LVTMAREGSHIFT(LVTMA_R500_MODE, LVTMA_R600_MODE)
+#define LVTMA_TRANSMITTER_ENABLE \
+    LVTMAREGSHIFT(LVTMA_R500_TRANSMITTER_ENABLE, LVTMA_R600_TRANSMITTER_ENABLE)
+#define LVTMA_MACRO_CONTROL \
+    LVTMAREGSHIFT(LVTMA_R500_MACRO_CONTROL, LVTMA_R600_MACRO_CONTROL)
+#define LVTMA_TRANSMITTER_CONTROL \
+    LVTMAREGSHIFT(LVTMA_R500_TRANSMITTER_CONTROL, LVTMA_R600_TRANSMITTER_CONTROL)
+#define LVTMA_REG_TEST_OUTPUT \
+    LVTMAREGSHIFT(LVTMA_R500_REG_TEST_OUTPUT, LVTMA_R600_REG_TEST_OUTPUT)
+
+/*
  *
  * Handling for LVTMA block as LVDS.
  *
@@ -104,27 +145,28 @@ static void
 R5xxLVDSSet(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
     RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001); /* enable */
     usleep(20);
 
-    RHDRegWrite(Output, LVTMA_R500_MODE, 0); /* set to LVDS */
+    RHDRegWrite(Output, LVTMA_MODE, 0); /* set to LVDS */
 
     /* Select CRTC, select syncA, no stereosync */
     RHDRegMask(Output, LVTMA_SOURCE_SELECT, Output->Crtc->Id, 0x00010101);
 
     if (Private->LVDS24Bit) { /* 24bits */
-	RHDRegMask(Output, LVTMA_R500_LVDS_DATA_CNTL, 0x00000001, 0x00000001); /* enable 24bits */
+	RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0x00000001, 0x00000001); /* enable 24bits */
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x00100000, 0x00100000); /* dithering bit depth = 24 */
 
 	if (Private->FPDI) /* FPDI? */
-	    RHDRegMask(Output, LVTMA_R500_LVDS_DATA_CNTL, 0x00000010, 0x00000010); /* 24 bit format: FPDI or LDI? */
+	    RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0x00000010, 0x00000010); /* 24 bit format: FPDI or LDI? */
 	else
-	    RHDRegMask(Output, LVTMA_R500_LVDS_DATA_CNTL, 0, 0x00000010);
+	    RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0, 0x00000010);
     } else {
-	RHDRegMask(Output, LVTMA_R500_LVDS_DATA_CNTL, 0, 0x00000001); /* disable 24bits */
+	RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0, 0x00000001); /* disable 24bits */
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00100101); /* dithering bit depth != 24 */
     }
 
@@ -155,25 +197,25 @@ R5xxLVDSSet(struct rhdOutput *Output)
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x01000000);
 
     /* PLL and TX voltages */
-    RHDRegWrite(Output, LVTMA_R500_MACRO_CONTROL, Private->MacroControl);
+    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->MacroControl);
 
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000010, 0x00000010); /* use pclk_lvtma_direct */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0xCC000000);
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, Private->TXClockPattern << 16, 0x03FF0000);
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000001, 0x00000001); /* enable PLL */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000010, 0x00000010); /* use pclk_lvtma_direct */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0xCC000000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, Private->TXClockPattern << 16, 0x03FF0000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001); /* enable PLL */
     usleep(20);
 
     /* reset transmitter */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
     usleep(2);
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
     usleep(20);
 
     /* start data synchronisation */
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100); /* reset */
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100); /* reset */
     usleep(2);
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0, 0x00000100);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000100);
 }
 
 /*
@@ -183,25 +225,27 @@ static void
 R5xxLVDSPWRSEQInit(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
     CARD32 tmp = 0;
 
     tmp = Private->PowerDigToDE >> 2;
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_DELAY1, tmp, 0x000000FF);
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_DELAY1, tmp << 24, 0xFF000000);
+    RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp, 0x000000FF);
+    RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 24, 0xFF000000);
 
     tmp = Private->PowerDEToBL >> 2;
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_DELAY1, tmp << 8, 0x0000FF00);
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_DELAY1, tmp << 16, 0x00FF0000);
+    RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 8, 0x0000FF00);
+    RHDRegMask(Output, LVTMA_PWRSEQ_DELAY1, tmp << 16, 0x00FF0000);
 
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_DELAY2, Private->OffDelay >> 2);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_REF_DIV,
+    RHDRegWrite(Output, LVTMA_PWRSEQ_DELAY2, Private->OffDelay >> 2);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_REF_DIV,
 		Private->PowerRefDiv | (Private->BlonRefDiv << 16));
 
     /* Enable power sequencer and allow it to override everything */
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_CNTL, 0x0000000D, 0x0000000D);
+    RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0x0000000D, 0x0000000D);
 
     /* give full control to the sequencer */
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_CNTL, 0, 0x02020200);
+    RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0, 0x02020200);
 }
 
 /*
@@ -211,6 +255,7 @@ static void
 R5xxLVDSEnable(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 tmp = 0;
     int i;
 
@@ -219,23 +264,23 @@ R5xxLVDSEnable(struct rhdOutput *Output)
     R5xxLVDSPWRSEQInit(Output);
 
     /* set up the transmitter */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0x0000001E, 0x0000001E);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001E, 0x0000001E);
     if (Private->LVDS24Bit) /* 24bit ? */
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0x00000020, 0x00000020);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x00000020, 0x00000020);
 
     if (Private->DualLink) {
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0x00001E00, 0x00001E00);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x00001E00, 0x00001E00);
 
 	if (Private->LVDS24Bit)
-	    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0x00002000, 0x00002000);
+	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x00002000, 0x00002000);
     }
 
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_CNTL, 0x00000010, 0x00000010);
+    RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0x00000010, 0x00000010);
 
     for (i = 0; i <= Private->OffDelay; i++) {
 	usleep(1000);
 
-	tmp = (RHDRegRead(Output, LVTMA_R500_PWRSEQ_STATE) >> 8) & 0x0F;
+	tmp = (RHDRegRead(Output, LVTMA_PWRSEQ_STATE) >> 8) & 0x0F;
 	if (tmp == 4)
 	    break;
     }
@@ -254,22 +299,23 @@ static void
 R5xxLVDSDisable(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 tmp = 0;
     int i;
 
     RHDFUNC(Output);
 
-    if (!(RHDRegRead(Output, LVTMA_R500_PWRSEQ_CNTL) & 0x00000010))
+    if (!(RHDRegRead(Output, LVTMA_PWRSEQ_CNTL) & 0x00000010))
 	return;
 
     R5xxLVDSPWRSEQInit(Output);
 
-    RHDRegMask(Output, LVTMA_R500_PWRSEQ_CNTL, 0, 0x00000010);
+    RHDRegMask(Output, LVTMA_PWRSEQ_CNTL, 0, 0x00000010);
 
     for (i = 0; i <= Private->OffDelay; i++) {
 	usleep(1000);
 
-	tmp = (RHDRegRead(Output, LVTMA_R500_PWRSEQ_STATE) >> 8) & 0x0F;
+	tmp = (RHDRegRead(Output, LVTMA_PWRSEQ_STATE) >> 8) & 0x0F;
 	if (tmp == 9)
 	    break;
     }
@@ -280,7 +326,7 @@ R5xxLVDSDisable(struct rhdOutput *Output)
 		   __func__, i, (int) tmp);
     }
 
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0, 0x0000FFFF);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000FFFF);
 }
 
 #if 0
@@ -292,9 +338,9 @@ LVDSShutdown(struct rhdOutput *Output)
 {
     RHDFUNC(Output);
 
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000002, 0x00000002); /* PLL in reset */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000001); /* disable LVDS */
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0, 0x00000001);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002); /* PLL in reset */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001); /* disable LVDS */
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000001);
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x04000000, 0x04000000); /* reset temp dithering */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00111111); /* disable all dithering */
     RHDRegWrite(Output, LVTMA_CNTL, 0); /* disable */
@@ -332,23 +378,24 @@ static void
 R5xxLVDSSave(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
     Private->StoreControl = RHDRegRead(Output, LVTMA_CNTL);
     Private->StoreSourceSelect = RHDRegRead(Output,  LVTMA_SOURCE_SELECT);
     Private->StoreBitDepthControl = RHDRegRead(Output, LVTMA_BIT_DEPTH_CONTROL);
-    Private->StoreDataSynchronisation = RHDRegRead(Output, LVTMA_R500_DATA_SYNCHRONIZATION);
-    Private->StorePWRSEQRefDiv = RHDRegRead(Output, LVTMA_R500_PWRSEQ_REF_DIV);
-    Private->StorePWRSEQDelay1 = RHDRegRead(Output, LVTMA_R500_PWRSEQ_DELAY1);
-    Private->StorePWRSEQDelay2 = RHDRegRead(Output, LVTMA_R500_PWRSEQ_DELAY2);
-    Private->StorePWRSEQControl = RHDRegRead(Output, LVTMA_R500_PWRSEQ_CNTL);
-    Private->StorePWRSEQState = RHDRegRead(Output, LVTMA_R500_PWRSEQ_STATE);
-    Private->StoreLVDSDataControl = RHDRegRead(Output, LVTMA_R500_LVDS_DATA_CNTL);
-    Private->StoreMode = RHDRegRead(Output, LVTMA_R500_MODE);
-    Private->StoreTxEnable = RHDRegRead(Output, LVTMA_R500_TRANSMITTER_ENABLE);
-    Private->StoreMacroControl = RHDRegRead(Output, LVTMA_R500_MACRO_CONTROL);
-    Private->StoreTXControl = RHDRegRead(Output, LVTMA_R500_TRANSMITTER_CONTROL);
+    Private->StoreDataSynchronisation = RHDRegRead(Output, LVTMA_DATA_SYNCHRONIZATION);
+    Private->StorePWRSEQRefDiv = RHDRegRead(Output, LVTMA_PWRSEQ_REF_DIV);
+    Private->StorePWRSEQDelay1 = RHDRegRead(Output, LVTMA_PWRSEQ_DELAY1);
+    Private->StorePWRSEQDelay2 = RHDRegRead(Output, LVTMA_PWRSEQ_DELAY2);
+    Private->StorePWRSEQControl = RHDRegRead(Output, LVTMA_PWRSEQ_CNTL);
+    Private->StorePWRSEQState = RHDRegRead(Output, LVTMA_PWRSEQ_STATE);
+    Private->StoreLVDSDataControl = RHDRegRead(Output, LVTMA_LVDS_DATA_CNTL);
+    Private->StoreMode = RHDRegRead(Output, LVTMA_MODE);
+    Private->StoreTxEnable = RHDRegRead(Output, LVTMA_TRANSMITTER_ENABLE);
+    Private->StoreMacroControl = RHDRegRead(Output, LVTMA_MACRO_CONTROL);
+    Private->StoreTXControl = RHDRegRead(Output, LVTMA_TRANSMITTER_CONTROL);
 
     Private->Stored = TRUE;
 }
@@ -361,6 +408,7 @@ static void
 R5xxLVDSRestore(struct rhdOutput *Output)
 {
     struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
@@ -373,17 +421,17 @@ R5xxLVDSRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_CNTL, Private->StoreControl);
     RHDRegWrite(Output, LVTMA_SOURCE_SELECT, Private->StoreSourceSelect);
     RHDRegWrite(Output, LVTMA_BIT_DEPTH_CONTROL,  Private->StoreBitDepthControl);
-    RHDRegWrite(Output, LVTMA_R500_DATA_SYNCHRONIZATION, Private->StoreDataSynchronisation);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_REF_DIV, Private->StorePWRSEQRefDiv);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_DELAY1, Private->StorePWRSEQDelay1);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_DELAY2,  Private->StorePWRSEQDelay2);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_CNTL, Private->StorePWRSEQControl);
-    RHDRegWrite(Output, LVTMA_R500_PWRSEQ_STATE, Private->StorePWRSEQState);
-    RHDRegWrite(Output, LVTMA_R500_LVDS_DATA_CNTL, Private->StoreLVDSDataControl);
-    RHDRegWrite(Output, LVTMA_R500_MODE, Private->StoreMode);
-    RHDRegWrite(Output, LVTMA_R500_TRANSMITTER_ENABLE, Private->StoreTxEnable);
-    RHDRegWrite(Output, LVTMA_R500_MACRO_CONTROL, Private->StoreMacroControl);
-    RHDRegWrite(Output, LVTMA_R500_TRANSMITTER_CONTROL,  Private->StoreTXControl);
+    RHDRegWrite(Output, LVTMA_DATA_SYNCHRONIZATION, Private->StoreDataSynchronisation);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_REF_DIV, Private->StorePWRSEQRefDiv);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_DELAY1, Private->StorePWRSEQDelay1);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_DELAY2,  Private->StorePWRSEQDelay2);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_CNTL, Private->StorePWRSEQControl);
+    RHDRegWrite(Output, LVTMA_PWRSEQ_STATE, Private->StorePWRSEQState);
+    RHDRegWrite(Output, LVTMA_LVDS_DATA_CNTL, Private->StoreLVDSDataControl);
+    RHDRegWrite(Output, LVTMA_MODE, Private->StoreMode);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTxEnable);
+    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacroControl);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL,  Private->StoreTXControl);
 }
 
 /*
@@ -399,27 +447,27 @@ R5xxLVDSInfoRetrieve(RHDPtr rhdPtr)
     CARD32 tmp;
 
     /* These values are not available from atombios data tables at all. */
-    Private->MacroControl = RHDRegRead(rhdPtr, LVTMA_R500_MACRO_CONTROL);
+    Private->MacroControl = RHDRegRead(rhdPtr, LVTMA_MACRO_CONTROL);
     Private->TXClockPattern =
-	(RHDRegRead(rhdPtr, LVTMA_R500_TRANSMITTER_CONTROL) >> 16) & 0x3FF;
+	(RHDRegRead(rhdPtr, LVTMA_TRANSMITTER_CONTROL) >> 16) & 0x3FF;
 
     /* For these values, we try to retrieve them from register space first,
        and later override with atombios data table information */
     Private->PowerDigToDE =
-	(RHDRegRead(rhdPtr, LVTMA_R500_PWRSEQ_DELAY1) & 0x000000FF) << 2;
+	(RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY1) & 0x000000FF) << 2;
 
     Private->PowerDEToBL =
-	(RHDRegRead(rhdPtr, LVTMA_R500_PWRSEQ_DELAY1) & 0x0000FF00) >> 6;
+	(RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY1) & 0x0000FF00) >> 6;
 
-    Private->OffDelay = (RHDRegRead(rhdPtr, LVTMA_R500_PWRSEQ_DELAY2) & 0xFF) << 2;
+    Private->OffDelay = (RHDRegRead(rhdPtr, LVTMA_PWRSEQ_DELAY2) & 0xFF) << 2;
 
-    tmp = RHDRegRead(rhdPtr, LVTMA_R500_PWRSEQ_REF_DIV);
+    tmp = RHDRegRead(rhdPtr, LVTMA_PWRSEQ_REF_DIV);
     Private->PowerRefDiv = tmp & 0x0FFF;
     Private->BlonRefDiv = (tmp >> 16) & 0x0FFF;
 
     Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
-    Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_R500_LVDS_DATA_CNTL) & 0x00000001;
-    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_R500_LVDS_DATA_CNTL) & 0x00000001;
+    Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
 
 #ifdef ATOM_BIOS
     {
@@ -555,14 +603,14 @@ R5xxTMDSBVoltageControl(struct rhdOutput *Output)
 
     for (i = 0; R5xxTMDSBMacro[i].Device; i++)
 	if (R5xxTMDSBMacro[i].Device == rhdPtr->PciDeviceID) {
-	    RHDRegWrite(Output, LVTMA_R500_MACRO_CONTROL, R5xxTMDSBMacro[i].Macro);
+	    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, R5xxTMDSBMacro[i].Macro);
 	    return;
 	}
 
     xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
 	       __func__, rhdPtr->PciDeviceID);
-    xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_R500_MACRO_CONTROL: 0x%08X\n",
-	       (unsigned int) RHDRegRead(Output, LVTMA_R500_MACRO_CONTROL));
+    xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_MACRO_CONTROL: 0x%08X\n",
+	       (unsigned int) RHDRegRead(Output, LVTMA_MACRO_CONTROL));
 }
 
 /*
@@ -588,13 +636,13 @@ R6xxTMDSBVoltageControl(struct rhdOutput *Output)
     int i;
 
     if (rhdPtr->ChipSet == RHD_RS690)
-	RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0001642F);
+	RHDRegWrite(Output, LVTMA_MACRO_CONTROL, 0x0001642F);
     else if (rhdPtr->ChipSet == RHD_R600)
-	RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00020213);
+	RHDRegWrite(Output, LVTMA_MACRO_CONTROL, 0x00020213);
     else { /* RV6x0 and up */
 	for (i = 0; RV6xxTMDSBMacro[i].Device; i++)
 	    if (RV6xxTMDSBMacro[i].Device == rhdPtr->PciDeviceID) {
-		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, RV6xxTMDSBMacro[i].Macro);
+		RHDRegWrite(Output, LVTMA_MACRO_CONTROL, RV6xxTMDSBMacro[i].Macro);
 		RHDRegWrite(Output, LVTMA_TRANSMITTER_ADJUST, RV6xxTMDSBMacro[i].TX);
 		RHDRegWrite(Output, LVTMA_PREEMPHASIS_CONTROL, RV6xxTMDSBMacro[i].PreEmphasis);
 		return;
@@ -602,8 +650,8 @@ R6xxTMDSBVoltageControl(struct rhdOutput *Output)
 
 	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled chipset: 0x%04X.\n",
 		   __func__, rhdPtr->PciDeviceID);
-	xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_R600_MACRO_CONTROL: 0x%08X\n",
-		   (unsigned int) RHDRegRead(Output, LVTMA_R600_MACRO_CONTROL));
+	xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_MACRO_CONTROL: 0x%08X\n",
+		   (unsigned int) RHDRegRead(Output, LVTMA_MACRO_CONTROL));
 	xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_TRANSMITTER_ADJUST: 0x%08X\n",
 		   (unsigned int) RHDRegRead(Output, LVTMA_TRANSMITTER_ADJUST));
 	xf86DrvMsg(Output->scrnIndex, X_INFO, "LVTMA_PREEMPHASIS_CONTROL: 0x%08X\n",
@@ -617,18 +665,20 @@ R6xxTMDSBVoltageControl(struct rhdOutput *Output)
 static void
 R5xxTMDSBSet(struct rhdOutput *Output)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
     RHDFUNC(Output);
 
-    RHDRegMask(Output, LVTMA_R500_MODE, 0x00000001, 0x00000001); /* select TMDS */
-    RHDRegMask(Output, LVTMA_R500_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
+    RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
 
     /* Clear out some HPD events first: this should be under driver control. */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x0000000C);
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0, 0x00070000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x0000000C);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00070000);
     RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000010);
 
     /* Disable the transmitter */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0, 0x00001D1F);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00001D1F);
 
     /* Disable bit reduction and reset temporal dither */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
@@ -656,25 +706,25 @@ R5xxTMDSBSet(struct rhdOutput *Output)
     R5xxTMDSBVoltageControl(Output);
 
     /* use IDCLK */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000010);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
     /* incoherent mode */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
     /* LVTMA only: use clock selected by previous write */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
     /* clear LVDS clock pattern */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x03FF0000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x03FF0000);
 
     /* reset transmitter */
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
     usleep(2);
-    RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
     usleep(20);
 
     /* restart data synchronisation */
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
     usleep(2);
-    RHDRegMask(Output, LVTMA_R500_DATA_SYNCHRONIZATION, 0, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000001);
 }
 /*
  *
@@ -686,19 +736,19 @@ R6xxTMDSBSet(struct rhdOutput *Output)
 
     RHDFUNC(Output);
 
-    RHDRegMask(Output, LVTMA_R600_MODE, 0x00000001, 0x00000001); /* select TMDS */
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
     if (rhdPtr->ChipSet == RHD_RS690)
-	RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x01120000);
+	RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, 0x01120000);
     else
-	RHDRegMask(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
+	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
 
     /* Clear out some HPD events first: this should be under driver control. */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x0000000C);
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_ENABLE, 0, 0x00070000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x0000000C);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00070000);
     RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000010);
 
     /* Disable the transmitter */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_ENABLE, 0, 0x00003E3E); /* !r500 */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E); /* !r500 */
 
     /* Disable bit reduction and reset temporal dither */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
@@ -729,25 +779,25 @@ R6xxTMDSBSet(struct rhdOutput *Output)
     R6xxTMDSBVoltageControl(Output);
 
     /* use IDCLK */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x00000010);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
     /* coherent mode */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x10000000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x10000000);
     /* LVTMA only: use clock selected by previous write */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
     /* clear LVDS clock pattern */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x03FF0000);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x03FF0000);
 
     /* reset transmitter */
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
     usleep(2);
-    RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x00000002);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
     usleep(20);
 
     /* restart data synchronisation */
-    RHDRegMask(Output, LVTMA_R600_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
-    RHDRegMask(Output, LVTMA_R600_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000001, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
     usleep(2);
-    RHDRegMask(Output, LVTMA_R600_DATA_SYNCHRONIZATION, 0, 0x00000001);
+    RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000001);
 }
 
 /*
@@ -756,27 +806,29 @@ R6xxTMDSBSet(struct rhdOutput *Output)
 static void
 R5xxTMDSBPower(struct rhdOutput *Output, int Power)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
     RHDFUNC(Output);
 
-    RHDRegMask(Output, LVTMA_R500_MODE, 0x00000001, 0x00000001); /* select TMDS */
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
 
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000002);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
     case RHD_POWER_RESET:
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_CONTROL, 0, 0x00000001);
-	RHDRegMask(Output, LVTMA_R500_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000001);
 	return;
     }
@@ -788,27 +840,29 @@ R5xxTMDSBPower(struct rhdOutput *Output, int Power)
 static void
 R6xxTMDSBPower(struct rhdOutput *Output, int Power)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
     RHDFUNC(Output);
 
-    RHDRegMask(Output, LVTMA_R600_MODE, 0x00000001, 0x00000001); /* select TMDS */
+    RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
 
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_ENABLE, 0x0000003E, 0x0000003E);
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0x00000003, 0x00000003);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000003E, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000003, 0x00000003);
 	usleep(2);
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x00000002);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
     case RHD_POWER_RESET:
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_ENABLE, 0, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_CONTROL, 0, 0x00000001);
-	RHDRegMask(Output, LVTMA_R600_TRANSMITTER_ENABLE, 0, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000001);
 	return;
     }
@@ -821,6 +875,7 @@ static void
 R5xxTMDSBSave(struct rhdOutput *Output)
 {
     struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
@@ -831,12 +886,12 @@ R5xxTMDSBSave(struct rhdOutput *Output)
     Private->StoreReduction = RHDRegRead(Output, LVTMA_BIT_DEPTH_CONTROL);
     Private->StoreDCBalancer = RHDRegRead(Output, LVTMA_DCBALANCER_CONTROL);
 
-    Private->StoreDataSynchro = RHDRegRead(Output, LVTMA_R500_DATA_SYNCHRONIZATION);
-    Private->StoreMode = RHDRegRead(Output, LVTMA_R500_MODE);
-    Private->StoreTXEnable = RHDRegRead(Output, LVTMA_R500_TRANSMITTER_ENABLE);
-    Private->StoreMacro = RHDRegRead(Output, LVTMA_R500_MACRO_CONTROL);
-    Private->StoreTXControl = RHDRegRead(Output, LVTMA_R500_TRANSMITTER_CONTROL);
-    Private->StoreTestOutput = RHDRegRead(Output, LVTMA_R500_REG_TEST_OUTPUT);
+    Private->StoreDataSynchro = RHDRegRead(Output, LVTMA_DATA_SYNCHRONIZATION);
+    Private->StoreMode = RHDRegRead(Output, LVTMA_MODE);
+    Private->StoreTXEnable = RHDRegRead(Output, LVTMA_TRANSMITTER_ENABLE);
+    Private->StoreMacro = RHDRegRead(Output, LVTMA_MACRO_CONTROL);
+    Private->StoreTXControl = RHDRegRead(Output, LVTMA_TRANSMITTER_CONTROL);
+    Private->StoreTestOutput = RHDRegRead(Output, LVTMA_REG_TEST_OUTPUT);
 
     Private->Stored = TRUE;
 }
@@ -859,12 +914,12 @@ R6xxTMDSBSave(struct rhdOutput *Output)
     Private->StoreReduction = RHDRegRead(Output, LVTMA_BIT_DEPTH_CONTROL);
     Private->StoreDCBalancer = RHDRegRead(Output, LVTMA_DCBALANCER_CONTROL);
 
-    Private->StoreDataSynchro = RHDRegRead(Output, LVTMA_R600_DATA_SYNCHRONIZATION);
-    Private->StoreMode = RHDRegRead(Output, LVTMA_R600_MODE);
-    Private->StoreTXEnable = RHDRegRead(Output, LVTMA_R600_TRANSMITTER_ENABLE);
-    Private->StoreMacro = RHDRegRead(Output, LVTMA_R600_MACRO_CONTROL);
-    Private->StoreTXControl = RHDRegRead(Output, LVTMA_R600_TRANSMITTER_CONTROL);
-    Private->StoreTestOutput = RHDRegRead(Output, LVTMA_R600_REG_TEST_OUTPUT);
+    Private->StoreDataSynchro = RHDRegRead(Output, LVTMA_DATA_SYNCHRONIZATION);
+    Private->StoreMode = RHDRegRead(Output, LVTMA_MODE);
+    Private->StoreTXEnable = RHDRegRead(Output, LVTMA_TRANSMITTER_ENABLE);
+    Private->StoreMacro = RHDRegRead(Output, LVTMA_MACRO_CONTROL);
+    Private->StoreTXControl = RHDRegRead(Output, LVTMA_TRANSMITTER_CONTROL);
+    Private->StoreTestOutput = RHDRegRead(Output, LVTMA_REG_TEST_OUTPUT);
 
     if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
        Private->StoreRv600TXAdjust = RHDRegRead(Output, LVTMA_TRANSMITTER_ADJUST);
@@ -881,6 +936,7 @@ static void
 R5xxTMDSBRestore(struct rhdOutput *Output)
 {
     struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
@@ -897,12 +953,12 @@ R5xxTMDSBRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_BIT_DEPTH_CONTROL, Private->StoreReduction);
     RHDRegWrite(Output, LVTMA_DCBALANCER_CONTROL, Private->StoreDCBalancer);
 
-    RHDRegWrite(Output, LVTMA_R500_DATA_SYNCHRONIZATION, Private->StoreDataSynchro);
-    RHDRegWrite(Output, LVTMA_R500_MODE, Private->StoreMode);
-    RHDRegWrite(Output, LVTMA_R500_TRANSMITTER_ENABLE, Private->StoreTXEnable);
-    RHDRegWrite(Output, LVTMA_R500_MACRO_CONTROL, Private->StoreMacro);
-    RHDRegWrite(Output, LVTMA_R500_TRANSMITTER_CONTROL, Private->StoreTXControl);
-    RHDRegWrite(Output, LVTMA_R500_REG_TEST_OUTPUT, Private->StoreTestOutput);
+    RHDRegWrite(Output, LVTMA_DATA_SYNCHRONIZATION, Private->StoreDataSynchro);
+    RHDRegWrite(Output, LVTMA_MODE, Private->StoreMode);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTXEnable);
+    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacro);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL, Private->StoreTXControl);
+    RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, Private->StoreTestOutput);
 }
 
 /*
@@ -929,12 +985,12 @@ R6xxTMDSBRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_BIT_DEPTH_CONTROL, Private->StoreReduction);
     RHDRegWrite(Output, LVTMA_DCBALANCER_CONTROL, Private->StoreDCBalancer);
 
-    RHDRegWrite(Output, LVTMA_R600_DATA_SYNCHRONIZATION, Private->StoreDataSynchro);
-    RHDRegWrite(Output, LVTMA_R600_MODE, Private->StoreMode);
-    RHDRegWrite(Output, LVTMA_R600_TRANSMITTER_ENABLE, Private->StoreTXEnable);
-    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, Private->StoreMacro);
-    RHDRegWrite(Output, LVTMA_R600_TRANSMITTER_CONTROL, Private->StoreTXControl);
-    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, Private->StoreTestOutput);
+    RHDRegWrite(Output, LVTMA_DATA_SYNCHRONIZATION, Private->StoreDataSynchro);
+    RHDRegWrite(Output, LVTMA_MODE, Private->StoreMode);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTXEnable);
+    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacro);
+    RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL, Private->StoreTXControl);
+    RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, Private->StoreTestOutput);
 
     if (rhdPtr->ChipSet > RHD_R600) { /* Rv6x0 */
 	RHDRegWrite(Output, LVTMA_TRANSMITTER_ADJUST, Private->StoreRv600TXAdjust);
