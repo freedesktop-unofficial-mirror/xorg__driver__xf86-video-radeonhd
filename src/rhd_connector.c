@@ -28,6 +28,7 @@
 #endif
 
 #include "xf86.h"
+#include "edid.h"
 
 /* for usleep */
 #include "xf86_ansic.h"

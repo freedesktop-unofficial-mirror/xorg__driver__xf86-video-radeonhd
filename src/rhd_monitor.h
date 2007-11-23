@@ -41,6 +41,8 @@ struct rhdMonitor {
 
     Bool UseFixedModes;
     DisplayModePtr Modes; /* default: NULL */
+
+    xf86MonPtr EDID;
 };
 
 

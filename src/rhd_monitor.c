@@ -338,6 +338,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
     Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 
     Monitor->scrnIndex = Connector->scrnIndex;
+    Monitor->EDID      = EDID;
 
     if (Mode) {
 	Monitor->Name = xstrdup("LVDS Panel");
@@ -362,12 +363,8 @@ rhdMonitorPanel(struct rhdConnector *Connector)
     /* panel should be driven at native resolution only. */
     Monitor->UseFixedModes = TRUE;
 
-    if (EDID) {
+    if (EDID)
 	rhdMonitorPrintEDID(Monitor, EDID);
-
-	xfree(EDID->rawData);
-	xfree(EDID);
-    }
 
     return Monitor;
 }
@@ -389,12 +386,10 @@ RHDMonitorInit(struct rhdConnector *Connector)
 	if (EDID) {
 	    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 	    Monitor->scrnIndex = Connector->scrnIndex;
+	    Monitor->EDID      = EDID;
 
 	    RHDMonitorEDIDSet(Monitor, EDID);
 	    rhdMonitorPrintEDID(Monitor, EDID);
-
-	    xfree(EDID->rawData);
-	    xfree(EDID);
 	}
     }
 
@@ -418,6 +413,9 @@ RHDMonitorDestroy(struct rhdMonitor *Monitor)
 	Mode = Next;
     }
 
+    if (Monitor->EDID)
+	xfree(Monitor->EDID->rawData);
+    xfree(Monitor->EDID);
     xfree(Monitor->Name);
     xfree(Monitor);
 }

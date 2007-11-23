@@ -30,6 +30,7 @@
 #include "xf86_OSproc.h"
 #include "xf86_ansic.h"
 #include "xf86Pci.h"
+#include "edid.h"
 #include "rhd.h"
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
