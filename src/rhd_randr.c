@@ -35,19 +35,17 @@
 
 /* Xserver interface */
 #include "xf86.h"
-#ifdef RANDR
-# include "randrstr.h"
-#endif
 
 /* Driver specific headers */
 #include "rhd.h"
 #include "rhd_randr.h"
 
 
-#ifdef RANDR_12_INTERFACE
+#if (RANDR_MAJOR == 1 && RANDR_MINOR >= 2) || RANDR_MAJOR >= 2
 
 
 /* Xserver interface */
+#include "randrstr.h"
 #include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
 #include "xf86Crtc.h"
 #define DPMS_SERVER
