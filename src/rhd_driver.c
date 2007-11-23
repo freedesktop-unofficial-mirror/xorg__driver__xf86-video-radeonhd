@@ -1227,7 +1227,9 @@ rhdMapFB(RHDPtr rhdPtr)
 		       "0x%08X while card Internal Address is 0x%08X\n",
 		       (unsigned int) membase,
 		       rhdPtr->FbIntAddress);
-
+    if (rhdPtr->ChipSet >= RHD_R600)
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "VM_FB_LOCATION: 0x%08X\n",
+		   RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION));
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
@@ -1743,7 +1745,7 @@ static unsigned int
 rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
     unsigned int ret;
-#ifdef NOT_YET
+#ifdef NOTYET
     CARD32 save_198, save_c, save_8;
 
     save_198 = RHDRegRead(rhdPtr, 0x198);
