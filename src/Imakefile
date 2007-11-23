@@ -35,6 +35,7 @@ rhd_modes.c \
 rhd_monitor.c \
 rhd_output.c \
 rhd_pll.c \
+rhd_randr.c \
 rhd_tmds.c \
 rhd_vga.c \
 rhd_shadow.c \
@@ -58,6 +59,7 @@ rhd_modes.o \
 rhd_monitor.o \
 rhd_output.o \
 rhd_pll.o \
+rhd_randr.o \
 rhd_tmds.o \
 rhd_vga.o \
 rhd_shadow.o \
