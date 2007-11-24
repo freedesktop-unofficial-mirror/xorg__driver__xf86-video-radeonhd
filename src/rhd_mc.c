@@ -121,7 +121,7 @@ void
 RHDMCSetup(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
-    CARD32 fb_location;
+    CARD32 fb_location, fb_location_tmp, fb_offset_tmp;
     CARD16 fb_size;
 
     RHDFUNC(rhdPtr);
@@ -131,9 +131,17 @@ RHDMCSetup(RHDPtr rhdPtr)
 
     fb_location = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
     fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
-    fb_location = rhdPtr->FbIntAddress >> 24;
-    fb_location |= (fb_location + fb_size) << 24;
-    RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, fb_location);
-    RHDRegWrite(rhdPtr, R6XX_MC_VM_MISC_OFFSET, (rhdPtr->FbIntAddress >> 8)
-		& 0xff0000);
+    fb_location_tmp = rhdPtr->FbIntAddress >> 24;
+    fb_location_tmp |= (fb_location_tmp + fb_size) << 24;
+    fb_offset_tmp = (rhdPtr->FbIntAddress >> 8) & 0xff0000;
+
+    RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
+	     "fb_offset: 0x%08X [fb_size: 0x%04X] -> fb_location: 0x%08X"
+	     "fb_offset: 0x%08X\n",
+	     __func__, (unsigned int)fb_location,
+	     RHDRegRead(rhdPtr,R6XX_MC_VM_MISC_OFFSET), fb_size,
+	     (unsigned int)fb_location_tmp, (unsigned int)fb_offset_tmp);
+
+    RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, fb_location_tmp);
+    RHDRegWrite(rhdPtr, R6XX_MC_VM_MISC_OFFSET, fb_offset_tmp);
 }
