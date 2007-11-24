@@ -164,6 +164,7 @@ typedef struct RHDRec {
      */
     unsigned char*	BIOSCopy;
 
+    struct rhdMC       *MC;  /* Memory Controller */
     struct rhdVGA      *VGA; /* VGA compatibility HW */
     struct rhdCrtc     *Crtc[2];
     struct rhdPLL      *PLLs[2]; /* Pixelclock PLLs */

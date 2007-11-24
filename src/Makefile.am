@@ -29,6 +29,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_pll.c \
 	rhd_tmds.c \
 	rhd_vga.c \
+	rhd_mc.c \
 	rhd_shadow.c \
 	rhd_randr.c \
 	rhd_atombios.h \

@@ -94,6 +94,7 @@
 #include "rhd_output.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
+#include "rhd_mc.h"
 #include "rhd_monitor.h"
 #include "rhd_crtc.h"
 #include "rhd_modes.h"
@@ -272,6 +273,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
 
     xfree(rhdPtr->Options);
 
+    RHDMCDestroy(rhdPtr);
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
     RHDLUTsDestroy(rhdPtr);
@@ -623,7 +625,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
-
+    RHDMCInit(rhdPtr);
     RHDCrtcsInit(rhdPtr);
     RHDPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
@@ -1229,9 +1231,6 @@ rhdMapFB(RHDPtr rhdPtr)
 		       "0x%08X while card Internal Address is 0x%08X\n",
 		       (unsigned int) membase,
 		       rhdPtr->FbIntAddress);
-    if (rhdPtr->ChipSet >= RHD_R600)
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "VM_FB_LOCATION: 0x%08X\n",
-		   (unsigned int) RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION));
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
@@ -1516,6 +1515,9 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     /* now disable our VGA Mode */
     RHDVGADisable(rhdPtr);
 
+    /* now set up the MC */
+    RHDMCSetup(rhdPtr);
+
     /* Set up D1 and appendages */
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
@@ -1567,6 +1569,8 @@ rhdSave(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
+    RHDSaveMC(rhdPtr);
+
     RHDVGASave(rhdPtr);
 
     RHDOutputsSave(rhdPtr);
@@ -1596,6 +1600,8 @@ rhdRestore(RHDPtr rhdPtr)
     rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
     if (rhdPtr->CursorInfo)
 	rhdRestoreCursor(pScrn);
+
+    RHDRestoreMC(rhdPtr);
 
     RHDVGARestore(rhdPtr);
 
