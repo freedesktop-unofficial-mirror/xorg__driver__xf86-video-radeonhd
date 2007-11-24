@@ -1231,7 +1231,7 @@ rhdMapFB(RHDPtr rhdPtr)
 		       rhdPtr->FbIntAddress);
     if (rhdPtr->ChipSet >= RHD_R600)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "VM_FB_LOCATION: 0x%08X\n",
-		   RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION));
+		   (unsigned int) RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION));
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
