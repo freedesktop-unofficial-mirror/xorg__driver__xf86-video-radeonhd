@@ -70,7 +70,11 @@ RHDMCDestroy(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
+    if (!rhdPtr->MC)
+	return;
+
     xfree(rhdPtr->MC);
+    rhdPtr->MC = NULL;
 }
 
 /*
