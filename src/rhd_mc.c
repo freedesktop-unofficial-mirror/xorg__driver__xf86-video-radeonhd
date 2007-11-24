@@ -136,7 +136,7 @@ RHDMCSetup(RHDPtr rhdPtr)
     fb_offset_tmp = (rhdPtr->FbIntAddress >> 8) & 0xff0000;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
-	     "fb_offset: 0x%08X [fb_size: 0x%04X] -> fb_location: 0x%08X"
+	     "fb_offset: 0x%08X [fb_size: 0x%04X] -> fb_location: 0x%08X "
 	     "fb_offset: 0x%08X\n",
 	     __func__, (unsigned int)fb_location,
 	     RHDRegRead(rhdPtr,R6XX_MC_VM_MISC_OFFSET), fb_size,
