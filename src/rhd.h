@@ -210,10 +210,10 @@ void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
 #define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
 void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 #define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
-CARD32 _RHDReadMC(int scrnIndex, CARD16 offset);
-#define RHDReadMC(ptr,offset) _RHDReadMC((ptr)->scrnIndex,(offset));
-void _RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data);
-#define RHDWriteMC(ptr,offset,value) _RHDWriteMC((ptr)->scrnIndex,(offset),(value))
+CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
+#define RHDReadMC(ptr,addr) _RHDReadMC((ptr)->scrnIndex,(addr))
+void _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data);
+#define RHDWriteMC(ptr,addr,value) _RHDWriteMC((ptr)->scrnIndex,(addr),(value))
 
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,

@@ -1642,17 +1642,21 @@ _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
 
 /* The following two are R5XX only. R6XX doesn't require these */
 CARD32
-_RHDReadMC(int scrnIndex, CARD16 offset)
+_RHDReadMC(int scrnIndex, CARD32 addr)
 {
-    CARD32 addr = (offset & 0x1FF) | ((offset & 0xFE) << 7);
+    CARD32 ret;
     _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
-    return _RHDRegRead(scrnIndex, MC_IND_DATA);
+    ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
+    RHDDebug(scrnIndex,"%s(0x%08X) = 0x%08X\n",__func__,(unsigned int)addr,
+	     (unsigned int)ret);
+    return ret;
 }
 
 void
-_RHDWriteMC(int scrnIndex, CARD16 offset, CARD32 data)
+_RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 {
-    CARD32 addr = (offset & 0x1FF) | ((offset & 0xFE) << 7);
+    RHDDebug(scrnIndex,"%s(0x%08X, 0x%08X)\n",__func__,(unsigned int)addr,
+	     (unsigned int)data);
     _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
     _RHDRegWrite(scrnIndex, MC_IND_DATA, data);
 }

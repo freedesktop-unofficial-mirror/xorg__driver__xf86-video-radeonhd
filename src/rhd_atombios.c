@@ -2219,10 +2219,14 @@ ULONG
 CailReadMC(VOID *CAIL, ULONG Address)
 {
     ULONG ret;
+    ULONG Offset, AccMask;
 
     CAILFUNC(CAIL);
 
-    ret = RHDReadMC(((atomBiosHandlePtr)CAIL), Address);
+    Offset = Address & 0x1FF;
+    AccMask = (Address & 0xFE00) << 6; /* ??? */
+
+    ret = RHDReadMC(((atomBiosHandlePtr)CAIL), Offset | AccMask);
     DEBUGP(ErrorF("%s(%x) = %x\n",__func__,Address,ret));
     return ret;
 }
@@ -2230,9 +2234,15 @@ CailReadMC(VOID *CAIL, ULONG Address)
 VOID
 CailWriteMC(VOID *CAIL, ULONG Address, ULONG data)
 {
+    CARD32 Offset, AccMask;
+
     CAILFUNC(CAIL);
+
+    Offset = Address & 0x1FF;
+    AccMask = (Address & 0xFE00) << 6; /* ??? */
+
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,Address,data));
-    RHDWriteMC(((atomBiosHandlePtr)CAIL), Address, data);
+    RHDWriteMC(((atomBiosHandlePtr)CAIL), Offset | AccMask, data);
 }
 
 #ifdef XSERVER_LIBPCIACCESS
