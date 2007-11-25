@@ -11,6 +11,13 @@ noinst_PROGRAMS = rhd_conntest
 endif
 endif
 
+all-local:
+	@if test "x$(noinst_PROGRAMS)" = "x"; then \
+		echo "WARNING: Cannot build the rhd_conntest program due to missing dependencies."; \
+		echo "         *IF* you want to build rhd_conntest, install development packages of"; \
+		echo "         both pciutils and zlib/libz and re-run the configure (or autogen) script."; \
+	fi
+
 # Including config.h requires xorg-config.h, so we need the XORG_CFLAGS here
 AM_CFLAGS   = @XORG_CFLAGS@ @WARN_CFLAGS@
 AM_CPPFLAGS = -I$(top_srcdir)/src/AtomBios/includes
