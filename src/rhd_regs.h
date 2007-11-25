@@ -284,6 +284,11 @@ enum {
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
 
+enum _r5xxMCRegs {
+    RV515_MC_FB_LOCATION	   = 0x0001,
+    R5XX_MC_FB_LOCATION		   = 0x0004
+};
+
 enum _r5xxRegs {
     /* I2C */
     R5_DC_I2C_STATUS1 	=	0x7D30,  /* (RW) */
@@ -372,6 +377,9 @@ enum {
     MC_IND_CITF_ARB1     = (0x1 << 22),
     MC_IND_WR_EN         = (0x1 << 23),
     MC_IND_RD_INV        = (0x1 << 24)
+#define MC_IND_ALL (MC_IND_SEQ_RBS_0 |  MC_IND_SEQ_RBS_1 \
+                    |  MC_IND_SEQ_RBS_2 |  MC_IND_SEQ_RBS_3 \
+                    |  MC_IND_AIC_RBS | MC_IND_CITF_ARB0 | MC_IND_CITF_ARB1)
 
     /* MC_IND_DATA */
 #define MC_IND_DATA_BIT  0xffffffff
