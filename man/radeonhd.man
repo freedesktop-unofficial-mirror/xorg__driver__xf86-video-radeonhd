@@ -191,8 +191,7 @@ Query the bugtracker for radeonhd bugs
 .\"
 .\"
 .SH AUTHORS
-.nf
-Man page authors:
-Hans Ulrich Niedermann   \fIhun@n-dimensional.de\fP
-.fi
+Driver written by Egbert Eich, Luc Verhaegen, Matthias Hopf and others.
+.PP
+Man page written by Hans Ulrich Niedermann and others.
 .\" vim: syntax=nroff
