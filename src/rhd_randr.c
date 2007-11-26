@@ -490,15 +490,17 @@ rhdRROutputDpms(xf86OutputPtr       out,
  * not knowing what the other crtcs might be needed for. */
 static int
 rhdRROutputModeValid(xf86OutputPtr  out,
-		     DisplayModePtr Mode)
+		     DisplayModePtr OrigMode)
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+    DisplayModePtr     Mode   = xf86DuplicateMode(OrigMode);
     int                Status;
 
-    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
-    if (Mode && !Mode->name && out->crtc->mode.name)
-	Mode->name = xstrdup(out->crtc->mode.name);
+    /* RandR may give us a mode without a name... (xf86RandRModeConvert)
+     * xf86DuplicateMode should fill it up, though */
+    if (!Mode->name)
+	Mode->name = xstrdup("n/a");
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
@@ -512,6 +514,8 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 			    rout->Output, NULL);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s -> Status %d\n", __func__,
 	     Mode->name, Status);
+    xfree(Mode->name);
+    xfree(Mode);
     return Status;
 }
 
@@ -526,10 +530,14 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
+    int                Status;
 
-    /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
-    if (Mode && !Mode->name && out->crtc->mode.name)
-	Mode->name = xstrdup(out->crtc->mode.name);
+    if (!Mode->name)
+	Mode->name = xstrdup("n/a");
+    /* !@#$ xf86RandRModeConvert doesn't initialize HSync & VRefresh */
+    Mode->HSync    = Mode->VRefresh = 0;
+    Mode->HSync    = xf86ModeHSync   (Mode);
+    Mode->VRefresh = xf86ModeVRefresh(Mode);
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
@@ -541,9 +549,11 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     setupCrtc(rhdPtr, Crtc);
     
     /* Monitor is handled by RandR */
-    if (RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector, rout->Output,
-		       NULL) != MODE_OK) {
-	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED\n", __func__, Mode->name);
+    Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
+			    rout->Output, NULL);
+    if (Status != MODE_OK) {
+	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %d\n", __func__,
+		 Mode->name, Status);
 	return FALSE;
     }
     return TRUE;
