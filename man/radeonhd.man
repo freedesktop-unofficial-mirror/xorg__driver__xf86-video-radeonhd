@@ -126,16 +126,55 @@ RS740, RS740M
 Please refer to __xconfigfile__(__filemansuffix__) for general
 configuration details.  This section only covers configuration details
 specific to this driver.
+.\" See src/rhd_driver.c for definition of the options.
+.\"
+.\" { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option \*qNoAccel\*q"
+To be written.
+.\"
+.\" { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option \*qSWcursor\*q"
+To be written.
+.\"
+.\" { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option \*qshadowfb\*q"
+To be written.
+.\"
+.\" { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
+.TP
+.BI "Option \*qignoreconnector\*q \*q" <FIXME> \*q
+To be written.
+.\"
+.\" { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option \*qforcereduced\*q"
+To be written.
+.\"
+.\" { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option \*quseconfiguredmonitor\*q
+To be written.
+.\"
+.\" { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option NoRandR"
+Deactivates the RandR support.
+.\"
+.\" { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
+.TP
+.BI "Option RRUseXF86Edid"
+To be written.
+.\"
+.\" { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
 .TP
 .BI "Option \*qRROutputOrder\*q \*q" <list_of_outputs> \*q
 If your outputs are ordered in the wrong way with respect to Xinerama
 emulation, you can reorder them by adding their names (separated by
 spaces or commas) to the
 .I <list_of_outputs>.
-.PP
-For information on more options, please see the source code (
-.I src/rhd_driver.c
-) for now.
 .\"
 .\"
 .SH KNOWN BUGS
