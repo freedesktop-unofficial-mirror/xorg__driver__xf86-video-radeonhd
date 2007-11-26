@@ -532,12 +532,26 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     struct rhdCrtc    *Crtc   = NULL;
     int                Status;
 
-    if (!Mode->name)
-	Mode->name = xstrdup("n/a");
-    /* !@#$ xf86RandRModeConvert doesn't initialize HSync & VRefresh */
-    Mode->HSync    = Mode->VRefresh = 0;
-    Mode->HSync    = xf86ModeHSync   (Mode);
-    Mode->VRefresh = xf86ModeVRefresh(Mode);
+    /* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
+     * Fixed in xserver git c6c284e6 */
+    xfree(Mode->name);
+    memset(Mode, 0, sizeof(DisplayModeRec));
+    Mode->name       = xstrdup(OrigMode->name ? OrigMode->name : "n/a");
+    Mode->status     = OrigMode->status;
+    Mode->type       = OrigMode->type;
+    Mode->Clock      = OrigMode->Clock;
+    Mode->HDisplay   = OrigMode->HDisplay;
+    Mode->HSyncStart = OrigMode->HSyncStart;
+    Mode->HSyncEnd   = OrigMode->HSyncEnd;
+    Mode->HTotal     = OrigMode->HTotal;
+    Mode->HSkew      = OrigMode->HSkew;
+    Mode->VDisplay   = OrigMode->VDisplay;
+    Mode->VSyncStart = OrigMode->VSyncStart;
+    Mode->VSyncEnd   = OrigMode->VSyncEnd;
+    Mode->VTotal     = OrigMode->VTotal;
+    Mode->VScan      = OrigMode->VScan;
+    Mode->Flags      = OrigMode->Flags;
+    /* RHDRRModeFixup will set up the remaining bits */
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
