@@ -478,20 +478,17 @@ D1Power(struct rhdCrtc *Crtc, int Power)
     case RHD_POWER_ON:
 	RHDRegMask(Crtc, D1GRPH_ENABLE, 0x00000001, 0x00000001);
 	usleep(2);
-	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0, 0x00000100);
 	RHDRegMask(Crtc, D1CRTC_CONTROL, 0, 0x01000000); /* enable read requests */
 	RHDRegMask(Crtc, D1CRTC_CONTROL, 1, 1);
 	return;
     case RHD_POWER_RESET:
 	RHDRegMask(Crtc, D1CRTC_CONTROL, 0x01000000, 0x01000000); /* disable read requests */
 	D1CRTCDisable(Crtc);
-	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
 	RHDRegMask(Crtc, D1CRTC_CONTROL, 0x01000000, 0x01000000); /* disable read requests */
 	D1CRTCDisable(Crtc);
-	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
 	RHDRegMask(Crtc, D1GRPH_ENABLE, 0, 0x00000001);
 	return;
     }
@@ -509,23 +506,51 @@ D2Power(struct rhdCrtc *Crtc, int Power)
     case RHD_POWER_ON:
 	RHDRegMask(Crtc, D2GRPH_ENABLE, 0x00000001, 0x00000001);
 	usleep(2);
-	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0, 0x00000100);
 	RHDRegMask(Crtc, D2CRTC_CONTROL, 0, 0x01000000); /* enable read requests */
 	RHDRegMask(Crtc, D2CRTC_CONTROL, 1, 1);
 	return;
     case RHD_POWER_RESET:
 	RHDRegMask(Crtc, D2CRTC_CONTROL, 0x01000000, 0x01000000); /* disable read requests */
 	D2CRTCDisable(Crtc);
-	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
 	RHDRegMask(Crtc, D2CRTC_CONTROL, 0x01000000, 0x01000000); /* disable read requests */
 	D2CRTCDisable(Crtc);
-	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
 	RHDRegMask(Crtc, D2GRPH_ENABLE, 0, 0x00000001);
 	return;
     }
+}
+
+/*
+ * This is quite different from Power. Power disables and enables things,
+ * this here makes the hw send out black, and can switch back and forth
+ * immediately. Useful for covering up a framebuffer that is not filled
+ * in yet.
+ */
+static void
+D1Blank(struct rhdCrtc *Crtc, Bool Blank)
+{
+    RHDFUNC(Crtc);
+
+    if (Blank)
+	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
+    else
+	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0, 0x00000100);
+}
+
+/*
+ *
+ */
+static void
+D2Blank(struct rhdCrtc *Crtc, Bool Blank)
+{
+    RHDFUNC(Crtc);
+
+    if (Blank)
+	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
+    else
+	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0, 0x00000100);
 }
 
 /*
@@ -697,6 +722,7 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->FrameSet = D1ViewPortStart;
 
     Crtc->Power = D1Power;
+    Crtc->Blank = D1Blank;
 
     Crtc->Save = DxSave;
     Crtc->Restore = DxRestore;
@@ -717,6 +743,7 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->FrameSet = D2ViewPortStart;
 
     Crtc->Power = D2Power;
+    Crtc->Blank = D2Blank;
 
     Crtc->Save = DxSave;
     Crtc->Restore = DxRestore;

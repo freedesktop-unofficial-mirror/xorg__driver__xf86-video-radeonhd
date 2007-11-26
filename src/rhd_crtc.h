@@ -63,6 +63,7 @@ struct rhdCrtc {
     void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 
     void (*Power) (struct rhdCrtc *Crtc, int Power);
+    void (*Blank) (struct rhdCrtc *Crtc, Bool Blank);
 
     struct rhdCrtcStore *Store;
     void (*Save) (struct rhdCrtc *Crtc);

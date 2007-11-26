@@ -787,6 +787,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* save previous mode */
     rhdSave(rhdPtr);
 
+    /* Stop crap from being shown: gets reenabled through SaveScreen */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
+
     /* init DIX */
     miClearVisualTypes();
 
@@ -892,7 +896,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* @@@@ initialize video overlays here */
 
-    /* @@@ create saveScreen() funciton */
+    /* Function to unblank, so that we don't show an uninitialised FB */
     pScreen->SaveScreen = rhdSaveScreen;
 
     /* Setup DPMS mode */
@@ -949,7 +953,13 @@ RHDEnterVT(int scrnIndex, int flags)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    RHDFUNC(rhdPtr);
+
     rhdSave(rhdPtr);
+
+    /* SaveScreen doesn't get called beforehand, only afterwards. */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
 
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -973,6 +983,8 @@ RHDLeaveVT(int scrnIndex, int flags)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    RHDFUNC(rhdPtr);
+
     /* TODO: Invalidate the cached acceleration registers */
     rhdRestore(rhdPtr);
 }
@@ -982,6 +994,8 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDFUNC(rhdPtr);
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);
@@ -1025,6 +1039,8 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
     struct rhdOutput *Output;
     struct rhdCrtc *Crtc1, *Crtc2;
 
+    RHDFUNC(rhdPtr);
+
     if (!pScrn->vtSema)
 	return;
 
@@ -1039,6 +1055,8 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
 		    Output->Power(Output, RHD_POWER_ON);
+
+	    Crtc1->Blank(Crtc1, FALSE);
 	}
 
 	if (Crtc2->Active) {
@@ -1047,22 +1065,30 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
 		    Output->Power(Output, RHD_POWER_ON);
+
+	    Crtc2->Blank(Crtc2, FALSE);
 	}
 	break;
     case DPMSModeStandby:
     case DPMSModeSuspend:
     case DPMSModeOff:
 	if (Crtc1->Active) {
+	    Crtc1->Blank(Crtc1, TRUE);
+
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
 		    Output->Power(Output, RHD_POWER_RESET);
+
 	    Crtc1->Power(Crtc1, RHD_POWER_RESET);
 	}
 
 	if (Crtc2->Active) {
+	    Crtc2->Blank(Crtc2, TRUE);
+
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
 		    Output->Power(Output, RHD_POWER_RESET);
+
 	    Crtc2->Power(Crtc2, RHD_POWER_RESET);
 	}
 	break;
@@ -1092,9 +1118,21 @@ RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
  *
  */
 static Bool
-rhdSaveScreen(ScreenPtr pScrn, int on)
+rhdSaveScreen(ScreenPtr pScreen, int on)
 {
-    /* put code to blacken screen here */
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[pScreen->myNum]);
+    struct rhdCrtc *Crtc;
+
+    RHDFUNC(rhdPtr);
+
+    Crtc = rhdPtr->Crtc[0];
+    if ((pScreen->myNum == Crtc->scrnIndex) && Crtc->Active)
+	Crtc->Blank(Crtc, !on);
+
+    Crtc = rhdPtr->Crtc[1];
+    if ((pScreen->myNum == Crtc->scrnIndex) && Crtc->Active)
+	Crtc->Blank(Crtc, !on);
+
     return TRUE;
 }
 
