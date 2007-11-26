@@ -153,7 +153,8 @@ if [ "x$(git-rev-parse --git-dir 2> /dev/null)" != "x" ]; then
         # git-1.4 and probably earlier understand "git-symbolic-ref HEAD"
         git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         if [ "x$git_branch" = "x" ]; then
-            git_errors="${git_errors+"${git_errors}; "}error running 'git-symbolic-ref HEAD'"
+            # This happens, is OK, and "(no branch)" is what "git branch" prints.
+            git_branch="(no branch)"
         fi
         git_dirty=yes
         # git-1.4 does not understand "git-diff-files --quiet"
