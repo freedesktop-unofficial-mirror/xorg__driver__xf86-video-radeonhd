@@ -61,6 +61,7 @@
 #include "rhd_monitor.h"
 #include "rhd_vga.h"
 #include "rhd_pll.h"
+#include "rhd_mc.h"
 
 /* System headers */
 #ifndef _XF86_ANSIC_H
@@ -294,6 +295,10 @@ rhdRRCrtcPrepare(xf86CrtcPtr crtc)
 
     /* now disable our VGA Mode */
     RHDVGADisable(rhdPtr);
+
+    /* now set up the MC */
+    RHDMCSetup(rhdPtr);
+
 }
 static void
 rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
