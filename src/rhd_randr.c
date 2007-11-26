@@ -756,13 +756,71 @@ createRandrOutput(ScrnInfoPtr pScrn,
     rro = xnfcalloc(1, sizeof(rhdRandrOutputRec));
     rro->Connector = conn;
     rro->Output    = out;
-    sprintf(rro->Name, "%.30s/%.30s", conn->Name, out->Name);
+    sprintf(rro->Name, "%.30s", conn->Name);
     for (c = rro->Name; *c; c++)
 	if (isspace(*c))
 	    *c='_';
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "RandR: Adding output %s\n", rro->Name);
     return rro;
+}
+
+/* Helper: Consolidate names, improve duplicates */
+static void
+consoldateRandrOutputNames(rhdRandrOutputPtr *rop, int num)
+{
+    int i, j, changed;
+    const char *outname;
+    char *c;
+    /* First try to come up with something sensible */
+    for (i = 0; i < num; i++) {
+	for (j = i+1; j < num; j++)
+	    if (strcmp(rop[i]->Name, rop[j]->Name) == 0)
+		break;
+	if (j < num) {
+	    for (j = num-1; j >= i; j--)	/* Include i */
+		if (strcmp(rop[i]->Name, rop[j]->Name) == 0) {
+		    switch (rop[j]->Output->Id) {
+		    case RHD_OUTPUT_DACA:
+		    case RHD_OUTPUT_DACB:
+			outname = "analog";
+			break;
+		    case RHD_OUTPUT_TMDSA:
+		    case RHD_OUTPUT_LVTMA:
+			outname = "digital";
+			break;
+		    default:
+			outname = rop[j]->Output->Name;
+		    }
+		    sprintf(rop[j]->Name, "%.30s/%.30s",
+			    rop[j]->Connector->Name, outname);
+		    for (c = rop[j]->Name; *c; c++)
+			if (isspace(*c))
+			    *c='_';
+		}
+	}
+    }
+    /* This shouldn't happen, but better be safe:
+     * fix up every remaining name with the old naming scheme */
+    for (i = 0; i < num; i++) {
+	changed=0;
+	for (j = i+1; j < num; j++)
+	    if (strcmp(rop[i]->Name, rop[j]->Name) == 0) {
+		changed++;
+		sprintf(rop[j]->Name, "%.30s/%.30s",
+			rop[j]->Connector->Name, rop[j]->Output->Name);
+		for (c = rop[j]->Name; *c; c++)
+		    if (isspace(*c))
+			*c='_';
+	    }
+	if (changed) {
+	    sprintf(rop[i]->Name, "%.30s/%.30s",
+		    rop[i]->Connector->Name, rop[i]->Output->Name);
+	    for (c = rop[i]->Name; *c; c++)
+		if (isspace(*c))
+		    *c='_';
+	}
+    }
 }
 
 /* Helper: Create and set up xf86Output */
@@ -844,6 +902,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	    }
 	}
     }
+    consoldateRandrOutputNames(RandrOutput, numCombined);
 
     /* Reorder for xinerama screen enumeration if requested */
     outputorder = rhdPtr->rrOutputOrder.val.string;
