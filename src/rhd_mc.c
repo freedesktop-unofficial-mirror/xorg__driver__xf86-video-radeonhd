@@ -123,10 +123,10 @@ RHDRestoreMC(RHDPtr rhdPtr)
     }
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (rhdPtr->ChipSet == RHD_RV515)
-	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | RV515_MC_FB_LOCATION, 
+	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | RV515_MC_FB_LOCATION,
 		       MC->FbLocation);
 	else
-	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | R5XX_MC_FB_LOCATION, 
+	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | R5XX_MC_FB_LOCATION,
 		       MC->FbLocation);
     } else {
 	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, MC->FbLocation);
@@ -155,7 +155,7 @@ RHDMCSetup(RHDPtr rhdPtr)
 	    reg = R5XX_MC_FB_LOCATION | MC_IND_ALL;
 
 	fb_location = RHDReadMC(rhdPtr, reg);
-	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);	
+	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
 	fb_location_tmp = rhdPtr->FbIntAddress >> 16;
 	fb_location_tmp |= (fb_location_tmp + fb_size) << 16;
 
@@ -168,7 +168,7 @@ RHDMCSetup(RHDPtr rhdPtr)
 	fb_location = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
 	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
 	fb_location_tmp = rhdPtr->FbIntAddress >> 24;
-	fb_location_tmp |= (fb_location_tmp + fb_size) << 24;
+	fb_location_tmp |= (fb_location_tmp + fb_size) << 16;
 	fb_offset_tmp = (rhdPtr->FbIntAddress >> 8) & 0xff0000;
 
 	RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
