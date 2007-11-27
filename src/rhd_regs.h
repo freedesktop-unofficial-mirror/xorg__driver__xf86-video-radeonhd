@@ -90,6 +90,7 @@ enum {
 
     D1CRTC_CONTROL                 = 0x6080,
     D1CRTC_BLANK_CONTROL           = 0x6084,
+    D1CRTC_BLACK_COLOR             = 0x6098,
     D1CRTC_STATUS                  = 0x609C,
 
     /* D1GRPH registers */
@@ -161,6 +162,7 @@ enum {
 
     D2CRTC_CONTROL                 = 0x6880,
     D2CRTC_BLANK_CONTROL           = 0x6884,
+    D2CRTC_BLACK_COLOR             = 0x6898,
     D2CRTC_STATUS                  = 0x689C,
 
     /* D2GRPH registers */

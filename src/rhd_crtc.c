@@ -76,6 +76,7 @@ struct rhdCrtcStore {
     CARD32 CrtcVSyncB;
     CARD32 CrtcVSyncBCntl;
 
+    CARD32 CrtcBlackColor;
     CARD32 CrtcBlankControl;
     CARD32 CrtcPCLKControl;
 };
@@ -533,6 +534,7 @@ D1Blank(struct rhdCrtc *Crtc, Bool Blank)
 {
     RHDFUNC(Crtc);
 
+    RHDRegWrite(Crtc, D1CRTC_BLACK_COLOR, 0);
     if (Blank)
 	RHDRegMask(Crtc, D1CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
     else
@@ -547,6 +549,7 @@ D2Blank(struct rhdCrtc *Crtc, Bool Blank)
 {
     RHDFUNC(Crtc);
 
+    RHDRegWrite(Crtc, D2CRTC_BLACK_COLOR, 0);
     if (Blank)
 	RHDRegMask(Crtc, D2CRTC_BLANK_CONTROL, 0x00000100, 0x00000100);
     else
@@ -615,6 +618,7 @@ DxSave(struct rhdCrtc *Crtc)
     Store->CrtcVSyncB = RHDRegRead(Crtc, RegOff + D1CRTC_V_SYNC_B);
     Store->CrtcVSyncBCntl = RHDRegRead(Crtc, RegOff + D1CRTC_V_SYNC_B_CNTL);
 
+    Store->CrtcBlackColor = RHDRegRead(Crtc, RegOff + D1CRTC_BLACK_COLOR);
     Store->CrtcBlankControl = RHDRegRead(Crtc, RegOff + D1CRTC_BLANK_CONTROL);
 
     if (Crtc->Id == RHD_CRTC_1)
@@ -689,6 +693,7 @@ DxRestore(struct rhdCrtc *Crtc)
     RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_B, Store->CrtcVSyncB);
     RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_B_CNTL, Store->CrtcVSyncBCntl);
 
+    RHDRegWrite(Crtc, RegOff + D1CRTC_BLACK_COLOR, Store->CrtcBlackColor);
     RHDRegWrite(Crtc, RegOff + D1CRTC_BLANK_CONTROL, Store->CrtcBlankControl);
 
     if (Crtc->Id == RHD_CRTC_1)
