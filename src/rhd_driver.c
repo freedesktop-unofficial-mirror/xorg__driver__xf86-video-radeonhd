@@ -1122,11 +1122,11 @@ rhdSaveScreen(ScreenPtr pScreen, int on)
     RHDFUNC(rhdPtr);
 
     Crtc = rhdPtr->Crtc[0];
-    if ((pScreen->myNum == Crtc->scrnIndex) && Crtc->Active)
+    if (pScreen->myNum == Crtc->scrnIndex)
 	Crtc->Blank(Crtc, !on);
 
     Crtc = rhdPtr->Crtc[1];
-    if ((pScreen->myNum == Crtc->scrnIndex) && Crtc->Active)
+    if (pScreen->myNum == Crtc->scrnIndex)
 	Crtc->Blank(Crtc, !on);
 
     return TRUE;
