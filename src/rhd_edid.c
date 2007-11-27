@@ -245,7 +245,7 @@ void
 RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
 {
     DisplayModePtr Modes = NULL, Mode;
-    int i;
+    int i, preferred;
 
     if (!Monitor || !EDID)
         return;
@@ -262,6 +262,9 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
     /* Add standard timings */
     Mode = EDIDModesFromStandardTiming(Monitor->scrnIndex, EDID->timings2);
     Modes = RHDModesAdd(Modes, Mode);
+
+    /* First DT timing preferred? */
+    preferred = PREFERRED_TIMING_MODE(EDID->features.msc);
 
     /* Go through the detailed monitor sections */
     for (i = 0; i < DET_TIMINGS; i++)
@@ -294,8 +297,9 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
             Mode = EDIDModeFromDetailedTiming(Monitor->scrnIndex,
                                               &EDID->det_mon[i].section.d_timings);
             if (Mode) {
-                if (i == PREFERRED_TIMING_MODE(EDID->features.msc))
+                if (preferred)
                     Mode->type |= M_T_PREFERRED;
+		preferred = FALSE;
 
                 Modes = RHDModesAdd(Modes, Mode);
             }

@@ -274,6 +274,7 @@ rhdPanelEDIDModesFilter(struct rhdMonitor *Monitor)
 
     Best->next = NULL;
     Best->prev = NULL;
+    Best->type |= M_T_PREFERRED;
     Monitor->Modes = Best;
 
     Monitor->numHSync = 1;
@@ -322,6 +323,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 				 ATOMBIOS_GET_PANEL_MODE, &data);
 	if (Result == ATOM_SUCCESS) {
 	    Mode = data.mode;
+	    Mode->type |= M_T_PREFERRED;
 	} else {
 	    if (!EDID) {
 		Result = RHDAtomBiosFunc(Connector->scrnIndex,
