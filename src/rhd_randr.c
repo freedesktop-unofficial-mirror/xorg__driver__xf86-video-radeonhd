@@ -943,12 +943,12 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	randr->RandrOutput[i] = createXF86Output(pScrn, RandrOutput[i]);
     }
     xfree(RandrOutput);
+    rhdPtr->randr = randr;
 
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandR: No valid modes.\n");
 	return FALSE;
     }
-    rhdPtr->randr = randr;
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "RandR 1.2 support enabled\n");
 
