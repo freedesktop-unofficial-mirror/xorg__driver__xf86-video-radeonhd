@@ -139,7 +139,9 @@ static void     rhdSave(RHDPtr rhdPtr);
 static void     rhdRestore(RHDPtr rhdPtr);
 static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
+static void	rhdPrepareMode(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
+static void	rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
 static void     rhdUnmapMMIO(RHDPtr rhdPtr);
 static Bool     rhdMapFB(RHDPtr rhdPtr);
@@ -787,10 +789,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* save previous mode */
     rhdSave(rhdPtr);
 
-    /* Stop crap from being shown: gets reenabled through SaveScreen */
-    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
-    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
-
     /* init DIX */
     miClearVisualTypes();
 
@@ -957,10 +955,6 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    /* SaveScreen doesn't get called beforehand, only afterwards. */
-    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
-    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
-
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
     else
@@ -999,8 +993,10 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);
-    else
-	rhdModeInit(xf86Screens[scrnIndex], mode);
+    else {
+	rhdPrepareMode(rhdPtr);
+	rhdSetMode(xf86Screens[scrnIndex], mode);
+    }
 
     return TRUE;
 }
@@ -1530,7 +1526,49 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
  *
  */
 static void
+rhdPrepareMode(RHDPtr rhdPtr)
+{
+    RHDFUNC(rhdPtr);
+
+    /* Stop crap from being shown: gets reenabled through SaveScreen */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
+
+    /* no active outputs == no mess */
+    RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
+
+    /* Disable CRTCs to stop noise from appearing. */
+    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_RESET);
+    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_RESET);
+}
+
+/*
+ *
+ */
+static void
 rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDFUNC(rhdPtr);
+    pScrn->vtSema = TRUE;
+
+    rhdPrepareMode(rhdPtr);
+
+    /* now disable our VGA Mode */
+    RHDVGADisable(rhdPtr);
+
+    /* now set up the MC */
+    RHDMCSetup(rhdPtr);
+
+    rhdSetMode(pScrn, mode);
+}
+
+/*
+ *
+ */
+static void
+rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdCrtc *Crtc;
@@ -1540,21 +1578,6 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Setting up \"%s\" (%dx%d@%3.1fHz)\n",
 	       mode->name, mode->CrtcHDisplay, mode->CrtcVDisplay,
 	       mode->VRefresh);
-
-    pScrn->vtSema = TRUE;
-
-    /* no active outputs == no mess */
-    RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
-
-    /* Disable CRTCs to stop noise from appearing. */
-    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_RESET);
-    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_RESET);
-
-    /* now disable our VGA Mode */
-    RHDVGADisable(rhdPtr);
-
-    /* now set up the MC */
-    RHDMCSetup(rhdPtr);
 
     /* Set up D1 and appendages */
     Crtc = rhdPtr->Crtc[0];

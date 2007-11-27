@@ -1033,6 +1033,10 @@ RHDRandrModeInit(ScrnInfoPtr pScrn)
     Bool ret;
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    /* Stop crap from being shown: gets reenabled through SaveScreen */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
+
     RHDVGADisable(rhdPtr);
     RHDMCSetup(rhdPtr);
 
