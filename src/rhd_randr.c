@@ -292,13 +292,6 @@ rhdRRCrtcPrepare(xf86CrtcPtr crtc)
 
     /* Disable CRTCs to stop noise from appearing. */
     Crtc->Power(Crtc, RHD_POWER_RESET);
-
-    /* now disable our VGA Mode */
-    RHDVGADisable(rhdPtr);
-
-    /* now set up the MC */
-    RHDMCSetup(rhdPtr);
-
 }
 static void
 rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
@@ -984,8 +977,13 @@ RHDRandrModeInit(ScrnInfoPtr pScrn)
 {
     Bool ret;
     RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDVGADisable(rhdPtr);
+    RHDMCSetup(rhdPtr);
+
     ret = xf86SetDesiredModes(pScrn);
     RHDDebugRandrState(rhdPtr, "POST-ModeInit");
+
     return ret;
 }
 
