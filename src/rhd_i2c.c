@@ -712,6 +712,13 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 #endif
 }
 
+static Bool
+rhdI2CAddress(I2CDevPtr d, I2CSlaveAddr addr)
+{
+    d->SlaveAddr = addr;
+    return xf86I2CWriteRead(d, NULL, 0, NULL, 0);
+}
+
 static I2CBusPtr *
 rhdInitI2C(int scrnIndex)
 {
@@ -767,6 +774,7 @@ rhdInitI2C(int scrnIndex)
 	    I2CPtr->I2CWriteRead = rhdRS69WriteRead;
 	else
 	    I2CPtr->I2CWriteRead = rhd6xxWriteRead;
+	I2CPtr->I2CAddress = rhdI2CAddress;
 
 	if (!(xf86I2CBusInit(I2CPtr))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
