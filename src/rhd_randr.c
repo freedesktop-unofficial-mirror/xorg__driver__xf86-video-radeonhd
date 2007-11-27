@@ -62,6 +62,7 @@
 #include "rhd_vga.h"
 #include "rhd_pll.h"
 #include "rhd_mc.h"
+#include "rhd_card.h"
 
 /* System headers */
 #ifndef _XF86_ANSIC_H
@@ -642,17 +643,71 @@ rhdRROutputCommit(xf86OutputPtr out)
 static xf86OutputStatus
 rhdRROutputDetect(xf86OutputPtr output)
 {
-    RHDPtr rhdPtr = RHDPTR(output->scrn);
-    rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
+    RHDPtr            rhdPtr = RHDPTR(output->scrn);
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) output->driver_private;
+    xf86OutputPtr    *ro;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
-    if (rout->Output->Sense) {
-	if (rout->Output->Sense(rout->Output, rout->Connector->Type))
-	    return XF86OutputStatusConnected;
-	else
+
+    if (rout->Connector->HPDCheck) {
+	/* Hot Plug Detection available, use it */
+	if (rout->Connector->HPDCheck(rout->Connector)) {
+	    /*
+	     * HPD returned true
+	     */
+	    if (rout->Output->Sense) {
+		if (rout->Output->Sense(rout->Output, rout->Connector->Type))
+		    return XF86OutputStatusConnected;
+		else
+		    return XF86OutputStatusDisconnected;
+	    } else {
+		/* HPD returned true, but no Sense() available
+		 * Typically the case on TMDSB.
+		 * Check if there is another output attached to this connector
+		 * and use Sense() on that one to verify whether something
+		 * is attached to this one */
+		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
+		    rhdRandrOutputPtr o =
+			(rhdRandrOutputPtr) (*ro)->driver_private;
+		    if (o != rout &&
+			o->Connector == rout->Connector &&
+			o->Output->Sense) {
+			/* Yes, this looks wrong, but is correct */
+			if (o->Output->Sense(o->Output, o->Connector->Type))
+			    return XF86OutputStatusDisconnected;
+		    }
+		}
+		return XF86OutputStatusConnected;
+	    }
+	} else {
+	    /*
+	     * HPD returned false
+	     */
+	    /* There is the infamous DMS-59 connector, on which HPD returns
+	     * false when 'only' VGA is connected. */
+	    if (rhdPtr->Card &&
+		(rhdPtr->Card->flags & RHD_CARD_FLAG_DMS59) &&
+		rout->Connector->Type == RHD_CONNECTOR_VGA) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+			   "RandR: Verifying state of DMS-59 VGA connector.\n");
+		if (rout->Output->Sense &&
+		    rout->Output->Sense(rout->Output, rout->Connector->Type))
+		return XF86OutputStatusConnected;
+	    }
 	    return XF86OutputStatusDisconnected;
+	}
+    } else {
+	/*
+	 * No HPD available, Sense() if possible
+	 */
+	if (rout->Output->Sense) {
+	    if (rout->Output->Sense(rout->Output, rout->Connector->Type))
+		return XF86OutputStatusConnected;
+	    else
+		return XF86OutputStatusDisconnected;
+	}
+	return XF86OutputStatusUnknown;
     }
-    return XF86OutputStatusUnknown;
 }
 
 /* Query the device for the modes it provides. Set MonInfo, mm_width/height. */
