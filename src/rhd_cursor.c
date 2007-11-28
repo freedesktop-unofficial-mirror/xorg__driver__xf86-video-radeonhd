@@ -325,6 +325,8 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
     int i;
 
     RHDFUNC(pScrn);
+    if (! rhdPtr->CursorImage)
+	return;
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
