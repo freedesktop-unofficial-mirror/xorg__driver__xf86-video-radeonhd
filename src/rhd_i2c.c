@@ -719,6 +719,14 @@ rhdI2CAddress(I2CDevPtr d, I2CSlaveAddr addr)
     return xf86I2CWriteRead(d, NULL, 0, NULL, 0);
 }
 
+/*
+ * This stub is needed to keep xf86I2CProbeAddress() happy.
+ */
+static void
+rhdI2CStop(I2CDevPtr d)
+{
+}
+
 static I2CBusPtr *
 rhdInitI2C(int scrnIndex)
 {
@@ -775,6 +783,7 @@ rhdInitI2C(int scrnIndex)
 	else
 	    I2CPtr->I2CWriteRead = rhd6xxWriteRead;
 	I2CPtr->I2CAddress = rhdI2CAddress;
+	I2CPtr->I2CStop = rhdI2CStop;
 
 	if (!(xf86I2CBusInit(I2CPtr))) {
 	    xf86DrvMsg(scrnIndex, X_ERROR,
