@@ -608,15 +608,15 @@ RHDCardIdentify(ScrnInfoPtr pScrn)
 	    (rhdCards[i].card_device == subDeviceID))
 	    return rhdCards + i;
 
-    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "Unknown card detected: 0x%04X:0x%04X:0x%04X.\n",
 	       deviceID, subVendorID, subDeviceID);
 #ifdef ATOM_BIOS
     xf86Msg(X_NONE, "\t"
 	    "If your card does not work or does not work optimally\n\t"
 	    "please contact radeonhd@opensuse.org to help rectify this.\n\t"
-	    "Include your X log, the full name of the device\n\t"
-	    "and the rhd_conntest (found in utils/conntest) output.\n");
+	    "Use the subject: 0x%04X:0x%04X:0x%04X: <name of board>.\n",
+	    deviceID, subVendorID, subDeviceID);
 #else
     xf86Msg(X_NONE, "\t"
 	    "Your card might not work or might not work optimally.\n\t"

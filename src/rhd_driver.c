@@ -839,17 +839,22 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* initialize memory manager.*/
     {
         BoxRec AvailFBArea;
+	int tmp = rhdPtr->FbFreeSize /
+	    (pScrn->displayWidth * (pScrn->bitsPerPixel >> 3));
+
+	/* guess what size the BoxRec members are... */
+	if (tmp > 0x7FFF)
+	    tmp = 0x7FFF;
 
         AvailFBArea.x1 = 0;
         AvailFBArea.y1 = 0;
         AvailFBArea.x2 = pScrn->displayWidth;
-        AvailFBArea.y2 = rhdPtr->FbFreeSize /
-	    (pScrn->displayWidth * (pScrn->bitsPerPixel >> 3));
+        AvailFBArea.y2 = tmp;
 
         xf86InitFBManager(pScreen, &AvailFBArea);
 
         xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-                   "Using %i scanlines of offscreen memory \n",
+                   "Using %d scanlines of offscreen memory \n",
                    AvailFBArea.y2 - pScrn->virtualY);
     }
 

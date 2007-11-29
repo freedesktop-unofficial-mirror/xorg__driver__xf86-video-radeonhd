@@ -439,7 +439,7 @@ D1CRTCDisable(struct rhdCrtc *Crtc)
 		RHDDebug(Crtc->scrnIndex, "%s: %d loops\n", __func__, i);
 		return;
 	    }
-	xf86DrvMsg(Crtc->scrnIndex, X_ERROR,
+	xf86DrvMsg(Crtc->scrnIndex, X_WARNING,
 		   "%s: Failed to Unsync %s\n", __func__, Crtc->Name);
     }
 }
@@ -462,7 +462,7 @@ D2CRTCDisable(struct rhdCrtc *Crtc)
 		RHDDebug(Crtc->scrnIndex, "%s: %d loops\n", __func__, i);
 		return;
 	    }
-	xf86DrvMsg(Crtc->scrnIndex, X_ERROR,
+	xf86DrvMsg(Crtc->scrnIndex, X_WARNING,
 		   "%s: Failed to Unsync %s\n", __func__, Crtc->Name);
     }
 }
