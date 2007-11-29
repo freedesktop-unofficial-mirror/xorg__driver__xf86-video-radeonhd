@@ -301,6 +301,13 @@ RHDIdentify(int flags)
    {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
        { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
 
+/* Fujitsu Siemens Amilo PI1536 has no HPD on its DVI connector. */
+#define PANEL_B_DVI_AA1 \
+ { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_NONE, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
+   {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_TMDSA}}}
+
 #if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS)
 
 #define VGA_A0_DVI_BA10 \
@@ -437,6 +444,7 @@ rhdCards[] =
     { 0x7145, 0x1028, 0x2002, "Dell Inspiron 9400", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0_DVI_A10 },
     { 0x7145, 0x1028, 0x2003, "Dell Inspiron 6400", RHD_CARD_FLAG_NONE, PANEL_B_VGA_A0 },
     { 0x7145, 0x1179, 0xFF10, "Toshiba Satellite A100-773", RHD_CARD_FLAG_NONE, PANEL_B1_VGA_A2 },
+    { 0x7145, 0x1734, 0x10B0, "Fujitsu Siemens Amilo PI1536", RHD_CARD_FLAG_NONE, PANEL_B_DVI_AA1 },
     { 0x7145, 0x17AA, 0x2006, "Lenovo Thinkpad T60 (2007)", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0_DVI_A10 },
     { 0x7145, 0x17AA, 0x202A, "Lenovo Thinkpad Z61m", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0 },
     /* 0x7146 : RV515 : Radeon X1300/X1550 */
