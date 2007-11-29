@@ -436,7 +436,7 @@ rhdRROutputDpms(xf86OutputPtr       out,
 
     for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
-	if (o->Output == rout->Output && (*ro)->crtc)
+	if (o != rout && o->Output == rout->Output && (*ro)->crtc)
 	    outUsedBy = (*ro)->name;
     }
     switch (mode) {
