@@ -234,6 +234,8 @@ void RhdGetOptValString(const OptionInfoRec *table, int token,
 char *RhdAppendString(char *s1, const char *s2);
 void RhdAssertFailed(const char *str,
 		     const char *file, int line, const char *func) NORETURN;
+void RhdAssertFailedFormat(const char *str, const char *file, int line,
+			   const char *func, const char *format, ...) NORETURN;
 
 /* Extra debugging verbosity: decimates gdb usage */
 
@@ -245,8 +247,11 @@ void RhdAssertFailed(const char *str,
 #ifndef NO_ASSERT
 #  define ASSERT(x) do { if (!(x)) RhdAssertFailed \
 			 (#x, __FILE__, __LINE__, __func__); } while(0)
+#  define ASSERTF(x,f...) do { if (!(x)) RhdAssertFailedFormat \
+			    (#x, __FILE__, __LINE__, __func__, ##f); } while(0)
 #else
 #  define ASSERT(x) ((void)0)
+#  define ASSERTF(x,...) ((void)0)
 #endif
 
 #define LOG_DEBUG 7

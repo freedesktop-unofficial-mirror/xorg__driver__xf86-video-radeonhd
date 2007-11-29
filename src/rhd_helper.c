@@ -33,6 +33,7 @@
 #include "rhd.h"
 
 #include <signal.h>
+#include <stdarg.h>
 
 void
 RhdGetOptValBool(const OptionInfoRec *table, int token,
@@ -199,7 +200,7 @@ void RhdAssertFailed(const char *str,
 {
     ErrorF("%s:%d: %s: Assertion '%s' failed.\n", file, line, func, str);
 
-#if 0			/* Set to 1 to get backtraces */
+#if 1			/* Set to 1 to get backtraces */
     kill(getpid(), SIGSEGV);
     xf86abort();	/* Not executed, but make gcc happy */
 #else
@@ -207,3 +208,21 @@ void RhdAssertFailed(const char *str,
 #endif
 }
 
+void RhdAssertFailedFormat(const char *str,
+			   const char *file, int line, const char *func,
+			   const char *format, ...)
+{
+    va_list args;
+    ErrorF("%s:%d: %s: Assertion '%s' failed.\n  ", file, line, func, str);
+    va_start(args, format);
+    VErrorF(format, args);
+    va_end(args);
+    ErrorF("\n");
+
+#if 1			/* Set to 1 to get backtraces */
+    kill(getpid(), SIGSEGV);
+    xf86abort();	/* Not executed, but make gcc happy */
+#else
+    FatalError("Server aborting\n");
+#endif
+}
