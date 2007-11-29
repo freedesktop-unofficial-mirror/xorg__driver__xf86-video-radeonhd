@@ -164,10 +164,11 @@ RHDDebugRandrState (RHDPtr rhdPtr, const char *msg)
 	xf86CrtcPtr    rc = rhdPtr->randr->RandrCrtc[i];
 	struct rhdCrtc *c = (struct rhdCrtc *) rc->driver_private;
 	RHDDebugCont("   RRCrtc #%d [rhd %s]: active %d [%d]  "
-		     "mode %s (%dx%d)\n",
+		     "mode %s (%dx%d) +%d+%d\n",
 		     i, c->Name, rc->enabled, c->Active,
 		     rc->mode.name ? rc->mode.name : "unnamed",
-		     rc->mode.HDisplay, rc->mode.VDisplay);
+		     rc->mode.HDisplay, rc->mode.VDisplay,
+		     rc->x, rc->y);
     }
     for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 	rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
