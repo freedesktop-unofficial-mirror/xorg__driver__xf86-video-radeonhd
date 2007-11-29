@@ -192,6 +192,7 @@ typedef enum {
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
     OPTION_USECONFIGUREDMONITOR,
+    OPTION_IGNOREHPD,
     OPTION_NORANDR,
     OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER
@@ -204,6 +205,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_IGNOREHPD,            "IgnoreHPD",            OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
@@ -1381,7 +1383,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		rhdOutputConnectorCheck(Connector);
 	    } else {
 		Connector->HPDAttached = FALSE;
-		if (ConnectorIsDMS59)
+		if (ConnectorIsDMS59 || rhdPtr->ignoreHpd.set)
 		    rhdOutputConnectorCheck(Connector);
 	    }
 	} else
@@ -1759,12 +1761,20 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     &rhdPtr->shadowFB, TRUE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED,
 		     &rhdPtr->forceReduced, FALSE);
+    RhdGetOptValBool(rhdPtr->Options, OPTION_IGNOREHPD,
+		     &rhdPtr->ignoreHpd, FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR,
 		     &rhdPtr->noRandr, FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_RRUSEXF86EDID,
 		     &rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString(rhdPtr->Options, OPTION_RROUTPUTORDER,
 		       &rhdPtr->rrOutputOrder, FALSE);
+
+    if (rhdPtr->ignoreHpd.set)
+	xf86DrvMsgVerb(rhdPtr->scrnIndex, X_WARNING, 0,
+	"!!! Option IgnoreHPD is set !!!\n"
+	"     This shall only be used to work around broken connector tables.\n"
+	"     Please report your BIOS to radeonhd@opensuse.org\n");
 }
 
 /*
