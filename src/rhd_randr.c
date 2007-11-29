@@ -818,14 +818,12 @@ createRandrOutput(ScrnInfoPtr pScrn,
     for (c = rro->Name; *c; c++)
 	if (isspace(*c))
 	    *c='_';
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-	       "RandR: Adding output %s\n", rro->Name);
     return rro;
 }
 
 /* Helper: Consolidate names, improve duplicates */
 static void
-consoldateRandrOutputNames(rhdRandrOutputPtr *rop, int num)
+consolidateRandrOutputNames(rhdRandrOutputPtr *rop, int num)
 {
     int i, j, changed;
     const char *outname;
@@ -960,7 +958,11 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	    }
 	}
     }
-    consoldateRandrOutputNames(RandrOutput, numCombined);
+    consolidateRandrOutputNames(RandrOutput, numCombined);
+    for (i = 0; i < numCombined; i++)
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "RandR: Adding RRoutput %s for Output %s\n",
+		   RandrOutput[i]->Name, RandrOutput[i]->Output->Name);
 
     /* Reorder for xinerama screen enumeration if requested */
     outputorder = rhdPtr->rrOutputOrder.val.string;
