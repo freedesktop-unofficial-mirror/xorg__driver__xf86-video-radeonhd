@@ -48,6 +48,7 @@
 #include "randrstr.h"
 #include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
 #include "xf86Crtc.h"
+#include "xf86RandR12.h"
 #define DPMS_SERVER
 #include "X11/extensions/dpms.h"
 #include "X11/Xatom.h"
@@ -1005,12 +1006,21 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     rhdPtr->randr = randr;
 
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandR: No valid modes.\n");
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "RandR: No valid modes. Disabled.\n");
 	return FALSE;
     }
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "RandR 1.2 support enabled\n");
 
+    /* No docs, but radeon, avivo, and nv drivers calling this
+     * after(!) xf86InitialConfiguration */
+    if (!xf86RandR12PreInit (pScrn)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "RandR: xf86RandR12PreInit failed. Disabled.\n");
+	rhdPtr->randr = NULL;
+	return FALSE;
+    }
     return TRUE;
 }
 
