@@ -28,10 +28,31 @@ is an __xservername__ driver for AMD GPG (ATI) R5xx/R6xx based video cards.
 
 At the time of this writing,
 .B radeonhd
-has
+has the following major limitations:
+.\".TP "\w'\fB\(bu\fR'u+1n"
+.TP 2
+\(bu
 .B NO
-support for 2D acceleration, Xvideo, 3D acceleration and many other nice
-features.
+support for 2D & 3D acceleration, no support for Xvideo.
+.TP
+\(bu
+No TV, Component, and HDMI connector support so far.
+.TP
+\(bu
+Suspend & Resume is pretty much untested. Often it just works, but your
+milage may vary.
+.TP
+\(bu
+After using the
+.I fglrx
+driver, the display can get very jittery with
+.BR radeonhd .
+A reboot fixes this problem in most
+cases, sometimes a powercycle is necessary.
+.PP
+A more up-to-date list can be found on the wiki page.
+.PP
+.\"
 .SH SUPPORTED HARDWARE
 The
 .B radeonhd
@@ -122,115 +143,149 @@ Radeon X1200
 RS740, RS740M
 .\"
 .\"
+.PP
 .SH CONFIGURATION DETAILS
 Please refer to __xconfigfile__(__filemansuffix__) for general
-configuration details.  This section only covers configuration details
-specific to this driver.
-.\" See src/rhd_driver.c for definition of the options.
+configuration details.  This section only covers configuration options
+specific to this driver. Some options may be deprecated and considered to be
+removed or replaced by better implementations soon.
 .\"
-.\" { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
 .TP
-.BI "Option \*qNoAccel\*q"
-To be written.
-.\"
-.\" { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qSWcursor\*q \*q" boolean \*q
+Enable or disable the software cursor. The hardware cursor is inactive
+when the software cursor is enabled. The default is
+.BR off .
 .TP
-.BI "Option \*qSWcursor\*q"
-To be written.
-.\"
-.\" { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qNoAccel\*q
+Disable all hardware accleration. The default is to
+.B enable
+hardware acceleration.
+.br
+.B Acceleration is not implemented yet, so this option is ignored
+.B for the moment.
 .TP
-.BI "Option \*qshadowfb\*q"
-To be written.
-.\"
-.\" { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
+.BI "Option \*qShadowFB\*q \*q" boolean \*q
+Enable or disable shadow framebuffer support. This greatly improves the
+speed of unaccelerated drivers. The default is
+.B on
+as long as acceleration is not supported.
 .TP
-.BI "Option \*qignoreconnector\*q \*q" <FIXME> \*q
-To be written.
-.\"
-.\" { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qNoRandr\*q
+Disable RandR 1.2 support. This turns the driver back to use standard
+modesetting behavior. The default is to
+.B enable
+RandR 1.2 support.
 .TP
-.BI "Option \*qforcereduced\*q"
-To be written.
-.\"
-.\" { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qForceReduced\*q \*q" boolean \*q
+Force the use of reduced blanking modes. Use this if your LCD monitor does not
+provide correct EDID data and you need a reduced blanking mode to drive a high
+resolution mode over a single link DVI connection. The default is
+.BR off .
 .TP
-.BI "Option \*quseconfiguredmonitor\*q
-To be written.
-.\"
-.\" { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qIgnoreHPD\*q \*q" boolean \*q
+Ignore or rely on hot plug detection (HPD) to work correctly. If the connector
+table is broken this might help to find CRTs attached to a DVI-I connector
+via a VGA-to-DVI adaptor. The default is
+.BR off .
 .TP
-.BI "Option NoRandR"
-Deactivates the RandR support.
-.\"
-.\" { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
+.BI "Option \*qRRUseXF86Edid\*q \*q" boolean \*q
+.IR "RandR modesetting only" .
+.br
+Enable or disable the use of xf86OutputGetEDID() and xf86OutputGetEDIDModes()
+instead of the default routines from
+.BR radeonhd ,
+which are better adapted to the chipset. Panels will often fail to work with
+these calls. The default is
+.BR off .
+.br
+Considered deprecated. Report if needed for your configuration.
 .TP
-.BI "Option RRUseXF86Edid"
-To be written.
-.\"
-.\" { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
+.BI "Option \*qRROutputOrder\*q \*q" "list-of-outputs" \*q
+.IR "RandR modesetting only" .
+.br
+Several legacy application rely on the Xinerama extension to determine the
+primary screen. RandR returns the viewport displayed on the first attached
+output of the internal table as the first Xinerama screen.
+If your outputs are ordered in the wrong way, you can reorder them by adding
+their names (separated by spaces or commas) to the
+.IR list-of-outputs .
+Typically only the first (primary) output has to be listed, remaining
+outputs are added automatically. The default is
+.BR none .
 .TP
-.BI "Option \*qRROutputOrder\*q \*q" <list_of_outputs> \*q
-If your outputs are ordered in the wrong way with respect to Xinerama
-emulation, you can reorder them by adding their names (separated by
-spaces or commas) to the
-.I <list_of_outputs>.
+.BI "Option \*qIgnoreConnector\*q \*q" string \*q
+.IR "Standard (non-RandR) modesetting only" .
+.br
+Connector to be ignored during non-RandR modesetting. The default is
+.BR none .
+.TP
+.BI "Option \*qUseConfiguredMonitor\*q \*q" boolean \*q
+.IR "Standard (non-RandR) modesetting only" .
+.br
+Use or ignore the monitor section in
+.IR xorg.conf .
+In standard modesetting
+.B radeonhd
+ignores the EDID data if a monitor section is configured.  This is different
+to what most drivers behave like and a common source of configuration problems.
+Thus the default is
+.B off
+(i.e. ignore).
 .\"
 .\"
 .SH KNOWN BUGS
 As the
 .B radeonhd
 driver is still in an early stage of development, many non-obvious things
-do not work yet. Other places to check for known bugs and solutions are the
-bugtracker at
+do not work yet. A list of major known bugs is maintained on the wiki.
+Other places to check for known bugs and solutions are the bugtracker at
+.br
+.nf
 \%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
+.br
+.fi
 and the mailing list archives at
 \%http://lists.opensuse.org/radeonhd/
-.SS Laptop backlight brightness cannot be changed
-While
-.B radeonhd
-has control over the display, the normal laptop's \*qbrighter\*q and \*qdarker\*q keys are blocked.
-Workaround: Until
-.B radeonhd
-does proper ACPI event handling, you can switch to a VGA text console, adjust the brightness there, and then switch back to X11.
-.SS radeonhd 0.0.3 (with RandR) shows no or broken picture, xrandr fails, etc.
+.PP
 radeonhd development caused a few bugs in __xservername__ and a number
 of bugs in xrandr(__appmansuffix__) to be discovered. If you are using
-xrandr(1) versions older than 2007-11-10, you should try updating
-xrandr(1). As a workaround, you can also deactivate the
-.B radeonhd
-RandR support by
-adding
-.B "Option \*qnoRandR\*q"
-to the __xconfigfile__ Device section.
+xrandr(__appmansuffix__) versions older than 2007-11-10, you should try
+updating xrandr(__appmansuffix__).
+.br
+Alternatively, you can try to always specify different CRTCs for
+all monitors by explicitly selecting them with
+.I --crtc [0|1]
+on the xrandr(__appmansuffix__) command line.
 .\"
 .\"
 .SH SEE ALSO
 __xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), xorgconfig(__appmansuffix__), Xserver(__appmansuffix__), X(__miscmansuffix__)
 .IP " 1." 4
+The official radeonhd wiki
+.RS 4
+\%http://wiki.x.org/wiki/radeonhd
+.RE
+.IP " 2." 4
 The radeonhd mailing list
 .RS 4
 \%http://lists.opensuse.org/radeonhd/
 .RE
-.IP " 2." 4
+.IP " 3." 4
 Overview about radeonhd development code
 .RS 4
 \%http://gitweb.freedesktop.org/?p=xorg/driver/xf86-video-radeonhd
 .RE
-.IP " 3." 4
-The radeonhd wiki (home) page
-.RS 4
-\%http://wiki.x.org/wiki/radeonhd
-.RE
 .IP " 4." 4
 Query the bugtracker for radeonhd bugs
 .RS 4
-\%https://bugs.freedesktop.org/query.cgi?product=xorg&component=Driver/radeonhd
+.nf
+\%https://bugs.freedesktop.org/query.cgi?\:product=\:xorg&\:component=\:Driver/radeonhd
+.fi
 .RE
 .\"
 .\"
 .SH AUTHORS
-Driver written by Egbert Eich, Luc Verhaegen, Matthias Hopf and others.
+Driver written by Egbert Eich, Luc Verhaegen, Matthias Hopf, and others.
 .PP
-Man page written by Hans Ulrich Niedermann and others.
+Man page written by Hans Ulrich Niedermann, Matthias Hopf, and others.
 .\" vim: syntax=nroff
