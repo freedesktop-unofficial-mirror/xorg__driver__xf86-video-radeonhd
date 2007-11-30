@@ -1479,7 +1479,7 @@ main(int argc, char *argv[])
     int bus, dev, func;
     int ret;
     int saved_errno;
-    Bool dumpBios, deviceSet, scanDDCBus;
+    Bool dumpBios = FALSE, deviceSet = FALSE, scanDDCBus = FALSE;
     int i;
     unsigned char *rombase;
     int size;
