@@ -104,6 +104,7 @@ else
 fi
 
 # Done with creating output files, so we can change to source dir
+abs_srcdir="$(cd "$srcdir" && pwd)"
 cd "$srcdir"
 
 # Write program header
@@ -142,7 +143,11 @@ fi
 
 git_repo=no
 # "git-rev-parse --git-dir" since git-0.99.7
-if [ "x$(git-rev-parse --git-dir 2> /dev/null)" != "x" ]; then
+git_repo_dir="$(git-rev-parse --git-dir 2> /dev/null)"
+abs_repo_dir="$(cd "$git_repo_dir" && pwd)"
+# Only accept the found git repo iff it is in our top srcdir, as determined
+# by comparing absolute pathnames creaged by running pwd in the respective dir.
+if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]; then
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
         # git-1.4 and probably earlier understand "git-rev-parse HEAD"
