@@ -24,4 +24,4 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/AtomBios/includes
 
 rhd_conntest_SOURCES = rhd_conntest.c
 nodist_rhd_conntest_SOURCES = git_version.h
-rhd_conntest_LDADD   = -lz @PCIUTILS_LIBS@ -lpci
+rhd_conntest_LDADD   = @PCIUTILS_LIBS@

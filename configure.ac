@@ -49,7 +49,9 @@ sdkdir=$(pkg-config --variable=sdkdir xorg-server)
 AC_HEADER_STDC
 
 PKG_CHECK_MODULES(PCIUTILS, libpci,,
-                  [AC_MSG_WARN([libpci not registered in pkgconfig])])
+   [AC_MSG_WARN([libpci not registered in pkgconfig, will guess instead])
+    test "x$PCIUTILS_CFLAGS$PCIUTILS_LIBS" = "x" && PCIUTILS_LIBS="-lpci -lz"
+])
 
 SAVED_CPPFLAGS="$CPPFLAGS"
 SAVED_CFLAGS="$CFLAGS"
