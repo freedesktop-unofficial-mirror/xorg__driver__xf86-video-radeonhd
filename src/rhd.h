@@ -132,6 +132,7 @@ typedef struct RHDRec {
     RHDOpt              swCursor;
     RHDOpt		shadowFB;
     RHDOpt		forceReduced;
+    RHDOpt              forceDPI;
     RHDOpt		ignoreHpd;
     RHDOpt		noRandr;
     RHDOpt		rrUseXF86Edid;

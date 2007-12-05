@@ -139,6 +139,7 @@ static void     rhdSave(RHDPtr rhdPtr);
 static void     rhdRestore(RHDPtr rhdPtr);
 static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
+static void     rhdModeDPISet(ScrnInfoPtr pScrn);
 static void	rhdPrepareMode(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static void	rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
@@ -191,6 +192,7 @@ typedef enum {
     OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
+    OPTION_FORCEDPI,
     OPTION_USECONFIGUREDMONITOR,
     OPTION_IGNOREHPD,
     OPTION_NORANDR,
@@ -204,6 +206,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_FORCEDPI,             "forcedpi",             OPTV_INTEGER, {0}, FALSE },
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_IGNOREHPD,            "IgnoreHPD",            OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
@@ -725,16 +728,18 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    RHDGetVirtualFromModesAndFilter(pScrn, Modes, FALSE);
 
 	RHDModesAttach(pScrn, Modes);
+
+	rhdModeDPISet(pScrn);
     }
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
                pScrn->virtualY, pScrn->displayWidth);
-    if (! rhdPtr->randr)
+    if (!rhdPtr->randr)
 	xf86PrintModes(pScrn);
-
-    /* If monitor resolution is set on the command line, use it */
-    xf86SetDpi(pScrn, 0, 0);
+    else
+	/* If monitor resolution is set on the command line, use it */
+	xf86SetDpi(pScrn, 0, 0);
 
     if (xf86LoadSubModule(pScrn, "fb") == NULL) {
 	goto error1;
@@ -1421,8 +1426,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		Found = TRUE;
 
 		if (Monitor) {
-		    /* If this is a digitally attached monitor, enable
-		     * reduced blanking.
+		    /* If this is a DVI attached monitor, enable reduced blanking.
 		     * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
 		     */
 		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
@@ -1446,6 +1450,102 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 
     return Found;
 }
+
+/*
+ * Calculating DPI will never be good. But here we attempt to make it work,
+ * somewhat, with multiple monitors.
+ *
+ * The real solution for the DPI problem cannot be something statically,
+ * as DPI varies with resolutions chosen and with displays attached/detached.
+ */
+static void
+rhdModeDPISet(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    /* first cleanse the option to at least be reasonable */
+    if (rhdPtr->forceDPI.set)
+	if ((rhdPtr->forceDPI.val.integer < 20) ||
+	    (rhdPtr->forceDPI.val.integer > 1000)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Option ForceDPI got passed"
+		       " an insane value: %d. Ignoring.\n",
+		       rhdPtr->forceDPI.val.integer);
+	    rhdPtr->forceDPI.set = FALSE;
+	}
+
+    /* monitorResolution is the DPI that was passed as a server option.
+     * This has been available all the way back to the original Xorg import */
+    if (monitorResolution > 0) {
+	RHDDebug(pScrn->scrnIndex, "%s: Forcing DPI through xserver argument.\n",
+		 __func__);
+
+	pScrn->xDpi = monitorResolution;
+	pScrn->yDpi = monitorResolution;
+    } else if (rhdPtr->forceDPI.set) {
+	RHDDebug(pScrn->scrnIndex, "%s: Forcing DPI through configuration option.\n",
+		 __func__);
+
+	pScrn->xDpi = rhdPtr->forceDPI.val.integer;
+	pScrn->yDpi = rhdPtr->forceDPI.val.integer;
+    } else {
+	/* go over the monitors */
+	struct rhdCrtc *Crtc;
+	struct rhdOutput *Output;
+	struct rhdMonitor *Monitor;
+	/* we need to use split counters, x or y might fail separately */
+	int i, xcount, ycount;
+
+	pScrn->xDpi = 0;
+	pScrn->yDpi = 0;
+	xcount = 0;
+	ycount = 0;
+
+	for (i = 0; i < 2; i++) {
+	    Crtc = rhdPtr->Crtc[i];
+	    if (Crtc->Active) {
+		for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+		    if (Output->Active && (Output->Crtc == Crtc)) {
+			if (Output->Connector && Output->Connector->Monitor) {
+			    Monitor = Output->Connector->Monitor;
+
+			    if (Monitor->xDpi) {
+				pScrn->xDpi += (Monitor->xDpi - pScrn->xDpi) / (xcount + 1);
+				xcount++;
+			    }
+
+			    if (Monitor->yDpi) {
+				pScrn->yDpi += (Monitor->yDpi - pScrn->yDpi) / (ycount + 1);
+				ycount++;
+			    }
+			}
+		    }
+		}
+	    }
+	}
+
+	/* make sure that we have at least some value */
+	if (!pScrn->xDpi || !pScrn->yDpi) {
+	    if (pScrn->xDpi)
+		pScrn->yDpi = pScrn->xDpi;
+	    else if (pScrn->yDpi)
+		pScrn->xDpi = pScrn->xDpi;
+	    else {
+		pScrn->xDpi = 96;
+		pScrn->yDpi = 96;
+	    }
+	}
+    }
+
+#ifndef MMPERINCH
+#define MMPERINCH 25.4
+#endif
+    pScrn->widthmm = pScrn->virtualX * MMPERINCH / pScrn->xDpi;
+    pScrn->heightmm = pScrn->virtualY * MMPERINCH / pScrn->yDpi;
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Using %dx%d DPI.\n",
+	       pScrn->xDpi, pScrn->yDpi);
+}
+
 
 /*
  *
@@ -1766,6 +1866,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		     &rhdPtr->shadowFB, TRUE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED,
 		     &rhdPtr->forceReduced, FALSE);
+    RhdGetOptValInteger(rhdPtr->Options, OPTION_FORCEDPI,
+			&rhdPtr->forceDPI, 0);
     RhdGetOptValBool(rhdPtr->Options, OPTION_IGNOREHPD,
 		     &rhdPtr->ignoreHpd, FALSE);
     RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR,
