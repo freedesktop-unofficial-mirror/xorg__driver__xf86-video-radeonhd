@@ -56,7 +56,7 @@
 static inline CARD16
 LVTMARegisterShift(int ChipSet, CARD16 R500, CARD16 R600)
 {
-    if (ChipSet >= RHD_RS690)
+    if (ChipSet >= RHD_RS600)
 	return R600;
     else
 	return R500;
@@ -667,9 +667,9 @@ TMDSBSet(struct rhdOutput *Output)
     RHDFUNC(Output);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
-    if (rhdPtr->ChipSet < RHD_RS690) /* r5xx */
+    if (rhdPtr->ChipSet < RHD_RS600) /* r5xx */
 	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
-    else if (rhdPtr->ChipSet == RHD_RS690)
+    else if ((rhdPtr->ChipSet == RHD_RS600) || (rhdPtr->ChipSet == RHD_RS690))
 	RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, 0x01120000);
     else /* R600 and up */
 	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
@@ -680,7 +680,7 @@ TMDSBSet(struct rhdOutput *Output)
     RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000010);
 
     /* Disable the transmitter */
-    if (rhdPtr->ChipSet < RHD_RS690)
+    if (rhdPtr->ChipSet < RHD_RS600)
 	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00001D1F);
     else
 	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E);
@@ -750,7 +750,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
-	if (rhdPtr->ChipSet < RHD_RS690)
+	if (rhdPtr->ChipSet < RHD_RS600)
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
 	else
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000003E, 0x0000003E);
@@ -759,7 +759,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
     case RHD_POWER_RESET:
-	if (rhdPtr->ChipSet < RHD_RS690)
+	if (rhdPtr->ChipSet < RHD_RS600)
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
 	else
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
@@ -769,7 +769,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
-	if (rhdPtr->ChipSet < RHD_RS690)
+	if (rhdPtr->ChipSet < RHD_RS600)
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
 	else
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);

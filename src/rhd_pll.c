@@ -284,6 +284,7 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
 	    return 0x00230704;
 	else
 	    return 0;
+    case RHD_RS600:
     case RHD_RS690:
 	/* depending on MiscInfo also 0x00120004 */
 	return 0x00120704;
@@ -327,7 +328,7 @@ PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	    FBDiv |= 0x00000030;
 	else if (FeedbackDivider <= 0x3F)
 	    FBDiv |= 0x00000020;
-    } else if (rhdPtr->ChipSet >= RHD_RS690) /* RS690 & R600 */
+    } else if (rhdPtr->ChipSet >= RHD_RS600) /* RS600, RS690, R600 */
 	FBDiv |= 0x00000030;
     else
 	FBDiv |= RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x00000030;
@@ -366,7 +367,7 @@ PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
 	    FBDiv |= 0x00000030;
 	else if (FeedbackDivider <= 0x3F)
 	    FBDiv |= 0x00000020;
-    } else if (rhdPtr->ChipSet >= RHD_RS690) /* RS690 & R600 */
+    } else if (rhdPtr->ChipSet >= RHD_RS600) /* RS600, RS690, R600 */
 	FBDiv |= 0x00000030;
     else
 	FBDiv |= RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x00000030;

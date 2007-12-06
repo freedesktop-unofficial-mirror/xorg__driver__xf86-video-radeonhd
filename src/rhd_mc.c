@@ -54,7 +54,7 @@ RHDMCInit(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     /* for now */
-    if (rhdPtr->ChipSet < RHD_RS690)
+    if (rhdPtr->ChipSet < RHD_RS600)
 	return;
 
     MC = xnfcalloc(1, sizeof(struct rhdMC));

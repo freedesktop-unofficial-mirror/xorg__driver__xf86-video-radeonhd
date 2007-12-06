@@ -342,7 +342,7 @@ enum _r6xxRegs {
 };
 
 /* *_Q: questionbable */
-enum _rs6xxRegs {
+enum _rs69xRegs {
     /* I2C */
     RS69_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) *//* */
     RS69_DC_I2C_UNKNOWN_2		   = 0x7D34,  /* (RW) */

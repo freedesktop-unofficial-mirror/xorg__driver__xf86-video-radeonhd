@@ -776,7 +776,7 @@ rhdInitI2C(int scrnIndex)
 	}
 	xf86snprintf(I2CPtr->BusName,17,"RHD I2C line %1.1i",i);
 	I2CPtr->scrnIndex = scrnIndex;
-	if (rhdPtr->ChipSet < RHD_RS690)
+	if (rhdPtr->ChipSet < RHD_RS600)
 	    I2CPtr->I2CWriteRead = rhd5xxWriteRead;
 	else if (rhdPtr->ChipSet < RHD_R600)
 	    I2CPtr->I2CWriteRead = rhdRS69WriteRead;

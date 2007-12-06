@@ -59,6 +59,7 @@ SymTabRec RHDChipsets[] = {
     { RHD_M68,   "M68" },
     { RHD_M71,   "M71" },
     /* R500 integrated */
+    { RHD_RS600, "RS600" },
     { RHD_RS690, "RS690" },
     { RHD_RS740, "RS740" },
     /* R600 */
@@ -191,6 +192,9 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x7297, RHD_RV560 ), /* RV560 */
     RHD_DEVICE_MATCH(  0x791E, RHD_RS690 ), /* Radeon X1200 */
     RHD_DEVICE_MATCH(  0x791F, RHD_RS690 ), /* Radeon X1200 */
+    RHD_DEVICE_MATCH(  0x793F, RHD_RS600 ), /* Radeon Xpress 1200 */
+    RHD_DEVICE_MATCH(  0x7941, RHD_RS600 ), /* Radeon Xpress 1200 */
+    RHD_DEVICE_MATCH(  0x7942, RHD_RS600 ), /* Radeon Xpress 1200 (M) */
     RHD_DEVICE_MATCH(  0x796C, RHD_RS740 ), /* RS740 */
     RHD_DEVICE_MATCH(  0x796D, RHD_RS740 ), /* RS740M */
     RHD_DEVICE_MATCH(  0x796E, RHD_RS740 ), /* RS740 */
@@ -264,6 +268,7 @@ RHDIdentify(int flags)
 	    "M72    : Mobility Radeon HD 2400; Radeon E2400.\n\t"
 	    "M74    : Mobility Radeon HD 2400 XT.\n\t"
 	    "M76    : Mobility Radeon HD 2600; (Gemini ATI) Mobility Radeon HD 2600 XT.\n\t"
+	    "RS600  : Radeon Xpress 1200.\n\t"
 	    "RS690  : Radeon X1200.\n\t"
 	    "RS740  : RS740, RS740M\n");
     xf86Msg(X_NONE, "\n");
@@ -548,6 +553,9 @@ rhdCards[] =
     /* 0x791E : RS690 : Radeon X1200 */
     /* 0x791F : RS690 : Radeon X1200 */
     { 0x791F, 0x103C, 0x30C2, "HP/Compaq 6715b", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY },
+    /* 0x793F : RS600 : Radeon Xpress 1200 */
+    /* 0x7941 : RS600 : Radeon Xpress 1200 */
+    /* 0x7942 : RS600 : Radeon Xpress 1200 (M) */
     /* 0x796C : RS740 : RS740 */
     /* 0x796D : RS740 : RS740M */
     /* 0x796E : RS740 : RS740 */
