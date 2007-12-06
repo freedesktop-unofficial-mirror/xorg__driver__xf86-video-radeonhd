@@ -153,14 +153,14 @@ EDIDModeFromDetailedTiming(int scrnIndex, struct detailed_timings *timing)
         Mode->Flags |= V_INTERLACE;
 
     if (timing->misc & 0x02)
-        Mode->Flags |= V_PHSYNC;
-    else
-        Mode->Flags |= V_NHSYNC;
-
-    if (timing->misc & 0x01)
         Mode->Flags |= V_PVSYNC;
     else
         Mode->Flags |= V_NVSYNC;
+
+    if (timing->misc & 0x01)
+        Mode->Flags |= V_PHSYNC;
+    else
+        Mode->Flags |= V_NHSYNC;
 
     return Mode;
 }
