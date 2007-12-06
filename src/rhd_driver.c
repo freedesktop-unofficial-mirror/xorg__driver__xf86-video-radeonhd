@@ -1637,10 +1637,6 @@ rhdPrepareMode(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
-    /* Stop crap from being shown: gets reenabled through SaveScreen */
-    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
-    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
-
     /* no active outputs == no mess */
     RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
 
@@ -1659,6 +1655,10 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
 
     RHDFUNC(rhdPtr);
     pScrn->vtSema = TRUE;
+
+    /* Stop crap from being shown: gets reenabled through SaveScreen */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
 
     rhdPrepareMode(rhdPtr);
 
