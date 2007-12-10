@@ -56,6 +56,7 @@
 /* Driver specific headers */
 #include "rhd.h"
 #include "rhd_crtc.h"
+#include "rhd_cursor.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_modes.h"
@@ -77,10 +78,18 @@
  * Driver internal
  */
 
-/* List of allocated RandR Crtc and Output description structs */
+#define WRAP_SCRNINFO(func,new)					\
+    do {							\
+	rhdPtr->randr->func = pScrn->func;			\
+	pScrn->func = new;					\
+    } while (0)
+#define UNWRAP_SCRNINFO(func)					\
+	pScrn->func = rhdPtr->randr->func
+
 struct rhdRandr {
     xf86CrtcPtr    RandrCrtc[2];
     xf86OutputPtr *RandrOutput;  /* NULL-terminated */
+    void         (*PointerMoved)(int, int, int);
 } ;
 
 /* Outputs and Connectors are combined for RandR due to missing abstraction */
@@ -94,9 +103,10 @@ typedef struct _rhdRandrOutput {
 #define ATOM_CONNECTOR_TYPE   "RANDR_CONNECTOR_TYPE"
 #define ATOM_CONNECTOR_NUMBER "RANDR_CONNECTOR_NUMBER"
 #define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
+#define ATOM_PANNING_AREA     "RANDR_PANING_AREA"
 
 static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
-	    atomOutputNumber;
+	    atomOutputNumber, atomPanningArea;
 
 
 /* Get RandR property values */
@@ -150,6 +160,27 @@ rhdGetConnectorType(rhdRandrOutputPtr ro)
 	return "TV";
     default:
 	return "unknown";
+    }
+}
+
+/* Set crtc pos according to mouse pos and panning information */
+static void
+rhdUpdateCrtcPos(struct rhdCrtc *Crtc, int x, int y)
+{
+    if (Crtc->MaxX > 0) {
+	int cx = Crtc->X, cy = Crtc->Y;
+	int w  = Crtc->CurrentMode->HDisplay;
+	int h  = Crtc->CurrentMode->VDisplay;
+	if (x < cx)
+	    cx = x > Crtc->MinX ? x : Crtc->MinX;
+	if (x >= cx + w)
+	    cx = x < Crtc->MaxX ? x-w+1 : Crtc->MaxX-w;
+	if (y < cy)
+	    cy = y > Crtc->MinY ? y : Crtc->MinY;
+	if (y >= cy + h)
+	    cy = y < Crtc->MaxY ? y-h+1 : Crtc->MaxY-h;
+	if (cx != Crtc->X || cy != Crtc->Y)
+	    Crtc->FrameSet(Crtc, cx, cy);
     }
 }
 
@@ -295,6 +326,12 @@ rhdRRCrtcPrepare(xf86CrtcPtr crtc)
 
     /* Disable CRTCs to stop noise from appearing. */
     Crtc->Power(Crtc, RHD_POWER_RESET);
+
+    /* Verify panning area */
+    if (Crtc->MaxX > Crtc->Width)
+	Crtc->MaxX = Crtc->Width;
+    if (Crtc->MaxY > Crtc->Height)
+	Crtc->MaxY = Crtc->Height;
 }
 static void
 rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
@@ -317,6 +354,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 		pScrn->depth, rhdPtr->FbFreeStart);
     Crtc->ModeSet(Crtc, Mode);
     Crtc->FrameSet(Crtc, x, y);
+    rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
     Crtc->PLLSelect(Crtc, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
@@ -390,6 +428,8 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 			      FALSE, FALSE, TRUE, 0, NULL);
     RRConfigureOutputProperty(out->randr_output, atomConnectorNumber,
 			      FALSE, FALSE, TRUE, 0, NULL);
+    RRConfigureOutputProperty(out->randr_output, atomPanningArea,
+			      FALSE, FALSE, FALSE, 0, NULL);
     val = rhdGetSignalFormat(rout);
     RRChangeOutputProperty(out->randr_output, atomSignalFormat,
 			   XA_STRING, 8, PropModeReplace,
@@ -413,6 +453,9 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     RRChangeOutputProperty(out->randr_output, atomOutputNumber,
 			   XA_INTEGER, 32, PropModeReplace,
 			   1, &num, FALSE, FALSE);
+    RRChangeOutputProperty(out->randr_output, atomPanningArea,
+			   XA_STRING, 8, PropModeReplace,
+			   0, NULL, FALSE, FALSE);
 }
 
 /* Turns the output on/off, or sets intermediate power levels if available. */
@@ -625,8 +668,11 @@ rhdRROutputCommit(xf86OutputPtr out)
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
     const char       *val;
+    char              buf[32];
+    struct rhdCrtc   *Crtc   = (struct rhdCrtc *) out->crtc->driver_private;
 
     RHDFUNC(rhdPtr);
+    ASSERT(Crtc == rout->Output->Crtc);
 
     rout->Output->Active    = TRUE;
     rout->Output->Connector = rout->Connector;
@@ -637,6 +683,16 @@ rhdRROutputCommit(xf86OutputPtr out)
     RRChangeOutputProperty(out->randr_output, atomConnectorType,
 			   XA_STRING, 8, PropModeReplace,
 			   strlen(val), (char *) val, TRUE, FALSE);
+    /* Should be a crtc property */
+    if (Crtc->MaxX > Crtc->MinX && Crtc->MaxY > Crtc->MinY)
+	sprintf(buf, "%dx%d+%d+%d", Crtc->MaxX - Crtc->MinX,
+		Crtc->MaxY - Crtc->MinY, Crtc->MinX, Crtc->MinY);
+    else
+	buf[0] = 0;
+    RRChangeOutputProperty(out->randr_output, atomPanningArea,
+			   XA_STRING, 8, PropModeReplace,
+			   strlen(buf), buf, TRUE, FALSE);
+
     RHDDebugRandrState(rhdPtr, rout->Name);
 }
 
@@ -768,11 +824,35 @@ rhdRROutputGetModes(xf86OutputPtr output)
 
 /* An output's property has changed. */
 static Bool
-rhdRROutputSetProperty(xf86OutputPtr output,
-		       Atom property,
+rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 		       RRPropertyValuePtr value)
 {
-    return FALSE;	/* We don't have mutable properties yet */
+    RHDPtr            rhdPtr = RHDPTR(out->scrn);
+    ScrnInfoPtr       pScrn  = xf86Screens[rhdPtr->scrnIndex];
+    rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+
+    if (property == atomPanningArea) {
+	int w, h, x = 0, y = 0;
+	struct rhdCrtc *Crtc = rout->Output->Crtc;
+	if (!Crtc)
+	    return FALSE;
+	if (value->type != XA_STRING || value->format != 8)
+	    return FALSE;
+	if (sscanf(value->data, "%dx%d+%d+%d", &w, &h, &x, &y) < 2)
+	    return FALSE;
+	if (w < 0 || h < 0 || x < 0 || y < 0 ||
+	    w > pScrn->virtualX || h > pScrn->virtualY)
+	    return FALSE;
+	Crtc->MinX = x;
+	Crtc->MinY = y;
+	Crtc->MaxX = x + w;
+	Crtc->MaxY = y + h;
+	RHDDebug(rhdPtr->scrnIndex, "%s: PanningArea %d/%d - %d/%d\n",
+		 x, y, x+w, y+h);
+	return TRUE;
+    }
+
+    return FALSE;	/* Others are not mutable */
 }
 
 
@@ -928,6 +1008,8 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 				   sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
     atomOutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
 				   sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
+    atomPanningArea     = MakeAtom(ATOM_PANNING_AREA,
+				   sizeof(ATOM_PANNING_AREA)-1, TRUE);
 
     randr = xnfcalloc(1, sizeof(struct rhdRandr));
     xf86CrtcConfigInit(pScrn, &rhdRRCrtcConfigFuncs);
@@ -1032,6 +1114,24 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     return TRUE;
 }
 
+/* Wrapped PointerMoved for driver-level panning */
+static void
+rhdRRPointerMoved(int scrnIndex, int x, int y)
+{
+    ScrnInfoPtr pScrn  = xf86Screens[scrnIndex];
+    RHDPtr      rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    int i;
+
+    for (i = 0; i < 2; i++) {
+	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
+	if (Crtc->scrnIndex == scrnIndex && Crtc->Active)
+	    rhdUpdateCrtcPos(Crtc, x + pScrn->frameX0, y + pScrn->frameY0);
+    }
+    UNWRAP_SCRNINFO(PointerMoved);
+    pScrn->PointerMoved(scrnIndex, x, y);
+    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved); 
+}
+
 /* Call in ScreenInit after frame buffer + acceleration layers */
 Bool
 RHDRandrScreenInit(ScreenPtr pScreen)
@@ -1044,6 +1144,9 @@ RHDRandrScreenInit(ScreenPtr pScreen)
 	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
+    /* Wrap cursor for driver-level panning */
+    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved); 
+
     RHDDebugRandrState(rhdPtr, "POST-ScreenInit");
     return TRUE;
 }
