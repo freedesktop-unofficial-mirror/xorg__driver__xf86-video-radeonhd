@@ -421,7 +421,20 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     CARD32            num;
 
     RHDFUNC(rhdPtr);
-    /* Set up potential RandR 1.3 properties */
+
+    /* Create atoms for potential RandR 1.3 properties */
+    atomSignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
+				   sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
+    atomConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
+				   sizeof(ATOM_CONNECTOR_TYPE)-1, TRUE);
+    atomConnectorNumber = MakeAtom(ATOM_CONNECTOR_NUMBER,
+				   sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
+    atomOutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
+				   sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
+    atomPanningArea     = MakeAtom(ATOM_PANNING_AREA,
+				   sizeof(ATOM_PANNING_AREA)-1, TRUE);
+
+    /* Set up properties */
     RRConfigureOutputProperty(out->randr_output, atomSignalFormat,
 			      FALSE, FALSE, TRUE, 0, NULL);
     RRConfigureOutputProperty(out->randr_output, atomConnectorType,
@@ -998,18 +1011,6 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		   "RandR 1.2 support disabled due to configuration\n");
 	return FALSE;
     }
-
-    /* Create atoms for potential RandR 1.3 properties */
-    atomSignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
-				   sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
-    atomConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
-				   sizeof(ATOM_CONNECTOR_TYPE)-1, TRUE);
-    atomConnectorNumber = MakeAtom(ATOM_CONNECTOR_NUMBER,
-				   sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
-    atomOutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
-				   sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
-    atomPanningArea     = MakeAtom(ATOM_PANNING_AREA,
-				   sizeof(ATOM_PANNING_AREA)-1, TRUE);
 
     randr = xnfcalloc(1, sizeof(struct rhdRandr));
     xf86CrtcConfigInit(pScrn, &rhdRRCrtcConfigFuncs);
