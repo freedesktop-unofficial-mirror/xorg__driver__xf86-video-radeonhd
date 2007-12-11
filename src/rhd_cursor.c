@@ -429,11 +429,14 @@ rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
 }
 
 static Bool
-rhdUseHWCursorARGB(ScreenPtr pScreen, CursorPtr cur)
+rhdUseHWCursor(ScreenPtr pScreen, CursorPtr cur)
 {
     /* Inconsistency in interface: UseHWCursor == NULL is trivial accept,
      * UseHWCursorARGB == NULL is trivial reject. */
-    return TRUE;
+    if (cur->bits->width <= MAX_CURSOR_WIDTH &&
+	cur->bits->height <= MAX_CURSOR_HEIGHT)
+	return TRUE;
+    return FALSE;
 }
 
 static void
@@ -554,9 +557,9 @@ RHDxf86InitCursor(ScreenPtr pScreen)
     infoPtr->LoadCursorImage   = rhdLoadCursorImage;
     infoPtr->HideCursor        = rhdHideCursor;
     infoPtr->ShowCursor        = rhdShowCursor;
-    infoPtr->UseHWCursor       = NULL;
+    infoPtr->UseHWCursor       = rhdUseHWCursor;
 #ifdef ARGB_CURSOR
-    infoPtr->UseHWCursorARGB   = rhdUseHWCursorARGB; /* may not be NULL */
+    infoPtr->UseHWCursorARGB   = rhdUseHWCursor;
     infoPtr->LoadCursorARGB    = rhdLoadCursorARGB;
 #endif
     infoPtr->RealizeCursor     = rhdRealizeCursor;
