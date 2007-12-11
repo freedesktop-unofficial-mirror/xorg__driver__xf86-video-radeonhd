@@ -841,28 +841,33 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 		       RRPropertyValuePtr value)
 {
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
-    ScrnInfoPtr       pScrn  = xf86Screens[rhdPtr->scrnIndex];
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
 
     if (property == atomPanningArea) {
-	int w, h, x = 0, y = 0;
+	int w = 0, h = 0, x = 0, y = 0;
 	struct rhdCrtc *Crtc = rout->Output->Crtc;
 	if (!Crtc)
 	    return FALSE;
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
-	if (sscanf(value->data, "%dx%d+%d+%d", &w, &h, &x, &y) < 2)
+	switch (sscanf(value->data, "%dx%d+%d+%d", &w, &h, &x, &y)) {
+	case 0:
+	case 2:
+	case 4:
+	    if (w < 0 || h < 0 || x < 0 || y < 0 ||
+		x+w > Crtc->Width || y+h > Crtc->Height)
+		return FALSE;
+	    Crtc->MinX = x;
+	    Crtc->MinY = y;
+	    Crtc->MaxX = x + w;
+	    Crtc->MaxY = y + h;
+	    rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
+	    RHDDebug(rhdPtr->scrnIndex, "%s: PanningArea %d/%d - %d/%d\n",
+		     x, y, x+w, y+h);
+	    return TRUE;
+	default:
 	    return FALSE;
-	if (w < 0 || h < 0 || x < 0 || y < 0 ||
-	    w > pScrn->virtualX || h > pScrn->virtualY)
-	    return FALSE;
-	Crtc->MinX = x;
-	Crtc->MinY = y;
-	Crtc->MaxX = x + w;
-	Crtc->MaxY = y + h;
-	RHDDebug(rhdPtr->scrnIndex, "%s: PanningArea %d/%d - %d/%d\n",
-		 x, y, x+w, y+h);
-	return TRUE;
+	}
     }
 
     return FALSE;	/* Others are not mutable */
