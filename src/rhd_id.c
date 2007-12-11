@@ -300,11 +300,11 @@ RHDIdentify(int flags)
        { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}}
 
 /* GeCube HD 2400PRO AGP (GC-RX24PGA2-D3) specifies 2 DVI again.*/
-#define DVI_BA11_VGA_A0 \
- { {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_1, RHD_HPD_1, \
-       { RHD_OUTPUT_TMDSA, RHD_OUTPUT_DACB}}, \
-   {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
-       { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE}}}
+#define BROKEN_VGA_B1_DVI_AB00 \
+ { {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_0, \
+       { RHD_OUTPUT_DACA, RHD_OUTPUT_LVTMA}}, \
+   {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_1, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE}}}
 
 /* Fujitsu Siemens Amilo PI1536 has no HPD on its DVI connector. */
 #define PANEL_B_DVI_AA1 \
@@ -576,7 +576,7 @@ rhdCards[] =
     /* 0x94C3 : RV610 : Radeon HD 2400 Pro */
     { 0x94C3, 0x174B, 0xE370, "Sapphire HD 2400 Pro", RHD_CARD_FLAG_NONE, VGA_A0_DVI_BB10 },
     /* 0x94C4 : RV610 : ATI Radeon HD 2400 PRO AGP  */
-    { 0x94C4, 0x18BC, 0x0028, "GeCube Radeon HD 2400PRO AGP", RHD_CARD_FLAG_NONE, DVI_BA11_VGA_A0 },
+    { 0x94C4, 0x18BC, 0x0028, "GeCube Radeon HD 2400PRO AGP", RHD_CARD_FLAG_NONE, BROKEN_VGA_B1_DVI_AB00 },
     /* 0x94C5 : RV610 : ATI FireGL V4000  */
     /* 0x94C6 : RV610 : RV610  */
     /* 0x94C7 : RV610 : ATI Radeon HD 2350 */
