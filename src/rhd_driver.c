@@ -871,8 +871,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* init randr */
     if (rhdPtr->randr && !RHDRandrScreenInit (pScreen)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed.\n");
-	rhdPtr->randr = NULL;
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "RandrScreenInit failed. Try Option \"noRandr\"\n");
+	return FALSE;
     }
 
     /* now init the new mode */

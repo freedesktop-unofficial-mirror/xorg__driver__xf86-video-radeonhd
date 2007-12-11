@@ -1104,6 +1104,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "RandR: No valid modes. Disabled.\n");
+	rhdPtr->randr = NULL;		/* TODO: not cleaning up correctly */
 	return FALSE;
     }
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
@@ -1114,7 +1115,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     if (!xf86RandR12PreInit (pScrn)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "RandR: xf86RandR12PreInit failed. Disabled.\n");
-	rhdPtr->randr = NULL;
+	rhdPtr->randr = NULL;		/* TODO: not cleaning up correctly */
 	return FALSE;
     }
     return TRUE;
