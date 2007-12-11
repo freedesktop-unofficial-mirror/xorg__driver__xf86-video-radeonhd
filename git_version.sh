@@ -137,7 +137,7 @@ unset git_errors ||:
 if [ "x$git_found" = "xyes" ]; then
     git_version=`git --version`
     if [ "x$git_version" = "x" ]; then
-        git_errors="${git_errors+"${git_errors}; "}error running 'git --version'"
+        git_errors="${git_errors+${git_errors}; }error running 'git --version'"
     fi
 fi
 
@@ -153,7 +153,7 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
         # git-1.4 and probably earlier understand "git-rev-parse HEAD"
         git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
         if [ "x$git_shaid" = "x" ]; then
-            git_errors="${git_errors+"${git_errors}; "}error running 'git-rev-parse HEAD'"
+            git_errors="${git_errors+${git_errors}; }error running 'git-rev-parse HEAD'"
         fi
         # git-1.4 and probably earlier understand "git-symbolic-ref HEAD"
         git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
