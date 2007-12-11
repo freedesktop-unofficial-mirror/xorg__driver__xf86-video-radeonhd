@@ -1471,9 +1471,9 @@ InterpretATOMBIOS(unsigned char *base)
 int
 main(int argc, char *argv[])
 {
-    struct pci_dev *device;
+    struct pci_dev *device = NULL;
     struct pci_access *pciAccess;
-    struct RHDDevice *rhdDevice;
+    struct RHDDevice *rhdDevice = NULL;
     int devMem;
     void *io;
     int bus, dev, func;
