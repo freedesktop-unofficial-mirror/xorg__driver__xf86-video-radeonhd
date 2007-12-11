@@ -26,7 +26,7 @@ Options:
   -x, --example          Print complete example program."
 
 # The caller may have set these for us
-SED="${SED-"sed"}"
+SED="${SED-sed}"
 
 # Initialize
 working_dir="$(pwd)"
