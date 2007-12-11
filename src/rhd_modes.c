@@ -1033,7 +1033,7 @@ rhdModesGrabOnHighestType(DisplayModePtr *Modes)
     if (Mode)
         return Mode;
 
-    /* No reason why we should treat built-in and vesa seperately */
+    /* No reason why we should treat built-in and vesa separately */
     Mode = *Modes;
     *Modes = NULL;
     return Mode;
@@ -1324,7 +1324,7 @@ RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent)
         /* Sort our list */
         TempList = Pool;
 
-        /* Sort higher priority modes seperately */
+        /* Sort higher priority modes separately */
         Pool = rhdModesGrabOnTypeAll(&TempList, M_T_PREFERRED, M_T_PREFERRED);
         Pool = rhdModesSortOnSize(Pool);
 

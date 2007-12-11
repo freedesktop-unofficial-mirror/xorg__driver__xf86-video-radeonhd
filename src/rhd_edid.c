@@ -120,9 +120,9 @@ EDIDModeFromDetailedTiming(int scrnIndex, struct detailed_timings *timing)
         return NULL;
     }
 
-    /* We only do seperate sync currently */
+    /* We only do separate sync currently */
     if (timing->sync != 0x03) {
-         xf86DrvMsg(scrnIndex, X_INFO, "%s: Ignoring: We only handle seperate"
+         xf86DrvMsg(scrnIndex, X_INFO, "%s: Ignoring: We only handle separate"
                     " sync.\n", __func__);
          return NULL;
     }
