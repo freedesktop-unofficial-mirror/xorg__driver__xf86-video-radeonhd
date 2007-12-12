@@ -200,6 +200,7 @@ enum {
     /* DAC A */
     DACA_ENABLE                    = 0x7800,
     DACA_SOURCE_SELECT             = 0x7804,
+    DACA_SYNC_SELECT               = 0x7824,
     DACA_AUTODETECT_CONTROL        = 0x7828,
     DACA_FORCE_OUTPUT_CNTL         = 0x783C,
     DACA_FORCE_DATA                = 0x7840,
@@ -228,6 +229,7 @@ enum {
     /* DAC B */
     DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04,
+    DACB_SYNC_SELECT               = 0x7A24,
     DACB_AUTODETECT_CONTROL        = 0x7A28,
     DACB_FORCE_OUTPUT_CNTL         = 0x7A3C,
     DACB_FORCE_DATA                = 0x7A40,
