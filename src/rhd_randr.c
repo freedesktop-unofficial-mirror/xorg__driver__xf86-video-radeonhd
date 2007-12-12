@@ -766,8 +766,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    /* There is the infamous DMS-59 connector, on which HPD returns
 	     * false when 'only' VGA is connected. */
 	    else if (rhdPtr->Card &&
-		     (rhdPtr->Card->flags & RHD_CARD_FLAG_DMS59) &&
-		     rout->Connector->Type == RHD_CONNECTOR_VGA) {
+		     (rhdPtr->Card->flags & RHD_CARD_FLAG_DMS59)) {
 		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "RandR: Verifying state of DMS-59 VGA connector.\n");
 		if (rout->Output->Sense &&
