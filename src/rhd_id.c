@@ -551,6 +551,7 @@ rhdCards[] =
     /* 0x7293 : RV560 : Radeon X1650 */
     /* 0x7297 : RV560 : RV560 */
     /* 0x791E : RS690 : Radeon X1200 */
+    { 0x791E, 0x1043, 0x826D, "Asus M2A-VM", RHD_CARD_FLAG_NONE, VGA_A0_DVI_BB10 },
     /* 0x791F : RS690 : Radeon X1200 */
     { 0x791F, 0x103C, 0x30C2, "HP/Compaq 6715b", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY },
     /* 0x793F : RS600 : Radeon Xpress 1200 */
