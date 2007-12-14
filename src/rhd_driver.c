@@ -1761,17 +1761,18 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    RHDPLLsRestore(rhdPtr);
-    RHDLUTsRestore(rhdPtr);
+    RHDRestoreMC(rhdPtr);
 
-    rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
-    rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
     if (rhdPtr->CursorInfo)
 	rhdRestoreCursor(pScrn);
 
-    RHDRestoreMC(rhdPtr);
+    RHDPLLsRestore(rhdPtr);
+    RHDLUTsRestore(rhdPtr);
 
     RHDVGARestore(rhdPtr);
+
+    rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
+    rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
 
     RHDOutputsRestore(rhdPtr);
 }

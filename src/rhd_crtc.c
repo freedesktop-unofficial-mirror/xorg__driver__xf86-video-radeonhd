@@ -701,6 +701,15 @@ DxRestore(struct rhdCrtc *Crtc)
     else
 	RHDRegWrite(Crtc, PCLK_CRTC2_CNTL, Store->CrtcPCLKControl);
 
+    /* When VGA is enabled, it imposes its timing on us, so our CRTC SYNC
+     * timing can be set to 0. This doesn't always restore properly...
+     * Workaround is to set a valid sync length for a bit so VGA can
+     * latch in. */
+    if (!Store->CrtcVSyncA && (Store->CrtcControl & 0x00000001)) {
+	RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_A, 0x00040000);
+	usleep(300000); /* seems a reliable timeout here */
+	RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_A, Store->CrtcVSyncA);
+    }
 }
 
 /*
