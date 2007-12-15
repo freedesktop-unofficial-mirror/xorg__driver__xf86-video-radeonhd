@@ -530,6 +530,7 @@ rhdCards[] =
     { 0x7249, 0x1002, 0x0B12, "ATI Radeon X1900 XTX", RHD_CARD_FLAG_NONE, DVI_BA10_DVI_AB01 },
     /* 0x724A : R580 : Radeon X1900 */
     /* 0x724B : R580 : Radeon X1900 */
+    { 0x724B, 0x1002, 0x0B12, "Sapphire Radeon X1900 GT", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY },
     /* 0x724C : R580 : Radeon X1900 */
     /* 0x724D : R580 : Radeon X1900 */
     /* 0x724E : R580 : AMD Stream Processor */
