@@ -1222,7 +1222,7 @@ LVDSReport(void *map)
 
     DualLink = RegRead(map, LVTMA_CNTL) & 0x01000000;
     Bits24 = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x1;
-    Fpdi = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x1;
+    Fpdi = RegRead(map, LVTMA_LVDS_DATA_CNTL) & 0x10;
 
     printf("\t%dbits, %s link, %s Panel found.\n",
 	   Bits24 ? 24 : 18,

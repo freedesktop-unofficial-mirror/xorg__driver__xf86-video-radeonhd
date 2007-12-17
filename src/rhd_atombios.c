@@ -1018,7 +1018,7 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 		    break;
 		case     ATOM_LVDS_FPDI:
 		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc * 0x10;
+			.LVDS_Info->ucLVDS_Misc & 0x10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;

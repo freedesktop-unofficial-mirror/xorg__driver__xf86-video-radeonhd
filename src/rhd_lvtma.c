@@ -467,7 +467,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 
     Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
     Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
-    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
+    Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000010;
 
 #ifdef ATOM_BIOS
     {
