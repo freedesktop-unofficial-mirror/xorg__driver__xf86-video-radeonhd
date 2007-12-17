@@ -194,7 +194,7 @@ typedef enum {
     OPTION_FORCEREDUCED,
     OPTION_FORCEDPI,
     OPTION_USECONFIGUREDMONITOR,
-    OPTION_IGNOREHPD,
+    OPTION_HPD,
     OPTION_NORANDR,
     OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER
@@ -208,7 +208,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_FORCEDPI,             "forcedpi",             OPTV_INTEGER, {0}, FALSE },
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_IGNOREHPD,            "IgnoreHPD",            OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_HPD,                  "HPD",                  OPTV_STRING,  {0}, FALSE },
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
@@ -532,6 +532,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     else
 	xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "Detected an %s on an "
 		   "unidentified card\n", pScrn->chipset);
+    if (rhdPtr->Card && rhdPtr->Card->flags & RHD_CARD_FLAG_HPDSWAP &&
+	rhdPtr->hpdUsage == RHD_HPD_USAGE_AUTO)
+	rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO_SWAP;
 
     /* We have none of these things yet. */
     rhdPtr->noAccel.val.bool = TRUE;
@@ -1393,7 +1396,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		rhdOutputConnectorCheck(Connector);
 	    } else {
 		Connector->HPDAttached = FALSE;
-		if (ConnectorIsDMS59 || rhdPtr->ignoreHpd.set)
+		if (ConnectorIsDMS59)
 		    rhdOutputConnectorCheck(Connector);
 	    }
 	} else
@@ -1851,6 +1854,7 @@ static void
 rhdProcessOptions(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDOpt hpd;
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -1859,30 +1863,41 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     /* Process the options */
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
 
-    RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL,
-		     &rhdPtr->noAccel, FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_SW_CURSOR,
-		     &rhdPtr->swCursor, FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_SHADOWFB,
-		     &rhdPtr->shadowFB, TRUE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_FORCEREDUCED,
-		     &rhdPtr->forceReduced, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_NOACCEL,
+			&rhdPtr->noAccel, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_SW_CURSOR,
+			&rhdPtr->swCursor, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_SHADOWFB,
+			&rhdPtr->shadowFB, TRUE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_FORCEREDUCED,
+			&rhdPtr->forceReduced, FALSE);
     RhdGetOptValInteger(rhdPtr->Options, OPTION_FORCEDPI,
 			&rhdPtr->forceDPI, 0);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_IGNOREHPD,
-		     &rhdPtr->ignoreHpd, FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_NORANDR,
-		     &rhdPtr->noRandr, FALSE);
-    RhdGetOptValBool(rhdPtr->Options, OPTION_RRUSEXF86EDID,
-		     &rhdPtr->rrUseXF86Edid, FALSE);
-    RhdGetOptValString(rhdPtr->Options, OPTION_RROUTPUTORDER,
-		       &rhdPtr->rrOutputOrder, FALSE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_HPD,
+			&hpd, "auto");
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_NORANDR,
+			&rhdPtr->noRandr, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_RRUSEXF86EDID,
+			&rhdPtr->rrUseXF86Edid, FALSE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
+			&rhdPtr->rrOutputOrder, NULL);
 
-    if (rhdPtr->ignoreHpd.set)
+    rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO;
+    if (strcasecmp(hpd.val.string, "off") == 0) {
+	rhdPtr->hpdUsage = RHD_HPD_USAGE_OFF;
+    } else if (strcasecmp(hpd.val.string, "normal") == 0) {
+	rhdPtr->hpdUsage = RHD_HPD_USAGE_NORMAL;
+    } else if (strcasecmp(hpd.val.string, "swap") == 0) {
+	rhdPtr->hpdUsage = RHD_HPD_USAGE_SWAP;
+    } else if (strcasecmp(hpd.val.string, "auto") != 0) {
+	xf86DrvMsgVerb(rhdPtr->scrnIndex, X_ERROR, 0,
+		       "Unknown HPD Option \"%s\"", hpd.val.string);
+    }
+    if (rhdPtr->hpdUsage != RHD_HPD_USAGE_AUTO)
 	xf86DrvMsgVerb(rhdPtr->scrnIndex, X_WARNING, 0,
-	"!!! Option IgnoreHPD is set !!!\n"
+	"!!! Option HPD is set !!!\n"
 	"     This shall only be used to work around broken connector tables.\n"
-	"     Please report your BIOS to radeonhd@opensuse.org\n");
+	"     Please report your findings to radeonhd@opensuse.org\n");
 }
 
 /*

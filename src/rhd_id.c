@@ -455,7 +455,7 @@ rhdCards[] =
     /* 0x7146 : RV515 : Radeon X1300/X1550 */
     { 0x7146, 0x174B, 0x0470, "Sapphire X1300", RHD_CARD_FLAG_NONE, VGA_B1_DVI_AB01 },
     /* 0x7147 : RV505 : Radeon X1550 64-bit */
-    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", RHD_CARD_FLAG_NONE, VGA_A0_DVI_BB11 },
+    { 0x7147, 0x174B, 0x0840, "Sapphire X1550", RHD_CARD_FLAG_HPDSWAP, ID_CONNECTORINFO_EMPTY },
     /* 0x7149 : M52 : Mobility Radeon X1300 */
     { 0x7149, 0x1028, 0x2003, "Dell Inspiron E1505", RHD_CARD_FLAG_NONE, PANEL_B_VGA_A0 },
     { 0x7149, 0x17AA, 0x2005, "Lenovo Thinkpad T60 (2008)", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0_DVI_A10 },

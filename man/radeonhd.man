@@ -61,6 +61,7 @@ driver supports video cards based on the following ATI chips:
 .\" sed -n '/^\t[RM][A-Z0-9]\+ * : /{ s/\.$//; s/^\t\([A-Z0-9]\+\) \+: \(.*\)/.TP 8\n.B \1\n\2/; p};' /var/log/Xorg.0.log
 .\" The list replicates the output of RHDIdentify() in src/rhd_id.c.
 .TP 8
+.PD 0
 .B RV505
 Radeon X1550, X1550 64bit
 .TP 8
@@ -141,6 +142,7 @@ Radeon X1200
 .TP 8
 .B RS740
 RS740, RS740M
+.PD
 .\"
 .\"
 .PP
@@ -182,11 +184,34 @@ provide correct EDID data and you need a reduced blanking mode to drive a high
 resolution mode over a single link DVI connection. The default is
 .BR off .
 .TP
-.BI "Option \*qIgnoreHPD\*q \*q" boolean \*q
-Ignore or rely on hot plug detection (HPD) to work correctly. If the connector
-table is broken this might help to find CRTs attached to a DVI-I connector
-via a VGA-to-DVI adaptor. The default is
-.BR off .
+.BI "Option \*qHPD\*q \*q" "hpd-mode" \*q
+Change the use of the hot plug detection (HPD) pins. On R5xx the according
+connector tables are often broken and have to be worked around.
+.RS
+.TP 8
+.PD 0
+.B Auto
+Select method depending on chipset and board
+.TP
+.B Off
+Don't use HPD pins. Some connectors might not be able to detect connections
+at all
+.TP
+.B Normal
+Use connector table information as-is
+.TP
+.B Swap
+Swap HPD pin 1 and 2 in connector table
+.RE
+.RS
+.PD
+.PP
+.B NOTE:
+Use of this option is discouraged. Whenever this option is needed to detect
+connected monitors correctly, please report to the mailing list.
+The default is
+.BR Auto .
+.RE
 .TP
 .BI "Option \*qRRUseXF86Edid\*q \*q" boolean \*q
 .IR "RandR modesetting only" .
@@ -197,8 +222,12 @@ instead of the default routines from
 which are better adapted to the chipset. Panels will often fail to work with
 these calls. The default is
 .BR off .
-.br
-Considered deprecated. Report if needed for your configuration.
+.PP
+.RS
+.B NOTE:
+Use of this option is considered deprecated. Report to the mailing list
+if this is needed for your configuration.
+.RE
 .TP
 .BI "Option \*qRROutputOrder\*q \*q" "list-of-outputs" \*q
 .IR "RandR modesetting only" .

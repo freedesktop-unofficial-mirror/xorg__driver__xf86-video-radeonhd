@@ -84,6 +84,14 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
+enum RHD_HPD_USAGE {
+    RHD_HPD_USAGE_AUTO = 0,
+    RHD_HPD_USAGE_OFF,
+    RHD_HPD_USAGE_NORMAL,
+    RHD_HPD_USAGE_SWAP,
+    RHD_HPD_USAGE_AUTO_SWAP
+};
+
 #define RHD_CONNECTORS_MAX 4
 
 /* Just define where which PCI BAR lives for now. Will deal with different
@@ -134,10 +142,10 @@ typedef struct RHDRec {
     RHDOpt		shadowFB;
     RHDOpt		forceReduced;
     RHDOpt              forceDPI;
-    RHDOpt		ignoreHpd;
     RHDOpt		noRandr;
     RHDOpt		rrUseXF86Edid;
     RHDOpt		rrOutputOrder;
+    enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbIntAddress; /* card internal address of FB */
