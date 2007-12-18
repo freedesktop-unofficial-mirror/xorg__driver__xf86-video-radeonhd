@@ -31,7 +31,13 @@
 #include "edid.h"
 
 /* for usleep */
-#include "xf86_ansic.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <unistd.h>
+# include <string.h>
+# include <stdio.h>
+#endif
 
 #include "rhd.h"
 #include "rhd_connector.h"
@@ -165,7 +171,7 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 	    return str;
 
 	case RHD_CONNECTOR_TV:
-	    str1 = strdup(ConnectorInfo->Name);
+	    str1 = xstrdup(ConnectorInfo->Name);
 	    str = xalloc(20);
 	    str2 = strchr(str1, ' ');
 	    if (str2) *(str2) = '\0';

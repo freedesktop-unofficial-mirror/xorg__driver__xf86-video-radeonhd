@@ -32,10 +32,6 @@
 #include "rhd.h"
 #include "rhd_regs.h"
 
-#ifndef _XF86_ANSIC_H
-#include <string.h>
-#endif
-
 struct rhdMC {
     CARD32 FbLocation;
     CARD32 MiscOffset;

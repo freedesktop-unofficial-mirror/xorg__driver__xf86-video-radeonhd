@@ -66,6 +66,12 @@ AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
 CFLAGS="$SAVED_CFLAGS"
 CPPFLAGS="$SAVED_CPPFLAGS"
 
+AC_CHECK_HEADER([${sdkdir}/xf86_ansic.h],
+		[AC_DEFINE([HAVE_XF86_ANSIC_H], [1],
+			   [Define to 1 if you have <${sdkdir}/xf86_ansic.h>.])
+		have_xf86_ansic_h=yes])
+AM_CONDITIONAL([HAVE_XF86_ANSIC_H], [test "x$have_xf86_ansic_h" = "xyes"])
+
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $XORG_CFLAGS"
 

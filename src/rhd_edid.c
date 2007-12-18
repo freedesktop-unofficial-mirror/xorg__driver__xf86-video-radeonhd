@@ -30,10 +30,11 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
-
-#ifndef _XF86_ANSIC_H
-#include <string.h>
-#include <stdio.h>
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h" 
+#else 
+# include <string.h>
+# include <stdio.h>
 #endif
 
 #include "rhd.h"

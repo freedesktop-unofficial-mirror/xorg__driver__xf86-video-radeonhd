@@ -35,6 +35,9 @@
 
 /* Xserver interface */
 #include "xf86.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h" 
+#endif
 
 /* Driver specific headers */
 #include "rhd.h"
@@ -65,14 +68,6 @@
 #include "rhd_pll.h"
 #include "rhd_mc.h"
 #include "rhd_card.h"
-
-/* System headers */
-#ifndef _XF86_ANSIC_H
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
-#endif
-
 
 /*
  * Driver internal

@@ -28,8 +28,15 @@
 #endif
 #include "xf86.h"
 #include "xf86_OSproc.h"
-#include "xf86_ansic.h"
 #include "xf86Pci.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <unistd.h>
+# include <string.h>
+# include <stdio.h>
+#endif
+
 #include "edid.h"
 #include "rhd.h"
 #include "rhd_atombios.h"
@@ -818,7 +825,7 @@ rhdAtomLvdsTimings(atomBiosHandlePtr handle, ATOM_DTD_FORMAT *dtd)
     mode->VRefresh = (1000.0 * ((float) mode->Clock))
 	/ ((float)(((float)mode->HTotal) * ((float)mode->VTotal)));
 
-    xf86snprintf(name, NAME_LEN, "%dx%d",
+    snprintf(name, NAME_LEN, "%dx%d",
 		 mode->HDisplay, mode->VDisplay);
     mode->name = xstrdup(name);
 
@@ -1955,7 +1962,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	cp[ncon].Output[0] = devices[n].ot;
 	cp[ncon].Output[1] = RHD_OUTPUT_NONE;
 	cp[ncon].Type = devices[n].con;
-	cp[ncon].Name = xf86strdup(devices[n].name);
+	cp[ncon].Name = xstrdup(devices[n].name);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
 	if (devices[n].dual) {

@@ -38,9 +38,6 @@
 /* For PIO/MMIO */
 #include "compiler.h"
 
-/* for usleep */
-#include "xf86_ansic.h"
-
 #include "xf86Resources.h"
 
 #include "xf86PciInfo.h"
@@ -83,6 +80,13 @@
 #include "xf86DDC.h"
 
 #include "picturestr.h"
+
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <string.h>
+#endif
+
 /*
  * Driver data structures.
  */
@@ -106,10 +110,6 @@
 
 /* ??? */
 #include "servermd.h"
-
-#ifndef _XF86_ANSIC_H
-#include <string.h>
-#endif
 
 /* Mandatory functions */
 static const OptionInfoRec *	RHDAvailableOptions(int chipid, int busid);

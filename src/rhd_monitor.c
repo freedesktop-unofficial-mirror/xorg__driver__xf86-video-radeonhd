@@ -32,6 +32,11 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <string.h>
+#endif
 
 #include "rhd.h"
 #include "rhd_connector.h"
@@ -39,10 +44,6 @@
 #include "rhd_monitor.h"
 #ifdef ATOM_BIOS
 # include "rhd_atombios.h"
-#endif
-
-#ifndef _XF86_ANSIC_H
-#include <strings.h>
 #endif
 
 /* From rhd_edid.c */

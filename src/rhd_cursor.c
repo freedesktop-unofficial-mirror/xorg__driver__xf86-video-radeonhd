@@ -40,17 +40,17 @@
 #include "xf86Cursor.h"
 #include "cursorstr.h"
 #include "servermd.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+#include <string.h>
+#endif
 
 /* Driver specific headers */
 #include "rhd.h"
 #include "rhd_cursor.h"
 #include "rhd_crtc.h"
 #include "rhd_regs.h"
-
-/* System headers */
-#ifndef _XF86_ANSIC_H
-#include <string.h>
-#endif
 
 /*
  * Bit-banging ONLY

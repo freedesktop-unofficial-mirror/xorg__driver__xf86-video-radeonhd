@@ -30,7 +30,13 @@
 #include "xf86.h"
 
 /* for usleep */
-#include "xf86_ansic.h"
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <unistd.h>
+# include <string.h>
+# include <stdio.h>
+#endif
 
 #include "rhd.h"
 #include "rhd_connector.h"
