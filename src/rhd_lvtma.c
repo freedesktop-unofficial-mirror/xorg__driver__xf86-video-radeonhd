@@ -159,7 +159,7 @@ LVDSSet(struct rhdOutput *Output)
 
     if (Private->LVDS24Bit) { /* 24bits */
 	RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0x00000001, 0x00000001); /* enable 24bits */
-	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x00100000, 0x00100000); /* dithering bit depth = 24 */
+	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x00101010, 0x00101010); /* dithering bit depth = 24 */
 
 	if (Private->FPDI) /* FPDI? */
 	    RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0x00000010, 0x00000010); /* 24 bit format: FPDI or LDI? */
@@ -167,7 +167,7 @@ LVDSSet(struct rhdOutput *Output)
 	    RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0, 0x00000010);
     } else {
 	RHDRegMask(Output, LVTMA_LVDS_DATA_CNTL, 0, 0x00000001); /* disable 24bits */
-	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00100101); /* dithering bit depth != 24 */
+	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00101010); /* dithering bit depth != 24 */
     }
 
 #if 0
@@ -182,7 +182,9 @@ LVDSSet(struct rhdOutput *Output)
     } else
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
 #endif
-    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x01010100, 0x01010101);
+
+    /* enable temporal dithering, disable spatial dithering and disable truncation */
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x01010000, 0x01010101);
 
     /* reset the temporal dithering */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x04000000, 0x04000000);
