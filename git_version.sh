@@ -143,7 +143,7 @@ fi
 
 git_repo=no
 # "git-rev-parse --git-dir" since git-0.99.7
-git_repo_dir="$(git-rev-parse --git-dir 2> /dev/null)"
+git_repo_dir="$(git-rev-parse --git-dir 2> /dev/null || true)"
 abs_repo_dir="$(cd "$git_repo_dir" && pwd)"
 # Only accept the found git repo iff it is in our top srcdir, as determined
 # by comparing absolute pathnames creaged by running pwd in the respective dir.
