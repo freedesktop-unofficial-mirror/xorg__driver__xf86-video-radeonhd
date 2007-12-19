@@ -1135,8 +1135,6 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(rhdPtr);
-    if (!xf86DiDGAInit(pScreen, (unsigned long) rhdPtr->FbBase))
-	return FALSE;
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
     /* Wrap cursor for driver-level panning */
