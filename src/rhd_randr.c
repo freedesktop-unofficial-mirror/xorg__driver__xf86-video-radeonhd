@@ -43,7 +43,6 @@
 #include "rhd.h"
 #include "rhd_randr.h"
 
-
 #if (RANDR_MAJOR == 1 && RANDR_MINOR >= 2) || RANDR_MAJOR >= 2
 
 
@@ -66,6 +65,7 @@
 #include "rhd_monitor.h"
 #include "rhd_vga.h"
 #include "rhd_pll.h"
+#include "rhd_lut.h"
 #include "rhd_mc.h"
 #include "rhd_card.h"
 
@@ -366,6 +366,36 @@ rhdRRCrtcCommit(xf86CrtcPtr crtc)
     Crtc->Power(Crtc, RHD_POWER_ON);
 
     RHDDebugRandrState(rhdPtr, Crtc->Name);
+}
+
+/*
+ * They just had to do NIH again here: Old X functionality provides a size, a
+ * list of indices, and a table of RGB unsigned shorts. RandR provides what
+ * is below. Apart from horribly breaking any attempt at being backwards
+ * compatible, this also pretty much rules out the usage of indexed colours, as
+ * each time even a single colour is changed an entirely new table has to be
+ * uploaded. Just cute. -- libv.
+ */
+static void
+rhdRRCrtcGammaSet(xf86CrtcPtr crtc, CARD16 *red, CARD16 *green, CARD16 *blue,
+		  int size)
+{
+    struct rhdCrtc *Crtc = (struct rhdCrtc *) crtc->driver_private;
+    int indices[0x100]; /* would RandR use a size larger than 256? */
+    LOCO colors[0x100];
+    int i;
+
+    RHDDebug(Crtc->scrnIndex, "%s: %s.\n", __func__, Crtc->Name);
+
+    /* thanks so very much */
+    for (i = 0; i < size; i++) {
+	indices[i] = i;
+	colors[i].red = red[i];
+	colors[i].green = green[i];
+	colors[i].blue = blue[i];
+    }
+
+    Crtc->LUT->Set(Crtc->LUT, size, indices, colors);
 }
 
 /* Dummy, because not tested for NULL */
@@ -876,7 +906,7 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcLock, rhdRRCrtcUnlock,
     rhdRRCrtcModeFixupDUMMY,
     rhdRRCrtcPrepare, rhdRRCrtcModeSet, rhdRRCrtcCommit,
-    NULL,						/* CrtcGammaSet */
+    rhdRRCrtcGammaSet,
     /* rhdRRCrtcShadowAllocate,rhdRRCrtcShadowCreate,rhdRRCrtcShadowDestroy */
     NULL, NULL, NULL,
     /* SetCursorColors,SetCursorPosition,ShowCursor,HideCursor,
