@@ -652,7 +652,7 @@ RHDCardIdentify(ScrnInfoPtr pScrn)
 	       deviceID, subVendorID, subDeviceID);
 #ifdef ATOM_BIOS
     xf86Msg(X_NONE, "\t"
-	    "If your card does not work or does not work optimally\n\t"
+	    "If - and only if - your card does not work or does not work optimally\n\t"
 	    "please contact radeonhd@opensuse.org to help rectify this.\n\t"
 	    "Use the subject: 0x%04X:0x%04X:0x%04X: <name of board>.\n",
 	    deviceID, subVendorID, subDeviceID);
