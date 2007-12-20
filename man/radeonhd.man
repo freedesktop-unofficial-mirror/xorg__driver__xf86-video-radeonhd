@@ -60,8 +60,9 @@ driver supports video cards based on the following ATI chips:
 .\" The following list was generated from "X -logverbose 7" by the following command:
 .\" sed -n '/^\t[RM][A-Z0-9]\+ * : /{ s/\.$//; s/^\t\([A-Z0-9]\+\) \+: \(.*\)/.TP 8\n.B \1\n\2/; p};' /var/log/Xorg.0.log
 .\" The list replicates the output of RHDIdentify() in src/rhd_id.c.
-.TP 8
+.PP
 .PD 0
+.TP 8
 .B RV505
 Radeon X1550, X1550 64bit
 .TP 8
@@ -101,6 +102,9 @@ Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000
 .B RV630
 Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630; FireGL V3600/V5600
 .TP 8
+.B RV670
+Radeon HD 3850, HD 3870, FireGL V7700
+.TP 8
 .B M52
 Mobility Radeon X1300
 .TP 8
@@ -137,11 +141,11 @@ Mobility Radeon HD 2400 XT
 .B M76
 Mobility Radeon HD 2600; (Gemini ATI) Mobility Radeon HD 2600 XT
 .TP 8
-.B RS690
-Radeon X1200
+.B RS600
+Radeon Xpress 1200, Xpress 1250
 .TP 8
-.B RS740
-RS740, RS740M
+.B RS690
+Radeon X1200, X1250, X1270
 .PD
 .\"
 .\"
