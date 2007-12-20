@@ -804,6 +804,13 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    else
 		return XF86OutputStatusDisconnected;
 	}
+	/* Use DDC address probing if possible otherwise */
+	if (rout->Connector->DDC) {
+	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0))
+		return XF86OutputStatusConnected;
+	    else
+		return XF86OutputStatusDisconnected;
+	}
 	return XF86OutputStatusUnknown;
     }
 }
