@@ -80,7 +80,8 @@ enum RHD_CHIPSETS {
     RHD_M72,
     RHD_M74,
     RHD_M76,
-    /* R600 integrated */
+    /* RV670 came into existence after RV6x0 and M7x */
+    RHD_RV670,
     RHD_CHIP_END
 };
 
