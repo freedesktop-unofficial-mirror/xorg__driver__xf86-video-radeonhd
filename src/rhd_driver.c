@@ -88,6 +88,7 @@
 # include <sys/stat.h>
 # include <string.h>
 # include <unistd.h>
+# define stat_t struct stat
 #endif
 
 /*
@@ -424,7 +425,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
     DisplayModePtr Modes;		/* Non-RandR-case only */
-    struct stat statbuf;
+    stat_t statbuf;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
