@@ -619,11 +619,12 @@ static struct RV6xxTMDSBMacro {
     CARD32 TX;
     CARD32 PreEmphasis;
 } RV6xxTMDSBMacro[] = {
-    { 0x94C1, 0x01030311, 0x10001A00, 0x01801015},
-    { 0x94C3, 0x01030311, 0x10001A00, 0x01801015},
-    { 0x9587, 0x01030311, 0x10001C00, 0x01C01011}, /* guess: broken atombios */
-    { 0x9588, 0x01030311, 0x10001C00, 0x01C01011},
-    { 0x9589, 0x01030311, 0x10001C00, 0x01C01011},
+    { 0x94C1, 0x01030311, 0x10001A00, 0x01801015}, /* RV610 */
+    { 0x94C3, 0x01030311, 0x10001A00, 0x01801015}, /* RV610 */
+    { 0x9505, 0x0533041A, 0x020010A0, 0x41002045}, /* RV670 */
+    { 0x9587, 0x01030311, 0x10001C00, 0x01C01011}, /* RV630 */
+    { 0x9588, 0x01030311, 0x10001C00, 0x01C01011}, /* RV630 */
+    { 0x9589, 0x01030311, 0x10001C00, 0x01C01011}, /* RV630 */
     { 0, 0, 0, 0} /* End marker */
 };
 
@@ -679,7 +680,7 @@ TMDSBSet(struct rhdOutput *Output)
 	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
     else if ((rhdPtr->ChipSet == RHD_RS600) || (rhdPtr->ChipSet == RHD_RS690))
 	RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, 0x01120000);
-    else /* R600 and up */
+    else if (rhdPtr->ChipSet < RHD_RV670)
 	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
 
     /* Clear out some HPD events first: this should be under driver control. */
