@@ -47,8 +47,9 @@ After using the
 .I fglrx
 driver, the display can get very jittery with
 .BR radeonhd .
-A reboot fixes this problem in most
-cases, sometimes a powercycle is necessary.
+Also suspend & resume will probably fail.  A reboot fixes this problem in most
+cases, sometimes a powercycle is necessary.  Unloading the kernel module is
+typically not enough.
 .PP
 A more up-to-date list can be found on the wiki page.
 .PP

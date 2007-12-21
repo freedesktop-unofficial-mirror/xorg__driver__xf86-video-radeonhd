@@ -84,7 +84,10 @@
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
 #else
+# include <sys/types.h>
+# include <sys/stat.h>
 # include <string.h>
+# include <unistd.h>
 #endif
 
 /*
@@ -165,6 +168,10 @@ static int pix24bpp = 0;
 /* required for older X.Org releases */
 #ifndef _X_EXPORT
 #define _X_EXPORT
+#endif
+
+#ifdef __linux__
+# define FGLRX_SYS_PATH "/sys/module/fglrx"
 #endif
 
 _X_EXPORT DriverRec RADEONHD = {
@@ -417,11 +424,21 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
     DisplayModePtr Modes;		/* Non-RandR-case only */
+    struct stat statbuf;
 
     if (flags & PROBE_DETECT)  {
         /* do dynamic mode probing */
 	return TRUE;
     }
+
+#ifdef FGLRX_SYS_PATH
+    /* check for fglrx kernel module */
+    if (stat (FGLRX_SYS_PATH, &statbuf) == 0) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "The fglrx kernel module is loaded. This can have obvious\n"
+		   "     or subtle side effects. See radeonhd(4) for details.\n");
+    }
+#endif
 
 #ifndef XSERVER_LIBPCIACCESS
     /*
