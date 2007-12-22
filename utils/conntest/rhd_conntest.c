@@ -805,7 +805,7 @@ static Bool
 R6xxI2CStatus(void *map)
 {
     int count = 800;
-    CARD32 val;
+    CARD32 val = 0;
 
     while (--count) {
 
