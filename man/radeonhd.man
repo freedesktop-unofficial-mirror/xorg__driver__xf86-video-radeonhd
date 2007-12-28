@@ -387,7 +387,7 @@ Internal outputs are numbered from 1, 0 indicates that output routing is
 unknown.
 .RE
 .TP
-.B RANDR_PANING_AREA
+.B RANDR_PANNING_AREA
 .RS
 .TP 16
 .PD 0

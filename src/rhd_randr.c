@@ -98,7 +98,7 @@ typedef struct _rhdRandrOutput {
 #define ATOM_CONNECTOR_TYPE   "RANDR_CONNECTOR_TYPE"
 #define ATOM_CONNECTOR_NUMBER "RANDR_CONNECTOR_NUMBER"
 #define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
-#define ATOM_PANNING_AREA     "RANDR_PANING_AREA"
+#define ATOM_PANNING_AREA     "RANDR_PANNING_AREA"
 
 static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
 	    atomOutputNumber, atomPanningArea;
