@@ -32,53 +32,55 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-
 /* Xserver interface */
 #include "xf86.h"
+
+#if (RANDR_MAJOR == 1 && RANDR_MINOR >= 2) || RANDR_MAJOR >= 2
+# define RANDR_12_SUPPORT
+#endif
+
+#ifdef RANDR_12_SUPPORT
+/* Xserver interface */
+# include "randrstr.h"
+# include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
+# include "xf86Crtc.h"
+# include "xf86RandR12.h"
+# define DPMS_SERVER
+# include "X11/extensions/dpms.h"
+# include "X11/Xatom.h"
+#endif /* RANDR_12_SUPPORT */
+
 #if HAVE_XF86_ANSIC_H
-# include "xf86_ansic.h" 
+# include "xf86_ansic.h"
 #endif
 
 /* Driver specific headers */
 #include "rhd.h"
 #include "rhd_randr.h"
 
-#if (RANDR_MAJOR == 1 && RANDR_MINOR >= 2) || RANDR_MAJOR >= 2
-
-
-/* Xserver interface */
-#include "randrstr.h"
-#include "xf86i2c.h"		/* Missing in old versions of xf86Crtc.h */
-#include "xf86Crtc.h"
-#include "xf86RandR12.h"
-#define DPMS_SERVER
-#include "X11/extensions/dpms.h"
-#include "X11/Xatom.h"
-
-/* Driver specific headers */
-#include "rhd.h"
-#include "rhd_crtc.h"
-#include "rhd_cursor.h"
-#include "rhd_connector.h"
-#include "rhd_output.h"
-#include "rhd_modes.h"
-#include "rhd_monitor.h"
-#include "rhd_vga.h"
-#include "rhd_pll.h"
-#include "rhd_lut.h"
-#include "rhd_mc.h"
-#include "rhd_card.h"
+#ifdef RANDR_12_SUPPORT
+# include "rhd_crtc.h"
+# include "rhd_cursor.h"
+# include "rhd_connector.h"
+# include "rhd_output.h"
+# include "rhd_modes.h"
+# include "rhd_monitor.h"
+# include "rhd_vga.h"
+# include "rhd_pll.h"
+# include "rhd_lut.h"
+# include "rhd_mc.h"
+# include "rhd_card.h"
 
 /*
  * Driver internal
  */
 
-#define WRAP_SCRNINFO(func,new)					\
+# define WRAP_SCRNINFO(func,new)					\
     do {							\
 	rhdPtr->randr->func = pScrn->func;			\
 	pScrn->func = new;					\
     } while (0)
-#define UNWRAP_SCRNINFO(func)					\
+# define UNWRAP_SCRNINFO(func)					\
 	pScrn->func = rhdPtr->randr->func
 
 struct rhdRandr {
@@ -229,7 +231,7 @@ rhdRRXF86CrtcResize(ScrnInfoPtr pScrn, int width, int height)
      * work as expected... */
 #if 0
     pScrn->virtualX = width;
-    pScrn->virtualY = height; 
+    pScrn->virtualY = height;
 #endif
     return TRUE;
 }
@@ -328,6 +330,7 @@ rhdRRCrtcPrepare(xf86CrtcPtr crtc)
     if (Crtc->MaxY > Crtc->Height)
 	Crtc->MaxY = Crtc->Height;
 }
+
 static void
 rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 		 DisplayModePtr OrigMode, DisplayModePtr Mode,
@@ -400,7 +403,7 @@ rhdRRCrtcGammaSet(xf86CrtcPtr crtc, CARD16 *red, CARD16 *green, CARD16 *blue,
 
 /* Dummy, because not tested for NULL */
 static Bool
-rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc, 
+rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
 			DisplayModePtr mode,
 			DisplayModePtr adjusted_mode)
 { return TRUE; }
@@ -509,7 +512,7 @@ rhdRROutputDpms(xf86OutputPtr       out,
     RHDPtr rhdPtr          = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
     xf86OutputPtr    *ro;
-    struct rhdCrtc   *Crtc = out->crtc ? 
+    struct rhdCrtc   *Crtc = out->crtc ?
         (struct rhdCrtc *) out->crtc->driver_private : NULL;
     const char *outUsedBy = NULL;
 
@@ -643,7 +646,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
     setupCrtc(rhdPtr, Crtc);
-    
+
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
 			    rout->Output, NULL);
@@ -1161,7 +1164,7 @@ rhdRRPointerMoved(int scrnIndex, int x, int y)
     }
     UNWRAP_SCRNINFO(PointerMoved);
     pScrn->PointerMoved(scrnIndex, x, y);
-    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved); 
+    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved);
 }
 
 /* Call in ScreenInit after frame buffer + acceleration layers */
@@ -1175,7 +1178,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
     /* Wrap cursor for driver-level panning */
-    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved); 
+    WRAP_SCRNINFO(PointerMoved, rhdRRPointerMoved);
 
     RHDDebugRandrState(rhdPtr, "POST-ScreenInit");
     return TRUE;
@@ -1209,8 +1212,7 @@ RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 }
 
 
-#else /* RANDR_12_INTERFACE */
-
+#else /* RANDR_12_SUPPORT */
 
 Bool
 RHDRandrPreInit(ScrnInfoPtr pScrn)
@@ -1233,5 +1235,5 @@ RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 { ASSERT(0); return FALSE; }
 
 
-#endif /* RANDR_12_INTERFACE */
+#endif /* RANDR_12_SUPPORT */
 

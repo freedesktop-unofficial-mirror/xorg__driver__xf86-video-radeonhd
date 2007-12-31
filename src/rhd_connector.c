@@ -28,6 +28,7 @@
 #endif
 
 #include "xf86.h"
+#include "xf86i2c.h"
 #include "edid.h"
 
 /* for usleep */
@@ -45,13 +46,11 @@
 #include "rhd_regs.h"
 #include "rhd_monitor.h"
 #include "rhd_card.h"
+#include "rhd_i2c.h"
 
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #endif
-
-#include "xf86i2c.h"
-#include "rhd_i2c.h"
 
 /*
  *

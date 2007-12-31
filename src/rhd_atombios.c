@@ -29,6 +29,10 @@
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86Pci.h"
+/* only for testing now */
+#include "xf86DDC.h"
+#include "edid.h"
+
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
 #else
@@ -37,7 +41,6 @@
 # include <stdio.h>
 #endif
 
-#include "edid.h"
 #include "rhd.h"
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
@@ -45,8 +48,6 @@
 #include "rhd_monitor.h"
 #include "rhd_card.h"
 #include "rhd_regs.h"
-/* only for testing now */
-#include "xf86DDC.h"
 
 #ifdef ATOM_BIOS
 # include "rhd_atomwrapper.h"
