@@ -310,7 +310,7 @@ PLLControlTableRetrieve(struct PLL_Control *Table, CARD16 FeedbackDivider)
 {
     int i;
 
-    for (i = 0; Table[i].FeedbackDivider == 0xFFFF; i++)
+    for (i = 0; Table[i].FeedbackDivider < 0xFFFF ; i++)
 	if (Table[i].FeedbackDivider >= FeedbackDivider)
 	    break;
 
