@@ -28,12 +28,19 @@
 enum {
     CLOCK_CNTL_INDEX      =       0x8,  /* (RW) */
     CLOCK_CNTL_DATA       =       0xC,  /* (RW) */
+    BUS_CNTL		  =       0x4C, /* (RW) */
     MC_IND_INDEX	  =       0x70, /* (RW) */
     MC_IND_DATA           =       0x74, /* (RW) */
 
     R5XX_CONFIG_MEMSIZE            = 0x00F8,
 
     R5XX_FB_INTERNAL_ADDRESS       = 0x0134,
+
+    SEPROM_CNTL1	  =       0x1C0,  /* (RW) */
+    GPIOPAD_MASK          =       0x198,  /* (RW) */
+    GPIOPAD_A		  =       0x19C,  /* (RW) */
+    GPIOPAD_EN		  =       0x1A0,  /* (RW) */
+    VIPH_CONTROL          =       0xC40,  /* (RW) */
 
     /* VGA registers */
     VGA_RENDER_CONTROL             = 0x0300,
@@ -357,6 +364,83 @@ enum _rs69xRegs {
     RS69_DC_I2C_DATA			   = 0x7D58,  /* (RW) *//**/
     RS69_DC_I2C_TRANSACTION0            = 0x7D48,  /* (RW) *//**/
     RS69_DC_I2C_TRANSACTION1            = 0x7D4C  /* (RW) *//**/
+};
+
+enum BUS_CNTL_BITS {
+    /* BUS_CNTL */
+    BUS_DBL_RESYNC       = (0x1 << 0),
+    BIOS_ROM_WRT_EN      = (0x1 << 1),
+    BIOS_ROM_DIS         = (0x1 << 2),
+    PMI_IO_DIS   = (0x1 << 3),
+    PMI_MEM_DIS  = (0x1 << 4),
+    PMI_BM_DIS   = (0x1 << 5),
+    PMI_INT_DIS  = (0x1 << 6)
+};
+
+enum SEPROM_SNTL1_BITS {
+    /* SEPROM_CNTL1 */
+    WRITE_ENABLE         = (0x1 << 0),
+    WRITE_DISABLE        = (0x1 << 1),
+    READ_CONFIG  = (0x1 << 2),
+    WRITE_CONFIG         = (0x1 << 3),
+    READ_STATUS  = (0x1 << 4),
+    SECT_TO_SRAM         = (0x1 << 5),
+    READY_BUSY   = (0x1 << 7),
+    SEPROM_BUSY  = (0x1 << 8),
+    BCNT_OVER_WTE_EN     = (0x1 << 9),
+    RB_MASKB     = (0x1 << 10),
+    SOFT_RESET   = (0x1 << 11),
+    STATE_IDLEb  = (0x1 << 12),
+    SECTOR_ERASE         = (0x1 << 13),
+    BYTE_CNT     = (0xff << 16),
+    SCK_PRESCALE         = (0xff << 24)
+};
+
+enum VIPH_CONTROL_BITS {
+    /* VIPH_CONTROL */
+    VIPH_CLK_SEL         = (0xff << 0),
+    VIPH_REG_RDY         = (0x1 << 13),
+    VIPH_MAX_WAIT        = (0xf << 16),
+    VIPH_DMA_MODE        = (0x1 << 20),
+    VIPH_EN      = (0x1 << 21),
+    VIPH_DV0_WID         = (0x1 << 24),
+    VIPH_DV1_WID         = (0x1 << 25),
+    VIPH_DV2_WID         = (0x1 << 26),
+    VIPH_DV3_WID         = (0x1 << 27),
+    VIPH_PWR_DOWN        = (0x1 << 28),
+    VIPH_PWR_DOWN_AK     = (0x1 << 28),
+    VIPH_VIPCLK_DIS      = (0x1 << 29)
+};
+
+enum VGA_RENDER_CONTROL_BITS {
+    /* VGA_RENDER_CONTROL */
+    VGA_BLINK_RATE		= (0x1f << 0),
+    VGA_BLINK_MODE		= (0x3 << 5),
+    VGA_CURSOR_BLINK_INVERT      = (0x1 << 7),
+    VGA_EXTD_ADDR_COUNT_ENABLE   = (0x1 << 8),
+    VGA_VSTATUS_CNTL		= (0x3 << 16),
+    VGA_LOCK_8DOT		= (0x1 << 24),
+    VGAREG_LINECMP_COMPATIBILITY_SEL     = (0x1 << 25)
+};
+
+enum D1VGA_CONTROL_BITS {
+    /* D1VGA_CONTROL */
+    D1VGA_MODE_ENABLE		= (0x1 << 0),
+    D1VGA_TIMING_SELECT		= (0x1 << 8),
+    D1VGA_SYNC_POLARITY_SELECT   = (0x1 << 9),
+    D1VGA_OVERSCAN_TIMING_SELECT         = (0x1 << 10),
+    D1VGA_OVERSCAN_COLOR_EN      = (0x1 << 16),
+    D1VGA_ROTATE		= (0x3 << 24)
+};
+
+enum D2VGA_CONTROL_BITS {
+    /* D2VGA_CONTROL */
+    D2VGA_MODE_ENABLE    = (0x1 << 0),
+    D2VGA_TIMING_SELECT  = (0x1 << 8),
+    D2VGA_SYNC_POLARITY_SELECT   = (0x1 << 9),
+    D2VGA_OVERSCAN_TIMING_SELECT         = (0x1 << 10),
+    D2VGA_OVERSCAN_COLOR_EN      = (0x1 << 16),
+    D2VGA_ROTATE         = (0x3 << 24)
 };
 
 enum {

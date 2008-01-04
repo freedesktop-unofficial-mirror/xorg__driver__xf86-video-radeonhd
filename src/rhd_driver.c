@@ -1970,26 +1970,43 @@ static unsigned int
 rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
     unsigned int ret;
-#ifdef NOTYET
-    CARD32 save_198, save_c, save_8;
+    CARD32 save_seprom_cntl1,
+	save_gpiopad_a, save_gpiopad_en, save_gpiopad_mask,
+	save_viph_cntl,
+	save_bus_cntl,
+	save_d1vga_control, save_d2vga_control, save_vga_render_control;
 
-    save_198 = RHDRegRead(rhdPtr, 0x198);
-    save_8 = RHDRegRead(rhdPtr, CLOCK_CNTL_INDEX);
+    save_seprom_cntl1 = RHDRegRead(rhdPtr, SEPROM_CNTL1);
+    save_gpiopad_en = RHDRegRead(rhdPtr, GPIOPAD_EN);
+    save_gpiopad_a = RHDRegRead(rhdPtr, GPIOPAD_A);
+    save_gpiopad_mask = RHDRegRead(rhdPtr, GPIOPAD_MASK);
+    save_viph_cntl = RHDRegRead(rhdPtr, VIPH_CONTROL);
+    save_bus_cntl = RHDRegRead(rhdPtr, BUS_CNTL);
+    save_d1vga_control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
+    save_d2vga_control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
+    save_vga_render_control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
 
-    RHDRegMask(rhdPtr, 0x198, 0x0, 0x200);
-    RHDRegWrite(rhdPtr, CLOCK_CNTL_INDEX, PLL_WR_EN | SPLL_FUNC_CNTL);
-    while (!((save_c = RHDRegRead(rhdPtr, CLOCK_CNTL_DATA))
-	   & SPLL_CHG_STATUS)) {};
-    RHDRegMask(rhdPtr, CLOCK_CNTL_DATA, SPLL_BYPASS_EN, SPLL_BYPASS_EN);
-#endif
+    RHDRegMask(rhdPtr, SEPROM_CNTL1, SCK_PRESCALE, 0x0C);
+    RHDRegWrite(rhdPtr, GPIOPAD_EN, 0);
+    RHDRegWrite(rhdPtr, GPIOPAD_A, 0);
+    RHDRegWrite(rhdPtr, GPIOPAD_MASK, 0);
+    RHDRegMask(rhdPtr, VIPH_CONTROL, VIPH_EN, 0);
+    RHDRegMask(rhdPtr, BUS_CNTL, BIOS_ROM_DIS, 0);
+    RHDRegMask(rhdPtr, D1VGA_CONTROL, D1VGA_MODE_ENABLE, 0);
+    RHDRegMask(rhdPtr, D2VGA_CONTROL, D2VGA_MODE_ENABLE, 0);
+    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, VGA_VSTATUS_CNTL, 0);
+
     ret = rhdDoReadPCIBios(rhdPtr, ptr);
-#ifdef NOTYET
-    while (!(RHDRegRead(rhdPtr, CLOCK_CNTL_DATA)
-	   & SPLL_CHG_STATUS)) {};
-    RHDRegWrite(rhdPtr, CLOCK_CNTL_DATA, save_c);
-    RHDRegWrite(rhdPtr,  CLOCK_CNTL_INDEX, save_8);
-    RHDRegWrite(rhdPtr, 0x198, save_198);
-#endif
+
+    RHDRegWrite(rhdPtr, SEPROM_CNTL1, save_seprom_cntl1);
+    RHDRegWrite(rhdPtr, GPIOPAD_EN, save_gpiopad_en);
+    RHDRegWrite(rhdPtr, GPIOPAD_A, save_gpiopad_a);
+    RHDRegWrite(rhdPtr, GPIOPAD_MASK, save_gpiopad_mask);
+    RHDRegWrite(rhdPtr, VIPH_CONTROL, save_viph_cntl);
+    RHDRegWrite(rhdPtr, BUS_CNTL, save_bus_cntl);
+    RHDRegWrite(rhdPtr, D1VGA_CONTROL, save_d1vga_control);
+    RHDRegWrite(rhdPtr, D2VGA_CONTROL, save_d2vga_control);
+    RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, save_vga_render_control);
 
     return ret;
 }
