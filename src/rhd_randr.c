@@ -860,6 +860,25 @@ rhdRROutputGetModes(xf86OutputPtr output)
 	    rhdPtr->forceReduced.val.bool;
 
     xf86OutputSetEDID (output, rout->Connector->Monitor->EDID);
+
+    /* If no EDID data is available, calculate mm_size by assuming 96dpi
+     * for the preferred (or first if no preferred) mode */
+    if (! rout->Connector->Monitor->EDID) {
+	DisplayModePtr m;
+	for (m = rout->Connector->Monitor->Modes; m; m = m->next)
+	    if (m->type & M_T_PREFERRED)
+		break;
+	if (! m)
+	    m = rout->Connector->Monitor->Modes;
+	if (m) {
+#define DEFAULT_MM_PER_DOT (25.4 / 96)
+	    output->mm_width  = m->HDisplay * DEFAULT_MM_PER_DOT;
+	    output->mm_height = m->VDisplay * DEFAULT_MM_PER_DOT;
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		       "No monitor size info, assuming 96dpi.\n");
+	}
+    }
+
     return rout->Connector->Monitor->Modes;
 }
 
