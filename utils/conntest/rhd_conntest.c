@@ -37,6 +37,7 @@
 #include <sys/mman.h>
 #include <pci/pci.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -353,6 +354,40 @@ struct RHDDevice {
     { 0x1002, 0x958B, 2, RHD_R600},
     { 0, 0, 0, 0 }
 };
+
+/*
+ *
+ */
+#define LEN 16
+void
+dprint(unsigned char *start, unsigned long size)
+{
+    unsigned int i;
+    unsigned int count = LEN;
+    char *c = (char *)start;
+
+    while (size) {
+	char *d = c;
+	printf("   ");
+
+	if (size < LEN)
+	    count = size;
+	size -= count;
+
+	for (i = 0; i<count; i++)
+	    printf("%2.2x ",(unsigned char) (*(c++)));
+	c = d;
+	for (i = 0; i<count; i++) {
+	    printf("%c",((((CARD8)(*c)) > 32)
+				&& (((CARD8)(*c)) < 128)) ?
+		   (unsigned char) (*(c)): '.');
+	    c++;
+	}
+	printf("\n");
+    }
+
+    printf("\n");
+}
 
 /*
  *
@@ -831,6 +866,90 @@ R6xxI2CStatus(void *map)
  *
  */
 static Bool
+R6xxI2CWriteRead(void *map,  CARD8 line, CARD8 slave,
+		unsigned char *WriteBuffer, int nWrite, unsigned char *ReadBuffer, int nRead)
+{
+    Bool ret = FALSE;
+    CARD32 data = 0;
+    int idx = 1;
+
+    enum {
+	TRANS_WRITE_READ,
+	TRANS_WRITE,
+	TRANS_READ
+    } trans;
+
+    if (nWrite > 0 && nRead > 0) {
+	trans = TRANS_WRITE_READ;
+    } else if (nWrite > 0) {
+	trans = TRANS_WRITE;
+    } else if (nRead > 0) {
+	trans = TRANS_READ;
+    } else {
+	/* for bus probing */
+	trans = TRANS_WRITE;
+    }
+
+    if (!R6xxI2CSetupStatus(map, line))
+	return FALSE;
+
+    RegMask(map, R6_DC_I2C_CONTROL, (trans == TRANS_WRITE_READ)
+	       ? (1 << 20) : 0, R6_DC_I2C_TRANSACTION_COUNT); /* 2 or 1 Transaction */
+    RegMask(map, R6_DC_I2C_TRANSACTION0,
+	       R6_DC_I2C_STOP_ON_NACK0
+	       | (trans == TRANS_READ ? R6_DC_I2C_RW0 : 0)
+	       | R6_DC_I2C_START0
+	       | (trans == TRANS_WRITE_READ ? 0 : R6_DC_I2C_STOP0 )
+	       | ((trans == TRANS_READ ? nRead : nWrite)  << 16),
+	       0xffffff);
+    if (trans == TRANS_WRITE_READ)
+	RegMask(map, R6_DC_I2C_TRANSACTION1,
+		   nRead << 16
+		   | R6_DC_I2C_RW1
+		   | R6_DC_I2C_START1
+		   | R6_DC_I2C_STOP1,
+		   0xffffff); /* <bytes> read */
+
+    data = R6_DC_I2C_INDEX_WRITE
+	| (((slave & 0xfe) | (trans == TRANS_READ ? 1 : 0)) << 8 )
+	| (0 << 16);
+    RegWrite(map, R6_DC_I2C_DATA, data);
+    if (trans != TRANS_READ) { /* we have bytes to write */
+	while (nWrite--) {
+	    data = R6_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
+		| (idx++ << 16);
+	    RegWrite(map, R6_DC_I2C_DATA, data);
+	}
+    }
+    if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
+	data = R6_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (idx++ << 16);
+	RegWrite(map, R6_DC_I2C_DATA, data);
+    }
+    /* Go! */
+    RegMask(map, R6_DC_I2C_CONTROL, R6_DC_I2C_GO, R6_DC_I2C_GO);
+    if (R6xxI2CStatus(map)) {
+	/* Hopefully this doesn't write data to index */
+	RegWrite(map, R6_DC_I2C_DATA, R6_DC_I2C_INDEX_WRITE
+		    | R6_DC_I2C_DATA_RW  | /* idx++ */3 << 16);
+	while (nRead--) {
+	    data = RegRead(map, R6_DC_I2C_DATA);
+	    *(ReadBuffer++) = (data >> 8) & 0xff;
+	}
+	ret = TRUE;
+    }
+
+    RegMask(map, R6_DC_I2C_CONTROL, 0x2, 0xff);
+    usleep(10);
+    RegWrite(map, R6_DC_I2C_CONTROL, 0);
+
+    return ret;
+}
+
+
+/*
+ *
+ */
+static Bool
 R6xxDDCProbe(void *map, int Channel, unsigned char slave)
 {
     Bool ret = FALSE;
@@ -858,6 +977,7 @@ R6xxDDCProbe(void *map, int Channel, unsigned char slave)
 
     return ret;
 }
+
 
 enum _rhdRS69I2CBits {
     /* RS69_DC_I2C_TRANSACTION0 */
@@ -951,6 +1071,90 @@ RS69I2CSetupStatus(void *map, int line)
     RegMask(map, RS69_DC_I2C_UNKNOWN_2, 0x2, 0xff);
 
     return TRUE;
+}
+
+/*
+ *
+ */
+static int
+RS69xI2CWriteRead(void *map,  CARD8 line, CARD8 slave,
+		unsigned char *WriteBuffer, int nWrite, unsigned char *ReadBuffer, int nRead)
+{
+    Bool ret = FALSE;
+    CARD32 data = 0;
+
+    int idx = 1;
+
+    enum {
+	TRANS_WRITE_READ,
+	TRANS_WRITE,
+	TRANS_READ
+    } trans;
+
+    if (nWrite > 0 && nRead > 0) {
+	trans = TRANS_WRITE_READ;
+    } else if (nWrite > 0) {
+	trans = TRANS_WRITE;
+    } else if (nRead > 0) {
+	trans = TRANS_READ;
+    } else {
+	/* for bus probing */
+	trans = TRANS_WRITE;
+    }
+
+    if (!RS69I2CSetupStatus(map, line))
+	return FALSE;
+
+    RegMask(map, RS69_DC_I2C_CONTROL, (trans == TRANS_WRITE_READ)
+	       ? (1 << 20) : 0, RS69_DC_I2C_TRANSACTION_COUNT); /* 2 or 1 Transaction */
+    RegMask(map, RS69_DC_I2C_TRANSACTION0,
+	       RS69_DC_I2C_STOP_ON_NACK0
+	       | (trans == TRANS_READ ? RS69_DC_I2C_RW0 : 0)
+	       | RS69_DC_I2C_START0
+	       | (trans == TRANS_WRITE_READ ? 0 : RS69_DC_I2C_STOP0 )
+	       | ((trans == TRANS_READ ? nRead : nWrite)  << 16),
+	       0xffffff);
+    if (trans == TRANS_WRITE_READ)
+	RegMask(map, RS69_DC_I2C_TRANSACTION1,
+		   nRead << 16
+		   | RS69_DC_I2C_RW1
+		   | RS69_DC_I2C_START1
+		   | RS69_DC_I2C_STOP1,
+		   0xffffff); /* <bytes> read */
+
+    data = RS69_DC_I2C_INDEX_WRITE
+	| (((slave & 0xfe) | (trans == TRANS_READ ? 1 : 0)) << 8 )
+	| (0 << 16);
+    RegWrite(map, RS69_DC_I2C_DATA, data);
+    if (trans != TRANS_READ) { /* we have bytes to write */
+	while (nWrite--) {
+	    data = RS69_DC_I2C_INDEX_WRITE | ( *(WriteBuffer++) << 8 )
+		| (idx++ << 16);
+	    RegWrite(map, RS69_DC_I2C_DATA, data);
+	}
+    }
+    if (trans == TRANS_WRITE_READ) { /* we have bytes to read after write */
+	data = RS69_DC_I2C_INDEX_WRITE | ((slave | 0x1) << 8) | (idx++ << 16);
+	RegWrite(map, RS69_DC_I2C_DATA, data);
+    }
+    /* Go! */
+    RegMask(map, RS69_DC_I2C_CONTROL, RS69_DC_I2C_GO, RS69_DC_I2C_GO);
+    if (RS69I2CStatus(map)) {
+	/* Hopefully this doesn't write data to index */
+	RegWrite(map, RS69_DC_I2C_DATA, RS69_DC_I2C_INDEX_WRITE
+		    | RS69_DC_I2C_DATA_RW  | /* idx++ */3 << 16);
+	while (nRead--) {
+	    data = RegRead(map, RS69_DC_I2C_DATA);
+	    *(ReadBuffer++) = (data >> 8) & 0xff;
+	}
+	ret = TRUE;
+    }
+
+    RegMask(map, RS69_DC_I2C_CONTROL, 0x2, 0xff);
+    usleep(10);
+    RegWrite(map, RS69_DC_I2C_CONTROL, 0);
+
+    return ret;
 }
 
 /*
@@ -1059,7 +1263,7 @@ R5xxI2CStatus(void *map)
 /*
  *
  */
-static Bool
+static int
 R5xxDDCProbe(void *map, int Channel, unsigned char slave)
 {
     Bool ret = FALSE;
@@ -1121,16 +1325,165 @@ R5xxDDCProbe(void *map, int Channel, unsigned char slave)
 /*
  *
  */
-static Bool
-DDCProbe(void *map, int Channel, unsigned char slave)
+Bool
+R5xxI2CWriteReadChunk(void *map,  CARD8 line, CARD8 slave,
+		unsigned char *WriteBuffer, int nWrite, unsigned char *ReadBuffer, int nRead)
 {
+    int prescale = getDDCSpeed();
+    CARD32 save_I2C_CONTROL1, save_494;
+    CARD32  tmp32;
+    Bool ret = TRUE;
+
+    RegMask(map, 0x28, 0x200, 0x200);
+    save_I2C_CONTROL1 = RegRead(map, R5_DC_I2C_CONTROL1);
+    save_494 = RegRead(map, 0x494);
+    RegMask(map, 0x494, 1, 1);
+    RegMask(map, R5_DC_I2C_ARBITRATION,
+	       R5_DC_I2C_SW_WANTS_TO_USE_I2C,
+	       R5_DC_I2C_SW_WANTS_TO_USE_I2C);
+
+    RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE
+	       | R5_DC_I2C_NACK
+	       | R5_DC_I2C_HALT, 0xff);
+    RegMask(map, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xffff);
+    RegWrite(map, R5_DC_I2C_RESET, 0);
+
+    RegMask(map, R5_DC_I2C_CONTROL1,
+	       (line  & 0x0f) << 16 | R5_DC_I2C_EN,
+	       R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
+
+    if (nWrite || !nRead) { /* special case for bus probing */
+	/*
+	 * chip can't just write the slave address without data.
+	 * Add a dummy byte.
+	 */
+	RegWrite(map, R5_DC_I2C_CONTROL2,
+		    prescale << 16 |
+		    (nWrite ? nWrite : 1) << 8 | 0x01); /* addr_cnt: 1 */
+	RegMask(map, R5_DC_I2C_CONTROL3,
+		   0x30 << 24, 0xff << 24); /* time limit 30 */
+
+	RegWrite(map, R5_DC_I2C_DATA, slave);
+
+	/* Add dummy byte */
+	if (!nWrite)
+	    RegWrite(map, R5_DC_I2C_DATA, 0);
+	else
+	    while (nWrite--)
+		RegWrite(map, R5_DC_I2C_DATA, *WriteBuffer++);
+
+	RegMask(map, R5_DC_I2C_CONTROL1,
+		   R5_DC_I2C_START | R5_DC_I2C_STOP, 0xff);
+	RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
+
+	if ((ret = R5xxI2CStatus(map)))
+	    RegMask(map, R5_DC_I2C_STATUS1,R5_DC_I2C_DONE, 0xff);
+	else
+	    ret = FALSE;
+    }
+
+    if (ret && nRead) {
+
+	RegWrite(map, R5_DC_I2C_DATA, slave | 1); /*slave*/
+	RegWrite(map, R5_DC_I2C_CONTROL2,
+		    prescale << 16 | nRead << 8 | 0x01); /* addr_cnt: 1 */
+
+	RegMask(map, R5_DC_I2C_CONTROL1,
+		   R5_DC_I2C_START | R5_DC_I2C_STOP | R5_DC_I2C_RECEIVE, 0xff);
+	RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_GO, 0xff);
+	if ((ret = R5xxI2CStatus(map))) {
+	    RegMask(map, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE, 0xff);
+	    while (nRead--) {
+		*(ReadBuffer++) = (CARD8)RegRead(map, R5_DC_I2C_DATA);
+	    }
+	} else
+	    ret = FALSE;
+    }
+
+    RegMask(map, R5_DC_I2C_STATUS1,
+	       R5_DC_I2C_DONE | R5_DC_I2C_NACK | R5_DC_I2C_HALT, 0xff);
+    RegMask(map, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xff);
+    RegWrite(map,R5_DC_I2C_RESET, 0);
+
+    RegMask(map,R5_DC_I2C_ARBITRATION,
+	       R5_DC_I2C_SW_DONE_USING_I2C, 0xff00);
+
+    RegWrite(map,R5_DC_I2C_CONTROL1, save_I2C_CONTROL1);
+    RegWrite(map,0x494, save_494);
+    tmp32 = RegRead(map,0x28);
+    RegWrite(map,0x28, tmp32 & 0xfffffdff);
+
+    return ret;
+}
+
+/*
+ *
+ */
+static Bool
+R5xxI2CWriteRead(void *map, CARD8 line, CARD8 slave,
+		unsigned char *WriteBuffer, int nWrite, unsigned char *ReadBuffer, int nRead)
+{
+    /*
+     * Since the transaction buffer can only hold
+     * 15 bytes (+ the slave address) we bail out
+     * on every transaction that is bigger unless
+     * it's a read transaction following a write
+     * transaction sending just one byte.
+     * In this case we assume, that this byte is
+     * an offset address. Thus we will restart
+     * the transaction after 15 bytes sending
+     * a new offset.
+     */
+
+    if (nWrite > 15 || (nRead > 15 && nWrite != 1)) {
+	fprintf(stderr,
+		   "%s: Currently only I2C transfers with "
+		   "maximally 15bytes are supported\n",
+		   __func__);
+	return FALSE;
+    }
+    if (nRead > 15) {
+	unsigned char offset = *WriteBuffer;
+	while (nRead) {
+	    int n = nRead > 15 ? 15 : nRead;
+	    if (!R5xxI2CWriteReadChunk(map, line, slave, &offset, 1, ReadBuffer, n))
+		return FALSE;
+	    ReadBuffer += n;
+	    nRead -= n;
+	    offset += n;
+	}
+	return TRUE;
+    } else
+	return R5xxI2CWriteReadChunk(map, line, slave, WriteBuffer, nWrite,
+				  ReadBuffer, nRead);
+}
+
+
+/*
+ *
+ */
+static Bool
+DDCProbe(void *map, int Channel, unsigned char slave, unsigned char *data, int count)
+{
+    Bool ret;
+    unsigned char offset = 0;
+
     switch (ChipType) {
 	case RHD_R500:
-	    return R5xxDDCProbe(map, Channel, slave);
+	    if (( ret = R5xxDDCProbe(map, Channel, slave)) && count > 0) {
+		ret = R5xxI2CWriteRead(map, Channel, slave, &offset, 1, data, count);
+	    };
+	    return ret;
 	case RHD_RS690:
-	    return RS69DDCProbe(map, Channel, slave);
+	    if ((ret =  RS69DDCProbe(map, Channel, slave)) && count > 0) {
+		ret = RS69xI2CWriteRead(map, Channel, slave, &offset, 1, data, count);
+	    };
+	    return ret;
 	case RHD_R600:
-	    return R6xxDDCProbe(map, Channel, slave);
+	    if ((ret = R6xxDDCProbe(map, Channel, slave)) && count > 0) {
+		ret = R6xxI2CWriteRead(map, Channel, slave, &offset, 1, data, count);
+	    };
+	    return ret;
 	default:
 	    return FALSE;
     }
@@ -1146,11 +1499,11 @@ DDCReport(void *map)
 {
     Bool Chan0, Chan1, Chan2, Chan3;
 
-    Chan0 = DDCProbe(map, 0, EDID_SLAVE);
-    Chan1 = DDCProbe(map, 1, EDID_SLAVE);
-    Chan2 = DDCProbe(map, 2, EDID_SLAVE);
+    Chan0 = DDCProbe(map, 0, EDID_SLAVE, NULL, 0);
+    Chan1 = DDCProbe(map, 1, EDID_SLAVE, NULL, 0);
+    Chan2 = DDCProbe(map, 2, EDID_SLAVE, NULL, 0);
     if (ChipType >= RHD_R600)
-	Chan3 = DDCProbe(map, 3, EDID_SLAVE);
+	Chan3 = DDCProbe(map, 3, EDID_SLAVE, NULL, 0);
     else
 	Chan3 = FALSE;
 
@@ -1177,23 +1530,32 @@ DDCReport(void *map)
  *
  */
 static void
-DDCScanBus(void *map)
+DDCScanBus(void *map, int count)
 {
     int channel;
     unsigned char slave;
     int max_chan = ((ChipType >= RHD_R600) ? 3 : 2);
+    unsigned char *data = NULL;
+
+    if (count)
+	data = alloca(count);
 
     for (channel = 0; channel < max_chan; channel ++) {
 	int state = 0;
 
 	for (slave = 0x8; slave < 0x78; slave++ ) {
 
-	    if (DDCProbe(map, channel, slave << 1)) {
+	    if (DDCProbe(map, channel, slave << 1, data, count)) {
 		if (state == 0) {
 		    printf("  DDC Line[%i]: Slaves: ", channel);
-		    state = 1;
+		    if (!data)
+			state = 1;
 		}
 		printf("%x ", slave << 1);
+		if (data) {
+		    printf("\n");
+		    dprint(data, count);
+		}
 	    }
 	}
 	if (state == 1)
@@ -1433,6 +1795,7 @@ print_help(const char* progname, const char* message, const char* msgarg)
 	fprintf(stderr, "Usage: %s [options] PCI-tag\n"
 			"       Options: -d: dumpBios\n"
 			"                -s: scanDDCBus\n"
+			"		 -x num: dump num bytes from available i2c channels\n"
 			"       PCI-tag: bus:dev.func\n\n",
 		progname);
 }
@@ -1480,6 +1843,7 @@ main(int argc, char *argv[])
     int ret;
     int saved_errno;
     Bool dumpBios = FALSE, deviceSet = FALSE, scanDDCBus = FALSE;
+    unsigned long DumpI2CData = 0;
     int i;
     unsigned char *rombase;
     int size;
@@ -1503,6 +1867,16 @@ main(int argc, char *argv[])
 	    dumpBios = TRUE;
 	} else if (!strncmp("-s",argv[i],3)) {
 	    scanDDCBus = TRUE;
+	} else if (!strncmp("-x",argv[i],3)) {
+	    if (++i == argc || !strncmp("-", argv[i], 1)) {
+		print_help(argv[0], "Option -x requires an argument","");
+		return 1;
+	    }
+	    DumpI2CData = strtol(argv[i], NULL, 0);
+	    if (DumpI2CData > 256) {
+		fprintf(stderr, "can only dump up to 256 bytes");
+		return -1;
+	    }
 	} else if (!strncmp("-",argv[i],1)) {
 	    print_help(argv[0], "Unknown option", argv[i]);
 	    return 1;
@@ -1602,8 +1976,8 @@ main(int argc, char *argv[])
     DDCReport(io);
 
     LVDSReport(io);
-    if (scanDDCBus)
-	DDCScanBus(io);
+    if (scanDDCBus || DumpI2CData)
+	DDCScanBus(io, DumpI2CData);
 
     FreeVBIOS(rombase, size);
 
