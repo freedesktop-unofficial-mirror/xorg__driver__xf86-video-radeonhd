@@ -634,6 +634,8 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     atomDataTablesPtr atomDataPtr;
     atomBiosHandlePtr handle = NULL;
     unsigned int BIOSImageSize = 0;
+    Bool unposted = FALSE;
+
     data->atomhandle = NULL;
 
     RHDFUNCI(scrnIndex);
@@ -652,6 +654,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 	if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
 	    if (!(BIOSImageSize = RHDReadPCIBios(rhdPtr, &ptr)))
 		return ATOM_FAILED;
+	    unposted = TRUE;
 	} else {
 	    int read_len;
 	    unsigned char tmp[32];
@@ -699,7 +702,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 
 # if ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
-    if (!rhdAtomGetFbBaseAndSize(handle, NULL, NULL)) {
+    if (unposted) {
 	/* run AsicInit */
 	if (!rhdAtomASICInit(handle))
 	    xf86DrvMsg(scrnIndex, X_WARNING,
