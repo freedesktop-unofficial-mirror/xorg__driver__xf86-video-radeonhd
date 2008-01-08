@@ -226,6 +226,10 @@ CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
 #define RHDReadMC(ptr,addr) _RHDReadMC((ptr)->scrnIndex,(addr))
 void _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data);
 #define RHDWriteMC(ptr,addr,value) _RHDWriteMC((ptr)->scrnIndex,(addr),(value))
+CARD32 _RHDReadPLL(int scrnIndex, CARD16 offset);
+#define RHDReadPLL(ptr, off) _RHDReadPLL((ptr)->scrnIndex,(off))
+void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
+#define RHDWritePLL(ptr, off, value) _RHDWritePLL((ptr)->scrnIndex,(off),(value))
 
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,

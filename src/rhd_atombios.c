@@ -2230,14 +2230,10 @@ ULONG
 CailReadMC(VOID *CAIL, ULONG Address)
 {
     ULONG ret;
-    ULONG Offset, AccMask;
 
     CAILFUNC(CAIL);
 
-    Offset = Address & 0x1FF;
-    AccMask = (Address & 0xFE00) << 6; /* ??? */
-
-    ret = RHDReadMC(((atomBiosHandlePtr)CAIL), Offset | AccMask);
+    ret = RHDReadMC(((atomBiosHandlePtr)CAIL), Address | MC_IND_ALL);
     DEBUGP(ErrorF("%s(%x) = %x\n",__func__,Address,ret));
     return ret;
 }
@@ -2245,15 +2241,11 @@ CailReadMC(VOID *CAIL, ULONG Address)
 VOID
 CailWriteMC(VOID *CAIL, ULONG Address, ULONG data)
 {
-    CARD32 Offset, AccMask;
-
     CAILFUNC(CAIL);
 
-    Offset = Address & 0x1FF;
-    AccMask = (Address & 0xFE00) << 6; /* ??? */
 
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,Address,data));
-    RHDWriteMC(((atomBiosHandlePtr)CAIL), Offset | AccMask, data);
+    RHDWriteMC(((atomBiosHandlePtr)CAIL), Address | MC_IND_ALL | MC_IND_WR_EN, data);
 }
 
 #ifdef XSERVER_LIBPCIACCESS
@@ -2330,12 +2322,13 @@ CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 ULONG
 CailReadPLL(VOID *CAIL, ULONG Address)
 {
+    ULONG ret;
+    
     CAILFUNC(CAIL);
 
-    xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,
-	       X_ERROR, "%s: ReadPLL not impemented\n",
-	       __func__);
-    return 0;
+    ret = _RHDReadPLL(((atomBiosHandlePtr)CAIL)->scrnIndex, Address);
+    DEBUGP(ErrorF("%s(%x) = %x\n",__func__,Address,ret));
+    return ret;
 }
 
 VOID
@@ -2343,9 +2336,8 @@ CailWritePLL(VOID *CAIL, ULONG Address,ULONG Data)
 {
     CAILFUNC(CAIL);
 
-    xf86DrvMsg(((atomBiosHandlePtr)CAIL)->scrnIndex,
-	       X_ERROR, "%s: WritePLL not impemented",
-	       __func__);
+    DEBUGP(ErrorF("%s(%x,%x)\n",__func__,Address,Data));
+    _RHDWritePLL(((atomBiosHandlePtr)CAIL)->scrnIndex, Address, Data);
 }
 
 # endif
