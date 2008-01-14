@@ -1986,22 +1986,22 @@ rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     save_d2vga_control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
     save_vga_render_control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
     /* Set SPI ROM prescale value to change the SCK period */
-    RHDRegMask(rhdPtr, SEPROM_CNTL1, SCK_PRESCALE, 0x0C << 24);
+    RHDRegMask(rhdPtr, SEPROM_CNTL1, 0x0C << 24, SCK_PRESCALE);
     /* Let chip control GPIO pads - this is the default state after power up */
     RHDRegWrite(rhdPtr, GPIOPAD_EN, 0);
     RHDRegWrite(rhdPtr, GPIOPAD_A, 0);
     /* Put GPIO pads in read mode */
     RHDRegWrite(rhdPtr, GPIOPAD_MASK, 0);
     /* Disable VIP Host port */
-    RHDRegMask(rhdPtr, VIPH_CONTROL, VIPH_EN, 0);
+    RHDRegMask(rhdPtr, VIPH_CONTROL, 0, VIPH_EN);
     /* Enable BIOS ROM */
-    RHDRegMask(rhdPtr, BUS_CNTL, BIOS_ROM_DIS, 0);
+    RHDRegMask(rhdPtr, BUS_CNTL, 0, BIOS_ROM_DIS);
     /* Disable VGA and select extended timings */
-    RHDRegMask(rhdPtr, D1VGA_CONTROL,
-	       D1VGA_MODE_ENABLE | D1VGA_TIMING_SELECT, 0);
-    RHDRegMask(rhdPtr, D2VGA_CONTROL,
-	       D2VGA_MODE_ENABLE | D2VGA_TIMING_SELECT, 0);
-    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, VGA_VSTATUS_CNTL, 0);
+    RHDRegMask(rhdPtr, D1VGA_CONTROL, 0,
+	       D1VGA_MODE_ENABLE | D1VGA_TIMING_SELECT);
+    RHDRegMask(rhdPtr, D2VGA_CONTROL, 0,
+	       D2VGA_MODE_ENABLE | D2VGA_TIMING_SELECT);
+    RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, VGA_VSTATUS_CNTL);
 
     ret = rhdDoReadPCIBios(rhdPtr, ptr);
 
