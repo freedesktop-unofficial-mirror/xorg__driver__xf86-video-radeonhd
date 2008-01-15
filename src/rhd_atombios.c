@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -99,6 +99,9 @@ static AtomBiosResult rhdAtomFirmwareInfoQuery(atomBiosHandlePtr handle,
 						   AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 					   AtomBiosRequestID unused, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
+			 AtomBiosRequestID func, AtomBiosArgPtr data);
 # ifdef ATOM_BIOS_PARSER
 static AtomBiosResult rhdAtomExec(atomBiosHandlePtr handle,
 				   AtomBiosRequestID unused, AtomBiosArgPtr data);
@@ -202,6 +205,12 @@ struct atomBIOSRequests {
      "DAC2_CRTC2 Mux Register Index",		MSG_FORMAT_HEX},
     {ATOM_DAC2_CRTC2_MUX_REG_INFO,rhdAtomCompassionateDataQuery,
      "DAC2_CRTC2 Mux Register Info",		MSG_FORMAT_HEX},
+    {ATOM_ANALOG_TV_MODE, rhdAtomAnalogTVInfoQuery,
+     "Analog TV Mode",				MSG_FORMAT_NONE},
+    {ATOM_ANALOG_TV_DEFAULT_MODE, rhdAtomAnalogTVInfoQuery,
+     "Analog TV Default Mode",			MSG_FORMAT_NONE},
+    {ATOM_ANALOG_TV_SUPPORTED_MODES, rhdAtomAnalogTVInfoQuery,
+     "Analog TV Supported Modes",		MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -580,6 +589,8 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     ASIC_INIT_PS_ALLOCATION asicInit;
     AtomBiosArgRec data;
 
+    RHDFUNC(handle);
+
     RHDAtomBiosFunc(handle->scrnIndex, handle,
 		    GET_DEFAULT_ENGINE_CLOCK,
 		    &data);
@@ -607,6 +618,8 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
     ENABLE_SCALER_PARAMETERS scaler;
     AtomBiosArgRec data;
 
+    RHDFUNC(handle);
+
     scaler.ucScaler = scalerID;
     scaler.ucEnable = setting;
     data.exec.dataSpace = NULL;
@@ -618,7 +631,36 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableScaler Successful\n");
 	return TRUE;
     }
-    xf86DrvMsg(handle->scrnIndex, X_INFO, "EableScaler Failed\n");
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableScaler Failed\n");
+    return FALSE;
+}
+
+Bool
+rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, enum AtomTVMode tvMode)
+{
+    TV_ENCODER_CONTROL_PS_ALLOCATION tvEncoder;
+    AtomBiosArgRec data;
+
+    RHDFUNC(handle);
+
+    tvEncoder.sTVEncoder.ucTvStandard = (1 && (tvMode & 0x1010101010))
+	| (( 1 && (tvMode & 0x110011001100)) << 2)
+	| (( 1 && (tvMode & 0x110011001100)) << 3)
+	| (( 1 && (tvMode & 0x000011110000)) << 4)
+	| (( 1 && (tvMode & 0x111100000000)) << 8);
+    tvEncoder.sTVEncoder.ucAction = enable ? 1 :0;
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &tvEncoder;
+    data.exec.index = 0x1d;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetTVEncoder\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Failed\n");
     return FALSE;
 }
 
@@ -840,7 +882,7 @@ rhdAtomLvdsTimings(atomBiosHandlePtr handle, ATOM_DTD_FORMAT *dtd)
 	     mode->CrtcHBlankEnd, mode->HTotal,
 	     mode->VDisplay, mode->CrtcVBlankStart, mode->VSyncStart, mode->VSyncEnd,
 	     mode->CrtcVBlankEnd, mode->VTotal);
-
+#undef NAME_LEN
     return mode;
 }
 
@@ -1134,6 +1176,157 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 	case ATOM_DAC2_CRTC2_MUX_REG_INFO:
 	    *val = atomDataPtr->CompassionateData->
 		ucDAC2_CRT2_MUX_RegisterInfo;
+	    break;
+	default:
+	    return ATOM_NOT_IMPLEMENTED;
+    }
+    return ATOM_SUCCESS;
+}
+
+static DisplayModePtr
+rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
+		       ATOM_ANALOG_TV_INFO *tv_info,
+		       enum AtomTVMode tvMode)
+{
+    atomDataTablesPtr atomDataPtr;
+    DisplayModePtr mode;
+    int mode_n;
+    char *name;
+    ATOM_MODE_TIMING *amt;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+
+    if (!(tv_info->ucTV_SuppportedStandard & (1 << tvMode)))
+	return NULL;
+
+    switch (tvMode) {
+	case ATOM_TV_NTSC:
+	case ATOM_TV_NTSCJ:
+	    mode_n = 0;
+	    name = "TV_NTSC";
+	    break;
+	case ATOM_TV_PAL:
+	case ATOM_TV_PALM:
+	case ATOM_TV_PALCN:
+	case ATOM_TV_PALN:
+	case ATOM_TV_PAL60:
+	case ATOM_TV_SECAM:
+	    mode_n = 1;
+	    name = "TV_PAL/SECAM";
+	    break;
+	default:
+	    return NULL;
+    }
+
+    if (!(mode = (DisplayModePtr)xcalloc(1,sizeof(DisplayModeRec))))
+	return NULL;
+
+    amt = &tv_info->aModeTimings[mode_n];
+
+    mode->CrtcHDisplay = mode->HDisplay =  amt->usCRTC_H_Disp;
+    mode->CrtcHSyncStart = mode->HSyncStart = amt->usCRTC_H_SyncStart;
+    mode->CrtcHSyncEnd = mode->HSyncEnd = mode->HSyncStart + amt->usCRTC_H_SyncWidth;
+    mode->CrtcHTotal = mode->HTotal = amt->usCRTC_H_Total;
+    mode->CrtcHBlankStart = mode->HDisplay + amt->usCRTC_OverscanRight;
+    mode->CrtcHBlankEnd = mode->HTotal - amt->usCRTC_OverscanLeft;
+
+    mode->CrtcVDisplay = mode->VDisplay = amt->usCRTC_V_Disp;
+    mode->CrtcVSyncStart = mode->VSyncStart = amt->usCRTC_V_SyncStart;
+    mode->CrtcVSyncEnd = mode->VSyncEnd = mode->VSyncStart + amt->usCRTC_V_SyncWidth;
+    mode->CrtcVTotal = mode->VTotal = amt->usCRTC_V_Total;
+    mode->CrtcVBlankStart = mode->VDisplay + amt->usCRTC_OverscanBottom;
+    mode->CrtcVBlankEnd = mode->CrtcVTotal - amt->usCRTC_OverscanTop;
+
+    mode->SynthClock = mode->Clock  = amt->usPixelClock * 10;
+    if (amt->susModeMiscInfo.usAccess & ATOM_HSYNC_POLARITY)
+	mode->Flags |= V_NHSYNC;
+    else
+	mode->Flags |= V_PHSYNC;
+    if (amt->susModeMiscInfo.usAccess & ATOM_VSYNC_POLARITY)
+	mode->Flags |= V_NVSYNC;
+    else
+	mode->Flags |= V_PVSYNC;
+    if (amt->susModeMiscInfo.usAccess & ATOM_INTERLACE)
+	mode->Flags |= V_INTERLACE;
+    if (amt->susModeMiscInfo.usAccess & ATOM_COMPOSITESYNC)
+	mode->Flags |= V_CSYNC;
+    if (amt->susModeMiscInfo.usAccess & ATOM_DOUBLE_CLOCK_MODE)
+	mode->Flags |= V_DBLCLK;
+
+    mode->HSync = ((float) mode->Clock) / ((float)mode->HTotal);
+    mode->VRefresh = (1000.0 * ((float) mode->Clock))
+	/ ((float)(((float)mode->HTotal) * ((float)mode->VTotal)));
+
+    mode->name = xstrdup(name);
+
+    RHDDebug(handle->scrnIndex,"%s: LVDS Modeline: %s  "
+	     "%2.d  %i (%i) %i %i (%i) %i  %i (%i) %i %i (%i) %i\n",
+	     __func__, mode->name, mode->Clock,
+	     mode->HDisplay, mode->CrtcHBlankStart, mode->HSyncStart, mode->CrtcHSyncEnd,
+	     mode->CrtcHBlankEnd, mode->HTotal,
+	     mode->VDisplay, mode->CrtcVBlankStart, mode->VSyncStart, mode->VSyncEnd,
+	     mode->CrtcVBlankEnd, mode->VTotal);
+
+
+    return mode;
+}
+
+static void
+rhdPrintTVModes(atomBiosHandlePtr handle,
+		unsigned char modes, char *s)
+{
+    int i = 0;
+    char *tv_modes[] = {
+	"NTSC",
+	"NTSCJ",
+	"PAL",
+	"PALM",
+	"PALCN",
+	"PALN",
+	"PAL60",
+	"SECAM"
+    };
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s: ",s);
+
+    while ((1 << i) <=  ATOM_TV_SECAM) {
+	i++;
+	if (modes & (1 << i))
+	    xf86DrvMsg(-1, X_INFO, "%s ", tv_modes[i]);
+    }
+    xf86DrvMsg(-1, X_INFO, "\n");
+}
+
+static AtomBiosResult
+rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
+			AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    CARD8 crev, frev;
+    atomDataTablesPtr atomDataPtr = handle->atomDataPtr;
+
+    RHDFUNC(handle);
+
+    if (!rhdAtomGetTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->AnalogTV_Info),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+    switch (func) {
+	case ATOM_ANALOG_TV_MODE:
+	    data->mode = rhdAtomAnalogTVTimings(handle, atomDataPtr->AnalogTV_Info,
+						(enum AtomTVMode) (data->tvMode));
+	    if (!data->mode)
+		return ATOM_FAILED;
+	    break;
+	case ATOM_ANALOG_TV_DEFAULT_MODE:
+	    data->tvMode = (enum AtomTVMode)atomDataPtr->AnalogTV_Info->ucTV_BootUpDefaultStandard;
+	    rhdPrintTVModes(handle, (unsigned char)data->val, "Default TV Mode:");
+	    break;
+	case ATOM_ANALOG_TV_SUPPORTED_MODES:
+	    data->val = (CARD32)atomDataPtr->AnalogTV_Info->ucTV_SuppportedStandard;
+	    rhdPrintTVModes(handle, (unsigned char)data->val, "Supported TV Modes:");
 	    break;
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
@@ -2325,7 +2518,7 @@ ULONG
 CailReadPLL(VOID *CAIL, ULONG Address)
 {
     ULONG ret;
-    
+
     CAILFUNC(CAIL);
 
     ret = _RHDReadPLL(((atomBiosHandlePtr)CAIL)->scrnIndex, Address);

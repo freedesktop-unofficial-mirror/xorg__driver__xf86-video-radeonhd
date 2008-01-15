@@ -73,6 +73,9 @@ typedef enum _AtomBiosRequestID {
     ATOM_DAC2_CRTC2_FORCE,
     ATOM_DAC2_CRTC2_MUX_REG_IND,
     ATOM_DAC2_CRTC2_MUX_REG_INFO,
+    ATOM_ANALOG_TV_MODE,
+    ATOM_ANALOG_TV_DEFAULT_MODE,
+    ATOM_ANALOG_TV_SUPPORTED_MODES,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -93,6 +96,19 @@ typedef struct AtomFb {
     unsigned int size;
 } AtomFbRec, *AtomFbPtr;
 
+typedef enum AtomTVMode {
+    ATOM_TV_NONE = -1,
+    ATOM_TV_NTSC = 1 << 0,
+    ATOM_TV_NTSCJ = 1 << 1,
+    ATOM_TV_PAL = 1 << 2,
+    ATOM_TV_PALM = 1 << 3,
+    ATOM_TV_PALCN = 1 << 4,
+    ATOM_TV_PALN = 1 << 5,
+    ATOM_TV_PAL60 = 1 << 6,
+    ATOM_TV_SECAM = 1 << 7,
+    ATOM_TV_CV = 1 << 8
+} AtomTVMode;
+
 typedef union AtomBiosArg
 {
     CARD32 val;
@@ -102,11 +118,17 @@ typedef union AtomBiosArg
     DisplayModePtr		mode;
     AtomExecRec			exec;
     AtomFbRec			fb;
+    enum AtomTVMode		tvMode;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 extern AtomBiosResult
 RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
+extern Bool
+rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting);
+extern Bool
+rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, enum AtomTVMode tvMode);
+
 # endif
 
 #endif /*  RHD_ATOMBIOS_H_ */
