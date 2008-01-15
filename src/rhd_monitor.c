@@ -382,6 +382,95 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 }
 
 /*
+ * rhdMonitorTV(): get TV modes. Currently we can only get this from AtomBIOS.
+ */
+static struct rhdMonitor *
+rhdMonitorTV(struct rhdConnector *Connector)
+{
+    struct rhdMonitor *Monitor = NULL;
+#ifdef ATOM_BIOS
+    ScrnInfoPtr pScrn = xf86Screens[Connector->scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    DisplayModeRec *Mode = NULL;
+    AtomBiosArgRec arg;
+    enum AtomTVMode tvMode = ATOM_TV_NONE;
+    int i;
+    const struct { char *name; enum AtomTVMode mode; }
+    rhdTVModeMapName[] = {
+	{"NTSC", ATOM_TV_NTSC},
+	{"NTSCJ", ATOM_TV_NTSCJ},
+	{"PAL", ATOM_TV_PAL},
+	{"PALM", ATOM_TV_PALN},
+	{"PALCN", ATOM_TV_PALCN},
+	{"PAL60", ATOM_TV_PAL60},
+	{"SECAM", ATOM_TV_SECAM},
+	{"NULL", ATOM_TV_NONE}
+    };
+
+    RHDFUNC(Connector);
+
+    if (rhdPtr->tvModeName.set) {
+	i = 0;
+
+	while (rhdTVModeMapName[i].name) {
+	    if (!strcmp(rhdTVModeMapName[i].name, rhdPtr->tvModeName.val.string)) {
+		tvMode = rhdTVModeMapName[i].mode;
+		break;
+	    }
+	}
+	if (tvMode == ATOM_TV_NONE) {
+	    xf86DrvMsg(Connector->scrnIndex, X_ERROR,
+		       "Specified TV Mode %s is invalid\n", rhdPtr->tvModeName.val.string);
+	    return NULL;
+	}
+
+    } else {
+	i = 0;
+
+	if (RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS,ATOM_ANALOG_TV_DEFAULT_MODE, &arg)
+	    != ATOM_SUCCESS)
+	    return NULL;
+
+	tvMode = arg.tvMode;
+	while (rhdTVModeMapName[i].name) {
+	    if (rhdTVModeMapName[i].mode == tvMode) {
+		xf86DrvMsg(Connector->scrnIndex, X_INFO, "Found default TV Mode %s\n",rhdTVModeMapName[i].name);
+		break;
+	    }
+	}
+    }
+
+    if (RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS, ATOM_ANALOG_TV_MODE, &arg)
+	!= ATOM_SUCCESS)
+	return NULL;
+
+    Mode = arg.mode;
+    Mode->type |= M_T_PREFERRED;
+
+    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
+
+    Monitor->scrnIndex = Connector->scrnIndex;
+    Monitor->EDID      = NULL;
+
+    Monitor->Name      = xstrdup("TV");
+    Monitor->Modes     = RHDModesAdd(Monitor->Modes, Mode);
+    Monitor->numHSync  = 1;
+    Monitor->HSync[0].lo = Mode->HSync;
+    Monitor->HSync[0].hi = Mode->HSync;
+    Monitor->numVRefresh = 1;
+    Monitor->VRefresh[0].lo = Mode->VRefresh;
+    Monitor->VRefresh[0].hi = Mode->VRefresh;
+    Monitor->Bandwidth = Mode->SynthClock;
+
+    /* TV should be driven at native resolution only. */
+    Monitor->UseFixedModes = TRUE;
+    Monitor->ReducedAllowed = FALSE;
+
+#endif
+    return Monitor;
+}
+
+/*
  *
  */
 struct rhdMonitor *
@@ -393,6 +482,8 @@ RHDMonitorInit(struct rhdConnector *Connector)
 
     if (Connector->Type == RHD_CONNECTOR_PANEL)
 	Monitor = rhdMonitorPanel(Connector);
+    else if (Connector->Type == RHD_CONNECTOR_TV)
+	Monitor = rhdMonitorTV(Connector);
     else if (Connector->DDC) {
 	xf86MonPtr EDID = xf86DoEDID_DDC2(Connector->scrnIndex, Connector->DDC);
 	if (EDID) {
