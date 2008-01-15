@@ -110,7 +110,7 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x710C, RHD_R520  ), /* Radeon X1800 */
     RHD_DEVICE_MATCH(  0x710E, RHD_R520  ), /* FireGL V7300 */
     RHD_DEVICE_MATCH(  0x710F, RHD_R520  ), /* FireGL V7350 */
-    RHD_DEVICE_MATCH(  0x7140, RHD_RV515 ), /* Radeon X1600 */
+    RHD_DEVICE_MATCH(  0x7140, RHD_RV515 ), /* Radeon X1600/X1550 */
     RHD_DEVICE_MATCH(  0x7141, RHD_RV505 ), /* RV505 */
     RHD_DEVICE_MATCH(  0x7142, RHD_RV515 ), /* Radeon X1300/X1550 */
     RHD_DEVICE_MATCH(  0x7143, RHD_RV505 ), /* Radeon X1550 */
@@ -454,6 +454,7 @@ rhdCards[] =
     /* 0x710E : R520 : FireGL V7300 */
     /* 0x710F : R520 : FireGL V7350 */
     /* 0x7140 : RV515 : Radeon X1600 */
+    { 0x7140, 0x1787, 0x3000, "PowerColor X1550", RHD_CARD_FLAG_HPDSWAP, ID_CONNECTORINFO_EMPTY },
     /* 0x7141 : RV505 : RV505 */
     /* 0x7142 : RV515 : Radeon X1300/X1550 */
     /* 0x7143 : RV505 : Radeon X1550 */
