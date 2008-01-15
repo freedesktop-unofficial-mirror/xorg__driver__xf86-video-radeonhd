@@ -193,6 +193,14 @@ typedef enum _chipType {
     RHD_R600
 } chipType;
 
+typedef enum dacOutput {
+    DAC_NONE,
+    DAC_VGA,
+    DAC_SVIDEO,
+    DAC_COMPOSITE,
+    DAC_COMPONENT
+} dacOutput;
+
 /* for RHD_R500/R600 */
 chipType ChipType;
 
@@ -516,8 +524,8 @@ HPDReport(void *map)
 /*
  *
  */
-static Bool
-DACALoadDetect(void *map)
+static dacOutput
+DACALoadDetect(void *map, Bool tv)
 {
     CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
     CARD8 ret;
@@ -532,7 +540,7 @@ DACALoadDetect(void *map)
     RegMask(map, DACA_AUTODETECT_CONTROL, 0, 0x3);
     RegMask(map, DACA_CONTROL2, 0, 0x1);
 
-    RegMask(map, DACA_CONTROL2, 0, 0x100);
+    RegMask(map, DACA_CONTROL2, tv ? 0x100 : 0, 0x100);
 
     RegWrite(map, DACA_FORCE_DATA, 0);
     RegMask(map, DACA_CONTROL2, 0x1, 0x1);
@@ -560,21 +568,41 @@ DACALoadDetect(void *map)
      * but we don't bother with this at the moment.
      */
     ret = (RegRead(map, DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
-
+#ifdef DEBUG
+    fprintf(stderr, "DACA: %x %s\n",ret, tv ? "TV" : "");
+#endif
     RegMask(map, DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
     RegWrite(map, DACA_CONTROL1, Control1);
     RegMask(map, DACA_CONTROL2, Control2, 0x1FF);
     RegMask(map, DACA_AUTODETECT_CONTROL, DetectControl, 0xFF);
     RegMask(map, DACA_ENABLE, Enable, 0xFF);
 
-    return (ret & 0x07);
+    switch (ret & 0x7) {
+	case 0x7:
+	    if (tv)
+		return DAC_COMPONENT;
+	    else
+		return DAC_VGA;
+	case 0x1:
+	    if (tv)
+		return DAC_COMPOSITE;
+	    else
+		return DAC_NONE;
+	case 0x6:
+	    if (tv)
+		return DAC_SVIDEO;
+	    else
+		return DAC_NONE;
+	default:
+	    return DAC_NONE;
+    }
 }
 
 /*
  *
  */
-static Bool
-DACBLoadDetect(void *map)
+static dacOutput
+DACBLoadDetect(void *map, Bool tv)
 {
     CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
     CARD8  ret;
@@ -589,7 +617,7 @@ DACBLoadDetect(void *map)
     RegMask(map, DACB_AUTODETECT_CONTROL, 0, 0x3);
     RegMask(map, DACB_CONTROL2, 0, 0x1);
 
-    RegMask(map, DACB_CONTROL2, 0, 0x100);
+    RegMask(map, DACB_CONTROL2, tv ? 0x100 : 0, 0x100);
 
     RegWrite(map, DACB_FORCE_DATA, 0);
     RegMask(map, DACB_CONTROL2, 0x1, 0x1);
@@ -618,13 +646,34 @@ DACBLoadDetect(void *map)
      * but we don't bother with this at the moment.
      */
     ret = (RegRead(map, DACB_COMPARATOR_OUTPUT) & 0x0E) >> 1;
-
+#ifdef DEBUG
+    fprintf(stderr, "DACB: %x %s\n",ret, tv ? "TV" : "");
+#endif
     RegMask(map, DACB_COMPARATOR_ENABLE, CompEnable, 0xFFFFFF);
     RegWrite(map, DACB_CONTROL1, Control1);
     RegMask(map, DACB_CONTROL2, Control2, 0x1FF);
     RegMask(map, DACB_AUTODETECT_CONTROL, DetectControl, 0xFF);
     RegMask(map, DACB_ENABLE, Enable, 0xFF);
 
+    switch (ret & 0x7) {
+	case 0x7:
+	    if (tv)
+		return DAC_COMPONENT;
+	    else
+		return DAC_VGA;
+	case 0x1:
+	    if (tv)
+		return DAC_COMPOSITE;
+	    else
+		return DAC_NONE;
+	case 0x6:
+	    if (tv)
+		return DAC_SVIDEO;
+	    else
+		return DAC_NONE;
+	default:
+	    return DAC_NONE;
+    }
     return (ret & 0x07);
 }
 
@@ -666,21 +715,54 @@ TMDSALoadDetect(void *map)
 static void
 LoadReport(void *map)
 {
-    Bool DACA, DACB, TMDSA;
+    dacOutput DACA, DACB, TVA, TVB;
+    Bool TMDSA;
 
-    DACA = DACALoadDetect(map);
-    DACB = DACBLoadDetect(map);
+    DACA = DACALoadDetect(map, FALSE);
+    DACB = DACBLoadDetect(map, FALSE);
+    TVA = DACALoadDetect(map, TRUE);
+    TVB = DACBLoadDetect(map, TRUE);
     TMDSA =TMDSALoadDetect(map);
 
     printf("  Load Detection:");
-    if (!DACA && !DACB && !TMDSA)
+    if (!DACA && !DACB && !TMDSA && !TVA && !TVB)
 	printf(" RHD_OUTPUT_NONE ");
     else {
-	if (DACA)
+	if (DACA == DAC_VGA)
 	    printf(" RHD_OUTPUT_DACA");
 
-	if (DACB)
+	if (DACB == DAC_VGA)
 	    printf(" RHD_OUTPUT_DACB");
+
+	switch (TVA) {
+	    case DAC_SVIDEO:
+		printf(" RHD_OUTPUT_DACA_TV_SVIDEO");
+		break;
+	    case DAC_COMPOSITE:
+		printf(" RHD_OUTPUT_DACA_TV_COMPOSITE");
+		break;
+	    case DAC_COMPONENT:
+		if (!DACA)
+		    printf(" RHD_OUTPUT_DACA_TV_COMPONENT");
+		break;
+	    default:
+		break;
+	}
+
+	switch (TVB) {
+	    case DAC_SVIDEO:
+		printf(" RHD_OUTPUT_DACB_TV_SVIDEO");
+		break;
+	    case DAC_COMPOSITE:
+		printf(" RHD_OUTPUT_DACB_TV_COMPOSITE");
+		break;
+	    case DAC_COMPONENT:
+		if (!DACB)
+		    printf(" RHD_OUTPUT_DACB_TV_COMPONENT");
+		break;
+	    default:
+		break;
+	}
 
 	if (TMDSA)
 	    printf(" RHD_OUTPUT_TMDSA");
