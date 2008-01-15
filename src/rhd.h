@@ -157,6 +157,7 @@ typedef struct RHDRec {
     RHDOpt		noRandr;
     RHDOpt		rrUseXF86Edid;
     RHDOpt		rrOutputOrder;
+    RHDOpt		tvModeName;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */

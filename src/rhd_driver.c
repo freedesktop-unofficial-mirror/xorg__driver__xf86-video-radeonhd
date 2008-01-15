@@ -228,7 +228,8 @@ typedef enum {
     OPTION_HPD,
     OPTION_NORANDR,
     OPTION_RRUSEXF86EDID,
-    OPTION_RROUTPUTORDER
+    OPTION_RROUTPUTORDER,
+    OPTION_TV_MODE
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -244,6 +245,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_TV_MODE,		   "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -2178,6 +2180,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
 			&rhdPtr->rrOutputOrder, NULL);
+    RhdGetOptValString (rhdPtr->Options, OPTION_TV_MODE,
+			&rhdPtr->tvModeName, NULL);
 
     rhdAccelOptionsHandle(pScrn);
 
