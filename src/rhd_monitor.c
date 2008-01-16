@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -393,54 +393,12 @@ rhdMonitorTV(struct rhdConnector *Connector)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     DisplayModeRec *Mode = NULL;
     AtomBiosArgRec arg;
-    enum AtomTVMode tvMode = ATOM_TV_NONE;
-    int i;
-    const struct { char *name; enum AtomTVMode mode; }
-    rhdTVModeMapName[] = {
-	{"NTSC", ATOM_TV_NTSC},
-	{"NTSCJ", ATOM_TV_NTSCJ},
-	{"PAL", ATOM_TV_PAL},
-	{"PALM", ATOM_TV_PALN},
-	{"PALCN", ATOM_TV_PALCN},
-	{"PAL60", ATOM_TV_PAL60},
-	{"SECAM", ATOM_TV_SECAM},
-	{"NULL", ATOM_TV_NONE}
-    };
 
     RHDFUNC(Connector);
 
-    if (rhdPtr->tvModeName.set) {
-	i = 0;
-
-	while (rhdTVModeMapName[i].name) {
-	    if (!strcmp(rhdTVModeMapName[i].name, rhdPtr->tvModeName.val.string)) {
-		tvMode = rhdTVModeMapName[i].mode;
-		break;
-	    }
-	}
-	if (tvMode == ATOM_TV_NONE) {
-	    xf86DrvMsg(Connector->scrnIndex, X_ERROR,
-		       "Specified TV Mode %s is invalid\n", rhdPtr->tvModeName.val.string);
-	    return NULL;
-	}
-
-    } else {
-	i = 0;
-
-	if (RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS,ATOM_ANALOG_TV_DEFAULT_MODE, &arg)
-	    != ATOM_SUCCESS)
-	    return NULL;
-
-	tvMode = arg.tvMode;
-	while (rhdTVModeMapName[i].name) {
-	    if (rhdTVModeMapName[i].mode == tvMode) {
-		xf86DrvMsg(Connector->scrnIndex, X_INFO, "Found default TV Mode %s\n",rhdTVModeMapName[i].name);
-		break;
-	    }
-	}
-    }
-
-    if (RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS, ATOM_ANALOG_TV_MODE, &arg)
+    arg.tvMode = rhdPtr->tvMode;
+    if (RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS, 
+			ATOM_ANALOG_TV_MODE, &arg)
 	!= ATOM_SUCCESS)
 	return NULL;
 
@@ -465,7 +423,11 @@ rhdMonitorTV(struct rhdConnector *Connector)
     /* TV should be driven at native resolution only. */
     Monitor->UseFixedModes = TRUE;
     Monitor->ReducedAllowed = FALSE;
-
+    /* 
+     *  hack: the TV encoder takes care of that. 
+     *  The mode that goes in isn't what comes out.
+     */
+    Mode->Flags &= ~(V_INTERLACE);
 #endif
     return Monitor;
 }

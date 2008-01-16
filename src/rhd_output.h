@@ -1,8 +1,8 @@
 /*
- * Copyright 2004-2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007       Matthias Hopf <mhopf@novell.com>
- * Copyright 2007       Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2004-2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008 Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008 Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -39,6 +39,15 @@ typedef enum _rhdOutputType {
     RHD_OUTPUT_LVTMB = RHD_OUTPUT_NONE
 } rhdOutputType;
 
+typedef enum rhdSensedOutput {
+    RHD_SENSED_NONE = 0,
+    RHD_SENSED_VGA,
+    RHD_SENSED_DVI,
+    RHD_SENSED_TV_SVIDEO,
+    RHD_SENSED_TV_COMPOSITE,
+    RHD_SENSED_TV_COMPONENT
+} rhdSensedOutput;
+
 /*
  *
  * This structure should deal with everything output related.
@@ -57,7 +66,10 @@ struct rhdOutput {
     struct rhdCrtc *Crtc;
     struct rhdConnector *Connector;
 
-    Bool (*Sense) (struct rhdOutput *Output, enum rhdConnectorType Type);
+    enum rhdSensedOutput SensedType;
+
+    enum rhdSensedOutput (*Sense) (struct rhdOutput *Output,
+				   enum rhdConnectorType Type);
     ModeStatus (*ModeValid) (struct rhdOutput *Output, DisplayModePtr Mode);
     void (*Mode) (struct rhdOutput *Output);
     void (*Power) (struct rhdOutput *Output, int Power);
@@ -76,6 +88,7 @@ void RHDOutputsShutdownInactive(RHDPtr rhdPtr);
 void RHDOutputsSave(RHDPtr rhdPtr);
 void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
+void RHDOutputPrintSensedType(struct rhdOutput *Output);
 
 /* output local functions. */
 struct rhdOutput *RHDDACAInit(RHDPtr rhdPtr);

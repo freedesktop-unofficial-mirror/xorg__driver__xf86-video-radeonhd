@@ -759,7 +759,9 @@ rhdRROutputDetect(xf86OutputPtr output)
 	     * HPD returned true
 	     */
 	    if (rout->Output->Sense) {
-		if (rout->Output->Sense(rout->Output, rout->Connector->Type))
+		if ((rout->Output->SensedType 
+		     = rout->Output->Sense(rout->Output, 
+					   rout->Connector->Type)))
 		    return XF86OutputStatusConnected;
 		else
 		    return XF86OutputStatusDisconnected;
@@ -776,7 +778,8 @@ rhdRROutputDetect(xf86OutputPtr output)
 			o->Connector == rout->Connector &&
 			o->Output->Sense) {
 			/* Yes, this looks wrong, but is correct */
-			if (o->Output->Sense(o->Output, o->Connector->Type))
+			if ((o->Output->SensedType = 
+			     o->Output->Sense(o->Output, o->Connector->Type)))
 			    return XF86OutputStatusDisconnected;
 		    }
 		}
@@ -792,7 +795,9 @@ rhdRROutputDetect(xf86OutputPtr output)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "RandR: Verifying state of DMS-59 VGA connector.\n");
 		if (rout->Output->Sense &&
-		    rout->Output->Sense(rout->Output, rout->Connector->Type))
+		    (rout->Output->SensedType 
+		     = rout->Output->Sense(rout->Output, 
+					   rout->Connector->Type)))
 		return XF86OutputStatusConnected;
 	    }
 	    return XF86OutputStatusDisconnected;
@@ -802,7 +807,8 @@ rhdRROutputDetect(xf86OutputPtr output)
 	 * No HPD available, Sense() if possible
 	 */
 	if (rout->Output->Sense) {
-	    if (rout->Output->Sense(rout->Output, rout->Connector->Type))
+	    if ((rout->Output->SensedType 
+		 = rout->Output->Sense(rout->Output, rout->Connector->Type)))
 		return XF86OutputStatusConnected;
 	    else
 		return XF86OutputStatusDisconnected;

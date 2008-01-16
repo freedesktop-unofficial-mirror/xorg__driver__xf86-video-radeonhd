@@ -613,7 +613,57 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "**************************************************\n");
 #endif
+    rhdPtr->tvMode = RHD_TV_NONE;
+    {
+	const struct { char *name; enum RHD_TV_MODE mode; }
+	rhdTVModeMapName[] = {
+	    {"NTSC", RHD_TV_NTSC},
+	    {"NTSCJ", RHD_TV_NTSCJ},
+	    {"PAL", RHD_TV_PAL},
+	    {"PALM", RHD_TV_PALN},
+	    {"PALCN", RHD_TV_PALCN},
+	    {"PAL60", RHD_TV_PAL60},
+	    {"SECAM", RHD_TV_SECAM},
+	    {NULL, RHD_TV_NONE}
+	};
 
+	
+	if (rhdPtr->tvModeName.set) {
+	    int i = 0;
+
+	    while (rhdTVModeMapName[i].name) {
+		if (!strcmp(rhdTVModeMapName[i].name, rhdPtr->tvModeName.val.string)) {
+		    rhdPtr->tvMode = rhdTVModeMapName[i].mode;
+		    break;
+		}
+	    }
+	    if (rhdPtr->tvMode == RHD_TV_NONE) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "Specified TV Mode %s is invalid\n", rhdPtr->tvModeName.val.string);
+	    }
+	} 
+#ifdef ATOM_BIOS
+	if (rhdPtr->tvMode == RHD_TV_NONE) {
+	    AtomBiosArgRec atomBiosArg;
+
+	    int i = 0;
+
+	    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				ATOM_ANALOG_TV_DEFAULT_MODE, &atomBiosArg)
+		== ATOM_SUCCESS) {
+		rhdPtr->tvMode = atomBiosArg.tvMode;
+		while (rhdTVModeMapName[i].name) {
+		    if (rhdTVModeMapName[i].mode == rhdPtr->tvMode) {
+			xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, 
+				   "Found default TV Mode %s\n",rhdTVModeMapName[i].name);
+			break;
+		    }
+		    i++;
+		}
+	    }
+	}
+#endif
+    }
     /* We can use a register which is programmed by the BIOS to find out the
        size of our framebuffer */
     if (!pScrn->videoRam) {
@@ -1525,7 +1575,9 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
     /* First, try to sense */
     for (i = 0; i < 2; i++) {
 	Output = Connector->Output[i];
-	if (Output && Output->Sense && Output->Sense(Output, Connector->Type)) {
+	if (Output && Output->Sense 
+	    && (Output->SensedType = Output->Sense(Output, Connector->Type))) {
+	    RHDOutputPrintSensedType(Output);
 	    Output->Connector = Connector;
 	    break;
 	}

@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -53,69 +53,72 @@ struct rhdDACPrivate {
 
     CARD32 Store_Powerdown;
     CARD32 Store_Force_Output_Control;
+    CARD32 Store_Force_Data;
     CARD32 Store_Source_Select;
     CARD32 Store_Sync_Select;
     CARD32 Store_Enable;
     CARD32 Store_Control1;
     CARD32 Store_Control2;
+    CARD32 Store_Tristate_Control;
 };
 
 /*
  *
  */
-static CARD8
-DACASense(struct rhdOutput *Output, Bool TV)
+static unsigned char
+DACSense(struct rhdOutput *Output, CARD32 offset, Bool TV)
 {
     CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
     CARD8 ret;
 
-    CompEnable = RHDRegRead(Output, DACA_COMPARATOR_ENABLE);
-    Control1 = RHDRegRead(Output, DACA_CONTROL1);
-    Control2 = RHDRegRead(Output, DACA_CONTROL2);
-    DetectControl = RHDRegRead(Output, DACA_AUTODETECT_CONTROL);
-    Enable = RHDRegRead(Output, DACA_ENABLE);
+    CompEnable = RHDRegRead(Output, offset + DACA_COMPARATOR_ENABLE);
+    Control1 = RHDRegRead(Output, offset + DACA_CONTROL1);
+    Control2 = RHDRegRead(Output, offset + DACA_CONTROL2);
+    DetectControl = RHDRegRead(Output, offset + DACA_AUTODETECT_CONTROL);
+    Enable = RHDRegRead(Output, offset + DACA_ENABLE);
 
-    RHDRegWrite(Output, DACA_ENABLE, 1);
-    RHDRegMask(Output, DACA_AUTODETECT_CONTROL, 0, 0x00000003);
-    RHDRegMask(Output, DACA_CONTROL2, 0, 0x00000001);
+    RHDRegWrite(Output, offset + DACA_ENABLE, 1);
+    RHDRegMask(Output, offset + DACA_AUTODETECT_CONTROL, 0, 0x00000003);
+    RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000001);
+    RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00ff0000);
 
     if (TV)
-	RHDRegMask(Output, DACA_CONTROL2, 0x00000100, 0x00000100);
+	RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x00000100);
     else
-	RHDRegMask(Output, DACA_CONTROL2, 0, 0x00000100);
+	RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000100);
 
-    RHDRegWrite(Output, DACA_FORCE_DATA, 0);
-    RHDRegMask(Output, DACA_CONTROL2, 0x00000001, 0x0000001);
+    RHDRegWrite(Output, offset + DACA_FORCE_DATA, 0);
+    RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000001, 0x0000001);
 
-    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
-    RHDRegWrite(Output, DACA_CONTROL1, 0x00050802);
-    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    RHDRegMask(Output, offset + DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
+    RHDRegWrite(Output, offset + DACA_CONTROL1, 0x00050802);
+    RHDRegMask(Output, offset + DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
     usleep(5);
 
-    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+    RHDRegMask(Output, offset + DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
 
-    RHDRegWrite(Output, DACA_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
+    RHDRegWrite(Output, offset + DACA_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
     usleep(200);
 
-    RHDRegMask(Output, DACA_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
+    RHDRegMask(Output, offset + DACA_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
     usleep(88);
 
-    RHDRegMask(Output, DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+    RHDRegMask(Output, offset + DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
 
-    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    RHDRegMask(Output, offset + DACA_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
     usleep(100);
 
     /* Get RGB detect values
      * If only G is detected, we could have a monochrome monitor,
      * but we don't bother with this at the moment.
      */
-    ret = (RHDRegRead(Output, DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
+    ret = (RHDRegRead(Output, offset + DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
 
-    RHDRegMask(Output, DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
-    RHDRegWrite(Output, DACA_CONTROL1, Control1);
-    RHDRegMask(Output, DACA_CONTROL2, Control2, 0x000001FF);
-    RHDRegMask(Output, DACA_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
-    RHDRegMask(Output, DACA_ENABLE, Enable, 0x000000FF);
+    RHDRegMask(Output, offset + DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RHDRegWrite(Output, offset + DACA_CONTROL1, Control1);
+    RHDRegMask(Output, offset + DACA_CONTROL2, Control2, 0x000001FF);
+    RHDRegMask(Output, offset + DACA_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
+    RHDRegMask(Output, offset + DACA_ENABLE, Enable, 0x000000FF);
 
     RHDDebug(Output->scrnIndex, "%s: DAC: 0x0%1X\n", __func__, ret);
 
@@ -123,106 +126,68 @@ DACASense(struct rhdOutput *Output, Bool TV)
 }
 
 /*
- * TV detection is for later.
+ *
  */
-static Bool
-DACASenseCRT(struct rhdOutput *Output, enum rhdConnectorType Type)
+static enum rhdSensedOutput
+DACASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDFUNC(Output);
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
     case RHD_CONNECTOR_VGA:
-	return (DACASense(Output, FALSE) & 0xFF);
+	return  (DACSense(Output, REG_DACA_OFFSET, FALSE) == 0x7)
+	    ? RHD_SENSED_VGA 
+	    : RHD_SENSED_NONE;
     case RHD_CONNECTOR_TV:
+	switch (DACSense(Output, REG_DACA_OFFSET, TRUE) & 0x7) {
+	    case 0x7: 
+		return RHD_SENSED_TV_COMPONENT;
+	    case 0x6:
+		return RHD_SENSED_TV_SVIDEO;
+	    case 0x1:
+		return RHD_SENSED_TV_COMPOSITE;
+	    default:
+		return RHD_SENSED_NONE;
+	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
 		   "%s: connector type %d is not supported.\n",
 		   __func__, Type);
-	return FALSE;
+	return RHD_SENSED_NONE;
     }
 }
 
 /*
  *
  */
-static CARD8
-DACBSense(struct rhdOutput *Output, Bool TV)
-{
-    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
-    CARD8 ret;
-
-    CompEnable = RHDRegRead(Output, DACB_COMPARATOR_ENABLE);
-    Control1 = RHDRegRead(Output, DACB_CONTROL1);
-    Control2 = RHDRegRead(Output, DACB_CONTROL2);
-    DetectControl = RHDRegRead(Output, DACB_AUTODETECT_CONTROL);
-    Enable = RHDRegRead(Output, DACB_ENABLE);
-
-    RHDRegWrite(Output, DACB_ENABLE, 1);
-    RHDRegMask(Output, DACB_AUTODETECT_CONTROL, 0, 0x00000003);
-    RHDRegMask(Output, DACB_CONTROL2, 0, 0x00000001);
-
-    if (TV)
-	RHDRegMask(Output, DACB_CONTROL2, 0x00000100, 0x00000100);
-    else
-	RHDRegMask(Output, DACB_CONTROL2, 0, 0x00000100);
-
-    RHDRegWrite(Output, DACB_FORCE_DATA, 0);
-    RHDRegMask(Output, DACB_CONTROL2, 0x00000001, 0x0000001);
-
-    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
-    RHDRegWrite(Output, DACB_CONTROL1, 0x00050802);
-    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
-    usleep(5);
-
-    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
-
-    RHDRegWrite(Output, DACB_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
-    usleep(200);
-
-    RHDRegMask(Output, DACB_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
-    usleep(88);
-
-    RHDRegMask(Output, DACB_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
-
-    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
-    usleep(100);
-
-    /* Get RGB detect values
-     * If only G is detected, we could have a monochrome monitor,
-     * but we don't bother with this at the moment.
-     */
-    ret = (RHDRegRead(Output, DACB_COMPARATOR_OUTPUT) & 0x0E) >> 1;
-
-    RHDRegMask(Output, DACB_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
-    RHDRegWrite(Output, DACB_CONTROL1, Control1);
-    RHDRegMask(Output, DACB_CONTROL2, Control2, 0x000001FF);
-    RHDRegMask(Output, DACB_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
-    RHDRegMask(Output, DACB_ENABLE, Enable, 0x000000FF);
-
-    RHDDebug(Output->scrnIndex, "%s: DAC: 0x0%1X\n", __func__, ret);
-
-    return ret;
-}
-
-/*
- * TV detection is for later.
- */
-static Bool
-DACBSenseCRT(struct rhdOutput *Output, enum rhdConnectorType Type)
+static enum rhdSensedOutput
+DACBSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDFUNC(Output);
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
     case RHD_CONNECTOR_VGA:
-	return (DACBSense(Output, FALSE) & 0xFF);
+	return  (DACSense(Output, REG_DACB_OFFSET, FALSE) == 0x7) 
+	    ? RHD_SENSED_VGA
+	    : RHD_SENSED_NONE;
     case RHD_CONNECTOR_TV:
+	switch (DACSense(Output, REG_DACB_OFFSET, TRUE) & 0x7) {
+	    case 0x7: 
+		return RHD_SENSED_TV_COMPONENT;
+	    case 0x6:
+		return RHD_SENSED_TV_SVIDEO;
+	    case 0x1:
+		return RHD_SENSED_TV_COMPOSITE;
+	    default:
+		return RHD_SENSED_NONE;
+	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
 		   "%s: connector type %d is not supported.\n",
 		   __func__, Type);
-	return FALSE;
+	return RHD_SENSED_NONE;
     }
 }
 
@@ -249,11 +214,63 @@ DACModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 static inline void
 DACSet(struct rhdOutput *Output, CARD16 offset)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    CARD32 source;
+    CARD32 mode;
+    CARD32 tv;
+    CARD32 powerdown;
+
+    switch (rhdPtr->tvMode) {
+	case RHD_TV_NTSC:
+	case RHD_TV_NTSCJ:
+	    mode = 0x1;
+	    break;
+	case RHD_TV_PAL:
+	case RHD_TV_PALN:
+	case RHD_TV_PALCN:
+	case RHD_TV_PAL60:
+	default:
+	    mode = 0x0;
+	    break;
+    }
+
+    switch (Output->SensedType) {
+	case RHD_SENSED_TV_SVIDEO:
+	    tv = 0x100;
+	    source = 0x3; /* tv encoder */
+	    powerdown = 0 /* 0x100 */;
+	    break;
+	case RHD_SENSED_TV_COMPOSITE:
+	    tv = 0x100;
+	    source = 0x3; /* tv encoder */
+	    powerdown = 0 /* 0x1010000 */;
+	    break;
+	case RHD_SENSED_TV_COMPONENT:
+	    mode = 3; /* HDTV */
+	    tv = 0x100; /* tv on?? */
+	    source = 0x3; /* tv encoder  ?? */
+	    powerdown = 0x0;
+	    break;
+	case RHD_SENSED_VGA:
+	default:
+	    mode = 2;
+	    tv = 0;
+	    source = Output->Crtc->Id;
+	    powerdown = 0;
+	    break;
+    }
+    RHDRegWrite(Output, offset + DACA_CONTROL1, mode); /* no fine control yet */ 
+    RHDRegMask(Output,  offset + DACA_CONTROL2, tv, 0xff00); /* tv enable/disable */
+    RHDRegMask(Output,  offset + DACA_SOURCE_SELECT, source, 0x00000003);
+    RHDRegMask(Output,  offset + DACA_FORCE_DATA, 0, 0x0000ffff);
+    RHDRegMask(Output,  offset + DACA_FORCE_OUTPUT_CNTL, 0x0701, 0x0701);
+    RHDRegWrite(Output, offset + DACA_POWERDOWN, 0);
+    usleep (14);
+    RHDRegMask(Output,  offset + DACA_POWERDOWN, powerdown, 0xffffff00);
+    usleep(2);
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
-    RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc->Id, 0x00000001);
-    RHDRegMask(Output, offset + DACA_SYNC_SELECT, 0, 0x00000101);
-    RHDRegMask(Output, offset + DACA_CONTROL1, 0x00000002, 0x00000003);
-    RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000001);
+    RHDRegMask(Output,  offset + DACA_SYNC_SELECT, 0, 0x00000101);
+    RHDRegWrite(rhdPtr, offset + DACA_SYNC_TRISTATE_CONTROL, 0);
 }
 
 /*
@@ -331,11 +348,13 @@ DACSave(struct rhdOutput *Output, CARD16 offset)
 
     Private->Store_Powerdown = RHDRegRead(Output, offset + DACA_POWERDOWN);
     Private->Store_Force_Output_Control = RHDRegRead(Output, offset + DACA_FORCE_OUTPUT_CNTL);
+    Private->Store_Force_Data = RHDRegRead(Output, offset + DACA_FORCE_DATA);
     Private->Store_Source_Select = RHDRegRead(Output, offset + DACA_SOURCE_SELECT);
     Private->Store_Sync_Select = RHDRegRead(Output, offset + DACA_SYNC_SELECT);
     Private->Store_Enable = RHDRegRead(Output, offset + DACA_ENABLE);
     Private->Store_Control1 = RHDRegRead(Output, offset + DACA_CONTROL1);
     Private->Store_Control2 = RHDRegRead(Output, offset + DACA_CONTROL2);
+    Private->Store_Tristate_Control = RHDRegRead(Output, offset + DACA_SYNC_TRISTATE_CONTROL);
 
     Private->Stored = TRUE;
 }
@@ -372,11 +391,13 @@ DACRestore(struct rhdOutput *Output, CARD16 offset)
 
     RHDRegWrite(Output, offset + DACA_POWERDOWN, Private->Store_Powerdown);
     RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, Private->Store_Force_Output_Control);
+    RHDRegWrite(Output, offset + DACA_FORCE_DATA, Private->Store_Force_Data);
     RHDRegWrite(Output, offset + DACA_SOURCE_SELECT, Private->Store_Source_Select);
     RHDRegWrite(Output, offset + DACA_SYNC_SELECT, Private->Store_Sync_Select);
     RHDRegWrite(Output, offset + DACA_ENABLE, Private->Store_Enable);
     RHDRegWrite(Output, offset + DACA_CONTROL1, Private->Store_Control1);
     RHDRegWrite(Output, offset + DACA_CONTROL2, Private->Store_Control2);
+    RHDRegWrite(Output, offset + DACA_SYNC_TRISTATE_CONTROL, Private->Store_Tristate_Control);
 }
 
 /*
@@ -445,7 +466,7 @@ RHDDACAInit(RHDPtr rhdPtr)
     Output->Name = "DAC A";
     Output->Id = RHD_OUTPUT_DACA;
 
-    Output->Sense = DACASenseCRT;
+    Output->Sense = DACASense;
     Output->ModeValid = DACModeValid;
     Output->Mode = DACASet;
     Output->Power = DACAPower;
@@ -476,7 +497,7 @@ RHDDACBInit(RHDPtr rhdPtr)
     Output->Name = "DAC B";
     Output->Id = RHD_OUTPUT_DACB;
 
-    Output->Sense = DACBSenseCRT;
+    Output->Sense = DACBSense;
     Output->ModeValid = DACModeValid;
     Output->Mode = DACBSet;
     Output->Power = DACBPower;

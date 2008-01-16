@@ -208,9 +208,9 @@ struct atomBIOSRequests {
     {ATOM_ANALOG_TV_MODE, rhdAtomAnalogTVInfoQuery,
      "Analog TV Mode",				MSG_FORMAT_NONE},
     {ATOM_ANALOG_TV_DEFAULT_MODE, rhdAtomAnalogTVInfoQuery,
-     "Analog TV Default Mode",			MSG_FORMAT_NONE},
+     "Analog TV Default Mode",			MSG_FORMAT_DEC},
     {ATOM_ANALOG_TV_SUPPORTED_MODES, rhdAtomAnalogTVInfoQuery,
-     "Analog TV Supported Modes",		MSG_FORMAT_NONE},
+     "Analog TV Supported Modes",		MSG_FORMAT_HEX},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -636,18 +636,14 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
 }
 
 Bool
-rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, enum AtomTVMode tvMode)
+rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
 {
     TV_ENCODER_CONTROL_PS_ALLOCATION tvEncoder;
     AtomBiosArgRec data;
 
     RHDFUNC(handle);
 
-    tvEncoder.sTVEncoder.ucTvStandard = (1 && (tvMode & 0x1010101010))
-	| (( 1 && (tvMode & 0x110011001100)) << 2)
-	| (( 1 && (tvMode & 0x110011001100)) << 3)
-	| (( 1 && (tvMode & 0x000011110000)) << 4)
-	| (( 1 && (tvMode & 0x111100000000)) << 8);
+    tvEncoder.sTVEncoder.ucTvStandard = mode;
     tvEncoder.sTVEncoder.ucAction = enable ? 1 :0;
 
     data.exec.dataSpace = NULL;
@@ -1186,7 +1182,7 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 static DisplayModePtr
 rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
 		       ATOM_ANALOG_TV_INFO *tv_info,
-		       enum AtomTVMode tvMode)
+		       enum RHD_TV_MODE tvMode)
 {
     atomDataTablesPtr atomDataPtr;
     DisplayModePtr mode;
@@ -1198,27 +1194,28 @@ rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
 
     atomDataPtr = handle->atomDataPtr;
 
-    if (!(tv_info->ucTV_SupportedStandard & (1 << tvMode)))
-	return NULL;
-
     switch (tvMode) {
-	case ATOM_TV_NTSC:
-	case ATOM_TV_NTSCJ:
+	case NTSC_SUPPORT:
+	case NTSCJ_SUPPORT:
 	    mode_n = 0;
 	    name = "TV_NTSC";
 	    break;
-	case ATOM_TV_PAL:
-	case ATOM_TV_PALM:
-	case ATOM_TV_PALCN:
-	case ATOM_TV_PALN:
-	case ATOM_TV_PAL60:
-	case ATOM_TV_SECAM:
+	case PAL_SUPPORT:
+	case PALM_SUPPORT:
+	case PALCN_SUPPORT:
+	case PALN_SUPPORT:
+	case PAL60_SUPPORT:
+	case SECAM_SUPPORT:
 	    mode_n = 1;
 	    name = "TV_PAL/SECAM";
 	    break;
 	default:
 	    return NULL;
     }
+
+
+    if (!(tv_info->ucTV_SupportedStandard & (tvMode)))
+	return NULL;
 
     if (!(mode = (DisplayModePtr)xcalloc(1,sizeof(DisplayModeRec))))
 	return NULL;
@@ -1261,7 +1258,7 @@ rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
 
     mode->name = xstrdup(name);
 
-    RHDDebug(handle->scrnIndex,"%s: LVDS Modeline: %s  "
+    RHDDebug(handle->scrnIndex,"%s: TV Modeline: %s  "
 	     "%2.d  %i (%i) %i %i (%i) %i  %i (%i) %i %i (%i) %i\n",
 	     __func__, mode->name, mode->Clock,
 	     mode->HDisplay, mode->CrtcHBlankStart, mode->HSyncStart, mode->CrtcHSyncEnd,
@@ -1273,38 +1270,26 @@ rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
     return mode;
 }
 
-static void
-rhdPrintTVModes(atomBiosHandlePtr handle,
-		unsigned char modes, char *s)
-{
-    int i = 0;
-    char *tv_modes[] = {
-	"NTSC",
-	"NTSCJ",
-	"PAL",
-	"PALM",
-	"PALCN",
-	"PALN",
-	"PAL60",
-	"SECAM"
-    };
-
-    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s: ",s);
-
-    while ((1 << i) <=  ATOM_TV_SECAM) {
-	i++;
-	if (modes & (1 << i))
-	    xf86DrvMsg(-1, X_INFO, "%s ", tv_modes[i]);
-    }
-    xf86DrvMsg(-1, X_INFO, "\n");
-}
-
 static AtomBiosResult
 rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 			AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     CARD8 crev, frev;
     atomDataTablesPtr atomDataPtr = handle->atomDataPtr;
+    int mode = 0, i;
+    struct { enum RHD_TV_MODE rhd_mode; int atomMode; }
+    tv_modes[] = {
+	{ RHD_TV_NTSC,  NTSC_SUPPORT },
+	{ RHD_TV_NTSCJ, NTSCJ_SUPPORT},
+	{ RHD_TV_PAL,   PAL_SUPPORT  },
+	{ RHD_TV_PALM,  PALM_SUPPORT },
+	{ RHD_TV_PALCN, PALCN_SUPPORT},
+	{ RHD_TV_PALN,  PALN_SUPPORT },
+	{ RHD_TV_PAL60, PAL60_SUPPORT},
+	{ RHD_TV_SECAM, SECAM_SUPPORT},
+	{ RHD_TV_NONE, 0 }
+    };
+
 
     RHDFUNC(handle);
 
@@ -1315,22 +1300,34 @@ rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
     }
     switch (func) {
 	case ATOM_ANALOG_TV_MODE:
-	    data->mode = rhdAtomAnalogTVTimings(handle, atomDataPtr->AnalogTV_Info,
-						(enum AtomTVMode) (data->tvMode));
+	    for (i = 0; tv_modes[i].atomMode; i++) {
+		if (data->tvMode == tv_modes[i].rhd_mode) {
+		    mode = tv_modes[i].atomMode;
+		    break;
+		}
+	    }
+	    data->mode = rhdAtomAnalogTVTimings(handle, 
+						atomDataPtr->AnalogTV_Info, 
+						mode);
 	    if (!data->mode)
 		return ATOM_FAILED;
-	    break;
+	    return ATOM_SUCCESS;
 	case ATOM_ANALOG_TV_DEFAULT_MODE:
-	    data->tvMode = (enum AtomTVMode)atomDataPtr->AnalogTV_Info->ucTV_BootUpDefaultStandard;
-	    rhdPrintTVModes(handle, (unsigned char)data->val, "Default TV Mode:");
+	     data->tvMode = tv_modes[atomDataPtr->AnalogTV_Info->ucTV_BootUpDefaultStandard - 1].rhd_mode;
 	    break;
 	case ATOM_ANALOG_TV_SUPPORTED_MODES:
-	    data->val = (CARD32)atomDataPtr->AnalogTV_Info->ucTV_SupportedStandard;
-	    rhdPrintTVModes(handle, (unsigned char)data->val, "Supported TV Modes:");
+	    mode = (CARD32)atomDataPtr->AnalogTV_Info->ucTV_SupportedStandard;
+	    data->val = 0;
+	    for (i = 0; tv_modes[i].atomMode; i++) {
+		if (tv_modes[i].atomMode & mode) {
+		    data->val |= tv_modes[i].rhd_mode;
+		}
+	    }
 	    break;
 	default:
 	    return ATOM_NOT_IMPLEMENTED;
     }
+
     return ATOM_SUCCESS;
 }
 

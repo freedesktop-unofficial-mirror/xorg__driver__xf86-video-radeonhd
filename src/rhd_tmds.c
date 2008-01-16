@@ -66,7 +66,7 @@ struct rhdTMDSPrivate {
 /*
  *
  */
-static Bool
+static enum rhdSensedOutput
 TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
@@ -79,7 +79,7 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
 		   "%s: connector type %d is not supported.\n",
 		   __func__, Type);
-	return FALSE;
+	return RHD_SENSED_NONE;
     }
 
     Enable = RHDRegRead(Output, TMDSA_TRANSMITTER_ENABLE);
@@ -105,7 +105,7 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
     RHDDebug(Output->scrnIndex, "%s: %s\n", __func__,
 	     ret ? "Attached" : "Disconnected");
 
-    return ret;
+    return ret ? RHD_SENSED_DVI : RHD_SENSED_NONE;
 }
 
 /*

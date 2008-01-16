@@ -97,7 +97,6 @@ typedef struct AtomFb {
 } AtomFbRec, *AtomFbPtr;
 
 typedef enum AtomTVMode {
-    ATOM_TV_NONE = -1,
     ATOM_TV_NTSC = 1 << 0,
     ATOM_TV_NTSCJ = 1 << 1,
     ATOM_TV_PAL = 1 << 2,
@@ -105,8 +104,7 @@ typedef enum AtomTVMode {
     ATOM_TV_PALCN = 1 << 4,
     ATOM_TV_PALN = 1 << 5,
     ATOM_TV_PAL60 = 1 << 6,
-    ATOM_TV_SECAM = 1 << 7,
-    ATOM_TV_CV = 1 << 8
+    ATOM_TV_SECAM = 1 << 7
 } AtomTVMode;
 
 typedef union AtomBiosArg
@@ -127,7 +125,7 @@ RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 extern Bool
 rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting);
 extern Bool
-rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, enum AtomTVMode tvMode);
+rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
 
 # endif
 

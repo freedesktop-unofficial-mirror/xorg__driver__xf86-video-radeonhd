@@ -95,6 +95,19 @@ enum RHD_HPD_USAGE {
     RHD_HPD_USAGE_AUTO_OFF
 };
 
+enum RHD_TV_MODE {
+    RHD_TV_NONE = 0,
+    RHD_TV_NTSC = 1,
+    RHD_TV_NTSCJ = 1 << 2,
+    RHD_TV_PAL = 1 << 3,
+    RHD_TV_PALM = 1 << 4,
+    RHD_TV_PALCN = 1 << 5,
+    RHD_TV_PALN = 1 << 6,
+    RHD_TV_PAL60 = 1 << 7,
+    RHD_TV_SECAM = 1 << 8,
+    RHD_TV_CV = 1 << 9
+};
+
 #define RHD_CONNECTORS_MAX 4
 
 /* Just define where which PCI BAR lives for now. Will deal with different
@@ -215,8 +228,8 @@ typedef struct RHDRec {
 
     /* don't ignore the Monitor section of the conf file */
     struct rhdMonitor  *ConfigMonitor;
-
-    rhdShadowPtr	shadowPtr;
+    enum RHD_TV_MODE   tvMode;
+    rhdShadowPtr       shadowPtr;
 
     struct _XAAInfoRec *XAAInfo;
 #ifdef USE_EXA
