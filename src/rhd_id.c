@@ -508,7 +508,7 @@ rhdCards[] =
     { 0x71C2, 0x17EE, 0x71C0, "Connect3D Radeon X1600 Pro", RHD_CARD_FLAG_NONE, VGA_B1_DVI_AA00 },
     /* 0x71C3 : RV535 : Radeon X1600 */
     /* 0x71C4 : M56 : Mobility FireGL V5200 */
-    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0 },
+    { 0x71C4, 0x17AA, 0x2007, "Lenovo Thinkpad T60p V5200", RHD_CARD_FLAG_HPDOFF, ID_CONNECTORINFO_EMPTY },
     /* 0x71C5 : M56 : Mobility Radeon X1600 */
     { 0x71C5, 0x103C, 0x30A3, "HP/Compaq nc8430", RHD_CARD_FLAG_NONE, PANEL_B1_VGA_A0 },
     { 0x71C5, 0x103C, 0x30B4, "HP/Compaq nw8440", RHD_CARD_FLAG_NONE, PANEL_B1_VGA_A0 },
@@ -526,7 +526,7 @@ rhdCards[] =
     /* 0x71D2 : RV530 : FireGL V3400 */
     { 0x71D2, 0x1002, 0x2B02, "ATI FireGL V3400", RHD_CARD_FLAG_NONE, DVI_BB11_DVI_AA00 },
     /* 0x71D4 : M66 : Mobility FireGL V5250 */
-    { 0x71D4, 0x17AA, 0x20A4, "Lenovo T60p", RHD_CARD_FLAG_NONE, PANEL_B2_VGA_A0 },
+    { 0x71D4, 0x17AA, 0x20A4, "Lenovo Thinkpad T60p V5250", RHD_CARD_FLAG_HPDOFF, ID_CONNECTORINFO_EMPTY },
     /* 0x71D5 : M66 : Mobility Radeon X1700 */
     /* 0x71D6 : M66 : Mobility Radeon X1700 XT */
     /* 0x71DA : RV530 : FireGL V5200 */

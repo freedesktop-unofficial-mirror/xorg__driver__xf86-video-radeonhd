@@ -259,10 +259,11 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	hpd = ConnectorInfo[i].HPD;
 	switch (rhdPtr->hpdUsage) {
 	case RHD_HPD_USAGE_OFF:
+	case RHD_HPD_USAGE_AUTO_OFF:
 	    hpd = RHD_HPD_NONE;
 	    break;
-	case RHD_HPD_USAGE_AUTO_SWAP:
 	case RHD_HPD_USAGE_SWAP:
+	case RHD_HPD_USAGE_AUTO_SWAP:
 	    switch (hpd) {
 	    case RHD_HPD_0:
 		hpd = RHD_HPD_1;
@@ -414,6 +415,7 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 
     switch (rhdPtr->hpdUsage) {
     case RHD_HPD_USAGE_OFF:
+    case RHD_HPD_USAGE_AUTO_OFF:
 	hpd_name = hpd_name_off;
 	break;
     case RHD_HPD_USAGE_SWAP:

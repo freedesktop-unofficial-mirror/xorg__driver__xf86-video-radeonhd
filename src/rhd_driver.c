@@ -553,6 +553,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if (rhdPtr->Card && rhdPtr->Card->flags & RHD_CARD_FLAG_HPDSWAP &&
 	rhdPtr->hpdUsage == RHD_HPD_USAGE_AUTO)
 	rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO_SWAP;
+    if (rhdPtr->Card && rhdPtr->Card->flags & RHD_CARD_FLAG_HPDOFF &&
+	rhdPtr->hpdUsage == RHD_HPD_USAGE_AUTO)
+	rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO_OFF;
 
     /* We have none of these things yet. */
     rhdPtr->noAccel.val.bool = TRUE;
