@@ -5,10 +5,12 @@ include $(top_srcdir)/RadeonHD.am
 EXTRA_DIST = Imakefile
 
 AM_CFLAGS = @XORG_CFLAGS@ @DRI_CFLAGS@ @WARN_CFLAGS@
-radeonhd_drv_la_LTLIBRARIES = radeonhd_drv.la
+
+driversdir = ${moduledir}/drivers
+drivers_LTLIBRARIES = radeonhd_drv.la
+
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
 radeonhd_drv_la_CFLAGS = $(AM_CFLAGS) @PEDANTIC_CFLAGS@
-radeonhd_drv_ladir = @moduledir@/drivers
 
 radeonhd_drv_la_SOURCES = \
 	rhd_atombios.c \
