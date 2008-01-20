@@ -37,6 +37,7 @@ XORG_DRIVER_CHECK_EXT(RANDR, randrproto)
 XORG_DRIVER_CHECK_EXT(RENDER, renderproto)
 XORG_DRIVER_CHECK_EXT(XV, videoproto)
 XORG_DRIVER_CHECK_EXT(DPMSExtension, xextproto)
+XORG_DRIVER_CHECK_EXT(XSERVER_LIBPCIACCESS, pciaccess)
 # @@@@ We don't do DGA any more
 
 # pkg-config packages checks
