@@ -153,6 +153,7 @@ static Bool     rhdMapFB(RHDPtr rhdPtr);
 static void     rhdUnmapFB(RHDPtr rhdPtr);
 static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
+static void     rhdFbOffscreenGrab(ScrnInfoPtr pScrn);
 
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
@@ -197,6 +198,7 @@ _X_EXPORT DriverRec RADEONHD = {
 typedef enum {
     OPTION_NOACCEL,
     OPTION_ACCELMETHOD,
+    OPTION_OFFSCREENSIZE,
     OPTION_SW_CURSOR,
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
@@ -211,6 +213,7 @@ typedef enum {
 static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_ACCELMETHOD,          "AccelMethod",          OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_OFFSCREENSIZE,        "offscreensize",        OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
@@ -731,6 +734,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* @@@ need this? */
     pScrn->progClock = TRUE;
 
+    /* For Virtual selection, the scanout area is all the free space we have. */
+    rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
+    rhdPtr->FbScanoutSize = rhdPtr->FbFreeSize;
+
     if (pScrn->display->virtualX && pScrn->display->virtualY)
         if (!RHDGetVirtualFromConfig(pScrn)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -756,6 +763,16 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
                pScrn->virtualY, pScrn->displayWidth);
+    /* grab the real scanout area and adjust the free space */
+    rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
+    rhdPtr->FbScanoutSize = RHD_FB_CHUNK(pScrn->displayWidth * pScrn->bitsPerPixel *
+					 pScrn->virtualY / 8);
+    RHDDebug(pScrn->scrnIndex, "ScanoutBuffer at offset 0x%08X (size = 0x%08X)\n",
+	     rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize);
+
+    rhdPtr->FbFreeStart = rhdPtr->FbScanoutStart + rhdPtr->FbScanoutSize;
+    rhdPtr->FbFreeSize -= rhdPtr->FbScanoutSize;
+
     if (!rhdPtr->randr)
 	xf86PrintModes(pScrn);
     else
@@ -783,6 +800,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowPreInit(pScrn);
+
+    if ((rhdPtr->AccelMethod == RHD_ACCEL_XAA) ||
+	(rhdPtr->AccelMethod == RHD_ACCEL_EXA))
+	rhdFbOffscreenGrab(pScrn);
+
+    RHDDebug(pScrn->scrnIndex, "Free FB offset 0x%08X (size = 0x%08X)\n",
+	     rhdPtr->FbFreeStart, rhdPtr->FbFreeSize);
 
     ret = TRUE;
 
@@ -844,7 +868,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* shadowfb is allowed to fail gracefully too */
     if ((rhdPtr->AccelMethod != RHD_ACCEL_SHADOWFB) &&
-	!fbScreenInit(pScreen, (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
+	!fbScreenInit(pScreen, (CARD8 *) rhdPtr->FbBase + rhdPtr->FbScanoutStart,
 		      pScrn->virtualX, pScrn->virtualY, pScrn->xDpi, pScrn->yDpi,
 		      pScrn->displayWidth, pScrn->bitsPerPixel)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1316,6 +1340,65 @@ rhdUnmapFB(RHDPtr rhdPtr)
  *
  */
 static void
+rhdFbOffscreenGrab(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDOpt Option = rhdPtr->OffscreenOption;
+    int tmp;
+    unsigned int size = 0;
+
+    if (Option.set) {
+	if ((sscanf(Option.val.string, "%dm", &tmp) == 1) ||
+	    (sscanf(Option.val.string, "%dM", &tmp) == 1)) {
+	    /* "...m" or "...M" means megabyte. */
+	    size = tmp << 20;
+	} else if (sscanf(Option.val.string, "%d%%", &tmp) == 1) {
+	    /* "...%" of total framebuffer memory */
+	    size = tmp * pScrn->videoRam / 100;
+	} else
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Option OffscreenSize: "
+		       "Unable to parse \"%s\".\n", Option.val.string);
+    }
+
+    if (!size)
+	size = pScrn->videoRam * 1024 / 10;
+
+    if (size > rhdPtr->FbFreeSize)
+	size = rhdPtr->FbFreeSize;
+
+    /* calculate the number of lines our frontbuffer and offscreen have */
+    tmp = rhdPtr->FbScanoutSize + size;
+    tmp /= (pScrn->displayWidth * pScrn->bitsPerPixel >> 3);
+
+    if (rhdPtr->ChipSet < RHD_R600) {
+	if (tmp > 0x1FFF) /* cannot go beyond 8k lines on R5xx */
+	    tmp = 0x1FFF;
+    } else {
+	if (tmp > 0x7FFF) /* X limit (signed short). */
+	    tmp = 0x7FFF;
+    }
+
+    tmp -= pScrn->virtualY;
+
+    /* get our actual size */
+    tmp *= (pScrn->displayWidth * pScrn->bitsPerPixel >> 3);
+
+    tmp = RHD_FB_CHUNK(tmp);
+
+    rhdPtr->FbOffscreenStart = rhdPtr->FbFreeStart;
+    rhdPtr->FbOffscreenSize = tmp;
+
+    rhdPtr->FbFreeStart += rhdPtr->FbOffscreenSize;
+    rhdPtr->FbFreeSize -= rhdPtr->FbOffscreenSize;
+
+    RHDDebug(pScrn->scrnIndex, "Offscreen Buffer at offset 0x%08X (size = 0x%08X)\n",
+	     rhdPtr->FbOffscreenStart, rhdPtr->FbOffscreenSize);
+}
+
+/*
+ *
+ */
+static void
 rhdOutputConnectorCheck(struct rhdConnector *Connector)
 {
     struct rhdOutput *Output;
@@ -1700,7 +1783,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[0];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, rhdPtr->FbFreeStart);
+		    pScrn->depth, rhdPtr->FbScanoutStart);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
@@ -1712,7 +1795,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
     Crtc = rhdPtr->Crtc[1];
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, rhdPtr->FbFreeStart);
+		    pScrn->depth, rhdPtr->FbScanoutStart);
 	Crtc->ModeSet(Crtc, mode);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
@@ -1867,6 +1950,8 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
     /* first grab our options */
     RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL, &noAccel, FALSE);
     RhdGetOptValString(rhdPtr->Options, OPTION_ACCELMETHOD, &method, "default");
+    RhdGetOptValString (rhdPtr->Options, OPTION_OFFSCREENSIZE,
+			&rhdPtr->OffscreenOption, "default");
 
     if (method.set) {
 	if (!strcasecmp(method.val.string, "none"))
@@ -1886,6 +1971,10 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	}
     } else
 	rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
+
+    /* For now */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_DEFAULT)
+	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 
     if (noAccel.set && noAccel.val.bool &&
 	(rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB)) {

@@ -349,7 +349,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 
     /* Set up mode */
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		pScrn->depth, rhdPtr->FbFreeStart);
+		pScrn->depth, rhdPtr->FbScanoutStart);
     Crtc->ModeSet(Crtc, Mode);
     Crtc->FrameSet(Crtc, x, y);
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);

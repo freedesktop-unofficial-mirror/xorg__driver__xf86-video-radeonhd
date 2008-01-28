@@ -772,8 +772,8 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
             continue;
 
 	Status = Crtc->FBValid(Crtc, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
-			       pScrn->bitsPerPixel, rhdPtr->FbFreeStart,
-			       rhdPtr->FbFreeSize, NULL);
+			       pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
+			       rhdPtr->FbScanoutSize, NULL);
         if (Status != MODE_OK)
             return Status;
 
@@ -1378,9 +1378,9 @@ RHDGetVirtualFromConfig(ScrnInfoPtr pScrn)
 
     while (VirtualX && VirtualY) {
 	ret1 = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
-			      rhdPtr->FbFreeStart, rhdPtr->FbFreeSize, &Pitch1);
+			      rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
 	ret2 = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
-			      rhdPtr->FbFreeStart, rhdPtr->FbFreeSize, &Pitch2);
+			      rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
 
 	if ((ret1 == MODE_OK) && (ret2 == MODE_OK) && (Pitch1 == Pitch2)) {
 	    pScrn->virtualX = VirtualX;
@@ -1432,9 +1432,9 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 		VirtualY = pScrn->virtualY;
 
 	    ret1 = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
-				  rhdPtr->FbFreeStart, rhdPtr->FbFreeSize, &Pitch1);
+				  rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
 	    ret2 = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
-				  rhdPtr->FbFreeStart, rhdPtr->FbFreeSize, &Pitch2);
+				  rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
 
 	    if ((ret1 == MODE_OK) && (ret2 == MODE_OK) && (Pitch1 == Pitch2)) {
 		Mode = Mode->next;
@@ -1507,8 +1507,8 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	if (Crtc) {
 	    /* Check FB */
 	    Status = Crtc->FBValid(Crtc, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
-				   pScrn->bitsPerPixel, rhdPtr->FbFreeStart,
-				   rhdPtr->FbFreeSize, NULL);
+				   pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
+				   rhdPtr->FbScanoutSize, NULL);
 	    if (Status != MODE_OK)
 		return Status;
 

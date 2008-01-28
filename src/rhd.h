@@ -167,6 +167,15 @@ typedef struct RHDRec {
     unsigned int        FbFreeStart;
     unsigned int        FbFreeSize;
 
+    /* visible part of the framebuffer */
+    unsigned int        FbScanoutStart;
+    unsigned int        FbScanoutSize;
+
+    /* for 2d acceleration: pixmapcache and such */
+    RHDOpt              OffscreenOption;
+    unsigned int        FbOffscreenStart;
+    unsigned int        FbOffscreenSize;
+
     unsigned int        MMIOMapSize;
     pointer             MMIOBase; /* map base if mmio */
 
@@ -257,7 +266,7 @@ void RhdGetOptValString(const OptionInfoRec *table, int token,
 char *RhdAppendString(char *s1, const char *s2);
 void RhdAssertFailed(const char *str,
 		     const char *file, int line, const char *func) NORETURN;
-void RhdAssertFailedFormat(const char *str, const char *file, int line,
+void RhdAssertFailedFormat(const char *str,  const char *file, int line,
 			   const char *func, const char *format, ...) NORETURN;
 
 /* Extra debugging verbosity: decimates gdb usage */
