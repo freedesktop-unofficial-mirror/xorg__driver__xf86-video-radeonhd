@@ -196,8 +196,8 @@ _X_EXPORT DriverRec RADEONHD = {
 
 typedef enum {
     OPTION_NOACCEL,
+    OPTION_ACCELMETHOD,
     OPTION_SW_CURSOR,
-    OPTION_SHADOWFB,
     OPTION_IGNORECONNECTOR,
     OPTION_FORCEREDUCED,
     OPTION_FORCEDPI,
@@ -210,8 +210,8 @@ typedef enum {
 
 static const OptionInfoRec RHDOptions[] = {
     { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_ACCELMETHOD,          "AccelMethod",          OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SW_CURSOR,            "SWcursor",             OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_SHADOWFB,             "shadowfb",             OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_IGNORECONNECTOR,      "ignoreconnector",      OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCEREDUCED,         "forcereduced",         OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_FORCEDPI,             "forcedpi",             OPTV_INTEGER, {0}, FALSE },
@@ -557,9 +557,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	rhdPtr->hpdUsage == RHD_HPD_USAGE_AUTO)
 	rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO_OFF;
 
-    /* We have none of these things yet. */
-    rhdPtr->noAccel.val.bool = TRUE;
-
     /* We need access to IO space already */
     if (!rhdMapMMIO(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
@@ -769,17 +766,23 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    if (!xf86LoadSubModule(pScrn, "xaa")) {
-	goto error1;
-    }
-
     if (!rhdPtr->swCursor.val.bool) {
 	if (!xf86LoadSubModule(pScrn, "ramdac")) {
 	    goto error1;
 	}
     }
 
-    RHDShadowPreInit(pScrn);
+    /* try to load the XAA module here */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+	if (!xf86LoadSubModule(pScrn, "xaa")) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load XAA module."
+		       " Falling back to ShadowFB.\n");
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+	}
+
+    /* Last resort: try shadowFB */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+	RHDShadowPreInit(pScrn);
 
     ret = TRUE;
 
@@ -798,7 +801,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 {
     ScrnInfoPtr pScrn;
     RHDPtr rhdPtr;
-    int ret;
     VisualPtr visual;
     unsigned int racflag = 0;
 
@@ -824,23 +826,32 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     miClearVisualTypes();
 
     /* Setup the visuals we support. */
-    if (!miSetVisualTypes(pScrn->depth,
-      		      miGetDefaultVisualMask(pScrn->depth),
-		      pScrn->rgbBits, pScrn->defaultVisual))
+    if (!miSetVisualTypes(pScrn->depth, miGetDefaultVisualMask(pScrn->depth),
+			  pScrn->rgbBits, pScrn->defaultVisual))
          return FALSE;
 
-    if (!miSetPixmapDepths ()) return FALSE;
-
-    /* init FB */
-    ret = RHDShadowScreenInit(pScreen);
-    if (!ret)
-	ret = fbScreenInit(pScreen,
-			   (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
-			   pScrn->virtualX, pScrn->virtualY,
-			   pScrn->xDpi, pScrn->yDpi,
-			   pScrn->displayWidth, pScrn->bitsPerPixel);
-    if (!ret)
+    if (!miSetPixmapDepths())
 	return FALSE;
+
+    /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+	if (!RHDShadowScreenInit(pScreen)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "ShadowFB initialisation failed."
+		       " Continuing without ShadowFB.\n");
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	}
+    }
+
+    /* shadowfb is allowed to fail gracefully too */
+    if ((rhdPtr->AccelMethod != RHD_ACCEL_SHADOWFB) &&
+	!fbScreenInit(pScreen, (CARD8 *) rhdPtr->FbBase + rhdPtr->FbFreeStart,
+		      pScrn->virtualX, pScrn->virtualY, pScrn->xDpi, pScrn->yDpi,
+		      pScrn->displayWidth, pScrn->bitsPerPixel)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: fbScreenInit failed.\n", __func__);
+	return FALSE;
+    }
+
     if (pScrn->depth > 8) {
         /* Fixup RGB ordering */
         visual = pScreen->visuals + pScreen->numVisuals;
@@ -859,34 +870,12 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
-
-    if (!RHDShadowSetup(pScreen))
-	return FALSE;
-
     xf86SetBlackWhitePixels(pScreen);
 
-    /* initialize memory manager.*/
-    {
-        BoxRec AvailFBArea;
-	int tmp = rhdPtr->FbFreeSize /
-	    (pScrn->displayWidth * (pScrn->bitsPerPixel >> 3));
-
-	/* guess what size the BoxRec members are... */
-	if (tmp > 0x7FFF)
-	    tmp = 0x7FFF;
-
-        AvailFBArea.x1 = 0;
-        AvailFBArea.y1 = 0;
-        AvailFBArea.x2 = pScrn->displayWidth;
-        AvailFBArea.y2 = tmp;
-
-        xf86InitFBManager(pScreen, &AvailFBArea);
-
-        xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-                   "Using %d scanlines of offscreen memory \n",
-                   AvailFBArea.y2 - pScrn->virtualY);
-    }
-
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+	if (!RHDShadowSetup(pScreen))
+	    /* No safetynet anymore */
+	    return FALSE;
     /* Initialize 2D accel here */
 
     miInitializeBackingStore(pScreen);
@@ -936,11 +925,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* Setup DPMS mode */
 
     xf86DPMSInit(pScreen, (DPMSSetProcPtr)RHDDisplayPowerManagementSet,0);
-    /* @@@ Attention this linear address is needed vor v4l. It needs to be
-     * checked what address we need here
-     */
-    /* pScrn->memPhysBase = (unsigned long)rhdPtr->NeoLinearAddr; ?
-       pScrn->fbOffset = 0; */
 
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;
@@ -964,7 +948,9 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     if(pScrn->vtSema)
 	rhdRestore(rhdPtr);
 
-    RHDShadowCloseScreen(pScreen);
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+	RHDShadowCloseScreen(pScreen);
+
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
 
@@ -1869,6 +1855,72 @@ _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
 }
 
 /*
+ * Apart from handling the respective option, this also tries to map out
+ * what method is supported on which chips.
+ */
+static void
+rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDOpt method, noAccel;
+
+    /* first grab our options */
+    RhdGetOptValBool(rhdPtr->Options, OPTION_NOACCEL, &noAccel, FALSE);
+    RhdGetOptValString(rhdPtr->Options, OPTION_ACCELMETHOD, &method, "default");
+
+    if (method.set) {
+	if (!strcasecmp(method.val.string, "none"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	else if (!strcasecmp(method.val.string, "shadowfb"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+	else if (!strcasecmp(method.val.string, "xaa"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
+	else if (!strcasecmp(method.val.string, "exa"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_EXA;
+	else if (!strcasecmp(method.val.string, "default"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
+	else {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unknown AccelMethod \"%s\".\n",
+		       method.val.string);
+	    rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
+	}
+    } else
+	rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
+
+    if (noAccel.set && noAccel.val.bool &&
+	(rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Disabling HW 2D acceleration.\n");
+	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    }
+
+    if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
+	if (rhdPtr->AccelMethod != RHD_ACCEL_DEFAULT)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Option AccelMethod: "
+		       "2d acceleration has not been implemented for %s yet.\n",
+		       pScrn->chipset);
+	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    }
+
+    /* Now for some pretty print */
+    switch (rhdPtr->AccelMethod) {
+    case RHD_ACCEL_EXA:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected EXA 2D acceleration.\n");
+	break;
+    case RHD_ACCEL_XAA:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected XAA 2D acceleration.\n");
+	break;
+    case RHD_ACCEL_SHADOWFB:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected ShadowFB.\n");
+	break;
+    case RHD_ACCEL_NONE:
+    default:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, /* corny */
+		   "All methods of acceleration have been disabled.\n");
+	break;
+    }
+}
+
+/*
  * breakout functions
  */
 static void
@@ -1884,12 +1936,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     /* Process the options */
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, rhdPtr->Options);
 
-    RhdGetOptValBool   (rhdPtr->Options, OPTION_NOACCEL,
-			&rhdPtr->noAccel, FALSE);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_SW_CURSOR,
 			&rhdPtr->swCursor, FALSE);
-    RhdGetOptValBool   (rhdPtr->Options, OPTION_SHADOWFB,
-			&rhdPtr->shadowFB, TRUE);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_FORCEREDUCED,
 			&rhdPtr->forceReduced, FALSE);
     RhdGetOptValInteger(rhdPtr->Options, OPTION_FORCEDPI,
@@ -1902,6 +1950,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
 			&rhdPtr->rrOutputOrder, NULL);
+
+    rhdAccelOptionsHandle(pScrn);
 
     rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO;
     if (strcasecmp(hpd.val.string, "off") == 0) {

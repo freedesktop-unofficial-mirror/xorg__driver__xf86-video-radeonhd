@@ -125,6 +125,15 @@ typedef struct _RHDopt {
     } val;
 } RHDOpt, *RHDOptPtr;
 
+/* Some more intelligent handling of chosing which acceleration to use */
+enum AccelMethod {
+    RHD_ACCEL_NONE = 0, /* ultra slow, but might be desired for debugging. */
+    RHD_ACCEL_SHADOWFB = 1, /* cache in main ram. */
+    RHD_ACCEL_XAA = 2, /* "old" X acceleration architecture. */
+    RHD_ACCEL_EXA = 3, /* not done yet. */
+    RHD_ACCEL_DEFAULT = 4 /* keep as highest. */
+};
+
 typedef struct RHDRec {
     int                 scrnIndex;
 
@@ -139,7 +148,7 @@ typedef struct RHDRec {
     int			entityIndex;
     struct rhdCard      *Card;
     OptionInfoPtr       Options;
-    RHDOpt              noAccel;
+    enum AccelMethod    AccelMethod;
     RHDOpt              swCursor;
     RHDOpt		shadowFB;
     RHDOpt		forceReduced;

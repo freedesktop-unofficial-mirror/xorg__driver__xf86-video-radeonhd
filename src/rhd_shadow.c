@@ -46,9 +46,6 @@ RHDShadowPreInit(ScrnInfoPtr pScrn)
 
     RHDFUNC(pScrn);
 
-    if (!rhdPtr->shadowFB.val.bool)
-	return FALSE;
-
     if (!xf86LoadSubModule(pScrn, "shadow")) {
 	return FALSE;
     }
