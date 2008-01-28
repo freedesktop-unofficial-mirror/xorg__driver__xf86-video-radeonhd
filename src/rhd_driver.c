@@ -111,6 +111,7 @@
 #include "rhd_shadow.h"
 #include "rhd_card.h"
 #include "rhd_randr.h"
+#include "r5xx_accel.h"
 
 /* ??? */
 #include "servermd.h"
@@ -175,6 +176,13 @@ static int pix24bpp = 0;
 #ifdef __linux__
 # define FGLRX_SYS_PATH "/sys/module/fglrx"
 #endif
+
+static const char *xaaSymbols[] = {
+    "XAACreateInfoRec",
+    "XAADestroyInfoRec",
+    "XAAInit",
+    NULL
+};
 
 _X_EXPORT DriverRec RADEONHD = {
     RHD_VERSION,
@@ -790,12 +798,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     /* try to load the XAA module here */
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	if (!xf86LoadSubModule(pScrn, "xaa")) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load XAA module."
 		       " Falling back to ShadowFB.\n");
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
-	}
+	} else
+	    xf86LoaderReqSymLists(xaaSymbols, NULL);
+    }
 
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
@@ -896,11 +906,13 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     fbPictureInit(pScreen, 0, 0);
     xf86SetBlackWhitePixels(pScreen);
 
-    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))
 	    /* No safetynet anymore */
 	    return FALSE;
-    /* Initialize 2D accel here */
+    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+	if (rhdPtr->ChipSet < RHD_R600)
+	    R5xxXAAInit(pScrn, pScreen);
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -974,6 +986,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
+    /* nothing for XAA: handled in FreeRec */;
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
@@ -1001,6 +1014,9 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DIdle(pScrn);
+
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
     else
@@ -1012,6 +1028,9 @@ RHDEnterVT(int scrnIndex, int flags)
 	rhdReloadCursor(pScrn);
     /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
+
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DSetup(pScrn);
 
     return TRUE;
 }
@@ -1026,6 +1045,9 @@ RHDLeaveVT(int scrnIndex, int flags)
     RHDFUNC(rhdPtr);
 
     /* TODO: Invalidate the cached acceleration registers */
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DIdle(pScrn);
+
     rhdRestore(rhdPtr);
 }
 
@@ -1036,6 +1058,9 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(rhdPtr);
+
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DIdle(pScrn);
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);
@@ -1972,9 +1997,12 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
     } else
 	rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
 
-    /* For now */
-    if (rhdPtr->AccelMethod == RHD_ACCEL_DEFAULT)
-	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    if (rhdPtr->AccelMethod == RHD_ACCEL_DEFAULT) {
+	if (rhdPtr->ChipSet < RHD_R600)
+	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
+	else
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    }
 
     if (noAccel.set && noAccel.val.bool &&
 	(rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB)) {
@@ -1982,12 +2010,18 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
 
-    if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
-	if (rhdPtr->AccelMethod != RHD_ACCEL_DEFAULT)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Option AccelMethod: "
-		       "2d acceleration has not been implemented for %s yet.\n",
-		       pScrn->chipset);
-	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    if (rhdPtr->ChipSet < RHD_R600) {
+	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		       "%s: EXA is not implemented yet.\n", pScrn->chipset);
+	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
+	}
+    } else {
+	if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: HW 2D acceleration is"
+		       " not implemented yet.\n",  pScrn->chipset);
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+	}
     }
 
     /* Now for some pretty print */

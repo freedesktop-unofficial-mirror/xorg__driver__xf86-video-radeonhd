@@ -48,7 +48,11 @@ radeonhd_drv_la_SOURCES = \
 	rhd_regs.h \
 	rhd_vga.h \
 	rhd_shadow.h \
-	rhd_mc.h
+	rhd_mc.h \
+	r5xx_accel.c \
+	r5xx_accel.h \
+	r5xx_xaa.c \
+	r5xx_2dregs.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h

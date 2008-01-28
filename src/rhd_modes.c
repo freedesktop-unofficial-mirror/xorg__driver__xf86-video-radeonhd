@@ -44,6 +44,9 @@
 #include "rhd_modes.h"
 #include "rhd_monitor.h"
 
+/* For Acceleration FB validation */
+#include "r5xx_accel.h"
+
 /*
  * Define a set of own mode errors.
  */
@@ -1372,28 +1375,43 @@ RHDGetVirtualFromConfig(ScrnInfoPtr pScrn)
     CARD32 VirtualY = pScrn->display->virtualY;
     CARD32 Pitch1, Pitch2;
     float Ratio = (float) pScrn->display->virtualY / pScrn->display->virtualX;
-    int ret1 = FALSE, ret2 = FALSE;
+    int ret = FALSE;
 
     RHDFUNC(pScrn);
 
     while (VirtualX && VirtualY) {
-	ret1 = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
-			      rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
-	ret2 = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
-			      rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
+	ret = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
+			     rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
+	if (ret != MODE_OK)
+	    goto shrink;
+	ret = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
+			     rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
+	if (ret != MODE_OK)
+	    goto shrink;
 
-	if ((ret1 == MODE_OK) && (ret2 == MODE_OK) && (Pitch1 == Pitch2)) {
-	    pScrn->virtualX = VirtualX;
-	    pScrn->virtualY = VirtualY;
-	    pScrn->displayWidth = Pitch1;
-	    return TRUE;
-	}
+	if (Pitch1 != Pitch2)
+	    goto shrink;
 
+	/* let 2d acceleration have a say as well */
+	if (rhdPtr->AccelMethod >= RHD_ACCEL_XAA)
+	    if (rhdPtr->ChipSet < RHD_R600) /* badly abstracted, i know */
+		if (!R5xx2DFBValid(rhdPtr, VirtualX, VirtualY, pScrn->bitsPerPixel,
+				   rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, Pitch1))
+		    goto shrink;
+
+	break; /* must be good then. */
+    shrink:
 	VirtualX--;
 	VirtualY = Ratio * VirtualX;
     }
 
-    return FALSE;
+    if (VirtualX && VirtualY) {
+	pScrn->virtualX = VirtualX;
+	pScrn->virtualY = VirtualY;
+	pScrn->displayWidth = Pitch1;
+	return TRUE;
+    } else
+	return FALSE;
 }
 
 /*
@@ -1408,7 +1426,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
     CARD32 VirtualX = 0;
     CARD32 VirtualY = 0;
     CARD32 Pitch1, Pitch2;
-    int ret1 = FALSE, ret2 = FALSE;
+    int ret = FALSE;
 
     RHDFUNC(pScrn);
 
@@ -1431,40 +1449,51 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 	    else
 		VirtualY = pScrn->virtualY;
 
-	    ret1 = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
-				  rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
-	    ret2 = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
-				  rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
-
-	    if ((ret1 == MODE_OK) && (ret2 == MODE_OK) && (Pitch1 == Pitch2)) {
-		Mode = Mode->next;
-		pScrn->virtualX = VirtualX;
-		pScrn->virtualY = VirtualY;
-		pScrn->displayWidth = Pitch1;
-	    } else {
-		if (!Silent) {
-		    if (ret1 != MODE_OK)
-			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
-				   "(%dx%d): %s\n", Mode->name,
-				   Mode->HDisplay, Mode->VDisplay,
-				   rhdModeStatusToString(ret1));
-		    else if (ret2 != MODE_OK)
-			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
-				   "(%dx%d): %s\n", Mode->name,
-				   Mode->HDisplay, Mode->VDisplay,
-				   rhdModeStatusToString(ret2));
-		    else {
-			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
-				   "(%dx%d): %s\n", Mode->name,
-				   Mode->HDisplay, Mode->VDisplay,
-				   "CRTC Pitches do not match");
-		    }
-		}
-
-		Next = Mode->next;
-		Modes = rhdModeDelete(Modes, Mode);
-		Mode = Next;
+	    /* Check what Crtc1 thinks this should be. */
+	    ret = Crtc1->FBValid(Crtc1, VirtualX, VirtualY, pScrn->bitsPerPixel,
+				 rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch1);
+	    if (ret != MODE_OK) {
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "%s rejected mode \"%s\" "
+			   "(%dx%d): %s\n", Crtc1->Name, Mode->name,
+			   Mode->HDisplay, Mode->VDisplay,
+			   rhdModeStatusToString(ret));
+		goto rejected;
 	    }
+
+	    /* Check what Crtc2 thinks this should be. */
+	    ret = Crtc2->FBValid(Crtc2, VirtualX, VirtualY, pScrn->bitsPerPixel,
+				 rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, &Pitch2);
+	    if (ret != MODE_OK) {
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "%s rejected mode \"%s\" "
+			   "(%dx%d): %s\n", Crtc2->Name, Mode->name,
+			   Mode->HDisplay, Mode->VDisplay,
+			   rhdModeStatusToString(ret));
+		goto rejected;
+	    }
+
+	    /* when needed, check whether this matches our 2D engine as well. */
+	    if (rhdPtr->AccelMethod >= RHD_ACCEL_XAA)
+		if (rhdPtr->ChipSet < RHD_R600) /* badly abstracted, i know */
+		    if (!R5xx2DFBValid(rhdPtr, VirtualX, VirtualY,
+				       pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
+				       rhdPtr->FbScanoutSize, Pitch1)) {
+			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "2D acceleration "
+				   "rejected mode \"%s\" (%dx%d).\n",
+				   Mode->name, Mode->HDisplay, Mode->VDisplay);
+			goto rejected;
+		    }
+
+	    /* mode is perfectly valid FB wise */
+	    Mode = Mode->next;
+	    pScrn->virtualX = VirtualX;
+	    pScrn->virtualY = VirtualY;
+	    pScrn->displayWidth = Pitch1;
+	    continue;
+
+	rejected:
+	    Next = Mode->next;
+	    Modes = rhdModeDelete(Modes, Mode);
+	    Mode = Next;
 	} else
 	    Mode = Mode->next;
     }

@@ -39,6 +39,8 @@ rhd_randr.c \
 rhd_tmds.c \
 rhd_vga.c \
 rhd_shadow.c \
+r5xx_accel.c \
+r5xx_xaa.c \
 $(ATOM_BIOS_PARSER_SRCS) \
 git_version.h
 
@@ -63,6 +65,8 @@ rhd_randr.o \
 rhd_tmds.o \
 rhd_vga.o \
 rhd_shadow.o \
+r5xx_accel.o \
+r5xx_xaa.o \
 $(ATOM_BIOS_PARSER_OBJS)
 
 INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
