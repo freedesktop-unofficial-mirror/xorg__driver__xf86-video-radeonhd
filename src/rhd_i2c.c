@@ -366,22 +366,24 @@ rhdRS69I2CStatus(I2CBusPtr I2CPtr)
 static Bool
 rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
-    AtomBiosArgRec atomBiosArg;
-    CARD32 ddc;
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[I2CPtr->scrnIndex]);
+    CARD32 ddc = 2;
 
     RHDFUNC(I2CPtr);
 
-    atomBiosArg.val = line & 0xf;
-    if (ATOM_SUCCESS != RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-					ATOM_GPIO_I2C_CLK_MASK,
-					&atomBiosArg))
-	return FALSE;
+#ifdef ATOM_BIOS
+    {
+	RHDPtr rhdPtr = RHDPTR(xf86Screens[I2CPtr->scrnIndex]);
+	AtomBiosArgRec atomBiosArg;
 
-    RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
-    RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
-    /* add SDVO handling later */
-    switch (atomBiosArg.val) {
+	atomBiosArg.val = line & 0xf;
+	if (ATOM_SUCCESS != RHDAtomBiosFunc(rhdPtr->scrnIndex,
+					    rhdPtr->atomBIOS,
+					    ATOM_GPIO_I2C_CLK_MASK,
+					    &atomBiosArg))
+	    return FALSE;
+
+	/* add SDVO handling later */
+	switch (atomBiosArg.val) {
 	case 0x1f90:
 	    ddc = 0; /* ddc1 */
 	    break;
@@ -391,10 +393,15 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	default:
 	    ddc = 2; /* ddc3 */
 	    break;
-    }
-    RHDDebug(I2CPtr->scrnIndex,"%s: DDC Line: %i val: %i port: 0x%x\n",
-	     __func__,line & 0xf, ddc, atomBiosArg.val);
+	}
 
+	RHDDebug(I2CPtr->scrnIndex, "%s: DDC Line: %i val: %i port: 0x%x\n",
+		 __func__, line & 0xf, ddc, atomBiosArg.val);
+    }
+#endif /* ATOM_BIOS */
+
+    RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
     RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
     RHDRegWrite(I2CPtr, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
     RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
