@@ -184,6 +184,19 @@ static const char *xaaSymbols[] = {
     NULL
 };
 
+#ifdef USE_EXA
+static const char *exaSymbols[] = {
+    "exaDriverAlloc",
+    "exaDriverFini",
+    "exaDriverInit",
+    "exaGetPixmapOffset",
+    "exaGetPixmapPitch",
+    "exaMarkSync",
+    "exaWaitSync",
+    NULL
+};
+#endif /* USE_EXA */
+
 _X_EXPORT DriverRec RADEONHD = {
     RHD_VERSION,
     RHD_DRIVER_NAME,
@@ -807,6 +820,18 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86LoaderReqSymLists(xaaSymbols, NULL);
     }
 
+#ifdef USE_EXA
+    /* try to load the EXA module here */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	if (!xf86LoadSubModule(pScrn, "exa")) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load EXA module."
+		       " Falling back to ShadowFB.\n");
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+	} else
+	    xf86LoaderReqSymLists(exaSymbols, NULL);
+    }
+#endif /* USE_EXA */
+
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowPreInit(pScrn);
@@ -910,9 +935,16 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	if (!RHDShadowSetup(pScreen))
 	    /* No safetynet anymore */
 	    return FALSE;
-    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	if (rhdPtr->ChipSet < RHD_R600)
 	    R5xxXAAInit(pScrn, pScreen);
+    }
+#ifdef USE_EXA
+    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+ 	if (rhdPtr->ChipSet < RHD_R600)
+ 	    R5xxEXAInit(pScrn, pScreen);
+    }
+#endif /* USE_EXA */
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -986,7 +1018,13 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
-    /* nothing for XAA: handled in FreeRec */;
+#ifdef USE_EXA
+    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	if (rhdPtr->ChipSet < RHD_R600)
+	    R5xxEXACloseScreen(pScreen);
+    }
+#endif /* USE_EXA */
+    /* nothing for XAA: handled in FreeRec */
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
@@ -1985,8 +2023,10 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 	else if (!strcasecmp(method.val.string, "xaa"))
 	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
+#ifdef USE_EXA
 	else if (!strcasecmp(method.val.string, "exa"))
 	    rhdPtr->AccelMethod = RHD_ACCEL_EXA;
+#endif /* USE_EXA */
 	else if (!strcasecmp(method.val.string, "default"))
 	    rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
 	else {
@@ -2010,13 +2050,7 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
 
-    if (rhdPtr->ChipSet < RHD_R600) {
-	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-		       "%s: EXA is not implemented yet.\n", pScrn->chipset);
-	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
-	}
-    } else {
+    if (rhdPtr->ChipSet >= RHD_R600) {
 	if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: HW 2D acceleration is"
 		       " not implemented yet.\n",  pScrn->chipset);
@@ -2026,9 +2060,11 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 
     /* Now for some pretty print */
     switch (rhdPtr->AccelMethod) {
+#ifdef USE_EXA
     case RHD_ACCEL_EXA:
 	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected EXA 2D acceleration.\n");
 	break;
+#endif /* USE_EXA */
     case RHD_ACCEL_XAA:
 	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected XAA 2D acceleration.\n");
 	break;

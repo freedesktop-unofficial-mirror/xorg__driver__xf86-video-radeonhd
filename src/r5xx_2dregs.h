@@ -73,6 +73,18 @@
 #       define R5XX_NONSURF_AP1_SWP_16BPP (1 << 22)
 #       define R5XX_NONSURF_AP1_SWP_32BPP (1 << 23)
 
+#define R5XX_SURFACE0_INFO                0x0b0c
+#       define R5XX_SURF_TILE_COLOR_MACRO (0 << 16)
+#       define R5XX_SURF_TILE_COLOR_BOTH  (1 << 16)
+#       define R5XX_SURF_TILE_DEPTH_32BPP (2 << 16)
+#       define R5XX_SURF_TILE_DEPTH_16BPP (3 << 16)
+#       define R5XX_SURF_AP0_SWP_16BPP    (1 << 20)
+#       define R5XX_SURF_AP0_SWP_32BPP    (1 << 21)
+#       define R5XX_SURF_AP1_SWP_16BPP    (1 << 22)
+#       define R5XX_SURF_AP1_SWP_32BPP    (1 << 23)
+#define R5XX_SURFACE0_LOWER_BOUND         0x0b04
+#define R5XX_SURFACE0_UPPER_BOUND         0x0b08
+
 #define R5XX_RBBM_STATUS                  0x0e40
 #       define R5XX_RBBM_FIFOCNT_MASK     0x007f
 #       define R5XX_RBBM_ACTIVE           (1 << 31)

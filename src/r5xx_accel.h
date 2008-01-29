@@ -53,6 +53,14 @@ struct R5xx2DInfo {
     int scanline_words;
 
     CARD8 *Buffer;
+
+#ifdef USE_EXA
+    int exaSyncMarker;
+    int exaMarkerSynced;
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+    unsigned long swapper_surfaces[3];
+#endif /* X_BYTE_ORDER */
+#endif /* USE_EXA */
 };
 
 void R5xxFIFOWait(int scrnIndex, CARD32 required);
@@ -67,5 +75,12 @@ Bool R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 /* XAA specific -- #ifdef this? */
 Bool R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
 void R5xxXAADestroy(ScrnInfoPtr pScrn);
+
+/* EXA specific */
+#ifdef USE_EXA
+Bool R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
+void R5xxEXACloseScreen(ScreenPtr pScreen);
+void R5xxEXADestroy(ScrnInfoPtr pScrn);
+#endif /* USE_EXA */
 
 #endif /* _RHD_ACCEL_H */

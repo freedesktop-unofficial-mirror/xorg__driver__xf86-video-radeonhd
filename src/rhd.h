@@ -217,6 +217,9 @@ typedef struct RHDRec {
     rhdShadowPtr	shadowPtr;
 
     struct _XAAInfoRec *XAAInfo;
+#ifdef USE_EXA
+    struct _ExaDriver  *EXAInfo;
+#endif
     void               *TwoDInfo;
 
     /* RandR compatibility layer */

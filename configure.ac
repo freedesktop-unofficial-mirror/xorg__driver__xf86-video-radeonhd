@@ -31,6 +31,12 @@ AC_ARG_WITH(xorg-module-dir,
             [moduledir="$withval"],
             [moduledir="$libdir/xorg/modules"])
 
+AC_ARG_ENABLE(exa,
+              AC_HELP_STRING([--disable-exa],
+	                     [Disable EXA support [[default enabled]]]),
+              [EXA="$enableval"],
+              [EXA=yes])
+
 # Extensions checks.
 m4_pattern_forbid([XORG_DRIVER_CHECK_EXT])dnl
 XORG_DRIVER_CHECK_EXT(RANDR, randrproto)
@@ -64,6 +70,41 @@ AC_CHECK_HEADER([pci/pci.h],
                  have_pci_pci_h=yes],
                 [AC_MSG_WARN([Caution: Will not compile rhd_conntest without pciutils headers.])])
 AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
+
+# Properly handle EXA.
+CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
+CFLAGS="$SAVED_CFLAGS"
+
+# basic exa check.
+AC_MSG_CHECKING([whether to enable EXA support])
+if test "x$EXA" = xyes; then
+        AC_MSG_RESULT(yes)
+        AC_CHECK_HEADER(exa.h,
+                       [have_exa_h="yes"], [have_exa_h="no"])
+else
+        AC_MSG_RESULT(no)
+fi
+
+# exa version check.
+if test "x$have_exa_h" = xyes; then
+        AC_MSG_CHECKING([whether EXA version is at least 2.0.0])
+        AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+#include "exa.h"
+#if EXA_VERSION_MAJOR < 2
+#error OLD EXA!
+#endif
+                          ]])],
+                          [USE_EXA=yes],
+                          [USE_EXA=no])
+        AC_MSG_RESULT($USE_EXA)
+
+        if test "x$USE_EXA" = xyes; then
+                AC_DEFINE(USE_EXA, 1, [Build support for Exa])
+        fi
+fi
+
+AM_CONDITIONAL(USE_EXA, test "x$USE_EXA" = xyes)
+
 CFLAGS="$SAVED_CFLAGS"
 CPPFLAGS="$SAVED_CPPFLAGS"
 
