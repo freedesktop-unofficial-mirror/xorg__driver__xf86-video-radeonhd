@@ -347,6 +347,7 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
     case RHD_M76:
 	return PLLControlTableRetrieve(RV610PLLControl, FeedbackDivider);
     case RHD_RV670:
+    case RHD_R680:
 	return PLLControlTableRetrieve(RV670PLLControl, FeedbackDivider);
     default:
 	return 0;

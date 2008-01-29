@@ -72,6 +72,7 @@ SymTabRec RHDChipsets[] = {
     { RHD_M76,   "M76" },
     /* RV670 came into existence after RV6x0 and M7x */
     { RHD_RV670, "RV670" },
+    { RHD_R680,  "R680" },
     { -1,      NULL }
 };
 
@@ -225,6 +226,7 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x9501, RHD_RV670 ), /* ATI Radeon HD3870 */
     RHD_DEVICE_MATCH(  0x9505, RHD_RV670 ), /* ATI Radeon HD3850 */
     RHD_DEVICE_MATCH(  0x9507, RHD_RV670 ), /* RV670 */
+    RHD_DEVICE_MATCH(  0x950F, RHD_R680  ), /* ATI Radeon HD3870 X2 */
     RHD_DEVICE_MATCH(  0x9511, RHD_RV670 ), /* ATI FireGL V7700 */
     RHD_DEVICE_MATCH(  0x9580, RHD_RV630 ), /* RV630 */
     RHD_DEVICE_MATCH(  0x9581, RHD_M76   ), /* Mobility Radeon HD 2600 */
@@ -264,7 +266,8 @@ RHDIdentify(int flags)
 	    "\tRV610 : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000.\n"
 	    "\tRV630 : Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630;\n"
 	    "\t\tFireGL V3600/V5600.\n"
-	    "\tRV670 : Radeon HD 3850, HD 3870, FireGL V7700.\n");
+	    "\tRV670 : Radeon HD 3850, HD 3870, FireGL V7700.\n"
+	    "\tR680  : Radeon HD 3870 X2.\n");
     xf86Msg(X_NONE,
 	    "\tM52   : Mobility Radeon X1300.\n"
 	    "\tM54   : Mobility Radeon X1400; M54-GL.\n"
