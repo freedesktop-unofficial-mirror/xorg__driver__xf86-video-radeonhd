@@ -748,9 +748,13 @@ rhdRROutputDetect(xf86OutputPtr output)
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
 
-    /* Assume that a panel is always connected */
-    if (rout->Connector->Type == RHD_CONNECTOR_PANEL)
-	return XF86OutputStatusConnected;
+    /* Assume that a panel is always connected, when a mode is available */
+    if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
+	if (rout->Connector->Monitor)
+	    return XF86OutputStatusConnected;
+	else
+	    return XF86OutputStatusDisconnected;
+    }
 
     if (rout->Connector->HPDCheck) {
 	/* Hot Plug Detection available, use it */
