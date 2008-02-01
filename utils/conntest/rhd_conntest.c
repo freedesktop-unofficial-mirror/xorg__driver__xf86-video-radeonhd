@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@
  * This tool is here to help create a connector mapping table.
  *
  */
-#define DEBUG
+/* #define DEBUG */
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -84,6 +84,20 @@ enum {
     DACA_COMPARATOR_ENABLE         = 0x785C,
     DACA_COMPARATOR_OUTPUT         = 0x7860,
 
+    RV620_DACA_ENABLE               = 0x7000,
+    RV620_DACA_SOURCE_SELECT        = 0x7004,
+    RV620_DACA_AUTODETECT_CONTROL   = 0x7028,
+    RV620_DACA_AUTODETECT_STATUS    = 0x7034,
+    RV620_DACA_AUTODETECT_INT_CONTROL  = 0x7038,
+    RV620_DACA_FORCE_OUTPUT_CNTL    = 0x703C,
+    RV620_DACA_FORCE_DATA           = 0x7040,
+    RV620_DACA_POWERDOWN            = 0x7050,
+    /* RV620_DACB_CONTROL1          moved */
+    RV620_DACA_CONTROL2             = 0x7058,
+    RV620_DACA_COMPARATOR_ENABLE    = 0x705C,
+
+    RV620_DACA_CONTROL1             = 0x7ef4,
+
     /* DAC B */
     DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04,
@@ -95,6 +109,23 @@ enum {
     DACB_CONTROL2                  = 0x7A58,
     DACB_COMPARATOR_ENABLE         = 0x7A5C,
     DACB_COMPARATOR_OUTPUT         = 0x7A60,
+
+    RV620_DACB_ENABLE               = 0x7100,
+    RV620_DACB_SOURCE_SELECT        = 0x7104,
+    RV620_DACB_AUTODETECT_CONTROL   = 0x7128,
+    RV620_DACB_AUTODETECT_STATUS    = 0x7034,
+    RV620_DACB_FORCE_OUTPUT_CNTL    = 0x713C,
+    RV620_DACB_FORCE_DATA           = 0x7140,
+    RV620_DACB_POWERDOWN            = 0x7150,
+    /* RV620_DACB_CONTROL1          moved */
+    RV620_DACB_CONTROL2             = 0x7158,
+    RV620_DACB_COMPARATOR_ENABLE    = 0x715C,
+
+    RV620_DACB_CONTROL1             = 0x7ff4,
+
+    /* DAC common */
+    RV620_DAC_COMPARATOR_MISC       = 0x7da4,
+    RV620_DAC_COMPARATOR_OUTPUT     = 0x7da8,
 
     /* TMDSA */
     TMDSA_CNTL                     = 0x7880,
@@ -183,6 +214,20 @@ enum {
     RS69_DC_I2C_TRANSACTION0       = 0x7D48,  /* (RW) */
     RS69_DC_I2C_TRANSACTION1       = 0x7D4C,  /* (RW) */
 
+    /* RV62x I2C */
+    RV62_GENERIC_I2C_CONTROL         =       0x7d80,  /* (RW) */
+    RV62_GENERIC_I2C_INTERRUPT_CONTROL       =       0x7d84,  /* (RW) */
+    RV62_GENERIC_I2C_STATUS  =       0x7d88,  /* (RW) */
+    RV62_GENERIC_I2C_SPEED   =       0x7d8c,  /* (RW) */
+    RV62_GENERIC_I2C_SETUP   =       0x7d90,  /* (RW) */
+    RV62_GENERIC_I2C_TRANSACTION     =       0x7d94,  /* (RW) */
+    RV62_GENERIC_I2C_DATA    =       0x7d98,  /* (RW) */
+    RV62_GENERIC_I2C_PIN_SELECTION   =       0x7d9c,  /* (RW) */
+    RV62_DC_GPIO_DDC4_MASK   =       0x7e20,  /* (RW) */
+    RV62_DC_GPIO_DDC1_MASK   =       0x7e40,  /* (RW) */
+    RV62_DC_GPIO_DDC2_MASK   =       0x7e50,  /* (RW) */
+    RV62_DC_GPIO_DDC3_MASK   =       0x7e60,  /* (RW) */
+    
     /* HPD */
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
@@ -190,7 +235,8 @@ enum {
 typedef enum _chipType {
     RHD_R500 = 1,
     RHD_RS690,
-    RHD_R600
+    RHD_R600,
+    RHD_RV620
 } chipType;
 
 typedef enum dacOutput {
@@ -378,6 +424,8 @@ struct RHDDevice {
     { 0x1002, 0x958C, 2, RHD_R600},
     { 0x1002, 0x958D, 2, RHD_R600},
     { 0x1002, 0x958E, 2, RHD_R600},
+    { 0x1002, 0x9598, 2, RHD_RV620},
+    { 0x1002, 0x95C5, 2, RHD_RV620},
     { 0, 0, 0, 0 }
 };
 
@@ -471,7 +519,11 @@ MapBar(struct pci_dev *device, int ioBar, int devMem)
 CARD32
 RegRead(void *map, int offset)
 {
-    return *(volatile CARD32 *)((CARD8 *) map + offset);
+    CARD32 ret = *(volatile CARD32 *)((CARD8 *) map + offset);
+#ifdef DEBUG
+    fprintf(stderr, "0x%x = RegRead(0x%x)\n",ret,offset);
+#endif
+    return ret;
 }
 
 /*
@@ -480,6 +532,9 @@ RegRead(void *map, int offset)
 void
 RegWrite(void *map, int offset, CARD32 value)
 {
+#ifdef DEBUG
+    fprintf(stderr, "RegWrite(0x%x, 0x%x)\n",offset,value);
+#endif
     *(volatile CARD32 *)((CARD8 *) map + offset) = value;
 }
 
@@ -538,6 +593,7 @@ DACALoadDetect(void *map, Bool tv)
 
     RegWrite(map, DACA_ENABLE, 1);
     RegMask(map, DACA_AUTODETECT_CONTROL, 0, 0x3);
+    RegMask(map, DACA_CONTROL2, 0, 0xff0000);
     RegMask(map, DACA_CONTROL2, 0, 0x1);
 
     RegMask(map, DACA_CONTROL2, tv ? 0x100 : 0, 0x100);
@@ -602,6 +658,96 @@ DACALoadDetect(void *map, Bool tv)
  *
  */
 static dacOutput
+RV620DACLoadDetect(void *map, Bool tv, int dac)
+{
+    CARD32 offset = 0;
+    CARD32 ret;
+    CARD32 DetectControl, AutodetectIntCtl, ForceData, Control1, Control2, CompEnable;
+    if (dac == 1)
+	offset = 0x100;
+    Control1 = RegRead(map, offset + RV620_DACA_CONTROL1); /* 7ef4 */
+    Control2 = RegRead(map, offset + RV620_DACA_CONTROL2); /* 7058 */
+    ForceData = RegRead(map, offset + RV620_DACA_FORCE_DATA);
+    AutodetectIntCtl = RegRead(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL);
+    DetectControl = RegRead(map, offset + RV620_DACA_AUTODETECT_CONTROL);
+    CompEnable = RegRead(map, offset + RV620_DACA_COMPARATOR_ENABLE);
+
+#if 0
+    if (RegRead(map, offset + 0x7000) & 0x01) {
+	CARD32 my_offset = 0;
+	switch (RegRead(map, offset + 0x7004) & 0x3) {
+	    case 0:
+		break;
+	    case 1:
+		my_offset = 0x200;
+		break;
+	    case 2:
+		switch (RegRead(map, offset + 0x60fc) & 0x1) {
+		    case 0:
+			break;
+		    case 1:
+			my_offset = 0x200;
+			break;
+		}
+		break;
+	}
+	if (RegRead(map, my_offset + 0x6080) & 0x1) {
+	    while (!(RegRead(map, my_offset + 0x609c) & 0x02)) {};
+	    while (!(RegRead(map, my_offset + 0x609c) & 0x01)) {};
+	}
+    }
+#endif
+    if (tv)
+	RegMask(map, offset + RV620_DACA_CONTROL2, 0x100, 0xff00); /* TV on */
+    else
+	RegMask(map, offset + RV620_DACA_CONTROL2, 0x00, 0xff00); /* TV off */
+    RegMask(map, offset + RV620_DACA_FORCE_DATA, 0x18, 0xffff);
+    /* ack autodetect */
+    RegMask(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
+    /* autodetect off */ 
+    RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0x00, 0xff);
+    /* bandgap */
+    RegMask(map, offset + RV620_DACA_CONTROL1, dac ? 0x2502 : 0x2002, 0xffff);
+    /* DAC RGB async enable */
+    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070000);
+
+    /* check for connection */
+    RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0x01, 0xff);
+    usleep(32);
+
+    ret = RegRead(map, offset + RV620_DACA_AUTODETECT_STATUS);
+
+    RegWrite(map, offset + RV620_DACA_AUTODETECT_CONTROL, DetectControl);
+    RegWrite(map, offset + RV620_DACA_CONTROL1, Control1);
+    RegWrite(map, offset + RV620_DACA_CONTROL2, Control2);
+    RegWrite(map, offset + RV620_DACA_FORCE_DATA, ForceData);
+    RegWrite(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL,
+	     AutodetectIntCtl);
+
+#ifdef DEBUG
+    fprintf(stderr, "DAC%i: ret = 0x%x %s\n",dac,ret,tv ? "TV" : "");
+#endif
+
+    if (!tv)
+	return ((ret & 0x111) ? DAC_VGA : DAC_NONE);
+
+    switch (ret & 0x1010100) {
+	case 0x1010100:
+	    if (tv)
+		return DAC_COMPONENT;
+	case 0x1000000:
+		return DAC_COMPOSITE;
+	case 0x10100:
+		return DAC_SVIDEO;
+	default:
+	    return DAC_NONE;
+    }
+}
+
+/*
+ *
+ */
+static dacOutput
 DACBLoadDetect(void *map, Bool tv)
 {
     CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
@@ -616,6 +762,7 @@ DACBLoadDetect(void *map, Bool tv)
     RegWrite(map, DACB_ENABLE, 1);
     RegMask(map, DACB_AUTODETECT_CONTROL, 0, 0x3);
     RegMask(map, DACB_CONTROL2, 0, 0x1);
+    RegMask(map, DACB_CONTROL2, 0, 0xff0000);
 
     RegMask(map, DACB_CONTROL2, tv ? 0x100 : 0, 0x100);
 
@@ -645,10 +792,14 @@ DACBLoadDetect(void *map, Bool tv)
      * If only G is detected, we could have a monochrome monitor,
      * but we don't bother with this at the moment.
      */
-    ret = (RegRead(map, DACB_COMPARATOR_OUTPUT) & 0x0E) >> 1;
+    ret = RegRead(map, RV620_DAC_COMPARATOR_OUTPUT);
 #ifdef DEBUG
     fprintf(stderr, "DACB: %x %s\n",ret, tv ? "TV" : "");
 #endif
+#ifdef DEBUG
+    fprintf(stderr, "DACA: %x %s\n",ret, tv ? "TV" : "");
+#endif
+    ret = (ret & 0x0E0000) >> 17;
     RegMask(map, DACB_COMPARATOR_ENABLE, CompEnable, 0xFFFFFF);
     RegWrite(map, DACB_CONTROL1, Control1);
     RegMask(map, DACB_CONTROL2, Control2, 0x1FF);
@@ -715,15 +866,26 @@ TMDSALoadDetect(void *map)
 static void
 LoadReport(void *map)
 {
-    dacOutput DACA, DACB, TVA, TVB;
+    dacOutput DACA = DAC_NONE, DACB = DAC_NONE, TVA = DAC_NONE, TVB = DAC_NONE;
     Bool TMDSA;
 
-    DACA = DACALoadDetect(map, FALSE);
-    DACB = DACBLoadDetect(map, FALSE);
-    TVA = DACALoadDetect(map, TRUE);
-    TVB = DACBLoadDetect(map, TRUE);
+    switch (ChipType) {
+	case RHD_R500:
+	case RHD_RS690:
+	case RHD_R600:
+	    DACA = DACALoadDetect(map, FALSE);
+	    DACB = DACBLoadDetect(map, FALSE);
+	    TVA = DACALoadDetect(map, TRUE);
+	    TVB = DACBLoadDetect(map, TRUE);
+	    break;
+	case RHD_RV620:
+	    DACA = RV620DACLoadDetect(map, FALSE, 0);
+	    DACB = RV620DACLoadDetect(map, FALSE, 1);
+	    TVA = RV620DACLoadDetect(map, TRUE, 0);
+	    TVB = RV620DACLoadDetect(map, TRUE, 1);
+	    break;
+    }
     TMDSA =TMDSALoadDetect(map);
-
     printf("  Load Detection:");
     if (!DACA && !DACB && !TMDSA && !TVA && !TVB)
 	printf(" RHD_OUTPUT_NONE ");
@@ -776,26 +938,32 @@ LoadReport(void *map)
 CARD32
 getDDCSpeed(void)
 {
-    CARD32 clock, ret;
+    CARD32 clock, ref_clk, ret;
 
     switch  (AtomData.FirmwareInfoVersion.crev) {
 	case 1:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
+	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo->usReferenceClock;
 	    break;
 	case 2:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->usReferenceClock;
 	    break;
 	case 3:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->usReferenceClock;
 	    break;
 	case 4:
 	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->usReferenceClock;
 	    break;
 	default:
 	    /* no AtomBIOS info; use save default */
 	    clock = 70000;
+	    ref_clk = 270;
     }
     clock *= 10;
+    ref_clk *= 10;
 
     switch (ChipType) {
 	case RHD_R500:
@@ -805,6 +973,9 @@ getDDCSpeed(void)
 	    break;
 	case RHD_R600:
 	    ret = (clock) / TARGET_HW_I2C_CLOCK;
+	    break;
+	case RHD_RV620:
+	    ret = (ref_clk) / (4 * TARGET_HW_I2C_CLOCK);
 	    break;
 	default:
 	    ret = 0;
@@ -1036,7 +1207,8 @@ R6xxI2CWriteRead(void *map,  CARD8 line, CARD8 slave,
 	    *(ReadBuffer++) = (data >> 8) & 0xff;
 	}
 	ret = TRUE;
-    }
+    } else 
+	return FALSE;
 
     RegMask(map, R6_DC_I2C_CONTROL, 0x2, 0xff);
     usleep(10);
@@ -1594,6 +1766,217 @@ R5xxI2CWriteRead(void *map, CARD8 line, CARD8 slave,
 				  ReadBuffer, nRead);
 }
 
+/* RV620 */
+enum rv620I2CBits {
+    /* GENERIC_I2C_CONTROL */
+    RV62_DC_I2C_GO    = (0x1 << 0),
+    RV62_GENERIC_I2C_GO       = (0x1 << 0),
+    RV62_GENERIC_I2C_SOFT_RESET       = (0x1 << 1),
+    RV62_GENERIC_I2C_SEND_RESET       = (0x1 << 2),
+    /* GENERIC_I2C_INTERRUPT_CONTROL */
+    RV62_GENERIC_I2C_DONE_INT         = (0x1 << 0),
+    RV62_GENERIC_I2C_DONE_ACK         = (0x1 << 1),
+    RV62_GENERIC_I2C_DONE_MASK        = (0x1 << 2),
+    /* GENERIC_I2C_STATUS */
+    RV62_GENERIC_I2C_STATUS_BIT       = (0xf << 0),
+    RV62_GENERIC_I2C_DONE     = (0x1 << 4),
+    RV62_GENERIC_I2C_ABORTED  = (0x1 << 5),
+    RV62_GENERIC_I2C_TIMEOUT  = (0x1 << 6),
+    RV62_GENERIC_I2C_STOPPED_ON_NACK  = (0x1 << 9),
+    RV62_GENERIC_I2C_NACK     = (0x1 << 10),
+    /* GENERIC_I2C_SPEED */
+    RV62_GENERIC_I2C_THRESHOLD        = (0x3 << 0),
+    RV62_GENERIC_I2C_DISABLE_FILTER_DURING_STALL      = (0x1 << 4),
+    RV62_GENERIC_I2C_PRESCALE         = (0xffff << 16),
+    /* GENERIC_I2C_SETUP */
+    RV62_GENERIC_I2C_DATA_DRIVE_EN    = (0x1 << 0),
+    RV62_GENERIC_I2C_DATA_DRIVE_SEL   = (0x1 << 1),
+    RV62_GENERIC_I2C_CLK_DRIVE_EN     = (0x1 << 7),
+    RV62_GENERIC_I2C_INTRA_BYTE_DELAY         = (0xff << 8),
+    RV62_GENERIC_I2C_TIME_LIMIT       = (0xff << 24),
+    /* GENERIC_I2C_TRANSACTION */
+    RV62_GENERIC_I2C_RW       = (0x1 << 0),
+    RV62_GENERIC_I2C_STOP_ON_NACK     = (0x1 << 8),
+    RV62_GENERIC_I2C_ACK_ON_READ      = (0x1 << 9),
+    RV62_GENERIC_I2C_START    = (0x1 << 12),
+    RV62_GENERIC_I2C_STOP     = (0x1 << 13),
+    RV62_GENERIC_I2C_COUNT    = (0xf << 16),
+    /* GENERIC_I2C_DATA */
+    RV62_GENERIC_I2C_DATA_RW  = (0x1 << 0),
+    RV62_GENERIC_I2C_DATA_BIT         = (0xff << 8),
+    RV62_GENERIC_I2C_INDEX    = (0xf << 16),
+    RV62_GENERIC_I2C_INDEX_WRITE      = (0x1 << 31),
+    /* GENERIC_I2C_PIN_SELECTION */
+    RV62_GENERIC_I2C_SCL_PIN_SEL      = (0x7f << 0),
+    RV62_GENERIC_I2C_SDA_PIN_SEL      = (0x7f << 8),
+};
+
+/*
+ *
+ */
+static Bool
+RV620I2CStatus(void *map)
+{
+    int count = 50;
+    volatile CARD32 val;
+
+    while (--count) {
+
+	usleep(10);
+	val = RegRead(map, RV62_GENERIC_I2C_STATUS);
+#ifdef DEBUG
+	fprintf(stderr,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+#endif
+	if (val & RV62_GENERIC_I2C_DONE)
+	    break;
+    }
+    RegMask(map, RV62_GENERIC_I2C_INTERRUPT_CONTROL, 0x2, 0xff);
+
+    if (!count 
+	|| (val & (RV62_GENERIC_I2C_STOPPED_ON_NACK | RV62_GENERIC_I2C_NACK)))
+	return FALSE; /* 2 */
+
+    return TRUE; /* 1 */
+}
+
+/*
+ *
+ */
+static  Bool
+RV620I2CSetupStatus(void *map, int line, int prescale)
+{
+    CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 }; 
+
+    if (line > 3)
+	return FALSE;
+
+    RegWrite(map, 0x7e40, 0);
+    RegWrite(map, 0x7e50, 0);
+    RegWrite(map, 0x7e60, 0);
+    RegWrite(map, 0x7e20, 0);
+
+    RegWrite(map, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c[line]);
+    RegMask(map, RV62_GENERIC_I2C_SPEED, 
+	    (prescale & 0xffff) << 16 | 0x02, 0xffff00ff);
+    RegWrite(map, RV62_GENERIC_I2C_SETUP, 0x30000000);
+    RegMask(map, RV62_GENERIC_I2C_INTERRUPT_CONTROL, 
+	    RV62_GENERIC_I2C_DONE_ACK, RV62_GENERIC_I2C_DONE_ACK);
+
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+RV620I2CTransaction(void *map, CARD8 slave, Bool Write, 
+		    unsigned char *Buffer, int count)
+{
+    Bool Start = TRUE;
+
+#define MAX 8
+
+    while (count > 0) {
+	int num;
+	int idx = 0;
+	CARD32 data = 0;
+
+	if (count > MAX) {
+	    num = MAX;
+	    RegMask(map, RV62_GENERIC_I2C_TRANSACTION,
+		    (MAX - (((Start) ? 0 : 1))) << 16
+		    | RV62_GENERIC_I2C_STOP_ON_NACK
+		    | RV62_GENERIC_I2C_ACK_ON_READ
+		    | (Start ? RV62_GENERIC_I2C_START : 0)
+		    | (!Write ? RV62_GENERIC_I2C_RW : 0 ), 
+		    0xFFFFFF);
+	} else {
+	    num = count;
+	    data = ( count - (((Start) ? 0 : 1)) ) << 16
+		| RV62_GENERIC_I2C_STOP_ON_NACK
+		|  RV62_GENERIC_I2C_STOP
+		| (Start ? RV62_GENERIC_I2C_START : 0)
+		| (!Write ? RV62_GENERIC_I2C_RW : 0);
+	    RegMask(map, RV62_GENERIC_I2C_TRANSACTION,
+		    data,
+		    0xFFFFFF);
+	}
+
+	if (Start) {
+	    data = RV62_GENERIC_I2C_INDEX_WRITE 
+		| (((slave & 0xfe) | ( Write ? 0 : 1)) << 8)
+		| (idx++ << 16);
+	    RegWrite(map, RV62_GENERIC_I2C_DATA, data);
+	}
+
+	if (Write) {
+	    while (num--) {
+		data = RV62_GENERIC_I2C_INDEX_WRITE 
+		    | (idx++ << 16) 
+		    | *(Buffer++) << 8;
+		RegWrite(map, RV62_GENERIC_I2C_DATA, data);
+	    }
+		
+	    RegMask(map, RV62_GENERIC_I2C_CONTROL, 
+		    RV62_GENERIC_I2C_GO, RV62_GENERIC_I2C_GO);
+	    if (!RV620I2CStatus(map))
+		return FALSE;
+	} else {
+
+	    RegMask(map, RV62_GENERIC_I2C_CONTROL, 
+		    RV62_GENERIC_I2C_GO, RV62_GENERIC_I2C_GO);
+	    if (!RV620I2CStatus(map))
+		return FALSE;
+
+	    RegWrite(map, RV62_GENERIC_I2C_DATA, 
+		     RV62_GENERIC_I2C_INDEX_WRITE
+		     | (idx++ << 16)
+		     | RV62_GENERIC_I2C_RW);
+
+	    while (num--) {
+		data = RegRead(map, RV62_GENERIC_I2C_DATA);
+		*(Buffer++) = (CARD8)((data >> 8) & 0xff);
+	    }
+	}
+	Start = FALSE;
+	count -= MAX;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+RV620I2CWriteRead(void *map, CARD8 line, CARD8 slave,
+		unsigned char *WriteBuffer, int nWrite, unsigned char *ReadBuffer, int nRead)
+{
+    int prescale = getDDCSpeed();
+
+    if (!prescale)
+	return FALSE;
+
+    RV620I2CSetupStatus(map, line, prescale);
+
+    if (!nWrite && !nRead) 
+	return RV620I2CTransaction(map, slave, TRUE, (unsigned char *)"", 1);
+
+    if (nWrite)
+	if (!RV620I2CTransaction(map, slave, TRUE, WriteBuffer, nWrite))
+	    return FALSE;
+
+    if (nRead)
+	if (!RV620I2CTransaction(map, slave, FALSE, ReadBuffer, nRead))
+	    return FALSE;
+
+    return TRUE;
+}
+
+static Bool
+RV620DDCProbe(void *map, int Channel, unsigned char slave)
+{
+    return RV620I2CWriteRead(map, Channel, slave, NULL, 0, NULL, 0);
+}
 
 /*
  *
@@ -1618,6 +2001,11 @@ DDCProbe(void *map, int Channel, unsigned char slave, unsigned char *data, int c
 	case RHD_R600:
 	    if ((ret = R6xxDDCProbe(map, Channel, slave)) && count > 0) {
 		ret = R6xxI2CWriteRead(map, Channel, slave, &offset, 1, data, count);
+	    };
+	    return ret;
+	case RHD_RV620:
+	    if ((ret = RV620DDCProbe(map, Channel, slave)) && count > 0) {
+		ret = RV620I2CWriteRead(map, Channel, slave, &offset, 1, data, count);
 	    };
 	    return ret;
 	default:
