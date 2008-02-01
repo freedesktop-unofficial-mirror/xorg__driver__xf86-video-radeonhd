@@ -209,7 +209,7 @@ enum {
     /* D2SCL */
     D2SCL_UPDATE                   = 0x6DCC,
 
-    /* DAC A */
+    /* R500 DAC A */
     DACA_ENABLE                    = 0x7800,
     DACA_SOURCE_SELECT             = 0x7804,
     DACA_SYNC_TRISTATE_CONTROL     = 0x7820,
@@ -221,9 +221,9 @@ enum {
     DACA_CONTROL1                  = 0x7854,
     DACA_CONTROL2                  = 0x7858,
     DACA_COMPARATOR_ENABLE         = 0x785C,
-    DACA_COMPARATOR_OUTPUT         = 0x7860,
+    DACA_COMPARATOR_OUTPUT	   = 0x7860,
 
-    /* TMDSA */
+/* TMDSA */
     TMDSA_CNTL                     = 0x7880,
     TMDSA_SOURCE_SELECT            = 0x7884,
     TMDSA_COLOR_FORMAT             = 0x7888,
@@ -300,6 +300,62 @@ enum {
     DC_GPIO_HPD_A                  = 0x7E94,
     DC_GPIO_HPD_EN                 = 0x7E98,
     DC_GPIO_HPD_Y                  = 0x7E9C
+};
+
+enum rv620Regs {
+    /* RV62x I2C */
+    RV62_GENERIC_I2C_CONTROL         =       0x7d80,  /* (RW) */
+    RV62_GENERIC_I2C_INTERRUPT_CONTROL       =       0x7d84,  /* (RW) */
+    RV62_GENERIC_I2C_STATUS  =       0x7d88,  /* (RW) */
+    RV62_GENERIC_I2C_SPEED   =       0x7d8c,  /* (RW) */
+    RV62_GENERIC_I2C_SETUP   =       0x7d90,  /* (RW) */
+    RV62_GENERIC_I2C_TRANSACTION     =       0x7d94,  /* (RW) */
+    RV62_GENERIC_I2C_DATA    =       0x7d98,  /* (RW) */
+    RV62_GENERIC_I2C_PIN_SELECTION   =       0x7d9c,  /* (RW) */
+    RV62_DC_GPIO_DDC4_MASK   =       0x7e20,  /* (RW) */
+    RV62_DC_GPIO_DDC1_MASK   =       0x7e40,  /* (RW) */
+    RV62_DC_GPIO_DDC2_MASK   =       0x7e50,  /* (RW) */
+    RV62_DC_GPIO_DDC3_MASK   =       0x7e60,  /* (RW) */
+    /* DAC common */
+    RV620_DAC_COMPARATOR_MISC       = 0x7da4,
+    RV620_DAC_COMPARATOR_OUTPUT     = 0x7da8,
+
+    /* RV620 DAC A */
+    RV620_DACA_ENABLE              = 0x7000,
+    RV620_DACA_SOURCE_SELECT       = 0x7004,
+    RV620_DACA_SYNC_TRISTATE_CONTROL     = 0x7020,
+    /* RV620_DACA_SYNC_SELECT         = 0x7024, ?? */
+    RV620_DACA_AUTODETECT_CONTROL  = 0x7028,
+    RV620_DACA_AUTODETECT_STATUS   = 0x7034,
+    RV620_DACA_AUTODETECT_INT_CONTROL  = 0x7038,
+    RV620_DACA_FORCE_OUTPUT_CNTL   = 0x703C,
+    RV620_DACA_FORCE_DATA          = 0x7040,
+    RV620_DACA_POWERDOWN           = 0x7050,
+    /* RV620_DACA_CONTROL1         moved */
+    RV620_DACA_CONTROL2            = 0x7058,
+    RV620_DACA_COMPARATOR_ENABLE   = 0x705C,
+    /* RV620_DACA_COMPARATOR_OUTPUT  changed */
+    RV620_DACA_BGADJ_SRC           = 0x7ef0,
+    RV620_DACA_MACRO_CNTL          = 0x7ef4,
+    RV620_DACA_AUTO_CALIB_CONTROL  = 0x7ef8,
+
+    /* DAC B */
+    RV620_DACB_ENABLE              = 0x7100,
+    RV620_DACB_SOURCE_SELECT       = 0x7104,
+    RV620_DACB_SYNC_TRISTATE_CONTROL     = 0x7120,
+    /* RV620_DACB_SYNC_SELECT         = 0x7124, ?? */
+    RV620_DACB_AUTODETECT_CONTROL  = 0x7128,
+    RV620_DACB_AUTODETECT_STATUS   = 0x7134,
+    RV620_DACB_AUTODETECT_INT_CONTROL  = 0x7138,
+    RV620_DACB_FORCE_OUTPUT_CNTL   = 0x713C,
+    RV620_DACB_FORCE_DATA          = 0x7140,
+    RV620_DACB_POWERDOWN           = 0x7150,
+    /* RV620_DACB_CONTROL1         moved */
+    RV620_DACB_CONTROL2            = 0x7158,
+    RV620_DACB_COMPARATOR_ENABLE   = 0x715C,
+    RV620_DACB_BGADJ_SRC           = 0x7ef0,
+    RV620_DACB_MACRO_CNTL          = 0x7ff4,
+    RV620_DACB_AUTO_CALIB_CONTROL  = 0x7ef8
 };
 
 enum _r5xxMCRegs {
@@ -419,7 +475,6 @@ enum R5XX_MC_STATUS_BITS {
     R5XX_MEM_PWRUP_COMPL = (0x1 << 0),
     R5XX_MC_IDLE	    = (0x1 << 1)
 };
-
 
 enum BUS_CNTL_BITS {
     /* BUS_CNTL */
