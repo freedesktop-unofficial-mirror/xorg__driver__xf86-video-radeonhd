@@ -72,7 +72,9 @@ SymTabRec RHDChipsets[] = {
     { RHD_M76,   "M76" },
     /* RV670 came into existence after RV6x0 and M7x */
     { RHD_RV670, "RV670" },
-    { RHD_R680,  "R680" },
+    { RHD_R680,  "R680"  },
+    { RHD_RV620, "RV620" },
+    { RHD_RV635, "RV635" },
     { -1,      NULL }
 };
 
@@ -200,7 +202,7 @@ const PCI_ID_LIST = {
 #if 0 /* Not seen yet */
     RHD_DEVICE_MATCH(  0x796C, RHD_RS740 ), /* RS740 */
     RHD_DEVICE_MATCH(  0x796D, RHD_RS740 ), /* RS740M */
-    RHD_DEVICE_MATCH(  0x796E, RHD_RS740 ), /* RS740 */
+    RHD_DEVICE_MATCH(  0x796E, RHD_RS740 ), /* ATI Radeon 2100 RS740 */
     RHD_DEVICE_MATCH(  0x796F, RHD_RS740 ), /* RS740M */
 #endif
     RHD_DEVICE_MATCH(  0x9400, RHD_R600  ), /* Radeon HD 2900 XT */
@@ -240,6 +242,22 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x958C, RHD_RV630 ), /* FireGL V5600 */
     RHD_DEVICE_MATCH(  0x958D, RHD_RV630 ), /* FireGL V3600 */
     RHD_DEVICE_MATCH(  0x958E, RHD_RV630 ), /* ATI Radeon HD 2600 LE */
+#if 0
+    RHD_DEVICE_MATCH(  0x9590, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x9591, RHD_RV635 ), /* ATI Mobility Radeon HD 3650 */
+    RHD_DEVICE_MATCH(  0x9596, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x9597, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x9598, RHD_RV635 ), /* ATI Radeon HD 3670 */
+    RHD_DEVICE_MATCH(  0x9599, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x95C0, RHD_RV620 ), /* ATI Radeon HD 3470 */
+    RHD_DEVICE_MATCH(  0x95C2, RHD_M82   ), /* ATI Mobility Radeon HD 3430 (M82) */
+    RHD_DEVICE_MATCH(  0x95C4, RHD_M82 ), /* ATI Mobility Radeon HD 3400 Series (M82)  */
+    RHD_DEVICE_MATCH(  0x95C5, RHD_RV620 ), /* ATI Radeon HD 3450 */
+    RHD_DEVICE_MATCH(  0x95C7, RHD_RV620 ), /* ATI Radeon HD 3430 */
+    RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2450  */
+    RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2460  */
+    RHD_DEVICE_MATCH(  0x95CF, RHD_RV620 ), /* ATI FireMV 2460  */
+#endif
     LIST_END
 };
 
@@ -281,11 +299,15 @@ RHDIdentify(int flags)
 	    "\tM71   : Mobility Radeon HD 2300.\n"
 	    "\tM72   : Mobility Radeon HD 2400; Radeon E2400.\n"
 	    "\tM74   : Mobility Radeon HD 2400 XT.\n"
-	    "\tM76   : Mobility Radeon HD 2600\n"
+	    "\tM76   : Mobility Radeon HD 2600.\n"
+	    "\tM82   : Mobility Radeon HD 3400.\n"
+	    "\tM86   : Mobility Radeon HD 3600.\n"
 	    "\t\t(Gemini ATI) Mobility Radeon HD 2600 XT.\n");
     xf86Msg(X_NONE,
 	    "\tRS600 : Radeon Xpress 1200, Xpress 1250.\n"
 	    "\tRS690 : Radeon X1200, X1250, X1270.\n"
+	    "\tRV620 : Radeon HD 3400.\n"
+	    "\tRV635 : Radeon HD 3600.\n"
 	    /* NOT YET "\tRS740  : RS740, RS740M\n" */ );
     xf86Msg(X_NONE, "\n");
 
