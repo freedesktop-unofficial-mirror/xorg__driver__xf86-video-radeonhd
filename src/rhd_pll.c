@@ -530,6 +530,84 @@ PLL2Restore(struct rhdPLL *PLL)
     }
 }
 
+/* ============================== RV620 =====================================*/
+
+/*
+ *
+ */
+static void
+PLL1PowerRV620(struct rhdPLL *PLL, int Power)
+{
+    RHDFUNC(PLL);
+
+}
+
+/*
+ *
+ */
+static void
+PLL2PowerRV620(struct rhdPLL *PLL, int Power)
+{
+    RHDFUNC(PLL);
+
+}
+
+/*
+ *
+ */
+static void
+PLL1SetRV620(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
+	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
+{
+    RHDFUNC(PLL);
+}
+
+/*
+ *
+ */
+static void
+PLL2SetRV620(struct rhdPLL *PLL, CARD16 ReferenceDivider, CARD16 FeedbackDivider,
+	CARD8 FeedbackDividerFraction, CARD8 PostDivider)
+{
+    RHDFUNC(PLL);
+}
+
+/*
+ *
+ */
+static void
+PLL1SaveRV620(struct rhdPLL *PLL)
+{
+    RHDFUNC(PLL);
+}
+
+/*
+ *
+ */
+static void
+PLL2SaveRV620(struct rhdPLL *PLL)
+{
+    RHDFUNC(PLL);
+}
+
+/*
+ *
+ */
+static void
+PLL1RestoreRV620(struct rhdPLL *PLL)
+{
+    RHDFUNC(PLL);
+}
+
+/*
+ *
+ */
+static void
+PLL2RestoreRV620(struct rhdPLL *PLL)
+{
+    RHDFUNC(PLL);
+}
+
 /* Some defaults for when we don't have this info */
 #define RHD_PLL_DEFAULT_REFERENCE    27000 /* it's right there on the card */
 #define RHD_PLL_DEFAULT_PLLOUT_MIN  648000 /* experimental. */
@@ -636,10 +714,17 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->PixMax = PixMax;
 
     PLL->Valid = PLLValid;
-    PLL->Set = PLL1Set;
-    PLL->Power = PLL1Power;
-    PLL->Save = PLL1Save;
-    PLL->Restore = PLL1Restore;
+    if (rhdPtr->ChipSet < RHD_RV620) {
+	PLL->Set = PLL1Set;
+	PLL->Power = PLL1Power;
+	PLL->Save = PLL1Save;
+	PLL->Restore = PLL1Restore;
+    } else {
+	PLL->Set = PLL1SetRV620;
+	PLL->Power = PLL1PowerRV620;
+	PLL->Save = PLL1SaveRV620;
+	PLL->Restore = PLL1RestoreRV620;
+    }
 
     rhdPtr->PLLs[0] = PLL;
 
@@ -657,10 +742,17 @@ RHDPLLsInit(RHDPtr rhdPtr)
     PLL->PixMax = PixMax;
 
     PLL->Valid = PLLValid;
-    PLL->Set = PLL2Set;
-    PLL->Power = PLL2Power;
-    PLL->Save = PLL2Save;
-    PLL->Restore = PLL2Restore;
+    if (rhdPtr->ChipSet < RHD_RV620) {
+	PLL->Set = PLL2Set;
+	PLL->Power = PLL2Power;
+	PLL->Save = PLL2Save;
+	PLL->Restore = PLL2Restore;
+    }{
+	PLL->Set = PLL2SetRV620;
+	PLL->Power = PLL2PowerRV620;
+	PLL->Save = PLL2SaveRV620;
+	PLL->Restore = PLL2RestoreRV620;
+    }
 
     rhdPtr->PLLs[1] = PLL;
 }
