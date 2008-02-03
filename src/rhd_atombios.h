@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -39,6 +39,7 @@ typedef enum _AtomBiosRequestID {
     ATOMBIOS_GET_CONNECTORS,
     ATOMBIOS_GET_PANEL_MODE,
     ATOMBIOS_GET_PANEL_EDID,
+    ATOMBIOS_GET_CODE_DATA_TABLE,
     GET_DEFAULT_ENGINE_CLOCK,
     GET_DEFAULT_MEMORY_CLOCK,
     GET_MAX_PIXEL_CLOCK_PLL_OUTPUT,
@@ -112,6 +113,10 @@ typedef union AtomBiosArg
     CARD32 val;
     struct rhdConnectorInfo	*connectorInfo;
     unsigned char*		EDIDBlock;
+    struct {
+	unsigned char *loc;
+	unsigned short size;
+    } CommandDataTable;
     atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;

@@ -83,6 +83,8 @@ static AtomBiosResult rhdAtomInit(atomBiosHandlePtr unused1,
 				      AtomBiosRequestID unused2, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomTearDown(atomBiosHandlePtr handle,
 					  AtomBiosRequestID unused1, AtomBiosArgPtr unused2);
+static AtomBiosResult rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
+						AtomBiosRequestID unused, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomVramInfoQuery(atomBiosHandlePtr handle,
 					       AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
@@ -139,6 +141,8 @@ struct atomBIOSRequests {
      "AtomBIOS Get Panel Mode",			MSG_FORMAT_NONE},
     {ATOMBIOS_GET_PANEL_EDID,		rhdAtomLvdsGetTimings,
      "AtomBIOS Get Panel EDID",			MSG_FORMAT_NONE},
+    {ATOMBIOS_GET_CODE_DATA_TABLE,	rhdAtomGetDataInCodeTable,
+     "AtomBIOS Get Datatable from Codetable",   MSG_FORMAT_NONE},
     {GET_DEFAULT_ENGINE_CLOCK,		rhdAtomFirmwareInfoQuery,
      "Default Engine Clock",			MSG_FORMAT_DEC},
     {GET_DEFAULT_MEMORY_CLOCK,		rhdAtomFirmwareInfoQuery,
@@ -303,6 +307,7 @@ typedef struct _atomBiosHandle {
     CARD32 fbBase;
     PCITAG PciTag;
     unsigned int BIOSImageSize;
+    unsigned char *codeTable;
 } atomBiosHandleRec;
 
 enum {
@@ -340,7 +345,7 @@ rhdAtomAnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
 static int
 rhdAtomAnalyzeRomHdr(unsigned char *rombase,
               ATOM_ROM_HEADER *hdr,
-              unsigned int *data_offset)
+		     unsigned int *data_offset, unsigned int *code_table)
 {
     if (!rhdAtomAnalyzeCommonHdr(&hdr->sHeader)) {
         return FALSE;
@@ -353,6 +358,7 @@ rhdAtomAnalyzeRomHdr(unsigned char *rombase,
 		   rombase + hdr->usBIOS_BootupMessageOffset);
 
     *data_offset = hdr->usMasterDataTableOffset;
+    *code_table = hdr->usMasterCommandTableOffset;
 
     return TRUE;
 }
@@ -387,6 +393,7 @@ rhdAtomGetTableRevisionAndSize(ATOM_COMMON_TABLE_HEADER *hdr,
     if (formatRev) *formatRev = hdr->ucTableFormatRevision;
     if (size) *size = (short)hdr->usStructureSize
                    - sizeof(ATOM_COMMON_TABLE_HEADER);
+
     return TRUE;
 }
 
@@ -452,10 +459,12 @@ rhdAtomAnalyzeMasterDataTable(unsigned char *base,
 }
 
 static Bool
-rhdAtomGetDataTable(int scrnIndex, unsigned char *base,
-		    atomDataTables *atomDataPtr, unsigned int BIOSImageSize)
+rhdAtomGetTables(int scrnIndex, unsigned char *base,
+		 atomDataTables *atomDataPtr, unsigned char **codeTablePtr,
+		 unsigned int BIOSImageSize)
 {
     unsigned int  data_offset;
+    unsigned int  code_offset;
     unsigned int atom_romhdr_off =  *(unsigned short*)
         (base + OFFSET_TO_POINTER_TO_ATOM_ROM_HEADER);
     ATOM_ROM_HEADER *atom_rom_hdr =
@@ -475,7 +484,7 @@ rhdAtomGetDataTable(int scrnIndex, unsigned char *base,
         return FALSE;
     }
     xf86DrvMsg(scrnIndex, X_INFO, "ATOM BIOS Rom: \n");
-    if (!rhdAtomAnalyzeRomHdr(base, atom_rom_hdr, &data_offset)) {
+    if (!rhdAtomAnalyzeRomHdr(base, atom_rom_hdr, &data_offset, &code_offset)) {
         xf86DrvMsg(scrnIndex, X_ERROR, "RomHeader invalid\n");
         return FALSE;
     }
@@ -483,7 +492,15 @@ rhdAtomGetDataTable(int scrnIndex, unsigned char *base,
     if (data_offset + sizeof (ATOM_MASTER_DATA_TABLE) > BIOSImageSize) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"%s: Atom data table outside of BIOS\n",
 		   __func__);
+	return FALSE;
     }
+
+    if (code_offset + sizeof (ATOM_MASTER_COMMAND_TABLE) > BIOSImageSize) {
+	xf86DrvMsg(scrnIndex, X_ERROR, "%s: Atom command table outside of BIOS\n",
+		   __func__);
+	(*codeTablePtr) = NULL;
+    } else
+	(*codeTablePtr) = base + code_offset;
 
     if (!rhdAtomAnalyzeMasterDataTable(base, (ATOM_MASTER_DATA_TABLE *)
 				       (base + data_offset),
@@ -492,6 +509,7 @@ rhdAtomGetDataTable(int scrnIndex, unsigned char *base,
 		   __func__);
         return FALSE;
     }
+
     return TRUE;
 }
 
@@ -673,6 +691,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     atomBiosHandlePtr handle = NULL;
     unsigned int BIOSImageSize = 0;
     Bool unposted = FALSE;
+    unsigned char* codeTable;
 
     data->atomhandle = NULL;
 
@@ -726,7 +745,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 		   "ATOM BIOS data tabes\n");
 	goto error;
     }
-    if (!rhdAtomGetDataTable(scrnIndex, ptr, atomDataPtr,BIOSImageSize))
+    if (!rhdAtomGetTables(scrnIndex, ptr, atomDataPtr, &codeTable, BIOSImageSize))
 	goto error1;
     if (!(handle = xcalloc(1, sizeof(atomBiosHandleRec)))) {
 	xf86DrvMsg(scrnIndex,X_ERROR,"Cannot allocate memory\n");
@@ -737,6 +756,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     handle->scrnIndex = scrnIndex;
     handle->PciTag = rhdPtr->PciTag;
     handle->BIOSImageSize = BIOSImageSize;
+    handle->codeTable = codeTable;
 
 # if ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
@@ -1306,8 +1326,8 @@ rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 		    break;
 		}
 	    }
-	    data->mode = rhdAtomAnalogTVTimings(handle, 
-						atomDataPtr->AnalogTV_Info, 
+	    data->mode = rhdAtomAnalogTVTimings(handle,
+						atomDataPtr->AnalogTV_Info,
 						mode);
 	    if (!data->mode)
 		return ATOM_FAILED;
@@ -2222,6 +2242,74 @@ rhdAtomConnectorInfo(atomBiosHandlePtr handle,
     else
 	return rhdAtomConnectorInfoFromSupportedDevices(handle,
 							&data->connectorInfo);
+}
+
+struct atomCodeDataTableHeader
+{
+    unsigned char signature;
+    unsigned short size;
+};
+
+#define CODE_DATA_TABLE_SIGNATURE 0x7a
+#define ATOM_EOT_COMMAND 0x5b
+
+static AtomBiosResult
+rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
+			   AtomBiosRequestID unused, AtomBiosArgPtr data)
+{
+    unsigned char *command_table;
+    unsigned short size;
+    unsigned short offset;
+
+    int i;
+
+    RHDFUNC(handle);
+
+    if (data->val > sizeof (struct _ATOM_MASTER_LIST_OF_COMMAND_TABLES) / sizeof (USHORT))
+	return ATOM_FAILED;
+
+    if ((offset = ((USHORT *)&(((ATOM_MASTER_COMMAND_TABLE *)handle->codeTable)
+			       ->ListOfCommandTables))[data->val]))
+	command_table = handle->BIOSBase + offset;
+    else
+	return ATOM_FAILED;
+
+    if (!rhdAtomGetTableRevisionAndSize(&(((ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *)
+					     command_table)->CommonHeader),
+					NULL, NULL, &size))
+	return ATOM_FAILED;
+
+    for (i = sizeof(ATOM_COMMON_ROM_COMMAND_TABLE_HEADER); i < size - 1; i++) {
+
+	if (command_table[i] == ATOM_EOT_COMMAND
+	    && command_table[i+1] == CODE_DATA_TABLE_SIGNATURE) {
+	    struct atomCodeDataTableHeader *dt
+		= (struct atomCodeDataTableHeader *)&command_table[i];
+	    int diff;
+
+	    diff = size - (i + 1) + sizeof(struct atomCodeDataTableHeader) + dt->size;
+
+	    DEBUGP(ErrorF("Table[%i] = 0x%4.4x -> data_size: %i\n",data->val, size));
+
+	    if (diff < 0) {
+		xf86DrvMsg(handle->scrnIndex, X_ERROR,
+			   "Data table in command table %i extends %i bytes "
+			   "beyond command table size\n",
+			   data->val, -diff);
+
+		return  ATOM_FAILED;
+	    }
+
+	    data->CommandDataTable.loc =
+		&command_table[i + sizeof(struct atomCodeDataTableHeader)];
+	    data->CommandDataTable.size = dt->size;
+	    DEBUGP(RhdDebugDump(handle->scrnIndex, data->CommandDataTable.loc, dt->size));
+
+	    return ATOM_SUCCESS;
+	}
+    }
+
+    return ATOM_FAILED;
 }
 
 # ifdef ATOM_BIOS_PARSER
