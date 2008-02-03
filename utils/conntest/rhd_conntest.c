@@ -70,6 +70,12 @@ typedef unsigned int CARD32;
 #define DEV_MEM "/dev/mem"
 #define TARGET_HW_I2C_CLOCK 25 /*  kHz */
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define SHORT(x) (x)
+#else
+#define SHORT(x) (((x & 0xff) << 8) | ((x & 0xff) >> 8))
+#endif
+
 /* Some register names */
 enum {
     /* DAC A */
@@ -271,6 +277,9 @@ typedef struct _atomDataTables
 } atomDataTables, *atomDataTablesPtr;
 
 atomDataTables AtomData;
+unsigned char **command_table = NULL;
+int num_command_table_entries = 0;
+unsigned char * AtomBiosGetDataFromCodeTable(unsigned char **tablelist, int n, short *size);
 
 
 /*
@@ -587,7 +596,7 @@ DACLoadDetect(void *map, Bool tv, int dac)
     unsigned int offset = 0;
 
     if (dac) offset = 0x200;
-    
+
     CompEnable = RegRead(map, offset + DACA_COMPARATOR_ENABLE);
     Control1 = RegRead(map, offset + DACA_CONTROL1);
     Control2 = RegRead(map, offset + DACA_CONTROL2);
@@ -1766,9 +1775,27 @@ RV620I2CStatus(void *map)
 static  Bool
 RV620I2CSetupStatus(void *map, int line, int prescale)
 {
-    CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 };
+/*     CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 }; */
+    CARD32 reg_7d9c;
+    unsigned char *table;
+    short size;
+    int i = 0;
 
     if (line > 3)
+	return FALSE;
+
+    table = AtomBiosGetDataFromCodeTable(command_table, 0x36, &size);
+    while (i < size) {
+	if (table[i] == line) {
+	    reg_7d9c = table[i + 3] << 8 | table[i + 2];
+#ifdef DEBUG
+	    fprintf(stderr, "Line[%i] = 0x%4.4x\n",line, reg_7d9c);
+#endif
+	    break;
+	}
+	i += 4;
+    }
+    if (i >= size)
 	return FALSE;
 
     RegWrite(map, 0x7e40, 0);
@@ -1776,7 +1803,7 @@ RV620I2CSetupStatus(void *map, int line, int prescale)
     RegWrite(map, 0x7e60, 0);
     RegWrite(map, 0x7e20, 0);
 
-    RegWrite(map, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c[line]);
+    RegWrite(map, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c);
     RegMask(map, RV62_GENERIC_I2C_SPEED,
 	    (prescale & 0xffff) << 16 | 0x02, 0xffff00ff);
     RegWrite(map, RV62_GENERIC_I2C_SETUP, 0x30000000);
@@ -2155,13 +2182,14 @@ AnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
 static int
 AnalyzeRomHdr(unsigned char *rombase,
               ATOM_ROM_HEADER *hdr,
-              int *data_offset)
+              int *data_offset, int *code_offset)
 {
     if (AnalyzeCommonHdr(&hdr->sHeader) == -1) {
         return FALSE;
     }
 
     *data_offset = hdr->usMasterDataTableOffset;
+    *code_offset = hdr->usMasterCommandTableOffset;
 
     return TRUE;
 }
@@ -2248,10 +2276,102 @@ print_help(const char* progname, const char* message, const char* msgarg)
 /*
  *
  */
+struct atomCodeDataTableHeader
+{
+    unsigned char signature;
+    unsigned short size;
+};
+
+#define CODE_DATA_TABLE_SIGNATURE 0x7a
+#define ATOM_EOT_COMMAND 0x5b
+
+unsigned char *
+AtomBiosGetDataFromCodeTable(unsigned char **tablelist, int n, short *size)
+{
+    ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *header = (ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *)
+	tablelist[n];
+    unsigned char *code;
+    int i;
+
+    if (!header)
+	return NULL;
+    if (!AnalyzeCommonHdr(&header->CommonHeader))
+	return NULL;
+    if (!GetAtomBiosTableRevisionAndSize(&header->CommonHeader,NULL,NULL,size))
+        return NULL;
+
+    code = (unsigned char *)header;
+#ifdef DEBUG
+    fprintf(stderr, "table[%2.2i].size = 0x%3.3x bytes\n",n,*size);
+#endif
+for (i = sizeof(ATOM_COMMON_ROM_COMMAND_TABLE_HEADER); i < *size - 1; i++) {
+
+    if (code[i] == ATOM_EOT_COMMAND
+	    && code[i+1] == CODE_DATA_TABLE_SIGNATURE) {
+
+	struct atomCodeDataTableHeader *dt
+		= (struct atomCodeDataTableHeader *)&code[i];
+	    int diff;
+	    diff = *size - (i + 1) + sizeof(struct atomCodeDataTableHeader)
+		+ SHORT(dt->size);
+
+	    if (diff < 0) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "Data table in command table %i extends %i bytes "
+			   "beyond command table size\n",
+			   n, -diff);
+		return  NULL;
+	    } else {
+#ifdef DEBUG
+		xf86DrvMsgVerg(rhdPtr->scrnIndex, X_DEBUG,
+			       "code data table size: 0x%4.4x\n",SHORT(dt->size));
+		dprint(&code[i + sizeof(struct atomCodeDataTableHeader)], SHORT(dt->size));
+#endif
+		return &code[i + sizeof(struct atomCodeDataTableHeader)];
+	    }
+	}
+    }
+    return NULL;
+}
+
+/*
+ *
+ */
+unsigned char **
+AtomBiosAnalyzeCommandTable(ATOM_MASTER_COMMAND_TABLE *table, unsigned char *base, int *num)
+{
+    short size;
+    int i;
+    unsigned char **tablelist = NULL;
+    unsigned short offset;
+
+    *num = sizeof(ATOM_MASTER_LIST_OF_COMMAND_TABLES)/sizeof(USHORT);
+
+    if (!AnalyzeCommonHdr(&table->sHeader))
+	return NULL;
+    if (!GetAtomBiosTableRevisionAndSize(&table->sHeader,NULL,NULL,&size))
+        return NULL;
+    if ((tablelist = (unsigned char **)calloc(*num, sizeof (char *)))) {
+	    for (i = 0; i < *num; i++)
+		if ((offset = ((USHORT *)&(table->ListOfCommandTables))[i])) {
+#ifdef DEBUG
+		    fprintf(stderr, "CommandTableEntry[%2.2i] = 0x%4.4x\n",i,offset);
+#endif
+		    tablelist[i] = base + offset;
+		} else
+		    tablelist[i] = NULL;
+    }
+
+    return tablelist;
+}
+
+/*
+ *
+ */
 static Bool
 InterpretATOMBIOS(unsigned char *base)
 {
-    int  data_offset;
+    int  data_offset, code_offset;
     unsigned short atom_romhdr_off =  *(unsigned short*)
         (base + OFFSET_TO_POINTER_TO_ATOM_ROM_HEADER);
 
@@ -2261,7 +2381,7 @@ InterpretATOMBIOS(unsigned char *base)
         fprintf(stderr,"No AtomBios signature found\n");
         return FALSE;
     }
-    if (!AnalyzeRomHdr(base, atom_rom_hdr, &data_offset)) {
+    if (!AnalyzeRomHdr(base, atom_rom_hdr, &data_offset, &code_offset)) {
         fprintf(stderr, "RomHeader invalid\n");
         return FALSE;
     }
@@ -2270,6 +2390,10 @@ InterpretATOMBIOS(unsigned char *base)
         fprintf(stderr, "ROM Master Table invalid\n");
         return FALSE;
     }
+    command_table =
+	AtomBiosAnalyzeCommandTable((ATOM_MASTER_COMMAND_TABLE *)(base + code_offset),
+				    base, &num_command_table_entries);
+
     return TRUE;
 }
 
