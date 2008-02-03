@@ -366,7 +366,8 @@ rhdRS69I2CStatus(I2CBusPtr I2CPtr)
 static Bool
 rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
-    CARD32 ddc = 2;
+    CARD32 ddc;
+    unsigned int clk_line = 0; /* invalid clk register */
 
     RHDFUNC(I2CPtr);
 
@@ -381,30 +382,34 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 					    ATOM_GPIO_I2C_CLK_MASK,
 					    &atomBiosArg))
 	    return FALSE;
+	clk_line = atomBiosArg.val;
+#endif /* ATOM_BIOS */
 
 	/* add SDVO handling later */
-	switch (atomBiosArg.val) {
-	case 0x1f90:
-	    ddc = 0; /* ddc1 */
-	    break;
-	case 0x1f94: /* ddc2 */
-	    ddc = 1;
-	    break;
-	default:
-	    ddc = 2; /* ddc3 */
-	    break;
+	switch (clk_line) {
+	    case 0x1f90:
+		ddc = 0; /* ddc1 */
+		break;
+	    case 0x1f94: /* ddc2 */
+		ddc = 1;
+		break;
+	    case 0x1f98: /* ddc3 */
+		ddc = 2;
+		break;
+	    default:
+		xf86DrvMsg(I2CPtr->scrnIndex, X_ERROR, "Invalid ClkLine for DDC. "
+			   "AtomBIOS reported wrong or AtomBIOS unavailable\n");
+		return FALSE;
 	}
 
 	RHDDebug(I2CPtr->scrnIndex, "%s: DDC Line: %i val: %i port: 0x%x\n",
 		 __func__, line & 0xf, ddc, atomBiosArg.val);
     }
-#endif /* ATOM_BIOS */
 
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
     RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
-    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
     RHDRegWrite(I2CPtr, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
-    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
+    RHDRegMask(I2CPtr, RS69_DC_I2C_CONTROL, ((line & 0x3) << 16) | (ddc << 8), 0xffff00);
     RHDRegMask(I2CPtr, RS69_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
     RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_2, 0x2, 0xff);
 
