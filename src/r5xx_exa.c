@@ -38,6 +38,12 @@
 #include "xf86.h"
 #include "exa.h"
 
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <string.h>
+#endif
+
 #include "rhd.h"
 #include "r5xx_accel.h"
 #include "r5xx_2dregs.h"
