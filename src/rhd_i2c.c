@@ -794,19 +794,59 @@ rhdRV620I2CStatus(I2CBusPtr I2CPtr)
 static  Bool
 rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
-    CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 };
+    CARD32 reg_7d9c = 0; /* 0 is invalid */
+#ifdef ATOM_BIOS
+    RHDPtr rhdPtr = RHDPTRI(I2CPtr);
+    AtomBiosArgRec data;
+    int i = 0;
+    struct atomGPIOTable {
+	unsigned char line;
+	unsigned char pad;
+	unsigned short reg_7d9c;
+    } *table;
 
     RHDFUNC(I2CPtr);
 
     if (line > 3)
 	return FALSE;
 
+    data.val = 0x36;
+    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
+			rhdPtr->atomBIOS,
+			ATOMBIOS_GET_CODE_DATA_TABLE,
+			&data) == ATOM_SUCCESS) {
+
+	table = (struct atomGPIOTable *)data.CommandDataTable.loc;
+
+	while (i * sizeof(struct atomGPIOTable) < data.CommandDataTable.size) {
+
+	    if (table[i].line == line) {
+
+		reg_7d9c = table[i].reg_7d9c;
+
+		DEBUGP( ErrorF("Line[%i] = 0x%4.4x\n",line, reg_7d9c)) ;
+
+		break;
+	    }
+	    i++;
+	}
+    }
+    if (!reg_7d9c)
+#endif
+    {
+	CARD32 regList7d9c[] = { 0x1, 0x0203 };
+	if (line > 1)
+	    return FALSE;
+
+	reg_7d9c = regList7d9c[line];
+    }
+
     RHDRegWrite(I2CPtr, 0x7e40, 0);
     RHDRegWrite(I2CPtr, 0x7e50, 0);
     RHDRegWrite(I2CPtr, 0x7e60, 0);
     RHDRegWrite(I2CPtr, 0x7e20, 0);
 
-    RHDRegWrite(I2CPtr, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c[line]);
+    RHDRegWrite(I2CPtr, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c);
     RHDRegMask(I2CPtr, RV62_GENERIC_I2C_SPEED,
 	    (prescale & 0xffff) << 16 | 0x02, 0xffff00ff);
     RHDRegWrite(I2CPtr, RV62_GENERIC_I2C_SETUP, 0x30000000);
