@@ -1225,11 +1225,15 @@ RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
 static Bool
 rhdSaveScreen(ScreenPtr pScreen, int on)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[pScreen->myNum]);
+    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdCrtc *Crtc;
 
     RHDFUNC(rhdPtr);
 
+    if (!pScrn->vtSema)
+	return;
+    
     Crtc = rhdPtr->Crtc[0];
     if (pScreen->myNum == Crtc->scrnIndex)
 	Crtc->Blank(Crtc, !on);
