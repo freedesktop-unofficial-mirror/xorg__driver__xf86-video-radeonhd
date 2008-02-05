@@ -138,6 +138,7 @@ static void     RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
                                              int flags);
 static void     RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
                                LOCO *colors, VisualPtr pVisual);
+static Bool     RHDSaveScreen(ScreenPtr pScrn, int on);
 
 static void     rhdProcessOptions(ScrnInfoPtr pScrn);
 static void     rhdSave(RHDPtr rhdPtr);
@@ -152,7 +153,6 @@ static Bool     rhdMapMMIO(RHDPtr rhdPtr);
 static void     rhdUnmapMMIO(RHDPtr rhdPtr);
 static Bool     rhdMapFB(RHDPtr rhdPtr);
 static void     rhdUnmapFB(RHDPtr rhdPtr);
-static Bool     rhdSaveScreen(ScreenPtr pScrn, int on);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
 static void     rhdFbOffscreenGrab(ScrnInfoPtr pScrn);
 
@@ -988,7 +988,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* @@@@ initialize video overlays here */
 
     /* Function to unblank, so that we don't show an uninitialised FB */
-    pScreen->SaveScreen = rhdSaveScreen;
+    pScreen->SaveScreen = RHDSaveScreen;
 
     /* Setup DPMS mode */
 
@@ -1223,24 +1223,40 @@ RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
  *
  */
 static Bool
-rhdSaveScreen(ScreenPtr pScreen, int on)
+RHDSaveScreen(ScreenPtr pScreen, int on)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    ScrnInfoPtr pScrn;
+    RHDPtr rhdPtr;
     struct rhdCrtc *Crtc;
+    Bool unblank;
 
-    RHDFUNC(rhdPtr);
+    unblank = xf86IsUnblank(on);
+
+    if (unblank)
+	SetTimeSinceLastInputEvent();
+
+    if (pScreen == NULL)
+	return TRUE;
+
+    pScrn = xf86Screens[pScreen->myNum];
+
+    if (pScrn == NULL)
+	return TRUE;
+
+    RHDFUNC(pScrn);
+
+    rhdPtr = RHDPTR(pScrn);
 
     if (!pScrn->vtSema)
-	return;
-    
+	return TRUE;
+
     Crtc = rhdPtr->Crtc[0];
     if (pScreen->myNum == Crtc->scrnIndex)
-	Crtc->Blank(Crtc, !on);
+	Crtc->Blank(Crtc, !unblank);
 
     Crtc = rhdPtr->Crtc[1];
     if (pScreen->myNum == Crtc->scrnIndex)
-	Crtc->Blank(Crtc, !on);
+	Crtc->Blank(Crtc, !unblank);
 
     return TRUE;
 }
