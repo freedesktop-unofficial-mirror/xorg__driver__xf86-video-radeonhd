@@ -1704,7 +1704,7 @@ rhdModeDPISet(ScrnInfoPtr pScrn)
 	    if (pScrn->xDpi)
 		pScrn->yDpi = pScrn->xDpi;
 	    else if (pScrn->yDpi)
-		pScrn->xDpi = pScrn->xDpi;
+		pScrn->xDpi = pScrn->yDpi;
 	    else {
 		pScrn->xDpi = 96;
 		pScrn->yDpi = 96;
