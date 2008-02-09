@@ -661,7 +661,8 @@ RHDCardIdentify(ScrnInfoPtr pScrn)
     xf86Msg(X_NONE, "\t"
 	    "If - and only if - your card does not work or does not work optimally\n\t"
 	    "please contact radeonhd@opensuse.org to help rectify this.\n\t"
-	    "Use the subject: 0x%04X:0x%04X:0x%04X: <name of board>.\n",
+	    "Use the subject: 0x%04X:0x%04X:0x%04X: <name of board>.\n\t"
+	    "and *please* describe your problems in your message",
 	    deviceID, subVendorID, subDeviceID);
 #else
     xf86Msg(X_NONE, "\t"
