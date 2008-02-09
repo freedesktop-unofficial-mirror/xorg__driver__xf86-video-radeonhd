@@ -494,6 +494,7 @@ rhdCards[] =
     { 0x7183, 0x1028, 0x0D02, "Dell ATI Radeon X1300", RHD_CARD_FLAG_DMS59, DVI_AA00_DVI_BB11 },
     /* 0x7186 : M64 : Mobility Radeon X1450 */
     /* 0x7187 : RV516 : Radeon X1300/X1550 */
+    { 0x7187, 0x174B, 0x300, "RV516 : Radeon X1300/X1550", RHD_CARD_FLAG_HPDSWAP, ID_CONNECTORINFO_EMPTY },
     /* 0x7188 : M64 : Mobility Radeon X2300 */
     /* 0x718A : M64 : Mobility Radeon X2300 */
     /* 0x718B : M62 : Mobility Radeon X1350 */
