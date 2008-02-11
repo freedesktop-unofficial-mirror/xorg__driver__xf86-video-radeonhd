@@ -1637,6 +1637,8 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 	k = 0;
 	j = Record->asDeviceTag[i].usDeviceID;
 
+	if (!j) continue;
+
 	while (!(j & 0x1)) { j >>= 1; k++; };
 
 	if (!Limit(k,n_rhd_devices,"usDeviceID"))
