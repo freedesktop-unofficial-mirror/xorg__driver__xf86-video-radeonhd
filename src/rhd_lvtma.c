@@ -691,10 +691,7 @@ TMDSBSet(struct rhdOutput *Output)
     RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000010);
 
     /* Disable the transmitter */
-    if (rhdPtr->ChipSet < RHD_RS600)
-	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00001D1F);
-    else
-	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E);
 
     /* Disable bit reduction and reset temporal dither */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
@@ -761,29 +758,20 @@ TMDSBPower(struct rhdOutput *Output, int Power)
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
-	if (rhdPtr->ChipSet < RHD_RS600)
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
-	else
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000003E, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000003E, 0x0000003E);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
     case RHD_POWER_RESET:
-	if (rhdPtr->ChipSet < RHD_RS600)
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
-	else
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
-	if (rhdPtr->ChipSet < RHD_RS600)
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000001F);
-	else
-	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
+	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x0000003E);
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000001);
 	return;
     }
