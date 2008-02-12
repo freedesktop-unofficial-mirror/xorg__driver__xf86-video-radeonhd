@@ -1661,6 +1661,8 @@ static const struct _rhd_encoders
     { "HDMI_SI1932", RHD_OUTPUT_NONE },
     { "AN9801", RHD_OUTPUT_NONE },
     { "DP501",  RHD_OUTPUT_NONE },
+    { "UNIPHY",  RHD_OUTPUT_NONE },
+    { "KLDSCP_LVTMA",  RHD_OUTPUT_LVTMA },
 };
 static const int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 
