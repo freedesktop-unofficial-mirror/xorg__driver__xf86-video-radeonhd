@@ -1958,7 +1958,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc);
+	RHDOutputsMode(rhdPtr, Crtc, mode);
     }
 
     /* Set up D2 and appendages */
@@ -1970,7 +1970,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc);
+	RHDOutputsMode(rhdPtr, Crtc, mode);
     }
 
     /* shut down that what we don't use */

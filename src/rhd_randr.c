@@ -701,7 +701,7 @@ rhdRROutputModeSet(xf86OutputPtr  out,
 		   "assuming ouput/connector clash\n", rout->Name);
     /* Set up mode */
     rout->Output->Crtc = Crtc;
-    rout->Output->Mode(rout->Output);
+    rout->Output->Mode(rout->Output, Mode);
 }
 static void
 rhdRROutputCommit(xf86OutputPtr out)

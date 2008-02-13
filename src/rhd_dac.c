@@ -267,7 +267,7 @@ DACSet(struct rhdOutput *Output, CARD16 offset)
  *
  */
 static void
-DACASet(struct rhdOutput *Output)
+DACASet(struct rhdOutput *Output, DisplayModePtr unused)
 {
     RHDFUNC(Output);
 
@@ -278,7 +278,7 @@ DACASet(struct rhdOutput *Output)
  *
  */
 static void
-DACBSet(struct rhdOutput *Output)
+DACBSet(struct rhdOutput *Output, DisplayModePtr unused)
 {
     RHDFUNC(Output);
 
@@ -628,7 +628,7 @@ DACSetRV620(struct rhdOutput *Output, CARD16 offset)
  *
  */
 static void
-DACASetRV620(struct rhdOutput *Output)
+DACASetRV620(struct rhdOutput *Output, DisplayModePtr unused)
 {
     RHDFUNC(Output);
 
@@ -639,7 +639,7 @@ DACASetRV620(struct rhdOutput *Output)
  *
  */
 static void
-DACBSetRV620(struct rhdOutput *Output)
+DACBSetRV620(struct rhdOutput *Output, DisplayModePtr unused)
 {
     RHDFUNC(Output);
 

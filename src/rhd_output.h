@@ -71,7 +71,7 @@ struct rhdOutput {
     enum rhdSensedOutput (*Sense) (struct rhdOutput *Output,
 				   enum rhdConnectorType Type);
     ModeStatus (*ModeValid) (struct rhdOutput *Output, DisplayModePtr Mode);
-    void (*Mode) (struct rhdOutput *Output);
+    void (*Mode) (struct rhdOutput *Output, DisplayModePtr Mode);
     void (*Power) (struct rhdOutput *Output, int Power);
     void (*Save) (struct rhdOutput *Output);
     void (*Restore) (struct rhdOutput *Output);
@@ -82,7 +82,7 @@ struct rhdOutput {
 };
 
 void RHDOutputAdd(RHDPtr rhdPtr, struct rhdOutput *Output);
-void RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc);
+void RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc, DisplayModePtr Mode);
 void RHDOutputsPower(RHDPtr rhdPtr, int Power);
 void RHDOutputsShutdownInactive(RHDPtr rhdPtr);
 void RHDOutputsSave(RHDPtr rhdPtr);

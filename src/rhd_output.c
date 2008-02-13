@@ -57,7 +57,7 @@ RHDOutputAdd(RHDPtr rhdPtr, struct rhdOutput *New)
  *
  */
 void
-RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc)
+RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct rhdOutput *Output = rhdPtr->Outputs;
 
@@ -65,7 +65,7 @@ RHDOutputsMode(RHDPtr rhdPtr, struct rhdCrtc *Crtc)
 
     while (Output) {
 	if (Output->Active && Output->Mode && (Output->Crtc == Crtc))
-	    Output->Mode(Output);
+	    Output->Mode(Output, Mode);
 
 	Output = Output->Next;
     }

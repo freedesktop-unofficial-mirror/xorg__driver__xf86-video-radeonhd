@@ -50,6 +50,7 @@
 struct rhdTMDSPrivate {
     Bool Stored;
 
+    Bool dual_link;
     CARD32 StoreControl;
     CARD32 StoreSource;
     CARD32 StoreFormat;
@@ -118,10 +119,10 @@ TMDSAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 
     if (Mode->Clock < 25000)
 	return MODE_CLOCK_LOW;
-
+#if 0
     if (Mode->Clock > 165000)
 	return MODE_CLOCK_HIGH;
-
+#endif
     return MODE_OK;
 }
 
@@ -207,9 +208,13 @@ TMDSAVoltageControl(struct rhdOutput *Output)
  *
  */
 static void
-TMDSASet(struct rhdOutput *Output)
+TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
+
+    Private->dual_link = (Mode->SynthClock > 165000)
+	? TRUE : FALSE;
 
     RHDFUNC(Output);
 
@@ -241,7 +246,7 @@ TMDSASet(struct rhdOutput *Output)
 
     /* Single link, for now */
     RHDRegWrite(Output, TMDSA_COLOR_FORMAT, 0);
-    RHDRegMask(Output, TMDSA_CNTL, 0, 0x01000000);
+    RHDRegMask(Output, TMDSA_CNTL, Private->dual_link ? 0x01000000 : 0, 0x01000000);
 
     /* Disable force data */
     RHDRegMask(Output, TMDSA_FORCE_OUTPUT_CNTL, 0, 0x00000001);
@@ -280,12 +285,19 @@ TMDSASet(struct rhdOutput *Output)
 static void
 TMDSAPower(struct rhdOutput *Output, int Power)
 {
+    struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
+
     RHDFUNC(Output);
 
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, TMDSA_CNTL, 0x00000001, 0x00000001);
 	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x0000001F, 0x0000001F);
+	if (Private->dual_link) {
+	    usleep(28);
+	    RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE,
+		       0x00001F00, 0x00001F00);
+	}
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000002);
@@ -298,7 +310,7 @@ TMDSAPower(struct rhdOutput *Output, int Power)
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
 	usleep(2);
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000001);
-	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0, 0x0000001F);
+	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0, 0x00001F1F);
 	RHDRegMask(Output, TMDSA_CNTL, 0, 0x00000001);
 	return;
     }
@@ -415,6 +427,8 @@ RHDTMDSAInit(RHDPtr rhdPtr)
     Output->Destroy = TMDSADestroy;
 
     Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
+    Private->dual_link = FALSE;
+
     Output->Private = Private;
 
     return Output;
