@@ -70,9 +70,9 @@ struct rhdTMDSPrivate {
 static enum rhdSensedOutput
 TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
-    RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 Enable, Control, Detect;
     Bool ret;
+    rhdSensedOutput sensed = RHD_SENSED_NONE;
 
     RHDFUNC(Output);
 
@@ -86,27 +86,47 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
     Enable = RHDRegRead(Output, TMDSA_TRANSMITTER_ENABLE);
     Control = RHDRegRead(Output, TMDSA_TRANSMITTER_CONTROL);
     Detect = RHDRegRead(Output, TMDSA_LOAD_DETECT);
-
+    RHDDebug(Output->scrnIndex,"%s: TMDSA_TRANSMITTER_CONTROL: %x\n",__func__,Control);
     /* r500 needs a tiny bit more work :) */
-    if (rhdPtr->ChipSet < RHD_R600) {
+/*     if (rhdPtr->ChipSet < RHD_R600) { */
 	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x00000003, 0x00000003);
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000003);
-    }
+/*     } */
 
     RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x00000001, 0x00000001);
     usleep(1);
     ret = RHDRegRead(Output, TMDSA_LOAD_DETECT) & 0x00000010;
-    RHDRegMask(Output, TMDSA_LOAD_DETECT, Detect, 0x00000001);
+    RHDDebug(Output->scrnIndex, "%s: Link0: %x\n",__func__,ret);
 
-    if (rhdPtr->ChipSet < RHD_R600) {
+    if (ret) {
+	sensed = RHD_SENSED_DVI;
+
+	/* Now try to find the second link */
+	RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x0, 0x00000001);
+	usleep(1);
+
+	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x00000300, 0x00000303);
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000003);
+
+	RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x00000001, 0x00000001);
+	usleep(1);
+	ret = RHDRegRead(Output, TMDSA_LOAD_DETECT) & 0x00000010;
+	RHDDebug(Output->scrnIndex, "%s: Link1: %x\n",__func__,ret);
+
+	if (ret)
+	    sensed = RHD_SENSED_DVI_DUAL;
+    }
+
+    RHDRegMask(Output, TMDSA_LOAD_DETECT, Detect, 0x00000001);
+/*     if (rhdPtr->ChipSet < RHD_R600) { */
 	RHDRegWrite(Output, TMDSA_TRANSMITTER_ENABLE, Enable);
 	RHDRegWrite(Output, TMDSA_TRANSMITTER_CONTROL, Control);
-    }
+/*     } */
 
     RHDDebug(Output->scrnIndex, "%s: %s\n", __func__,
 	     ret ? "Attached" : "Disconnected");
 
-    return ret ? RHD_SENSED_DVI : RHD_SENSED_NONE;
+    return sensed;
 }
 
 /*
@@ -119,10 +139,10 @@ TMDSAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 
     if (Mode->Clock < 25000)
 	return MODE_CLOCK_LOW;
-#if 0
-    if (Mode->Clock > 165000)
+
+    if (Mode->Clock > 165000 && Output->SensedType != RHD_SENSED_DVI_DUAL)
 	return MODE_CLOCK_HIGH;
-#endif
+
     return MODE_OK;
 }
 
@@ -213,8 +233,8 @@ TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
-    Private->dual_link = (Mode->SynthClock > 165000)
-	? TRUE : FALSE;
+    Private->dual_link = ((Output->SensedType == RHD_SENSED_DVI_DUAL)
+			  && (Mode->SynthClock > 165000)) ? TRUE : FALSE;
 
     RHDFUNC(Output);
 
