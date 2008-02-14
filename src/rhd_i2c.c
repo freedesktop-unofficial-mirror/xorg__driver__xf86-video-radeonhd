@@ -180,6 +180,38 @@ enum _rhdRS69I2CBits {
 
 /* R5xx */
 static Bool
+rhd5xxI2CSetupStatus(I2CBusPtr I2CPtr, int line)
+{
+    line &= 0xf;
+
+    RHDFUNC(I2CPtr);
+
+    switch (line) {
+	case 0:
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC1_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC1_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC1_EN, 0x0, 0xffff);
+	    break;
+	case 1:
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC2_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC2_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R6_DC_GPIO_DDC2_EN, 0x0, 0xffff);
+	    break;
+	case 2:
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC3_MASK, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC3_A, 0x0, 0xffff);
+	    RHDRegMask(I2CPtr, R5_DC_GPIO_DDC3_EN, 0x0, 0xffff);
+	    break;
+	default:
+	    xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR,
+		       "%s: Trying to initialize non-existent I2C line: %i\n",
+		       __func__,line);
+	    return FALSE;
+    }
+    return TRUE;
+}
+
+static Bool
 rhd5xxI2CStatus(I2CBusPtr I2CPtr)
 {
     int count = 5000;
@@ -226,17 +258,23 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C);
 
-    RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE
-	       | R5_DC_I2C_NACK
-	       | R5_DC_I2C_HALT, 0xff);
-    RHDRegMask(I2CPtr, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xffff);
-    RHDRegWrite(I2CPtr, R5_DC_I2C_RESET, 0);
+    if (!RHDRegRead(I2CPtr, R5_DC_I2C_ARBITRATION) & R5_DC_I2C_SW_CAN_USE_I2C) {
+	RHDDebug(I2CPtr->scrnIndex, "%s SW cannot use I2C line %i\n",__func__,line);
+	ret = FALSE;
+    } else {
 
-    RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
-	       (line  & 0x0f) << 16 | R5_DC_I2C_EN,
-	       R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
+	RHDRegMask(I2CPtr, R5_DC_I2C_STATUS1, R5_DC_I2C_DONE
+		   | R5_DC_I2C_NACK
+		   | R5_DC_I2C_HALT, 0xff);
+	RHDRegMask(I2CPtr, R5_DC_I2C_RESET, R5_DC_I2C_SOFT_RESET, 0xffff);
+	RHDRegWrite(I2CPtr, R5_DC_I2C_RESET, 0);
 
-    if (nWrite || !nRead) { /* special case for bus probing */
+	RHDRegMask(I2CPtr, R5_DC_I2C_CONTROL1,
+		   (line  & 0x0f) << 16 | R5_DC_I2C_EN,
+		   R5_DC_I2C_PIN_SELECT | R5_DC_I2C_EN);
+    }
+
+    if (ret && (nWrite || !nRead)) { /* special case for bus probing */
 	/*
 	 * chip can't just write the slave address without data.
 	 * Add a dummy byte.
@@ -314,7 +352,10 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
      * the transaction after 15 bytes sending
      * a new offset.
      */
-    RHDFUNC(i2cDevPtr->pI2CBus);
+
+    I2CBusPtr I2CPtr = i2cDevPtr->pI2CBus;
+
+    RHDFUNC(I2CPtr);
 
     if (nWrite > 15 || (nRead > 15 && nWrite != 1)) {
 	xf86DrvMsg(i2cDevPtr->pI2CBus->scrnIndex,X_ERROR,
@@ -323,6 +364,8 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 		   __func__);
 	return FALSE;
     }
+    rhd5xxI2CSetupStatus(I2CPtr, ((rhdI2CPtr)(I2CPtr->DriverPrivate.ptr))->line);
+
     if (nRead > 15) {
 	I2CByte offset = *WriteBuffer;
 	while (nRead) {

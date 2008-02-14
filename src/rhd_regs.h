@@ -315,7 +315,17 @@ enum _r5xxRegs {
     R5_DC_I2C_CONTROL3 	=	0x7D40,  /* (RW) */
     R5_DC_I2C_DATA 	=	0x7D44,  /* (RW) */
     R5_DC_I2C_INTERRUPT_CONTROL 	=	0x7D48,  /* (RW) */
-    R5_DC_I2C_ARBITRATION 	=	0x7D50  /* (RW) */
+    R5_DC_I2C_ARBITRATION 	=	0x7D50,  /* (RW) */
+
+    R5_DC_GPIO_DDC1_MASK              = 0x7E40,  /* (RW) */
+    R5_DC_GPIO_DDC1_A                 = 0x7E44,  /* (RW) */
+    R5_DC_GPIO_DDC1_EN                = 0x7E48,  /* (RW) */
+    R5_DC_GPIO_DDC2_MASK              = 0x7E50,  /* (RW) */
+    R5_DC_GPIO_DDC2_A                 = 0x7E54,  /* (RW) */
+    R5_DC_GPIO_DDC2_EN                = 0x7E58,  /* (RW) */
+    R5_DC_GPIO_DDC3_MASK              = 0x7E60,  /* (RW) */
+    R5_DC_GPIO_DDC3_A                 = 0x7E64,  /* (RW) */
+    R5_DC_GPIO_DDC3_EN                = 0x7E68  /* (RW) */
 };
 
 enum _r5xxSPLLRegs {
