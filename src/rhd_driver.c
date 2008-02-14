@@ -1975,10 +1975,10 @@ rhdRestore(RHDPtr rhdPtr)
     RHDPLLsRestore(rhdPtr);
     RHDLUTsRestore(rhdPtr);
 
-    RHDVGARestore(rhdPtr);
-
     rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
     rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
+
+    RHDVGARestore(rhdPtr);
 
     RHDOutputsRestore(rhdPtr);
 }
