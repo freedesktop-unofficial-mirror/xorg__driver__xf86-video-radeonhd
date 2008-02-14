@@ -1013,8 +1013,26 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if(pScrn->vtSema)
+    if(pScrn->vtSema) {
+	struct rhdCrtc *Crtc;
+	int i;
+
+	/* stop scanout */
+	for (i = 0; i < 2; i++) {
+	    Crtc = rhdPtr->Crtc[0];
+	    if (scrnIndex == Crtc->scrnIndex)
+		Crtc->Power(Crtc, RHD_POWER_RESET);
+	}
+
+	/* TODO: Invalidate the cached acceleration registers */
+	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	    R5xx2DIdle(pScrn);
+
+	if (!RHDMCIdle(rhdPtr, 1000))
+	    xf86DrvMsg(scrnIndex, X_WARNING, "MC not idle\n");
+
 	rhdRestore(rhdPtr);
+    }
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
@@ -1079,12 +1097,24 @@ RHDLeaveVT(int scrnIndex, int flags)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct rhdCrtc *Crtc;
+    int i;
 
     RHDFUNC(rhdPtr);
+
+    /* stop scanout */
+    for (i = 0; i < 2; i++) {
+	Crtc = rhdPtr->Crtc[0];
+	if (scrnIndex == Crtc->scrnIndex)
+	    Crtc->Power(Crtc, RHD_POWER_RESET);
+    }
 
     /* TODO: Invalidate the cached acceleration registers */
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
+
+    if (!RHDMCIdle(rhdPtr, 1000000))
+	xf86DrvMsg(scrnIndex, X_WARNING, "MC not idle\n");
 
     rhdRestore(rhdPtr);
 }
@@ -1384,7 +1414,7 @@ rhdMapFB(RHDPtr rhdPtr)
      * address registers in there also use. This can be different from the
      * address in the BAR */
     if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R5XX_FB_INTERNAL_ADDRESS)
+	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, HDP_FB_LOCATION)
 			       << 16;
     else
 	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
@@ -1989,9 +2019,17 @@ _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
 CARD32
 _RHDReadMC(int scrnIndex, CARD32 addr)
 {
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     CARD32 ret;
-    _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
-    ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
+
+    if (rhdPtr->ChipSet < RHD_RS690) {
+	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
+	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
+    } else {
+	_RHDRegWrite(scrnIndex, RS69_MC_INDEX, addr);
+	ret = _RHDRegRead(scrnIndex, RS69_MC_DATA);
+    }
+
     RHDDebug(scrnIndex,"%s(0x%08X) = 0x%08X\n",__func__,(unsigned int)addr,
 	     (unsigned int)ret);
     return ret;
@@ -2000,10 +2038,18 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 void
 _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 {
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+
     RHDDebug(scrnIndex,"%s(0x%08X, 0x%08X)\n",__func__,(unsigned int)addr,
 	     (unsigned int)data);
-    _RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
-    _RHDRegWrite(scrnIndex, MC_IND_DATA, data);
+
+    if (rhdPtr->ChipSet < RHD_RS690) {
+	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
+	_RHDRegWrite(scrnIndex, MC_IND_DATA, data);
+    } else {
+	_RHDRegWrite(scrnIndex, RS69_MC_INDEX, addr);
+	_RHDRegWrite(scrnIndex, RS69_MC_DATA, data);
+    }
 }
 
 CARD32

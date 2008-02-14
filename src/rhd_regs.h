@@ -31,10 +31,13 @@ enum {
     BUS_CNTL		  =       0x4C, /* (RW) */
     MC_IND_INDEX	  =       0x70, /* (RW) */
     MC_IND_DATA           =       0x74, /* (RW) */
+    /* RS690 ?? */
+    RS69_MC_INDEX		  =	  0xE8,
+    RS69_MC_DATA		  =	  0xEC,
 
     R5XX_CONFIG_MEMSIZE            = 0x00F8,
 
-    R5XX_FB_INTERNAL_ADDRESS       = 0x0134,
+    HDP_FB_LOCATION       =	  0x0134,
 
     SEPROM_CNTL1	  =       0x1C0,  /* (RW) */
     GPIOPAD_MASK          =       0x198,  /* (RW) */
@@ -298,6 +301,7 @@ enum {
 };
 
 enum _r5xxMCRegs {
+    R5XX_MC_STATUS                 = 0x0000,
     RV515_MC_FB_LOCATION	   = 0x0001,
     R5XX_MC_FB_LOCATION		   = 0x0004
 };
@@ -319,6 +323,8 @@ enum _r5xxSPLLRegs {
 };
 
 enum _r6xxRegs {
+    /* MCLK */
+    R6_MCLK_PWRMGT_CNTL		   = 0x620,
     /* I2C */
     R6_DC_I2C_CONTROL		   = 0x7D30,  /* (RW) */
     R6_DC_I2C_ARBITRATION		   = 0x7D34,  /* (RW) */
@@ -352,6 +358,11 @@ enum _r6xxRegs {
     R6_DC_GPIO_DDC3_Y                 = 0x7E6C  /* (RW) */
 };
 
+enum R6_MCLK_PWRMGT_CNTL {
+    R6_MC_BUSY = (1 << 5)
+};
+
+
 /* *_Q: questionbable */
 enum _rs69xRegs {
     /* I2C */
@@ -365,6 +376,38 @@ enum _rs69xRegs {
     RS69_DC_I2C_TRANSACTION0            = 0x7D48,  /* (RW) *//**/
     RS69_DC_I2C_TRANSACTION1            = 0x7D4C  /* (RW) *//**/
 };
+
+enum RS69_MC_INDEX_BITS {
+    RS69_MC_IND_ADDR = (0x1 << 0),
+    RS69_C_IND_WR_EN = (0x1 << 9)
+};
+
+enum _rs690MCRegs {
+    RS69_MC_SYSTEM_STATUS 	=	0x90,  /* (RW) */
+    RS69_MCCFG_FB_LOCATION		=	0x100,
+    RS69MCCFG_AGP_LOCATION		=	0x101
+};
+
+enum RS69_MC_SYSTEM_STATUS_BITS {
+        MC_SYSTEM_IDLE	 = (0x1 << 0),
+	MC_SEQUENCER_IDLE	 = (0x1 << 1),
+	MC_ARBITER_IDLE	 = (0x1 << 2),
+	MC_SELECT_PM	 = (0x1 << 3),
+	RESERVED4	 = (0xf << 4),
+	RESERVED8	 = (0xf << 8),
+	RESERVED12_SYSTEM_STATUS	 = (0xf << 12),
+	MCA_INIT_EXECUTED	 = (0x1 << 16),
+	MCA_IDLE	 = (0x1 << 17),
+	MCA_SEQ_IDLE	 = (0x1 << 18),
+	MCA_ARB_IDLE	 = (0x1 << 19),
+	RESERVED20_SYSTEM_STATUS	 = (0xfff << 20)
+};
+
+enum R5XX_MC_STATUS_BITS {
+    R5XX_MEM_PWRUP_COMPL = (0x1 << 0),
+    R5XX_MC_IDLE	    = (0x1 << 1)
+};
+
 
 enum BUS_CNTL_BITS {
     /* BUS_CNTL */
