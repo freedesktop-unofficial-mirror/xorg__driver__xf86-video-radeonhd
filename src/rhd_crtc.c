@@ -666,7 +666,6 @@ DxRestore(struct rhdCrtc *Crtc)
 	return;
     }
 
-    RHDRegWrite(Crtc, RegOff + D1GRPH_ENABLE, Store->GrphEnable);
     RHDRegWrite(Crtc, RegOff + D1GRPH_CONTROL, Store->GrphControl);
     RHDRegWrite(Crtc, RegOff + D1GRPH_X_START, Store->GrphXStart);
     RHDRegWrite(Crtc, RegOff + D1GRPH_Y_START, Store->GrphYStart);
@@ -674,8 +673,18 @@ DxRestore(struct rhdCrtc *Crtc)
     RHDRegWrite(Crtc, RegOff + D1GRPH_Y_END, Store->GrphYEnd);
     if (RHDPTRI(Crtc)->ChipSet >= RHD_R600)
 	RHDRegWrite(Crtc, RegOff + D1GRPH_SWAP_CNTL, Store->GrphSwap);
+
+    /* disable read requests */
+    RHDRegMask(Crtc, RegOff + D1CRTC_CONTROL, 0x01000000, 0x01000000);
+    RHDRegMask(Crtc, RegOff + D1GRPH_ENABLE, 0, 0x00000001);
+    usleep (10);
+
     RHDRegWrite(Crtc, RegOff + D1GRPH_PRIMARY_SURFACE_ADDRESS,
 		Store->GrphPrimarySurfaceAddress);
+    usleep(10);
+
+    RHDRegWrite(Crtc, RegOff + D1GRPH_ENABLE, Store->GrphEnable);
+
     RHDRegWrite(Crtc, RegOff + D1GRPH_SURFACE_OFFSET_X,
 		Store->GrphSurfaceOffsetX);
     RHDRegWrite(Crtc, RegOff + D1GRPH_SURFACE_OFFSET_Y,
