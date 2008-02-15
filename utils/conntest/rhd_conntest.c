@@ -1236,6 +1236,34 @@ enum _rhdR5xxI2CBits {
  *
  */
 static Bool
+R5xxI2CSetupStatus(void *map, int channel)
+{
+    switch (channel) {
+    case 0:
+	RegMask(map, DC_GPIO_DDC1_MASK, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC1_A, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC1_EN, 0x0, 0xffff);
+	break;
+    case 1:
+	RegMask(map, DC_GPIO_DDC2_MASK, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC2_A, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC2_EN, 0x0, 0xffff);
+	break;
+    case 2:
+	RegMask(map, DC_GPIO_DDC3_MASK, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC3_A, 0x0, 0xffff);
+	RegMask(map, DC_GPIO_DDC3_EN, 0x0, 0xffff);
+	break;
+    default:
+	return FALSE;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
 R5xxI2CStatus(void *map)
 {
     int count = 800;
@@ -1273,6 +1301,9 @@ R5xxDDCProbe(void *map, int Channel, unsigned char slave)
 
     prescale = getDDCSpeed();
     if (!prescale)
+	return FALSE;
+
+    if (!R5xxI2CSetupStatus(map, Channel))
 	return FALSE;
 
     RegMask(map, 0x28, 0x200, 0x200);
