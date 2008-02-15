@@ -310,7 +310,7 @@ RHDIdentify(int flags)
 
 /* MacBook Pro provides a weird atombios connector table. */
 #define ID_CONNECTORINFO_MACBOOKPRO \
- { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_NONE, RHD_HPD_NONE, \
+ { {RHD_CONNECTOR_PANEL, "Panel", RHD_DDC_2, RHD_HPD_NONE, \
        { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE}}, \
    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_0, RHD_HPD_0, \
        { RHD_OUTPUT_DACB, RHD_OUTPUT_TMDSA}}}
