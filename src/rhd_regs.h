@@ -79,7 +79,7 @@ enum {
     PCLK_CRTC2_CNTL                = 0x0484,
 
     R6XX_MC_VM_FB_LOCATION	   = 0x2180,
-    R6XX_MC_VM_MISC_OFFSET            = 0x2C04,
+    R6XX_HDP_NONSURFACE_BASE       = 0x2C04,
     R6XX_CONFIG_MEMSIZE            = 0x5428,
     R6XX_CONFIG_FB_BASE            = 0x542C, /* AKA CONFIG_F0_BASE */
 

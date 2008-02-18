@@ -102,7 +102,7 @@ RHDSaveMC(RHDPtr rhdPtr)
 	MC->FbLocation = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
     } else {
 	MC->FbLocation = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
-	MC->MiscOffset = RHDRegRead(rhdPtr, R6XX_MC_VM_MISC_OFFSET);
+	MC->MiscOffset = RHDRegRead(rhdPtr, R6XX_HDP_NONSURFACE_BASE);
     }
     MC->Stored = TRUE;
 }
@@ -137,7 +137,7 @@ RHDRestoreMC(RHDPtr rhdPtr)
 		   MC->FbLocation);
     } else {
 	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, MC->FbLocation);
-	RHDRegWrite(rhdPtr, R6XX_MC_VM_MISC_OFFSET, MC->MiscOffset);
+	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->MiscOffset);
     }
 }
 
@@ -194,11 +194,11 @@ RHDMCSetup(RHDPtr rhdPtr)
 		 "fb_offset: 0x%08X [fb_size: 0x%04X] -> fb_location: 0x%08X "
 		 "fb_offset: 0x%08X\n",
 		 __func__, (unsigned int)fb_location,
-		 RHDRegRead(rhdPtr,R6XX_MC_VM_MISC_OFFSET), fb_size,
+		 RHDRegRead(rhdPtr,R6XX_HDP_NONSURFACE_BASE), fb_size,
 		 (unsigned int)fb_location_tmp, (unsigned int)fb_offset_tmp);
 
 	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, fb_location_tmp);
-	RHDRegWrite(rhdPtr, R6XX_MC_VM_MISC_OFFSET, fb_offset_tmp);
+	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, fb_offset_tmp);
     }
 }
 
