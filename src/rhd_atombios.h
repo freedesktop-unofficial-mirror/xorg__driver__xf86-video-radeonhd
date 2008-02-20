@@ -77,6 +77,7 @@ typedef enum _AtomBiosRequestID {
     ATOM_ANALOG_TV_MODE,
     ATOM_ANALOG_TV_DEFAULT_MODE,
     ATOM_ANALOG_TV_SUPPORTED_MODES,
+    ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -108,10 +109,19 @@ typedef enum AtomTVMode {
     ATOM_TV_SECAM = 1 << 7
 } AtomTVMode;
 
+typedef struct AtomGoldenSettings
+{
+    unsigned char *BIOSPtr;
+    unsigned char *End;
+    unsigned int value;
+
+} AtomGoldenSettings;
+
 typedef union AtomBiosArg
 {
     CARD32 val;
     struct rhdConnectorInfo	*connectorInfo;
+    struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
     struct {
 	unsigned char *loc;

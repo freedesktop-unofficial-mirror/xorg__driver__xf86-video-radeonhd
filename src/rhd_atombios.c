@@ -104,6 +104,10 @@ static AtomBiosResult rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 static AtomBiosResult
 rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 			 AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
+				   AtomBiosRequestID func, AtomBiosArgPtr data);
+
 # ifdef ATOM_BIOS_PARSER
 static AtomBiosResult rhdAtomExec(atomBiosHandlePtr handle,
 				   AtomBiosRequestID unused, AtomBiosArgPtr data);
@@ -215,6 +219,8 @@ struct atomBIOSRequests {
      "Analog TV Default Mode",			MSG_FORMAT_DEC},
     {ATOM_ANALOG_TV_SUPPORTED_MODES, rhdAtomAnalogTVInfoQuery,
      "Analog TV Supported Modes",		MSG_FORMAT_HEX},
+    {ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS, rhdAtomGetConditionalGoldenSetting,
+     "Conditional Golden Settings",		MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -1564,6 +1570,28 @@ rhdAtomFirmwareInfoQuery(atomBiosHandlePtr handle,
 	    return ATOM_NOT_IMPLEMENTED;
     }
     return ATOM_SUCCESS;
+}
+
+/*
+ *
+ */
+static AtomBiosResult
+rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
+			 AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    unsigned short *table = (unsigned short *)data->GoldenSettings.BIOSPtr;
+    unsigned short entry_size = *table++;
+/* @@@ endian! */
+    while (table < (unsigned short *)data->GoldenSettings.End) {
+	if ((data->GoldenSettings.value >> 16) == table[0]) {
+	    if (data->GoldenSettings.value <= table[1]) {
+		data->GoldenSettings.BIOSPtr = (unsigned char *)&table;
+		return ATOM_SUCCESS;
+	    }
+	    table = (unsigned short *)(((unsigned char *)table) + entry_size);
+	}
+    }
+    return ATOM_FAILED;
 }
 
 #define Limit(n,max,name) ((n >= max) ? ( \
