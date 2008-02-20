@@ -27,7 +27,7 @@
  * This tool is here to help create a connector mapping table.
  *
  */
-
+#define DEBUG
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1048,6 +1048,11 @@ RS69I2CSetupStatus(void *map, int line)
     RegMask(map, 0x28, 0x200, 0x200);
     RegMask(map, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
     /* add SDVO handling later */
+#ifdef DEBUG
+    fprintf(stderr,"GPIO line DDC%i: 0x%x\n",line,
+	    AtomData
+	    .GPIO_I2C_Info->asGPIO_Info[line & 0xf].usClkMaskRegisterIndex);
+#endif
     switch (AtomData.GPIO_I2C_Info->asGPIO_Info[line & 0xf]
 	    .usClkMaskRegisterIndex) {
 	case 0x1f90:
