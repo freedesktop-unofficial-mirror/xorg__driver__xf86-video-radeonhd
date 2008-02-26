@@ -185,8 +185,10 @@ struct atomBIOSRequests {
      "LVDS SEQ Dig onto DE",			MSG_FORMAT_DEC},
     {ATOM_LVDS_SEQ_DE_TO_BL,		rhdAtomLvdsInfoQuery,
      "LVDS SEQ DE to BL",			MSG_FORMAT_DEC},
-    {ATOM_LVDS_DITHER,			rhdAtomLvdsInfoQuery,
-     "LVDS Ditherc",				MSG_FORMAT_HEX},
+    {ATOM_LVDS_TEMPORAL_DITHER,	        rhdAtomLvdsInfoQuery,
+     "LVDS Temporal Dither ",			MSG_FORMAT_HEX},
+    {ATOM_LVDS_SPATIAL_DITHER,	        rhdAtomLvdsInfoQuery,
+     "LVDS Spatial Dither ",			MSG_FORMAT_HEX},
     {ATOM_LVDS_DUALLINK,		rhdAtomLvdsInfoQuery,
      "LVDS Duallink",				MSG_FORMAT_HEX},
     {ATOM_LVDS_GREYLVL,			rhdAtomLvdsInfoQuery,
@@ -1075,9 +1077,17 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
-		case     ATOM_LVDS_DITHER:
+		case     ATOM_LVDS_TEMPORAL_DITHER:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info->ucLVDS_Misc & 0x40;
+		    break;
+		case     ATOM_LVDS_SPATIAL_DITHER:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc & 0x20;
+		    break;
+		case     ATOM_LVDS_FPDI:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info->ucLVDS_Misc & 0x10;
 		    break;
 		case     ATOM_LVDS_DUALLINK:
 		    *val = atomDataPtr->LVDS_Info
@@ -1090,10 +1100,6 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 		case     ATOM_LVDS_GREYLVL:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info->ucLVDS_Misc & 0x0C;
-		    break;
-		case     ATOM_LVDS_FPDI:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -1117,7 +1123,15 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
-		case     ATOM_LVDS_DITHER:
+		case     ATOM_LVDS_FPDI:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc * 0x10;
+		    break;
+		case     ATOM_LVDS_SPATIAL_DITHER:
+		    *val = atomDataPtr->LVDS_Info
+			.LVDS_Info_v12->ucLVDS_Misc & 0x20;
+		    break;
+		case     ATOM_LVDS_TEMPORAL_DITHER:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucLVDS_Misc & 0x40;
 		    break;
@@ -1132,10 +1146,6 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 		case     ATOM_LVDS_GREYLVL:
 		    *val = atomDataPtr->LVDS_Info
 			.LVDS_Info_v12->ucLVDS_Misc & 0x0C;
-		    break;
-		case     ATOM_LVDS_FPDI:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc * 0x10;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
