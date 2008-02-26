@@ -1585,7 +1585,7 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
     while (table < (unsigned short *)data->GoldenSettings.End) {
 	if ((data->GoldenSettings.value >> 16) == table[0]) {
 	    if (data->GoldenSettings.value <= table[1]) {
-		data->GoldenSettings.BIOSPtr = (unsigned char *)&table;
+		data->GoldenSettings.BIOSPtr = (unsigned char *)&table[2];
 		return ATOM_SUCCESS;
 	    }
 	    table = (unsigned short *)(((unsigned char *)table) + entry_size);
@@ -1629,40 +1629,40 @@ static const int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(str
 static const struct _rhd_encoders
 {
     char *name;
-    rhdOutputType ot;
+    rhdOutputType ot[2];
 } rhd_encoders[] = {
-    { "NONE", RHD_OUTPUT_NONE },
-    { "INTERNAL_LVDS", RHD_OUTPUT_LVDS },
-    { "INTERNAL_TMDS1", RHD_OUTPUT_TMDSA },
-    { "INTERNAL_TMDS2", RHD_OUTPUT_TMDSB },
-    { "INTERNAL_DAC1", RHD_OUTPUT_DACA },
-    { "INTERNAL_DAC2", RHD_OUTPUT_DACB },
-    { "INTERNAL_SDVOA", RHD_OUTPUT_NONE },
-    { "INTERNAL_SDVOB", RHD_OUTPUT_NONE },
-    { "SI170B", RHD_OUTPUT_NONE },
-    { "CH7303", RHD_OUTPUT_NONE },
-    { "CH7301", RHD_OUTPUT_NONE },
-    { "INTERNAL_DVO1", RHD_OUTPUT_NONE },
-    { "EXTERNAL_SDVOA", RHD_OUTPUT_NONE },
-    { "EXTERNAL_SDVOB", RHD_OUTPUT_NONE },
-    { "TITFP513", RHD_OUTPUT_NONE },
-    { "INTERNAL_LVTM1", RHD_OUTPUT_LVTMA },
-    { "VT1623", RHD_OUTPUT_NONE },
-    { "HDMI_SI1930", RHD_OUTPUT_NONE },
-    { "HDMI_INTERNAL", RHD_OUTPUT_NONE },
-    { "INTERNAL_KLDSCP_TMDS1", RHD_OUTPUT_TMDSA },
-    { "INTERNAL_KLSCP_DVO1", RHD_OUTPUT_NONE },
-    { "INTERNAL_KLDSCP_DAC1", RHD_OUTPUT_DACA },
-    { "INTERNAL_KLDSCP_DAC2", RHD_OUTPUT_DACB },
-    { "SI178", RHD_OUTPUT_NONE },
-    { "MVPU_FPGA", RHD_OUTPUT_NONE },
-    { "INTERNAL_DDI", RHD_OUTPUT_NONE },
-    { "VT1625", RHD_OUTPUT_NONE },
-    { "HDMI_SI1932", RHD_OUTPUT_NONE },
-    { "AN9801", RHD_OUTPUT_NONE },
-    { "DP501",  RHD_OUTPUT_NONE },
-    { "UNIPHY",  RHD_OUTPUT_NONE },
-    { "KLDSCP_LVTMA",  RHD_OUTPUT_LVTMA },
+    { "NONE", {RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_LVDS", { RHD_OUTPUT_LVDS, RHD_OUTPUT_NONE }},
+    { "INTERNAL_TMDS1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE }},
+    { "INTERNAL_TMDS2", { RHD_OUTPUT_TMDSB, RHD_OUTPUT_NONE }},
+    { "INTERNAL_DAC1", { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE }},
+    { "INTERNAL_DAC2", { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE }},
+    { "INTERNAL_SDVOA", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_SDVOB", { RHD_OUTPUT_NONE , RHD_OUTPUT_NONE }},
+    { "SI170B", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "CH7303", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "CH7301", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_DVO1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "EXTERNAL_SDVOA", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "EXTERNAL_SDVOB", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "TITFP513", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_LVTM1", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE }},
+    { "VT1623", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "HDMI_SI1930", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "HDMI_INTERNAL", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_KLDSCP_TMDS1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE }},
+    { "INTERNAL_KLSCP_DVO1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_KLDSCP_DAC1", { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE }},
+    { "INTERNAL_KLDSCP_DAC2", { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE }},
+    { "SI178", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "MVPU_FPGA", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_DDI", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "VT1625", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "HDMI_SI1932", {RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "AN9801", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "DP501",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "UNIPHY",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "KLDSCP_LVTMA", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE }}
 };
 static const int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 
@@ -1996,10 +1996,12 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	    rhdAtomInterpretObjectID(handle, SrcDstTable->usSrcObjectID[j],
 				     &stype, &sobj_id, &snum, &sname);
 
-	    RHDDebug(handle->scrnIndex, " * SrcObject: ID: %x name: %s\n",
-		     SrcDstTable->usSrcObjectID[j], sname);
+	    RHDDebug(handle->scrnIndex, " * SrcObject: ID: %x name: %s enum: %i\n",
+		     SrcDstTable->usSrcObjectID[j], sname, snum);
 
-	    cp[ncon].Output[nout] = rhd_encoders[sobj_id].ot;
+	    if (snum < 2)
+		cp[ncon].Output[nout] = rhd_encoders[sobj_id].ot[snum - 1];
+
 	    if (++nout >= MAX_OUTPUTS_PER_CONNECTOR)
 		break;
 	}
