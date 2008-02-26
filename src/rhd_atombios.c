@@ -1581,8 +1581,15 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
 {
     unsigned short *table = (unsigned short *)data->GoldenSettings.BIOSPtr;
     unsigned short entry_size = *table++;
+
+    RHDFUNC(handle);
+
+    RHDDebug(handle->scrnIndex, "%s: testing 0x%4.4x\n",__func__,
+	     data->GoldenSettings.value);
+
 /* @@@ endian! */
     while (table < (unsigned short *)data->GoldenSettings.End) {
+	RHDDebugCont("\t\t against: 0x%4.4x\n", table[0] << 16 | table[1]);
 	if ((data->GoldenSettings.value >> 16) == table[0]) {
 	    if (data->GoldenSettings.value <= table[1]) {
 		data->GoldenSettings.BIOSPtr = (unsigned char *)&table[2];
