@@ -1019,7 +1019,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 
 	/* stop scanout */
 	for (i = 0; i < 2; i++) {
-	    Crtc = rhdPtr->Crtc[0];
+	    Crtc = rhdPtr->Crtc[i];
 	    if (scrnIndex == Crtc->scrnIndex)
 		Crtc->Power(Crtc, RHD_POWER_RESET);
 	}
@@ -1104,7 +1104,7 @@ RHDLeaveVT(int scrnIndex, int flags)
 
     /* stop scanout */
     for (i = 0; i < 2; i++) {
-	Crtc = rhdPtr->Crtc[0];
+	Crtc = rhdPtr->Crtc[i];
 	if (scrnIndex == Crtc->scrnIndex)
 	    Crtc->Power(Crtc, RHD_POWER_RESET);
     }
@@ -1113,7 +1113,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
 
-    if (!RHDMCIdle(rhdPtr, 1000000))
+    if (!RHDMCIdle(rhdPtr, 1000))
 	xf86DrvMsg(scrnIndex, X_WARNING, "MC not idle\n");
 
     rhdRestore(rhdPtr);
