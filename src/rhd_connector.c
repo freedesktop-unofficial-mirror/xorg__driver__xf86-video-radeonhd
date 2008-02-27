@@ -128,14 +128,14 @@ struct rhdCsState {
  *
  */
 static char *
-rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo, 
+rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 		      struct rhdCsState **state)
 {
     char *str = NULL;
     char *typec;
     char *str1, *str2;
 
-    assert(state != NULL); 
+    assert(state != NULL);
 
     if (!*state) {
 	if (!(*state = xcalloc(sizeof(struct rhdCsState), 1)))
@@ -148,13 +148,13 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 	case RHD_CONNECTOR_DVI_SINGLE:
 	    if (ConnectorInfo->Output[0] && ConnectorInfo->Output[1])
 		typec = "I";
-	    else if (ConnectorInfo->Output[0] == RHD_OUTPUT_DACA 
+	    else if (ConnectorInfo->Output[0] == RHD_OUTPUT_DACA
 		     || ConnectorInfo->Output[0] == RHD_OUTPUT_DACB
 		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACA
 		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACB
 		)
 		typec = "A";
-	    else 
+	    else
 		typec = "D";
 	    str = xalloc(12);
 	    snprintf(str, 11, "DVI-%s %i",typec, ++(*state)->dvi_cnt);
@@ -410,7 +410,7 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 
     const char *output_name[] =
 	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",
-	  "RHD_OUTPUT_LVTMA"
+	  "RHD_OUTPUT_LVTMA", "RHD_OUTPUT_KLDSKP_LVTMA", "RHD_OUTPUT_UNIPHYA", "RHD_OUTPUT_UNIPHYB"
 	};
     const char **hpd_name;
 

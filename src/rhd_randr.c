@@ -123,7 +123,10 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
 	    return "unknown";
 	}
     case RHD_OUTPUT_LVTMA:
+    case RHD_OUTPUT_KLDSKP_LVTMA:
     case RHD_OUTPUT_LVDS:
+    case RHD_OUTPUT_UNIPHYA:
+    case RHD_OUTPUT_UNIPHYB:
 #if RHD_OUTPUT_LVTMB != RHD_OUTPUT_LVDS
     case RHD_OUTPUT_LVTMB:
 #endif
@@ -862,7 +865,10 @@ rhdRROutputGetModes(xf86OutputPtr output)
 
     /* If digitally attached, enable reduced blanking */
     if (rout->Output->Id == RHD_OUTPUT_TMDSA ||
-	rout->Output->Id == RHD_OUTPUT_LVTMA)
+	rout->Output->Id == RHD_OUTPUT_LVTMA ||
+	rout->Output->Id == RHD_OUTPUT_KLDSKP_LVTMA ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYA ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYB)
 	rout->Connector->Monitor->ReducedAllowed = TRUE;
     /* Allow user overrides */
     if (rhdPtr->forceReduced.set)
@@ -1004,6 +1010,9 @@ consolidateRandrOutputNames(rhdRandrOutputPtr *rop, int num)
 			break;
 		    case RHD_OUTPUT_TMDSA:
 		    case RHD_OUTPUT_LVTMA:
+		    case RHD_OUTPUT_KLDSKP_LVTMA:
+		    case RHD_OUTPUT_UNIPHYA:
+		    case RHD_OUTPUT_UNIPHYB:
 			outname = "digital";
 			break;
 		    default:

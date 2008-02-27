@@ -1678,8 +1678,8 @@ static const struct _rhd_encoders
     { "HDMI_SI1932", {RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "AN9801", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "DP501",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
-    { "UNIPHY",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
-    { "KLDSCP_LVTMA", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE }}
+    { "UNIPHY",  { RHD_OUTPUT_UNIPHYA, RHD_OUTPUT_UNIPHYB }},
+    { "KLDSCP_LVTMA", { RHD_OUTPUT_KLDSKP_LVTMA, RHD_OUTPUT_NONE }}
 };
 static const int n_rhd_encoders = sizeof (rhd_encoders) / sizeof(struct _rhd_encoders);
 

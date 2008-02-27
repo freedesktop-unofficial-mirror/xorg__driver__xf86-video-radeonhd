@@ -1693,7 +1693,10 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		     * TODO: iiyama vm pro 453: CRT with DVI-D == No reduced.
 		     */
 		    if ((Output->Id == RHD_OUTPUT_TMDSA) ||
-			(Output->Id == RHD_OUTPUT_LVTMA))
+			(Output->Id == RHD_OUTPUT_LVTMA) ||
+			(Output->Id == RHD_OUTPUT_KLDSKP_LVTMA) ||
+			(Output->Id == RHD_OUTPUT_UNIPHYA) ||
+			(Output->Id == RHD_OUTPUT_UNIPHYB))
 			Monitor->ReducedAllowed = TRUE;
 
 		    /* allow user to override settings globally */
