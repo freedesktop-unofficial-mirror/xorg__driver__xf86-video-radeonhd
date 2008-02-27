@@ -116,6 +116,7 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
 	switch (ro->Connector->Type) {
 	case RHD_CONNECTOR_VGA:
 	case RHD_CONNECTOR_DVI:
+	case RHD_CONNECTOR_DVI_SINGLE:
 	    return "VGA";
 	case RHD_CONNECTOR_TV:		/* TODO: depending on current format */
 	default:
@@ -128,6 +129,7 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
 #endif
 	switch (ro->Connector->Type) {
 	case RHD_CONNECTOR_DVI:
+	case RHD_CONNECTOR_DVI_SINGLE:
 	    return "TMDS";
 	case RHD_CONNECTOR_PANEL:
 	    return "LVDS";
@@ -151,6 +153,8 @@ rhdGetConnectorType(rhdRandrOutputPtr ro)
 	return "VGA";
     case RHD_CONNECTOR_DVI:
 	return "DVI";			/* TODO: DVI-I/A/D / HDMI */
+    case RHD_CONNECTOR_DVI_SINGLE:
+	return "DVI (single link)";
     case RHD_CONNECTOR_PANEL:
 	return "PANEL";
     case RHD_CONNECTOR_TV:

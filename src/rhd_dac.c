@@ -143,6 +143,7 @@ DACASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
 	return  (DACSense(Output, REG_DACA_OFFSET, FALSE) == 0x7)
 	    ? RHD_SENSED_VGA
@@ -176,6 +177,7 @@ DACBSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
 	return  (DACSense(Output, REG_DACB_OFFSET, FALSE) == 0x7)
 	    ? RHD_SENSED_VGA
@@ -508,6 +510,7 @@ DACASenseRV620(struct rhdOutput *Output, enum rhdConnectorType Type)
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
 	return  (DACSenseRV620(Output, RV620_REG_DACA_OFFSET, FALSE)
 		  & 0x1010100) ? RHD_SENSED_VGA : RHD_SENSED_NONE;
@@ -541,6 +544,7 @@ DACBSenseRV620(struct rhdOutput *Output, enum rhdConnectorType Type)
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
+    case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
 	return  (DACSenseRV620(Output, RV620_REG_DACB_OFFSET, FALSE)
 		  & 0x1010100) ? RHD_SENSED_VGA : RHD_SENSED_NONE;

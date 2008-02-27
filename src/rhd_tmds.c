@@ -76,7 +76,7 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 
     RHDFUNC(Output);
 
-    if (Type != RHD_CONNECTOR_DVI) {
+    if (Type != RHD_CONNECTOR_DVI && Type != RHD_CONNECTOR_DVI_SINGLE) {
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
 		   "%s: connector type %d is not supported.\n",
 		   __func__, Type);
