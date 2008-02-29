@@ -153,7 +153,7 @@ RHDMCSetup(RHDPtr rhdPtr)
     if (!MC)
 	return;
 
-    if (rhdPtr->ChipSet < RHD_R600) {
+    if (rhdPtr->ChipSet < RHD_RS600) {
 	unsigned int reg;
 
 	if (rhdPtr->ChipSet == RHD_RV515)
