@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008 Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -321,6 +321,12 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    break;
 		case RHD_OUTPUT_LVTMA:
 		    Output = RHDLVTMAInit(rhdPtr, ConnectorInfo[i].Type);
+		    RHDOutputAdd(rhdPtr, Output);
+		    break;
+		case RHD_OUTPUT_KLDSKP_LVTMA:
+		case RHD_OUTPUT_UNIPHYA:
+		case RHD_OUTPUT_UNIPHYB:
+		    Output = RHDDIGInit(rhdPtr, ConnectorInfo[i].Output[k], ConnectorInfo[i].Type);
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
 		default:
