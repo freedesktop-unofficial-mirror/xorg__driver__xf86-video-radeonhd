@@ -1590,7 +1590,7 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
 			 AtomBiosRequestID func, AtomBiosArgPtr data)
 {
     unsigned short *table = (unsigned short *)data->GoldenSettings.BIOSPtr;
-    unsigned short entry_size = *table++;
+    unsigned short entry_size = *(table++);
 
     RHDFUNC(handle);
 
@@ -1599,14 +1599,14 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
 
 /* @@@ endian! */
     while (table < (unsigned short *)data->GoldenSettings.End) {
-	RHDDebugCont("\t\t against: 0x%4.4x\n", table[0] << 16 | table[1]);
-	if ((data->GoldenSettings.value >> 16) == table[0]) {
-	    if (data->GoldenSettings.value <= table[1]) {
-		data->GoldenSettings.BIOSPtr = (unsigned char *)&table[2];
+	RHDDebugCont("\t\t against: 0x%8.8x\n", table[1] << 16 | table[0]);
+	if ((data->GoldenSettings.value >> 16) == table[1]) {
+	    if ((data->GoldenSettings.value & 0xffff) <= table[0]) {
+		data->GoldenSettings.BIOSPtr = (unsigned char *)(table + 2);
 		return ATOM_SUCCESS;
 	    }
-	    table = (unsigned short *)(((unsigned char *)table) + entry_size);
 	}
+	table = (unsigned short *)(((unsigned char *)table) + entry_size);
     }
     return ATOM_FAILED;
 }
@@ -2332,13 +2332,13 @@ rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
 
 	if (command_table[i] == ATOM_EOT_COMMAND
 	    && command_table[i+1] == CODE_DATA_TABLE_SIGNATURE) {
-	    struct atomCodeDataTableHeader *dt
-		= (struct atomCodeDataTableHeader *)&command_table[i];
+	    unsigned short *dt_size = (unsigned short*)(command_table + i + 2);
+
 	    int diff;
 
-	    diff = size - (i + 1) + sizeof(struct atomCodeDataTableHeader) + dt->size;
+	    diff = size - (i + 1) + sizeof(struct atomCodeDataTableHeader) + *dt_size;
 
-	    DEBUGP(ErrorF("Table[%i] = 0x%4.4x -> data_size: %i\n",data->val, size));
+	    DEBUGP(ErrorF("Table[0x%2.2x] = 0x%4.4x -> data_size: 0x%x\n",data->val, size, *dt_size));
 
 	    if (diff < 0) {
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
@@ -2348,11 +2348,11 @@ rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
 
 		return  ATOM_FAILED;
 	    }
-
 	    data->CommandDataTable.loc =
-		&command_table[i + sizeof(struct atomCodeDataTableHeader)];
-	    data->CommandDataTable.size = dt->size;
-	    DEBUGP(RhdDebugDump(handle->scrnIndex, data->CommandDataTable.loc, dt->size));
+		command_table + i + 2 + sizeof(unsigned short);
+
+	    data->CommandDataTable.size = *dt_size;
+	    DEBUGP(RhdDebugDump(handle->scrnIndex, data->CommandDataTable.loc, *dt_size));
 
 	    return ATOM_SUCCESS;
 	}
