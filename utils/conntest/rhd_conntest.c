@@ -1778,7 +1778,7 @@ RV620I2CSetupStatus(void *map, int line, int prescale)
 /*     CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 }; */
     CARD32 reg_7d9c;
     unsigned char *table;
-    short size;
+    short size = 0;
     int i = 0;
 
     if (line > 3)
@@ -2316,15 +2316,14 @@ for (i = sizeof(ATOM_COMMON_ROM_COMMAND_TABLE_HEADER); i < *size - 1; i++) {
 		+ SHORT(dt->size);
 
 	    if (diff < 0) {
-		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-			   "Data table in command table %i extends %i bytes "
-			   "beyond command table size\n",
-			   n, -diff);
+		fprintf(stderr,
+			"Data table in command table %i extends %i bytes "
+			"beyond command table size\n",
+			n, -diff);
 		return  NULL;
 	    } else {
 #ifdef DEBUG
-		xf86DrvMsgVerg(rhdPtr->scrnIndex, X_DEBUG,
-			       "code data table size: 0x%4.4x\n",SHORT(dt->size));
+		fprintf(stderr, "code data table size: 0x%4.4x\n",SHORT(dt->size));
 		dprint(&code[i + sizeof(struct atomCodeDataTableHeader)], SHORT(dt->size));
 #endif
 		return &code[i + sizeof(struct atomCodeDataTableHeader)];
