@@ -27,7 +27,7 @@
 #define _RHD_OUTPUT_H
 
 /* Also needed for connector -> output mapping */
-typedef enum _rhdOutputType {
+typedef enum rhdOutputType {
     RHD_OUTPUT_NONE  = 0,
     RHD_OUTPUT_DAC_EXTERNAL = RHD_OUTPUT_NONE,
     RHD_OUTPUT_DACA,
@@ -63,7 +63,7 @@ struct rhdOutput {
     int scrnIndex;
 
     char *Name;
-    enum _rhdOutputType Id;
+    enum rhdOutputType Id;
 
     Bool Active;
 
@@ -99,5 +99,5 @@ struct rhdOutput *RHDDACAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDDACBInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
-
+struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType);
 #endif /* _RHD_OUTPUT_H */
