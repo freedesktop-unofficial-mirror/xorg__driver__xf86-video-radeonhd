@@ -169,7 +169,8 @@ DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
     RHDPtr rhdPtr = RHDPTRI(Crtc);
     CARD16 RegOff;
 
-    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
+    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s (%i[%i]x%i@%ibpp)  +0x%x )\n",
+	     __func__, Crtc->Name, Width, Pitch, Height, bpp, Offset);
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
