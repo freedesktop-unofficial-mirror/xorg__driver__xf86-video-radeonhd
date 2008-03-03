@@ -476,6 +476,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
     rhdPtr = RHDPTR(pScrn);
 
+    /* Get server verbosity level */
+    rhdPtr->verbosity = xf86GetVerbosity();
+    
     /* This driver doesn't expect more than one entity per screen */
     if (pScrn->numEntities > 1) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,

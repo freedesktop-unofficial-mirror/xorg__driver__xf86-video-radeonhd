@@ -225,6 +225,8 @@ typedef struct RHDRec {
 
     /* RandR compatibility layer */
     struct rhdRandr    *randr;
+    /* log verbosity - store this for convenience */
+    int			verbosity;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
