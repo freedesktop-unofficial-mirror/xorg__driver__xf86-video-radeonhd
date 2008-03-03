@@ -242,7 +242,6 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x958C, RHD_RV630 ), /* FireGL V5600 */
     RHD_DEVICE_MATCH(  0x958D, RHD_RV630 ), /* FireGL V3600 */
     RHD_DEVICE_MATCH(  0x958E, RHD_RV630 ), /* ATI Radeon HD 2600 LE */
-#if 0
     RHD_DEVICE_MATCH(  0x9590, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
     RHD_DEVICE_MATCH(  0x9591, RHD_RV635 ), /* ATI Mobility Radeon HD 3650 */
     RHD_DEVICE_MATCH(  0x9596, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
@@ -257,7 +256,6 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2450  */
     RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2460  */
     RHD_DEVICE_MATCH(  0x95CF, RHD_RV620 ), /* ATI FireMV 2460  */
-#endif
     LIST_END
 };
 
