@@ -310,10 +310,25 @@ LVTMATransmitterRestore(struct rhdOutput *Output)
 	return;
     }
 
-    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_CONTROL, Private->StoredTransmitterControl);
+    /* write control values back */
+    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_CONTROL,Private->StoredTransmitterControl);
+    usleep (14);
+    /* reset PLL */
+    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_CONTROL,Private->StoredTransmitterControl
+		| RV62_LVTMA_PLL_RESET);
+    usleep (10);
+    /* unreset PLL */
+    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_CONTROL,Private->StoredTransmitterControl);
+    usleep(1000);
     RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_ADJUST, Private->StoredTransmitterAdjust);
     RHDRegWrite(Output, RV620_LVTMA_PREEMPHASIS_CONTROL, Private->StoredPreemphasisControl);
     RHDRegWrite(Output, RV620_LVTMA_MACRO_CONTROL, Private->StoredMacroControl);
+    /* start data synchronization */
+    RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, Private->StoredLVTMADataSynchronization
+		& ~(CARD32)RV62_LVTMA_DSYNSEL | RV62_LVTMA_PFREQCHG);
+    usleep (1);
+    RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, Private->StoredLVTMADataSynchronization);
+    usleep(10);
     RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, Private->StoredLVTMADataSynchronization);
     RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_ENABLE, Private->StoredTransmiterEnable);
 }
@@ -529,12 +544,15 @@ EncoderRestore(struct rhdOutput *Output)
 	return;
     }
 
+    /* reprogram all values but don't start the encoder, yet */
+    RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl & ~(CARD32)RV62_DIG_START);
+    RHDRegWrite(Output, RV620_DIG_REG_7FA4, Private->StoredDIG_7FA4);
     RHDRegWrite(Output, off + RV620_DIG1_CLOCK_PATTERN, Private->StoredDIGClockPattern);
     RHDRegWrite(Output, off + RV620_LVDS1_DATA_CNTL, Private->StoredLVDSDataCntl);
-    RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl);
     RHDRegWrite(Output, off + RV620_TMDS1_CNTL, Private->StoredTMDSCntl);
-    RHDRegWrite(Output, RV620_DIG_REG_7FA4, Private->StoredDIG_7FA4);
     RHDRegWrite(Output, off ? RV620_DIG_SCRATCH2 : RV620_DIG_SCRATCH1, Private->StoredDIGScratch);
+    /* now enable the encoder */
+    RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl);
     RHDRegWrite(Output, RV620_DIG_SCRATCH3, Private->StoredDIGScratch3);
 }
 
