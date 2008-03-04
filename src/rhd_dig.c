@@ -155,7 +155,8 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     RHDDebug(Output->scrnIndex, "%s: SynthClock: %i Hex: %x EncoderMode: %x\n",__func__,
 	     (Mode->SynthClock),(Mode->SynthClock / 10), Private->EncoderMode);
 
-    value = ((Mode->SynthClock / 10 / ((Private->DualLink) ? 2 : 1)) & 0xffff)  /* */
+    /* Set up magic value that's used for list lookup */
+    value = ((Mode->SynthClock / 10 / ((Private->DualLink) ? 2 : 1)) & 0xffff)
 	| (Private->EncoderMode << 16)
 	| ((Private->Coherent ? 0x2 : 0) << 24);
 
@@ -193,7 +194,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 	xf86DrvMsg(Output->scrnIndex, X_WARNING, "%s: No AtomBIOS supplied "
 		   "electrical parameters available\n", __func__);
     }
-    /* use differential post devider input */
+    /* use differential post divider input */
     RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 	       RV62_LVTMA_IDSCKSEL, RV62_LVTMA_IDSCKSEL);
 }
@@ -210,46 +211,61 @@ LVTMATransmitterPower(struct rhdOutput *Output, int Power)
 
     switch (Power) {
 	case RHD_POWER_ON:
+	    /* enable PLL */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       RV62_LVTMA_PLL_ENABLE, RV62_LVTMA_PLL_ENABLE);
 	    usleep(14);
+	    /* PLL reset on */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       RV62_LVTMA_PLL_RESET, RV62_LVTMA_PLL_RESET);
 	    usleep(10);
+	    /* PLL reset off */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       0, RV62_LVTMA_PLL_RESET);
 	    usleep(1000);
+	    /* start data synchronization */
 	    RHDRegMask(Output, RV620_LVTMA_DATA_SYNCHRONIZATION,
 		       RV62_LVTMA_PFREQCHG, RV62_LVTMA_PFREQCHG);
 	    usleep(1);
+	    /* restart write address logic */
 	    RHDRegMask(Output, RV620_LVTMA_DATA_SYNCHRONIZATION,
 		       RV62_LVTMA_DSYNSEL, RV62_LVTMA_DSYNSEL);
+	    /* ?? */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       RV62_LVTMA_MODE, RV62_LVTMA_MODE);
+	    /* enable lower link */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
 		       RV62_LVTMA_LNKL,
 		       RV62_LVTMA_LNK_ALL);
 	    if (Private->DualLink) {
 		usleep (28);
+		/* enable upper link */
 		RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
 			   RV62_LVTMA_LNKU,
 			   RV62_LVTMA_LNKU);
 	    }
 	    return;
 	case RHD_POWER_RESET:
+	    /* disable all links */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
 		       0, RV62_LVTMA_LNK_ALL);
 	    return;
 	case RHD_POWER_SHUTDOWN:
 	default:
+	    /* disable transmitter */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
 		       0, RV62_LVTMA_LNK_ALL);
+	    /* PLL reset */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       RV62_LVTMA_PLL_RESET, RV62_LVTMA_PLL_RESET);
+	    usleep(10);
+	    /* end PLL reset */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       0, RV62_LVTMA_PLL_RESET);
+	    /* disable data synchronization */
 	    RHDRegMask(Output, RV620_LVTMA_DATA_SYNCHRONIZATION,
 		       0, RV62_LVTMA_DSYNSEL);
+	    /* reset macro control */
 	    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_ADJUST, 0);
 	    return;
     }
@@ -361,16 +377,38 @@ LVDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
 
     RHDFUNC(Output);
 
+    /* Clock pattern ? */
     RHDRegMask(Output, off + RV620_DIG1_CLOCK_PATTERN, 0x0063, 0xFFFF);
+    /* set panel type: 18/24 bit mode */
     RHDRegMask(Output, off + RV620_LVDS1_DATA_CNTL,
 	       (Private->LVDS24Bit ? RV62_LVDS_24BIT_ENABLE : 0)
 	       | (Private->FPDI ? RV62_LVDS_24BIT_FORMAT : 0),
 	       RV62_LVDS_24BIT_ENABLE | RV62_LVDS_24BIT_FORMAT);
-    fmt_cntl |= Private->LVDS24Bit ? 0x00101000 : 0;
-    fmt_cntl |= Private->LVDSSpatialDither ? 0x0100 : 0;
-    fmt_cntl |= Private->LVDSTemporalDither ? (Private->LVDSGreyLevel ? 0x02010000 : 0x01000000) : 0;
-    RHDRegMask(Output, fmt_offset + RV620_FMT1_CNTL, fmt_offset, 0x03111100); /* @@ */
-    RHDRegMask(Output, fmt_offset + RV620_FMT1_CNTL, 0, 0x02000000); /* @@ */
+    /* set dither depth to 18/24 */
+    fmt_cntl = Private->LVDS24Bit
+	? (RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH)
+	: 0;
+    RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, fmt_offset,
+	       RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH);
+    /* set temporal dither */
+    if (Private->LVDSTemporalDither) {
+	fmt_cntl = Private->LVDSGreyLevel ? RV62_FMT_TEMPORAL_LEVEL : 0x0;
+	/* grey level */
+	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
+		   fmt_offset, RV62_FMT_TEMPORAL_LEVEL);
+	/* turn on temporal dither and reset */
+	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
+		   RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET,
+		   RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET);
+	usleep(20);
+	/* turn off reset */
+	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, 0x0,
+		   RV62_FMT_TEMPORAL_DITHER_RESET);
+    }
+    /* spatial dither */
+    RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
+	       Private->LVDSSpatialDither ? RV62_FMT_SPATIAL_DITHER_EN : 0,
+	       RV62_FMT_SPATIAL_DITHER_EN);
 }
 
 /*
@@ -384,10 +422,13 @@ TMDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
 
     RHDFUNC(Output);
 
+    /* clock pattern ? */
     RHDRegMask(Output, off + RV620_DIG1_CLOCK_PATTERN, 0x001F, 0xFFFF);
+    /* color format RGB - normal color format 24bpp, Twin-Single 30bpp or Dual 48bpp*/
     RHDRegMask(Output, off + RV620_TMDS1_CNTL, 0x0,
 	       RV62_TMDS_PIXEL_ENCODING | RV62_TMDS_COLOR_FORMAT);
-    RHDRegWrite(Output, fmt_offset + RV620_FMT1_CNTL, 0);
+    /* no dithering */
+    RHDRegWrite(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, 0);
 }
 
 /*
@@ -403,6 +444,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     RHDFUNC(Output);
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
 	if (!Private->DualLink) {
+	    /* enable links */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, /* RV62_DIG_SWAP | */ RV62_DIG_DUAL_LINK_ENABLE);
 	    /* enable link B? */
 	    RHDRegMask(Output, RV620_DIG_REG_7FA4, 0x1, 0x1);
@@ -414,7 +456,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	}
     } else if (Output->Id == RHD_OUTPUT_UNIPHYB) {
 	RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, /* RV62_DIG_SWAP | */ RV62_DIG_DUAL_LINK_ENABLE);
-	/* disable link B? */
+	/* disable link B ?? */
 	RHDRegMask(Output, RV620_DIG_REG_7FA4, 0, 0x1);
     }
 
@@ -425,9 +467,12 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     else
 	TMDSEncoder(Output,fmt_offset);
 
-    RHDRegMask(Output,  fmt_offset + RV620_FMT1_MISC_1, 0, 0xff << 16);
-    RHDRegWrite(Output, fmt_offset + RV620_FMT1_MISC_3, 0);
+    /* 4:4:4 encoding */
+    RHDRegMask(Output,  fmt_offset + RV620_FMT1_CONTROL, 0, RV62_FMT_PIXEL_ENCODING);
+    /* disable color clamping */
+    RHDRegWrite(Output, fmt_offset + RV620_FMT1_CLAMP_CNTL, 0);
 
+    /* Start DIG, set links, disable stereo sync, select FMT source */
     RHDRegMask(Output, off + RV620_DIG1_CNTL,
 	       (Private->EncoderMode & 0x7) << 8
 	       | RV62_DIG_START
@@ -439,6 +484,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	       | RV62_DIG_STEREOSYNC_SELECT
 	       | RV62_DIG_SOURCE_SELECT);
 
+    /* scratch ? */
     RHDRegMask(Output, RV620_DIG_SCRATCH3, 0x0, 0x3 << ((off > 0) ? 12 : 8));
 }
 
@@ -457,12 +503,14 @@ EncoderPower(struct rhdOutput *Output, int Power)
 
     switch (Power) {
 	case RHD_POWER_ON:
+	    /* enable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x10, 0x10);
 	    RHDRegMask(Output, off ? RV620_DIG_SCRATCH1 : RV620_DIG_SCRATCH2, 0x1, 0x1); /* @@@ */
 	    return;
 	case RHD_POWER_RESET:
 	case RHD_POWER_SHUTDOWN:
 	default:
+	    /* disable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x1010);
 	    RHDRegMask(Output, off ? RV620_DIG_SCRATCH1 : RV620_DIG_SCRATCH2, 0x0, 0x1); /* @@@ */
 	    return;
@@ -556,7 +604,7 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 
     tmp = RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL);
     fmt_offset = (tmp & RV62_DIG_SOURCE_SELECT) ? FMT2_OFFSET :0;
-    tmp = RHDRegRead(rhdPtr, fmt_offset + RV620_FMT1_CNTL);
+    tmp = RHDRegRead(rhdPtr, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL);
     Private->LVDSSpatialDither = ((tmp & 0x100) != 0);
     Private->LVDSGreyLevel = ((tmp & 0x10000) != 0);
     Private->LVDSTemporalDither = Private->LVDSGreyLevel || ((tmp & 0x1000000) != 0);
