@@ -101,20 +101,23 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
     if (ret) {
 	sensed = RHD_SENSED_DVI;
 
-	/* Now try to find the second link */
-	RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x0, 0x00000001);
-	usleep(1);
+	if (Output->Connector->Type == RHD_CONNECTOR_DVI) { /* not RHD_CONNECTOR_DVI_SINGLE */
 
-	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x00000300, 0x00000303);
-	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000003);
+	    /* Now try to find the second link */
+	    RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x0, 0x00000001);
+	    usleep(1);
 
-	RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x00000001, 0x00000001);
-	usleep(1);
-	ret = RHDRegRead(Output, TMDSA_LOAD_DETECT) & 0x00000010;
-	RHDDebug(Output->scrnIndex, "%s: Link1: %x\n",__func__,ret);
+	    RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x00000300, 0x00000303);
+	    RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000003);
 
-	if (ret)
-	    sensed = RHD_SENSED_DVI_DUAL;
+	    RHDRegMask(Output, TMDSA_LOAD_DETECT, 0x00000001, 0x00000001);
+	    usleep(1);
+	    ret = RHDRegRead(Output, TMDSA_LOAD_DETECT) & 0x00000010;
+	    RHDDebug(Output->scrnIndex, "%s: Link1: %x\n",__func__,ret);
+	    if (ret)
+		sensed = RHD_SENSED_DVI_DUAL;
+	}
+
     }
 
     RHDRegMask(Output, TMDSA_LOAD_DETECT, Detect, 0x00000001);

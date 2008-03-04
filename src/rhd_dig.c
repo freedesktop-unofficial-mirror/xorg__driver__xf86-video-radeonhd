@@ -128,6 +128,10 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
+	&& Mode->SynthClock > 165000)
+	return MODE_CLOCK_HIGH;
+
     return MODE_OK;
 }
 
@@ -703,6 +707,13 @@ DigMode(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDFUNC(Output);
 
+    /*
+     * For dual link capable DVI we need to decide from the pix clock if we are dual link.
+     * Do it here as it is convenient.
+     */
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI)
+	Private->DualLink = (Mode->SynthClock > 165000) ? TRUE : FALSE;
+
     Encoder->Mode(Output, Crtc, Mode);
     Transmitter->Mode(Output, Crtc, Mode);
 }
@@ -837,8 +848,8 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    GetLVDSInfo(rhdPtr, Private);
 	    break;
 	case RHD_CONNECTOR_DVI:
-	    Private->DualLink = FALSE/* TRUE */;
-	    Private->EncoderMode = TMDS_DVI;
+	    Private->DualLink = FALSE;
+	    Private->EncoderMode = TMDS_DVI; /* will be set later acc to pxclk */
 	    break;
 	case RHD_CONNECTOR_DVI_SINGLE:
 	    Private->DualLink = FALSE;

@@ -139,6 +139,10 @@ LVDSModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
+	&& Mode->SynthClock > 165000)
+	return MODE_CLOCK_HIGH;
+
     return MODE_OK;
 }
 
@@ -543,7 +547,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 struct rhdTMDSBPrivate {
     Bool Stored;
 
-    Bool dual_link;
+    Bool DualLink;
     CARD32 StoreControl;
     CARD32 StoreSource;
     CARD32 StoreFormat;
@@ -676,7 +680,7 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDFUNC(Output);
 
-    Private->dual_link =  (Mode->SynthClock > 165000) ? TRUE : FALSE;
+    Private->DualLink =  (Mode->SynthClock > 165000) ? TRUE : FALSE;
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
     if (rhdPtr->ChipSet < RHD_RS600) /* r5xx */
@@ -710,7 +714,7 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     /* Single link, for now */
     RHDRegWrite(Output, LVTMA_COLOR_FORMAT, 0);
     RHDRegMask(Output, LVTMA_CNTL,
-	       (Private->dual_link) ? 0x01000000 : 0, 0x01000000);
+	       (Private->DualLink) ? 0x01000000 : 0, 0x01000000);
 
     if (rhdPtr->ChipSet > RHD_R600) /* Rv6xx: disable split mode */
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x20000000);
@@ -762,7 +766,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE,
-		   (Private->dual_link) ? 0x00003E3E : 0x0000003E, 0x00003E3E);
+		   (Private->DualLink) ? 0x00003E3E : 0x0000003E, 0x00003E3E);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
@@ -912,7 +916,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Restore = TMDSBRestore;
 
 	Output->Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
-	((struct rhdTMDSBPrivate *)Output->Private)->dual_link = FALSE;
+	((struct rhdTMDSBPrivate *)Output->Private)->DualLink = FALSE;
     }
 
     return Output;
