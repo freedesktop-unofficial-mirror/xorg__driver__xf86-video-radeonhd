@@ -25,6 +25,13 @@
 #ifndef _RHD_CRTC_H
 #define _RHD_CRTC_H
 
+struct rhdFMTDither {
+    Bool LVDS24Bit;
+    Bool LVDSSpatialDither;
+    Bool LVDSTemporalDither;
+    int LVDSGreyLevel;
+};
+
 struct rhdCrtc {
     int scrnIndex;
 
@@ -69,6 +76,11 @@ struct rhdCrtc {
     struct rhdCrtcStore *Store;
     void (*Save) (struct rhdCrtc *Crtc);
     void (*Restore) (struct rhdCrtc *Crtc);
+
+    struct rhdFMTStore *FMTStore;
+    void (*FMTModeSet)(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither);
+    void (*FMTSave)(struct rhdCrtc *Crtc);
+    void (*FMTRestore)(struct rhdCrtc *Crtc);
 
     /* Gamma, scaling */
 };

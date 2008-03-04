@@ -44,6 +44,8 @@
 
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
+#define FMT1_REG_OFFSET 0x0000
+#define FMT2_REG_OFFSET 0x800
 
 struct rhdCrtcStore {
     CARD32 GrphEnable;
@@ -84,6 +86,12 @@ struct rhdCrtcStore {
     CARD32 CrtcBlackColor;
     CARD32 CrtcBlankControl;
     CARD32 CrtcPCLKControl;
+};
+
+struct rhdFMTStore {
+    CARD32 Control;
+    CARD32 BitDepthControl;
+    CARD32 ClampCntl;
 };
 
 /*
@@ -581,6 +589,9 @@ DxSave(struct rhdCrtc *Crtc)
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
 
+    if (Crtc->FMTSave)
+	Crtc->FMTSave(Crtc);
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -655,6 +666,9 @@ DxRestore(struct rhdCrtc *Crtc)
     CARD16 RegOff;
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
+
+    if (Crtc->FMTRestore)
+	Crtc->FMTRestore(Crtc);
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
@@ -743,6 +757,109 @@ DxRestore(struct rhdCrtc *Crtc)
  *
  */
 void
+FMTSet(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither)
+{
+    CARD32 RegOff;
+    CARD32 fmt_cntl = 0;
+
+    RHDFUNC(Crtc);
+
+    if (Crtc->Id == RHD_CRTC_1)
+	RegOff = FMT1_REG_OFFSET;
+    else
+	RegOff = FMT2_REG_OFFSET;
+
+    if (FMTDither) {
+
+	/* set dither depth to 18/24 */
+	fmt_cntl = FMTDither->LVDS24Bit
+	    ? (RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH)
+	    : 0;
+	RHDRegMask(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL, fmt_cntl,
+	       RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH);
+
+	/* set temporal dither */
+	if (FMTDither->LVDSTemporalDither) {
+	    fmt_cntl = FMTDither->LVDSGreyLevel ? RV62_FMT_TEMPORAL_LEVEL : 0x0;
+	    /* grey level */
+	    RHDRegMask(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL,
+		       fmt_cntl, RV62_FMT_TEMPORAL_LEVEL);
+	    /* turn on temporal dither and reset */
+	    RHDRegMask(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL,
+		       RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET,
+		       RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET);
+	    usleep(20);
+	    /* turn off reset */
+	    RHDRegMask(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL, 0x0,
+		       RV62_FMT_TEMPORAL_DITHER_RESET);
+	}
+	/* spatial dither */
+	RHDRegMask(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL,
+		   FMTDither->LVDSSpatialDither ? RV62_FMT_SPATIAL_DITHER_EN : 0,
+		   RV62_FMT_SPATIAL_DITHER_EN);
+    } else
+	RHDRegWrite(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL, 0);
+
+    /* 4:4:4 encoding */
+    RHDRegMask(Crtc,  RegOff + RV620_FMT1_CONTROL, 0, RV62_FMT_PIXEL_ENCODING);
+    /* disable color clamping */
+    RHDRegWrite(Crtc, RegOff + RV620_FMT1_CLAMP_CNTL, 0);
+}
+
+/*
+ *
+ */
+void
+FMTSave(struct rhdCrtc *Crtc)
+{
+    struct rhdFMTStore *FMTStore;
+    CARD32 RegOff;
+
+    RHDFUNC(Crtc);
+
+    if (!Crtc->FMTStore)
+	Crtc->FMTStore = (struct rhdFMTStore *) xnfcalloc(sizeof (struct rhdFMTStore),1);
+
+    FMTStore = Crtc->FMTStore;
+
+    if (Crtc->Id == RHD_CRTC_1)
+	RegOff = FMT1_REG_OFFSET;
+    else
+	RegOff = FMT2_REG_OFFSET;
+
+    FMTStore->Control         = RHDRegRead(Crtc, RegOff + RV620_FMT1_CONTROL);
+    FMTStore->BitDepthControl = RHDRegRead(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL);
+    FMTStore->ClampCntl       = RHDRegRead(Crtc, RegOff + RV620_FMT1_CLAMP_CNTL);
+}
+
+/*
+ *
+ */
+void
+FMTRestore(struct rhdCrtc *Crtc)
+{
+    struct rhdFMTStore *FMTStore = Crtc->FMTStore;
+    CARD32 RegOff;
+
+    RHDFUNC(Crtc);
+
+    if (!FMTStore)
+	return;
+
+    if (Crtc->Id == RHD_CRTC_1)
+	RegOff = FMT1_REG_OFFSET;
+    else
+	RegOff = FMT2_REG_OFFSET;
+
+    RHDRegWrite(Crtc, RegOff + RV620_FMT1_CONTROL, FMTStore->Control);
+    RHDRegWrite(Crtc, RegOff + RV620_FMT1_BIT_DEPTH_CONTROL, FMTStore->BitDepthControl);
+    RHDRegWrite(Crtc, RegOff + RV620_FMT1_CLAMP_CNTL, FMTStore->ClampCntl);
+}
+
+/*
+ *
+ */
+void
 RHDCrtcsInit(RHDPtr rhdPtr)
 {
     struct rhdCrtc *Crtc;
@@ -753,6 +870,8 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 1";
     Crtc->Id = RHD_CRTC_1;
+
+    Crtc->FMTStore = NULL;
 
     Crtc->FBValid = DxFBValid;
     Crtc->FBSet = DxFBSet;
@@ -768,12 +887,20 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->Save = DxSave;
     Crtc->Restore = DxRestore;
 
+    if (rhdPtr->ChipSet >= RHD_RV620) {
+	Crtc->FMTSave = FMTSave;
+	Crtc->FMTRestore = FMTRestore;
+	Crtc->FMTModeSet = FMTSet;
+    }
+
     rhdPtr->Crtc[0] = Crtc;
 
     Crtc = xnfcalloc(sizeof(struct rhdCrtc), 1);
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 2";
     Crtc->Id = RHD_CRTC_2;
+
+    Crtc->FMTStore = NULL;
 
     Crtc->FBValid = DxFBValid;
     Crtc->FBSet = DxFBSet;
@@ -788,6 +915,12 @@ RHDCrtcsInit(RHDPtr rhdPtr)
 
     Crtc->Save = DxSave;
     Crtc->Restore = DxRestore;
+
+    if (rhdPtr->ChipSet >= RHD_RV620) {
+	Crtc->FMTSave = FMTSave;
+	Crtc->FMTRestore = FMTRestore;
+	Crtc->FMTModeSet = FMTSet;
+    }
 
     rhdPtr->Crtc[1] = Crtc;
 }
@@ -806,6 +939,8 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
     if (Crtc) {
 	if (Crtc->Store)
 	    xfree(Crtc->Store);
+	if (Crtc->FMTStore)
+	    xfree(Crtc->FMTStore);
 	xfree(Crtc);
     }
 
@@ -813,6 +948,8 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
     if (Crtc) {
 	if (Crtc->Store)
 	    xfree(Crtc->Store);
+	if (Crtc->FMTStore)
+	    xfree(Crtc->FMTStore);
 	xfree(Crtc);
     }
 }

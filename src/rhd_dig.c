@@ -97,11 +97,8 @@ struct DIGPrivate
     Bool Coherent;
     Bool DualLink;
     /* LVDS */
-    Bool LVDS24Bit;
     Bool FPDI;
-    Bool LVDSSpatialDither;
-    Bool LVDSTemporalDither;
-    int LVDSGreyLevel;
+    struct rhdFMTDither FMTDither;
 };
 
 /*
@@ -373,11 +370,10 @@ EncoderModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
  *
  */
 static void
-LVDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
+LVDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     CARD32 off = Private->Offset;
-    CARD32 fmt_cntl = 0;
 
     RHDFUNC(Output);
 
@@ -385,41 +381,18 @@ LVDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
     RHDRegMask(Output, off + RV620_DIG1_CLOCK_PATTERN, 0x0063, 0xFFFF);
     /* set panel type: 18/24 bit mode */
     RHDRegMask(Output, off + RV620_LVDS1_DATA_CNTL,
-	       (Private->LVDS24Bit ? RV62_LVDS_24BIT_ENABLE : 0)
+	       (Private->FMTDither.LVDS24Bit ? RV62_LVDS_24BIT_ENABLE : 0)
 	       | (Private->FPDI ? RV62_LVDS_24BIT_FORMAT : 0),
 	       RV62_LVDS_24BIT_ENABLE | RV62_LVDS_24BIT_FORMAT);
-    /* set dither depth to 18/24 */
-    fmt_cntl = Private->LVDS24Bit
-	? (RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH)
-	: 0;
-    RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, fmt_offset,
-	       RV62_FMT_SPATIAL_DITHER_DEPTH | RV62_FMT_TEMPORAL_DITHER_DEPTH);
-    /* set temporal dither */
-    if (Private->LVDSTemporalDither) {
-	fmt_cntl = Private->LVDSGreyLevel ? RV62_FMT_TEMPORAL_LEVEL : 0x0;
-	/* grey level */
-	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
-		   fmt_offset, RV62_FMT_TEMPORAL_LEVEL);
-	/* turn on temporal dither and reset */
-	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
-		   RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET,
-		   RV62_FMT_TEMPORAL_DITHER_EN | RV62_FMT_TEMPORAL_DITHER_RESET);
-	usleep(20);
-	/* turn off reset */
-	RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, 0x0,
-		   RV62_FMT_TEMPORAL_DITHER_RESET);
-    }
-    /* spatial dither */
-    RHDRegMask(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL,
-	       Private->LVDSSpatialDither ? RV62_FMT_SPATIAL_DITHER_EN : 0,
-	       RV62_FMT_SPATIAL_DITHER_EN);
+
+    Output->Crtc->FMTModeSet(Output->Crtc, &Private->FMTDither);
 }
 
 /*
  *
  */
 static void
-TMDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
+TMDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     CARD32 off = Private->Offset;
@@ -432,7 +405,7 @@ TMDSEncoder(struct rhdOutput *Output, CARD32 fmt_offset)
     RHDRegMask(Output, off + RV620_TMDS1_CNTL, 0x0,
 	       RV62_TMDS_PIXEL_ENCODING | RV62_TMDS_COLOR_FORMAT);
     /* no dithering */
-    RHDRegWrite(Output, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL, 0);
+    Output->Crtc->FMTModeSet(Output->Crtc, NULL);
 }
 
 /*
@@ -443,7 +416,6 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     CARD32 off = Private->Offset;
-    CARD32 fmt_offset = (Output->Crtc->Id) ? FMT2_OFFSET : 0;
 
     RHDFUNC(Output);
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
@@ -465,16 +437,11 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     }
 
     if (Private->EncoderMode == LVDS)
-	LVDSEncoder(Output,fmt_offset);
+	LVDSEncoder(Output);
     else if (Private->EncoderMode == DISPLAYPORT)
 	RhdAssertFailed("No displayport support yet!",__FILE__, __LINE__, __func__);  /* bugger ! */
     else
-	TMDSEncoder(Output,fmt_offset);
-
-    /* 4:4:4 encoding */
-    RHDRegMask(Output,  fmt_offset + RV620_FMT1_CONTROL, 0, RV62_FMT_PIXEL_ENCODING);
-    /* disable color clamping */
-    RHDRegWrite(Output, fmt_offset + RV620_FMT1_CLAMP_CNTL, 0);
+	TMDSEncoder(Output);
 
     /* Start DIG, set links, disable stereo sync, select FMT source */
     RHDRegMask(Output, off + RV620_DIG1_CNTL,
@@ -594,32 +561,32 @@ void
 GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 {
     CARD32 off = Private->Offset;
-    CARD32 fmt_offset;
-    CARD32 tmp;
 
     RHDFUNC(rhdPtr);
 
-    Private->LVDS24Bit = ((RHDRegRead(rhdPtr, off  + RV620_LVDS1_DATA_CNTL)
-			   & RV62_LVDS_24BIT_ENABLE) != 0);
     Private->FPDI = ((RHDRegRead(rhdPtr, off + RV620_LVDS1_DATA_CNTL)
 				 & RV62_LVDS_24BIT_FORMAT) != 0);
     Private->DualLink = ((RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL)
 				 & RV62_DIG_DUAL_LINK_ENABLE) != 0);
+    Private->FMTDither.LVDS24Bit = ((RHDRegRead(rhdPtr, off  + RV620_LVDS1_DATA_CNTL)
+			   & RV62_LVDS_24BIT_ENABLE) != 0);
+    /* This is really ugly! */
+    {
+	CARD32 fmt_offset;
+	CARD32 tmp;
 
-    tmp = RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL);
-    fmt_offset = (tmp & RV62_DIG_SOURCE_SELECT) ? FMT2_OFFSET :0;
-    tmp = RHDRegRead(rhdPtr, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL);
-    Private->LVDSSpatialDither = ((tmp & 0x100) != 0);
-    Private->LVDSGreyLevel = ((tmp & 0x10000) != 0);
-    Private->LVDSTemporalDither = Private->LVDSGreyLevel || ((tmp & 0x1000000) != 0);
+	tmp = RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL);
+	fmt_offset = (tmp & RV62_DIG_SOURCE_SELECT) ? FMT2_OFFSET :0;
+	tmp = RHDRegRead(rhdPtr, fmt_offset + RV620_FMT1_BIT_DEPTH_CONTROL);
+	Private->FMTDither.LVDSSpatialDither = ((tmp & 0x100) != 0);
+	Private->FMTDither.LVDSGreyLevel = ((tmp & 0x10000) != 0);
+	Private->FMTDither.LVDSTemporalDither
+	    = (Private->FMTDither.LVDSGreyLevel > 0) || ((tmp & 0x1000000) != 0);
+    }
 
 #ifdef ATOM_BIOS
     {
 	AtomBiosArgRec data;
-
-	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    ATOM_LVDS_24BIT, &data) == ATOM_SUCCESS)
-	    Private->LVDS24Bit = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOM_LVDS_FPDI, &data) == ATOM_SUCCESS)
@@ -630,16 +597,20 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 	    Private->DualLink = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_24BIT, &data) == ATOM_SUCCESS)
+	    Private->FMTDither.LVDS24Bit = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_SPATIAL_DITHER, &data) == ATOM_SUCCESS)
-	    Private->LVDSSpatialDither = data.val;
+	    Private->FMTDither.LVDSSpatialDither = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_TEMPORAL_DITHER, &data) == ATOM_SUCCESS)
-	    Private->LVDSTemporalDither = data.val;
+	    Private->FMTDither.LVDSTemporalDither = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_GREYLVL, &data) == ATOM_SUCCESS)
-	    Private->LVDSGreyLevel = data.val;
+	    Private->FMTDither.LVDSGreyLevel = data.val;
     }
 #endif
 
