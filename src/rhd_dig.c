@@ -324,8 +324,9 @@ LVTMATransmitterRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, RV620_LVTMA_PREEMPHASIS_CONTROL, Private->StoredPreemphasisControl);
     RHDRegWrite(Output, RV620_LVTMA_MACRO_CONTROL, Private->StoredMacroControl);
     /* start data synchronization */
-    RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, Private->StoredLVTMADataSynchronization
-		& ~(CARD32)RV62_LVTMA_DSYNSEL | RV62_LVTMA_PFREQCHG);
+    RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, (Private->StoredLVTMADataSynchronization
+							   & ~(CARD32)RV62_LVTMA_DSYNSEL)
+		| RV62_LVTMA_PFREQCHG);
     usleep (1);
     RHDRegWrite(Output, RV620_LVTMA_DATA_SYNCHRONIZATION, Private->StoredLVTMADataSynchronization);
     usleep(10);
@@ -434,21 +435,19 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 
     RHDFUNC(Output);
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
+	/* select LinkA ?? */
+	RHDRegMask(Output, RV620_DIG_REG_7FA4, 0, 0x1);
 	if (!Private->DualLink) {
 	    /* enable links */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, /* RV62_DIG_SWAP | */ RV62_DIG_DUAL_LINK_ENABLE);
-	    /* enable link B? */
-	    RHDRegMask(Output, RV620_DIG_REG_7FA4, 0x1, 0x1);
 	} else {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, /* RV62_DIG_SWAP | */ RV62_DIG_DUAL_LINK_ENABLE,
 		       /* RV62_DIG_SWAP |  */ RV62_DIG_DUAL_LINK_ENABLE );
-	    /* disable link B? */
-	    RHDRegMask(Output, RV620_DIG_REG_7FA4, 0, 0x1);
 	}
     } else if (Output->Id == RHD_OUTPUT_UNIPHYB) {
 	RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, /* RV62_DIG_SWAP | */ RV62_DIG_DUAL_LINK_ENABLE);
-	/* disable link B ?? */
-	RHDRegMask(Output, RV620_DIG_REG_7FA4, 0, 0x1);
+	/* select LinkB ?? */
+	RHDRegMask(Output, RV620_DIG_REG_7FA4, 0x1, 0x1);
     }
 
     if (Private->EncoderMode == LVDS)
