@@ -626,7 +626,7 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
 		    &data);
     asicInit.sASICInitClocks.ulDefaultMemoryClock = data.val / 10;/*in 10 Khz*/
     data.exec.dataSpace = NULL;
-    data.exec.index = 0x0;
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, ASIC_Init);
     data.exec.pspace = &asicInit;
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
@@ -649,7 +649,7 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
     scaler.ucScaler = scalerID;
     scaler.ucEnable = setting;
     data.exec.dataSpace = NULL;
-    data.exec.index = 0x21;
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableScaler);
     data.exec.pspace = &scaler;
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableScaler\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
@@ -674,7 +674,7 @@ rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
 
     data.exec.dataSpace = NULL;
     data.exec.pspace = &tvEncoder;
-    data.exec.index = 0x1d;
+    data.exec.index =  GetIndexIntoMasterTable(COMMAND, TVEncoderControl);
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetTVEncoder\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
@@ -683,6 +683,112 @@ rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
 	return TRUE;
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
+			     enum atomTransmitterAction action, struct atomTransmitterConfig *config)
+{
+    DIG_TRANSMITTER_CONTROL_PARAMETERS Transmitter;
+    AtomBiosArgRec data;
+    char *name = NULL;
+
+    RHDFUNC(handle);
+
+    switch (action) {
+	case atomTransDisable:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_DISABLE;
+	    break;
+	case atomTransEnable:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_ENABLE;
+	    break;
+	case atomTransEnableOutput:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_ENABLE_OUTPUT;
+	    break;
+	case atomTransDisableOutput:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_DISABLE_OUTPUT;
+	    break;
+	case atomTransSetup:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_SETUP;
+	    break;
+    }
+
+    Transmitter.ucConfig = 0;
+    switch (config->mode) {
+	case atomDVI:
+	case atomHDMI:
+	case atomLVDS:
+	    Transmitter.usPixelClock = config->pixelClock / 10;
+	    break;
+
+	case atomDVI_DUAL:
+	case atomLVDS_DUAL:
+	    Transmitter.usPixelClock = config->pixelClock / 20;
+	    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_8LANE_LINK;
+	    break;
+
+	case atomDP:
+	case atomDP_8Lane:
+	case atomSDVO:
+	default:
+	    /* we don't know what to do here yet */
+	    return FALSE;
+    }
+
+    if (config->coherent)
+	Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_COHERENT;
+
+    switch (id) {
+	case atomTransmitterDIG1:
+	case atomTransmitterUNIPHY:
+	case atomTransmitterPCIEPHY:
+	    switch (config->link) {
+		case atomTransLinkA:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA;
+		    break;
+
+		case atomTransLinkB:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB;
+		    break;
+	    }
+	    switch (config->encoder) {
+		case atomEncoderDIG1:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_DIG1_ENCODER;
+		    break;
+
+		case atomEncoderDIG2:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_DIG2_ENCODER;
+		    break;
+	    }
+	    data.exec.index =  GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
+	    name = "UNIPHYTransmitterControl";
+
+	    if (id == atomTransmitterPCIEPHY)
+		return FALSE; /* for now */
+
+	    break;
+
+	case atomTransmitterLVTMA:
+	case atomTransmitterDIG2:
+	    data.exec.index =  GetIndexIntoMasterTable(COMMAND, DIG2TransmitterControl);
+	    name = "DIG2TransmitterControl";
+	    break;
+    }
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &Transmitter;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
     return FALSE;
 }
 

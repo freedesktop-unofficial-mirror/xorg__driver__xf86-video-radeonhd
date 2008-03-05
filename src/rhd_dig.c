@@ -47,6 +47,7 @@
 #endif
 
 #define FMT2_OFFSET 0x800
+#define DIG1_OFFSET 0x000
 #define DIG2_OFFSET 0x400
 
 /*
@@ -88,11 +89,16 @@ enum encoderMode {
     SDVO = 4
 };
 
+enum encoderID {
+    ENCODER_DIG1,
+    ENCODER_DIG2
+};
+
 struct DIGPrivate
 {
     struct encoder Encoder;
     struct transmitter Transmitter;
-    CARD32 Offset;
+    enum encoderID EncoderID;
     enum encoderMode EncoderMode;
     Bool Coherent;
     Bool DualLink;
@@ -350,6 +356,128 @@ LVTMATransmitterDestroy(struct rhdOutput *Output)
     xfree(digPrivate->Transmitter.Private);
 }
 
+struct ATOMTransmitterPrivate
+{
+    struct atomTransmitterConfig atomTransmitterConfig;
+    enum atomTransmitter atomTransmitterID;
+};
+
+/*
+ *
+ */
+static ModeStatus
+ATOMTransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+
+    RHDFUNC(Output);
+
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
+	&& Mode->SynthClock > 165000)
+	return MODE_CLOCK_HIGH;
+
+    return MODE_OK;
+}
+
+/*
+ *
+ */
+static void
+ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+    struct ATOMTransmitterPrivate *transPrivate
+	= (struct ATOMTransmitterPrivate*) Private->Transmitter.Private;
+    struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+
+    RHDFUNC(Output);
+
+    if (Private->DualLink)
+	atc->mode = atomDVI_DUAL;
+    else
+	atc->mode = atomDVI;
+    atc->pixelClock = Mode->SynthClock;
+
+    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+				 atomTransSetup, atc);
+}
+
+/*
+ *
+ */
+static void
+ATOMTransmitterPower(struct rhdOutput *Output, int Power)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+    struct ATOMTransmitterPrivate *transPrivate
+	= (struct ATOMTransmitterPrivate*) Private->Transmitter.Private;
+    struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+    
+    if (Private->DualLink)
+	atc->mode = atomDVI_DUAL;
+    else
+	atc->mode = atomDVI;
+
+    RHDFUNC(Output);
+
+    switch (Power) {
+	case RHD_POWER_ON:
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+					 atomTransEnable, atc);
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+					 atomTransEnableOutput, atc);
+	    break;
+	case RHD_POWER_RESET:
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+					 atomTransDisableOutput, atc);
+	    break;
+	case RHD_POWER_SHUTDOWN:
+	    if (!Output->Connector || Output->Connector->Type == RHD_CONNECTOR_DVI)
+		atc->mode = atomDVI_DUAL;
+
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+					 atomTransDisableOutput, atc);
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
+					 atomTransDisable, atc);
+	    break;
+    }
+}
+
+/*
+ *
+ */
+static void
+ATOMTransmitterSave(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+}
+
+/*
+ *
+ */
+static void
+ATOMTransmitterRestore(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+}
+
+/*
+ *
+ */
+static void
+ATOMTransmitterDestroy(struct rhdOutput *Output)
+{
+    struct DIGPrivate *digPrivate = (struct DIGPrivate *)Output->Private;
+
+    RHDFUNC(Output);
+
+    if (!digPrivate)
+	return;
+
+    xfree(digPrivate->Transmitter.Private);
+}
+
 /*
  *  Encoder
  */
@@ -389,7 +517,7 @@ static void
 LVDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = Private->Offset;
+    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
 
@@ -411,7 +539,7 @@ static void
 TMDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = Private->Offset;
+    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
 
@@ -431,7 +559,7 @@ static void
 EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = Private->Offset;
+    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
@@ -478,7 +606,7 @@ static void
 EncoderPower(struct rhdOutput *Output, int Power)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = Private->Offset;
+    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
     /* disable DP ?*/
@@ -511,7 +639,7 @@ EncoderSave(struct rhdOutput *Output)
 {
     struct DIGPrivate *digPrivate = (struct DIGPrivate *)Output->Private;
     struct DIGEncoder *Private = (struct DIGEncoder *)(digPrivate->Encoder.Private);
-    CARD32 off = digPrivate->Offset;
+    CARD32 off = (digPrivate->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
 
@@ -536,7 +664,7 @@ EncoderRestore(struct rhdOutput *Output)
 {
     struct DIGPrivate *digPrivate = (struct DIGPrivate *)Output->Private;
     struct DIGEncoder *Private = (struct DIGEncoder *)(digPrivate->Encoder.Private);
-    CARD32 off = digPrivate->Offset;
+    CARD32 off = (digPrivate->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
 
@@ -581,7 +709,7 @@ EncoderDestroy(struct rhdOutput *Output)
 void
 GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 {
-    CARD32 off = Private->Offset;
+    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(rhdPtr);
 
@@ -791,23 +919,56 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
 	    Output->Name = "UNIPHY_A";
-	    Private->Offset = 0;
-	    /* for now */
-	    xfree(Private);
-	    xfree(Output);
-	    return NULL;
+	    Private->EncoderID = ENCODER_DIG1;
+	    Private->Transmitter.Private =
+		(struct ATOMTransmitterPrivate *)xnfcalloc(sizeof (struct ATOMTransmitterPrivate), 1);
+
+	    Private->Transmitter.Sense = NULL;
+	    Private->Transmitter.ModeValid = ATOMTransmitterModeValid;
+	    Private->Transmitter.Mode = ATOMTransmitterSet;
+	    Private->Transmitter.Power = ATOMTransmitterPower;
+	    Private->Transmitter.Save = ATOMTransmitterSave;
+	    Private->Transmitter.Restore = ATOMTransmitterRestore;
+	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
+	    {
+		struct ATOMTransmitterPrivate *transPrivate =
+		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
+		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+		atc->coherent = Private->Coherent;
+		atc->encoder = atomEncoderDIG1;
+		atc->link = atomTransLinkA;
+		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
+	    }
 	    break;
+
 	case RHD_OUTPUT_UNIPHYB:
 	    Output->Name = "UNIPHY_B";
-	    Private->Offset = DIG2_OFFSET;
-	    /* for now */
-	    xfree(Private);
-	    xfree(Output);
-	    return NULL;
+	    Private->EncoderID = ENCODER_DIG2;
+	    Private->Transmitter.Private =
+		(struct atomTransmitterPrivate *)xnfcalloc(sizeof (struct ATOMTransmitterPrivate), 1);
+
+	    Private->Transmitter.Sense = NULL;
+	    Private->Transmitter.ModeValid = ATOMTransmitterModeValid;
+	    Private->Transmitter.Mode = ATOMTransmitterSet;
+	    Private->Transmitter.Power = ATOMTransmitterPower;
+	    Private->Transmitter.Save = ATOMTransmitterSave;
+	    Private->Transmitter.Restore = ATOMTransmitterRestore;
+	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
+	    {
+		struct ATOMTransmitterPrivate *transPrivate =
+		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
+		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+		atc->coherent = Private->Coherent;
+		atc->encoder = atomEncoderDIG2;
+		atc->link = atomTransLinkB;
+	    }
+	    ((struct ATOMTransmitterPrivate *)Private->Transmitter.Private)->atomTransmitterID
+		= atomTransmitterUNIPHY;
 	    break;
+
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSK_LVTMA";
-	    Private->Offset = DIG2_OFFSET;
+	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
 		(struct LVTMATransmitterPrivate *)xnfcalloc(sizeof (struct LVTMATransmitterPrivate), 1);
 
@@ -819,6 +980,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Restore = LVTMATransmitterRestore;
 	    Private->Transmitter.Destroy = LVTMATransmitterDestroy;
 	    break;
+
 	default:
 	    xfree(Private);
 	    xfree(Output);

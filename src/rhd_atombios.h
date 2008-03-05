@@ -143,6 +143,61 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting);
 extern Bool
 rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
 
+enum atomEncoder {
+    atomEncoderDIG1,
+    atomEncoderDIG2
+};
+
+enum atomEncoderMode {
+    atomDVI,
+    atomDVI_DUAL,
+    atomDP,
+    atomDP_8Lane,
+    atomLVDS,
+    atomLVDS_DUAL,
+    atomHDMI,
+    atomSDVO,
+    atomTVComposite,
+    atomTVSVideo,
+    atomTVComponent,
+    atomCRTC
+};
+
+enum atomTransmitter {
+    atomTransmitterLVTMA,
+    atomTransmitterUNIPHY,
+    atomTransmitterPCIEPHY,
+    atomTransmitterDIG1,
+    atomTransmitterDIG2
+};
+
+enum atomTransmitterAction {
+    atomTransDisable,
+    atomTransEnable,
+    atomTransEnableOutput,
+    atomTransDisableOutput,
+    atomTransSetup
+};
+
+enum atomTransmitterLink {
+    atomTransLinkA,
+    atomTransLinkB
+};
+
+struct atomTransmitterConfig
+{
+    int pixelClock;
+    enum atomEncoder encoder;
+    enum atomEncoderMode mode;
+    enum atomTransmitterLink link;
+    Bool coherent;
+};
+
+Bool
+rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
+			     enum atomTransmitterAction action, struct atomTransmitterConfig *config);
+
+
 # endif
 
 #endif /*  RHD_ATOMBIOS_H_ */
