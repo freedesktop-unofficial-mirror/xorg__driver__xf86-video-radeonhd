@@ -786,6 +786,14 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
         if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
             continue;
 
+	if (Crtc->ScaleValid) {
+	    Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
+	    if (Status != MODE_OK)
+		return Status;
+	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		continue;
+	}
+
 	Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
         if (Status != MODE_OK)
             return Status;
@@ -1547,6 +1555,14 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
 		continue;
+
+	    if (Crtc->ScaleValid) {
+		Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
+		if (Status != MODE_OK)
+		    return Status;
+		if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		    continue;
+	    }
 
 	    /* Check PLL */
 	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);

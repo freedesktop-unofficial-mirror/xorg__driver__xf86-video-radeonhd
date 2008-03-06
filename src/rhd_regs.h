@@ -154,7 +154,15 @@ enum {
     D1MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x658C,
 
     /* D1SCL */
+    D1SCL_ENABLE                   = 0x6590,
+    D1SCL_TAP_CONTROL              = 0x6594,
+    D1MODE_CENTER                  = 0x659C, /* guess */
+    D1SCL_HVSCALE                  = 0x65A4, /* guess */
+    D1SCL_HFILTER                  = 0x65B0, /* guess */
+    D1SCL_VFILTER                  = 0x65C0, /* guess */
     D1SCL_UPDATE                   = 0x65CC,
+    D1SCL_DITHER                   = 0x65D4, /* guess */
+    D1SCL_FLIP_CONTROL             = 0x65D8, /* guess */
 
     /* CRTC2 registers */
     D2CRTC_H_TOTAL                 = 0x6800,
@@ -207,7 +215,15 @@ enum {
     D2MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x6D8C,
 
     /* D2SCL */
+    D2SCL_ENABLE                   = 0x6D90,
+    D2SCL_TAP_CONTROL              = 0x6D94,
+    D2MODE_CENTER                  = 0x6D9C, /* guess */
+    D2SCL_HVSCALE                  = 0x6DA4, /* guess */
+    D2SCL_HFILTER                  = 0x6DB0, /* guess */
+    D2SCL_VFILTER                  = 0x6DC0, /* guess */
     D2SCL_UPDATE                   = 0x6DCC,
+    D2SCL_DITHER                   = 0x6DD4, /* guess */
+    D2SCL_FLIP_CONTROL             = 0x6DD8, /* guess */
 
     /* R500 DAC A */
     DACA_ENABLE                    = 0x7800,

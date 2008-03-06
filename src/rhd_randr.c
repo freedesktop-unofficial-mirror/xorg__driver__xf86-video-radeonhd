@@ -358,6 +358,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		pScrn->depth, rhdPtr->FbScanoutStart);
     Crtc->ModeSet(Crtc, Mode);
+    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
     Crtc->FrameSet(Crtc, x, y);
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
