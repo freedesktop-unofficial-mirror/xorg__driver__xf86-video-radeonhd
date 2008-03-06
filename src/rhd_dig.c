@@ -356,6 +356,8 @@ LVTMATransmitterDestroy(struct rhdOutput *Output)
     xfree(digPrivate->Transmitter.Private);
 }
 
+#ifdef ATOM_BIOS
+
 struct ATOMTransmitterPrivate
 {
     struct atomTransmitterConfig atomTransmitterConfig;
@@ -477,6 +479,8 @@ ATOMTransmitterDestroy(struct rhdOutput *Output)
 
     xfree(digPrivate->Transmitter.Private);
 }
+
+#endif
 
 /*
  *  Encoder
@@ -918,6 +922,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
+#ifdef ATOM_BIOS
 	    Output->Name = "UNIPHY_A";
 	    Private->EncoderID = ENCODER_DIG1;
 	    Private->Transmitter.Private =
@@ -940,8 +945,14 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
 	    }
 	    break;
+#else
+	    xfree(Private);
+	    xfree(Output);
+	    return NULL;
+#endif
 
 	case RHD_OUTPUT_UNIPHYB:
+#ifdef ATOM_BIOS
 	    Output->Name = "UNIPHY_B";
 	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
@@ -965,6 +976,11 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    ((struct ATOMTransmitterPrivate *)Private->Transmitter.Private)->atomTransmitterID
 		= atomTransmitterUNIPHY;
 	    break;
+#else
+	    xfree(Private);
+	    xfree(Output);
+	    return NULL;
+#endif
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSK_LVTMA";
