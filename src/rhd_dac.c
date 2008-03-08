@@ -62,8 +62,6 @@ struct rhdDACPrivate {
     CARD32 Store_Control1;
     CARD32 Store_Control2;
     CARD32 Store_Tristate_Control;
-    CARD32 Store_Dac_Unknown1;
-    CARD32 Store_Dac_Unknown2;
     CARD32 Store_Auto_Calib_Control;
     CARD32 Store_Dac_Bgadj_Src;
 };
@@ -375,7 +373,7 @@ DACSave(struct rhdOutput *Output, CARD16 offset)
     Private->Store_Control1 = RHDRegRead(Output, offset + DACA_CONTROL1);
     Private->Store_Control2 = RHDRegRead(Output, offset + DACA_CONTROL2);
     Private->Store_Tristate_Control = RHDRegRead(Output, offset + DACA_SYNC_TRISTATE_CONTROL);
-    
+
     Private->Stored = TRUE;
 }
 
@@ -740,7 +738,7 @@ DACSaveRV620(struct rhdOutput *Output, CARD16 offset)
     Private->Store_Tristate_Control = RHDRegRead(Output, offset + RV620_DACA_SYNC_TRISTATE_CONTROL);
     Private->Store_Auto_Calib_Control = RHDRegRead(Output, offset + RV620_DACA_AUTO_CALIB_CONTROL);
     Private->Store_Dac_Bgadj_Src = RHDRegRead(Output, offset + RV620_DACA_BGADJ_SRC);
-    
+
     Private->Stored = TRUE;
 }
 
