@@ -75,8 +75,15 @@ enum {
     P1PLL_INT_SS_CNTL              = 0x0458,
     P2PLL_INT_SS_CNTL              = 0x045C,
 
+    P1PLL_DISP_CLK_CNTL            = 0x0468, /* rv620+ */
+    P2PLL_DISP_CLK_CNTL            = 0x046C, /* rv620+ */
+    EXT1_SYM_PPLL_POST_DIV         = 0x0470, /* rv620+ */
+    EXT2_SYM_PPLL_POST_DIV         = 0x0474, /* rv620+ */
+
     PCLK_CRTC1_CNTL                = 0x0480,
     PCLK_CRTC2_CNTL                = 0x0484,
+
+    DCCG_DISP_CLK_SRCSEL           = 0x0538, /* rv620+ */
 
     R6XX_MC_VM_FB_LOCATION	   = 0x2180,
     R6XX_HDP_NONSURFACE_BASE       = 0x2C04,

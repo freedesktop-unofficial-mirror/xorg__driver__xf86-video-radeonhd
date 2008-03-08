@@ -794,11 +794,13 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 		continue;
 	}
 
-	Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
-        if (Status != MODE_OK)
-            return Status;
-        if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
-            continue;
+	if (Crtc->PLL->Valid) {
+	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
+	    if (Status != MODE_OK)
+		return Status;
+	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		continue;
+	}
 
         for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
             if (Output->Active && (Output->Crtc == Crtc)) {
