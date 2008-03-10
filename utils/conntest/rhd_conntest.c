@@ -435,6 +435,7 @@ struct RHDDevice {
     { 0x1002, 0x958E, 2, RHD_R600},
     { 0x1002, 0x9598, 2, RHD_RV620},
     { 0x1002, 0x95C5, 2, RHD_RV620},
+    { 0x1002, 0x9612, 2, RHD_RV620},
     { 0, 0, 0, 0 }
 };
 
@@ -636,11 +637,9 @@ DACLoadDetect(void *map, Bool tv, int dac)
      * but we don't bother with this at the moment.
      */
     ret = (RegRead(map, offset + DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
-#define DEBUG
 #ifdef DEBUG
     fprintf(stderr, "DAC%s: %x %s\n", dac ? "B" : "A", ret, tv ? "TV" : "");
 #endif
-#undef DEBUG
     RegMask(map, offset + DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
     RegWrite(map, offset + DACA_CONTROL1, Control1);
     RegMask(map, offset + DACA_CONTROL2, Control2, 0x1FF);
@@ -685,7 +684,6 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
     AutodetectIntCtl = RegRead(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL);
     DetectControl = RegRead(map, offset + RV620_DACA_AUTODETECT_CONTROL);
     CompEnable = RegRead(map, offset + RV620_DACA_COMPARATOR_ENABLE);
-
 #if 0
     if (RegRead(map, offset + 0x7000) & 0x01) {
 	CARD32 my_offset = 0;
@@ -723,8 +721,10 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
     /* bandgap */
     RegMask(map, offset + RV620_DACA_CONTROL1, dac ? 0x2502 : 0x2002, 0xffff);
     /* DAC RGB async enable */
-    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070000);
-
+    RegMask(map, offset + RV620_DACA_CONTROL2, 0x1, 0x1);
+    /* enable r/g/b comparators, disable D/SDET ref */
+    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070101);
+    usleep(100);
     /* check for connection */
     RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0x01, 0xff);
     usleep(32);
@@ -1763,7 +1763,8 @@ RV620I2CStatus(void *map)
     RegMask(map, RV62_GENERIC_I2C_INTERRUPT_CONTROL, 0x2, 0xff);
 
     if (!count
-	|| (val & (RV62_GENERIC_I2C_STOPPED_ON_NACK | RV62_GENERIC_I2C_NACK)))
+	|| (val & (RV62_GENERIC_I2C_STOPPED_ON_NACK | RV62_GENERIC_I2C_NACK
+		| RV62_GENERIC_I2C_TIMEOUT | RV62_GENERIC_I2C_ABORTED)))
 	return FALSE; /* 2 */
 
     return TRUE; /* 1 */
@@ -1920,6 +1921,9 @@ RV620I2CWriteRead(void *map, CARD8 line, CARD8 slave,
     return TRUE;
 }
 
+/*
+ *
+ */
 static Bool
 RV620DDCProbe(void *map, int Channel, unsigned char slave)
 {
