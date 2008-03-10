@@ -139,10 +139,6 @@ LVDSModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
-    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
-	&& Mode->SynthClock > 165000)
-	return MODE_CLOCK_HIGH;
-
     return MODE_OK;
 }
 
@@ -577,6 +573,10 @@ TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 
     if (Mode->Clock < 25000)
 	return MODE_CLOCK_LOW;
+
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
+	&& Mode->Clock > 165000)
+	return MODE_CLOCK_HIGH;
 
     return MODE_OK;
 }
