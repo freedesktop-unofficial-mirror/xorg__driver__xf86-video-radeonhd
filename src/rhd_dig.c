@@ -568,19 +568,26 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     RHDFUNC(Output);
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
 	/* select LinkA ?? */
-	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL, 0, (off ? RV62_LINK_STEER_SWAP  : 0)); /* swap if DIG2 */
+	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL, 0,
+		   ((Private->EncoderID == ENCODER_DIG2)
+		    ? RV62_LINK_STEER_SWAP
+		    : 0)); /* swap if DIG2 */
 	if (!Private->DualLink) {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, RV62_DIG_SWAP |  RV62_DIG_DUAL_LINK_ENABLE);
 	} else {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
-		       (off ?  RV62_DIG_SWAP : 0) | RV62_DIG_DUAL_LINK_ENABLE,
+		       ((Private->EncoderID == ENCODER_DIG2)
+			?  RV62_DIG_SWAP
+			: 0) | RV62_DIG_DUAL_LINK_ENABLE,
 		       RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE );
 	}
     } else if (Output->Id == RHD_OUTPUT_UNIPHYB) {
 	RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE);
 	/* select LinkB ?? */
 	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL,
-		   (off ? 0 : RV62_LINK_STEER_SWAP), RV62_LINK_STEER_SWAP);
+		   ((Private->EncoderID == ENCODER_DIG2)
+		    ? 0
+		    : RV62_LINK_STEER_SWAP), RV62_LINK_STEER_SWAP);
     }
 
     if (Private->EncoderMode == LVDS)
@@ -614,14 +621,18 @@ EncoderPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
     /* disable DP ?*/
-    RHDRegMask(Output, RV620_DCCG_SYMCLK_CNTL, 0x0, 0x3 << (off ? RV62_SYMCLKB_SRC_SHIFT
-							    : RV62_SYMCLKA_SRC_SHIFT));
+    RHDRegMask(Output, RV620_DCCG_SYMCLK_CNTL, 0x0,
+	       0x3 << ((Private->EncoderID == ENCODER_DIG2)
+		       ? RV62_SYMCLKB_SRC_SHIFT
+		       : RV62_SYMCLKA_SRC_SHIFT));
 
     switch (Power) {
 	case RHD_POWER_ON:
 	    /* enable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x10, 0x10);
-	    RHDRegMask(Output, off ? RV620_DCCG_PCLK_DIGB_CNTL : RV620_DCCG_PCLK_DIGA_CNTL,
+	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
+		       ? RV620_DCCG_PCLK_DIGB_CNTL
+		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       RV62_PCLK_DIGA_ON, RV62_PCLK_DIGA_ON); /* @@@ */
 	    return;
 	case RHD_POWER_RESET:
@@ -629,7 +640,9 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	default:
 	    /* disable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x1010);
-	    RHDRegMask(Output, off ? RV620_DCCG_PCLK_DIGB_CNTL : RV620_DCCG_PCLK_DIGA_CNTL,
+	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
+		       ? RV620_DCCG_PCLK_DIGB_CNTL
+		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       RV62_PCLK_DIGA_ON, RV62_PCLK_DIGA_ON); /* @@@ */
 	    return;
     }
@@ -653,8 +666,10 @@ EncoderSave(struct rhdOutput *Output)
     Private->StoredTMDSCntl        = RHDRegRead(Output, off + RV620_TMDS1_CNTL);
     Private->StoredDCIOLinkSteerCntl = RHDRegRead(Output, RV620_DCIO_LINK_STEER_CNTL);
     Private->StoredDCCGPclkDigCntl    = RHDRegRead(Output,
-						off ? RV620_DCCG_PCLK_DIGB_CNTL
-						: RV620_DCCG_PCLK_DIGA_CNTL);
+						   (digPrivate->EncoderID
+						    == ENCODER_DIG2)
+						   ? RV620_DCCG_PCLK_DIGB_CNTL
+						   : RV620_DCCG_PCLK_DIGA_CNTL);
     Private->StoredDCCGSymclkCntl     = RHDRegRead(Output, RV620_DCCG_SYMCLK_CNTL);
 
     Private->Stored = TRUE;
@@ -684,7 +699,9 @@ EncoderRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, off + RV620_DIG1_CLOCK_PATTERN, Private->StoredDIGClockPattern);
     RHDRegWrite(Output, off + RV620_LVDS1_DATA_CNTL, Private->StoredLVDSDataCntl);
     RHDRegWrite(Output, off + RV620_TMDS1_CNTL, Private->StoredTMDSCntl);
-    RHDRegWrite(Output, off ? RV620_DCCG_PCLK_DIGB_CNTL : RV620_DCCG_PCLK_DIGA_CNTL,
+    RHDRegWrite(Output, (digPrivate->EncoderID == ENCODER_DIG2)
+		? RV620_DCCG_PCLK_DIGB_CNTL
+		: RV620_DCCG_PCLK_DIGA_CNTL,
 		Private->StoredDCCGPclkDigCntl);
     /* now enable the encoder */
     RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl);
