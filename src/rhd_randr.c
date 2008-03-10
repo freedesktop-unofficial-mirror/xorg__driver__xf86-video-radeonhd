@@ -724,7 +724,7 @@ rhdRROutputCommit(xf86OutputPtr out)
     ASSERT(Crtc == rout->Output->Crtc);
 
     rout->Output->Active    = TRUE;
-    rout->Output->Connector = rout->Connector;
+    rout->Output->Connector = rout->Connector; /* @@@ */
     rout->Output->Power(rout->Output, RHD_POWER_ON);
 
     /* Some outputs may have physical protocol changes (e.g. TV) */
@@ -757,8 +757,10 @@ rhdRROutputDetect(xf86OutputPtr output)
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
 
     /* Assume that a panel is always connected */
-    if (rout->Connector->Type == RHD_CONNECTOR_PANEL)
+    if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
+	rout->Output->Connector = rout->Connector; /* @@@ */
 	return XF86OutputStatusConnected;
+    }
 
     if (rout->Connector->HPDCheck) {
 	/* Hot Plug Detection available, use it */
@@ -767,11 +769,12 @@ rhdRROutputDetect(xf86OutputPtr output)
 	     * HPD returned true
 	     */
 	    if (rout->Output->Sense) {
-		if ((rout->Output->SensedType 
-		     = rout->Output->Sense(rout->Output, 
-					   rout->Connector->Type)))
+		if ((rout->Output->SensedType
+		     = rout->Output->Sense(rout->Output,
+					   rout->Connector->Type))) {
+		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    return XF86OutputStatusConnected;
-		else
+		} else
 		    return XF86OutputStatusDisconnected;
 	    } else {
 		/* HPD returned true, but no Sense() available
@@ -786,11 +789,12 @@ rhdRROutputDetect(xf86OutputPtr output)
 			o->Connector == rout->Connector &&
 			o->Output->Sense) {
 			/* Yes, this looks wrong, but is correct */
-			if ((o->Output->SensedType = 
+			if ((o->Output->SensedType =
 			     o->Output->Sense(o->Output, o->Connector->Type)))
 			    return XF86OutputStatusDisconnected;
 		    }
 		}
+		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
 	    }
 	} else {
@@ -803,10 +807,12 @@ rhdRROutputDetect(xf86OutputPtr output)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "RandR: Verifying state of DMS-59 VGA connector.\n");
 		if (rout->Output->Sense &&
-		    (rout->Output->SensedType 
-		     = rout->Output->Sense(rout->Output, 
-					   rout->Connector->Type)))
-		return XF86OutputStatusConnected;
+		    (rout->Output->SensedType
+		     = rout->Output->Sense(rout->Output,
+					   rout->Connector->Type))) {
+		    rout->Output->Connector = rout->Connector; /* @@@ */
+		    return XF86OutputStatusConnected;
+		}
 	    }
 	    return XF86OutputStatusDisconnected;
 	}
@@ -815,19 +821,22 @@ rhdRROutputDetect(xf86OutputPtr output)
 	 * No HPD available, Sense() if possible
 	 */
 	if (rout->Output->Sense) {
-	    if ((rout->Output->SensedType 
-		 = rout->Output->Sense(rout->Output, rout->Connector->Type)))
-		return XF86OutputStatusConnected;
-	    else
+	    if ((rout->Output->SensedType
+		 = rout->Output->Sense(rout->Output, rout->Connector->Type))) {
+		    rout->Output->Connector = rout->Connector; /* @@@ */
+		    return XF86OutputStatusConnected;
+	    } else
 		return XF86OutputStatusDisconnected;
 	}
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
-	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0))
+	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0)) {
+		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
-	    else
+	    }  else
 		return XF86OutputStatusDisconnected;
 	}
+	rout->Output->Connector = rout->Connector; /* @@@ */
 	return XF86OutputStatusUnknown;
     }
 }
