@@ -482,7 +482,8 @@ DACSenseRV620(struct rhdOutput *Output, CARD32 offset, Bool TV)
     RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_CONTROL, 0x00, 0xff);
     RHDRegMask(Output, offset + RV620_DACA_MACRO_CNTL,
 	       (offset > 0) ? 0x2502 :  0x2002, 0xffff);
-    RHDRegMask(Output, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070000);
+    /* enable comparators for R/G/B, disable DDET and SDET reference */
+    RHDRegMask(Output, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070101);
     RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_CONTROL, 0x01, 0xff);
     usleep(32);
     ret = RHDRegRead(Output, offset + RV620_DACA_AUTODETECT_STATUS);
