@@ -415,7 +415,7 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
     struct ATOMTransmitterPrivate *transPrivate
 	= (struct ATOMTransmitterPrivate*) Private->Transmitter.Private;
     struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-    
+
     if (Private->DualLink)
 	atc->mode = atomDVI_DUAL;
     else
@@ -906,6 +906,7 @@ DigDestroy(struct rhdOutput *Output)
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
 
+    xfree(Private);
     Output->Private = NULL;
 }
 
