@@ -1198,7 +1198,7 @@ rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
 
     atomDataPtr = handle->atomDataPtr;
 
-    if (!(tv_info->ucTV_SuppportedStandard & (1 << tvMode)))
+    if (!(tv_info->ucTV_SupportedStandard & (1 << tvMode)))
 	return NULL;
 
     switch (tvMode) {
@@ -1325,7 +1325,7 @@ rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 	    rhdPrintTVModes(handle, (unsigned char)data->val, "Default TV Mode:");
 	    break;
 	case ATOM_ANALOG_TV_SUPPORTED_MODES:
-	    data->val = (CARD32)atomDataPtr->AnalogTV_Info->ucTV_SuppportedStandard;
+	    data->val = (CARD32)atomDataPtr->AnalogTV_Info->ucTV_SupportedStandard;
 	    rhdPrintTVModes(handle, (unsigned char)data->val, "Supported TV Modes:");
 	    break;
 	default:
