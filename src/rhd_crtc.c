@@ -518,20 +518,21 @@ D2ViewPortStart(struct rhdCrtc *Crtc, CARD16 X, CARD16 Y)
 static void
 D1CRTCDisable(struct rhdCrtc *Crtc)
 {
-    if (RHDRegRead(Crtc, D1CRTC_CONTROL) & 1) {
+    if (RHDRegRead(Crtc, D1CRTC_CONTROL) & 0x00000001) {
 	CARD32 Control = RHDRegRead(Crtc, D1CRTC_CONTROL);
 	int i;
 
-	RHDRegMask(Crtc, D1CRTC_CONTROL, 0, 0x0301);
+	RHDRegMask(Crtc, D1CRTC_CONTROL, 0, 0x00000301);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
-	    if (!(RHDRegRead(Crtc, D1CRTC_STATUS) & 1)) {
-		RHDRegMask(Crtc, D1CRTC_CONTROL, Control, 0x0300);
+	    if (!(RHDRegRead(Crtc, D1CRTC_CONTROL) & 0x00010000)) {
 		RHDDebug(Crtc->scrnIndex, "%s: %d loops\n", __func__, i);
+		RHDRegMask(Crtc, D1CRTC_CONTROL, Control, 0x00000300);
 		return;
 	    }
-	xf86DrvMsg(Crtc->scrnIndex, X_WARNING,
+	xf86DrvMsg(Crtc->scrnIndex, X_ERROR,
 		   "%s: Failed to Unsync %s\n", __func__, Crtc->Name);
+	RHDRegMask(Crtc, D1CRTC_CONTROL, Control, 0x00000300);
     }
 }
 
@@ -541,20 +542,21 @@ D1CRTCDisable(struct rhdCrtc *Crtc)
 static void
 D2CRTCDisable(struct rhdCrtc *Crtc)
 {
-    if (RHDRegRead(Crtc, D2CRTC_CONTROL) & 1) {
+    if (RHDRegRead(Crtc, D2CRTC_CONTROL) & 0x00000001) {
 	CARD32 Control = RHDRegRead(Crtc, D2CRTC_CONTROL);
 	int i;
 
-	RHDRegMask(Crtc, D2CRTC_CONTROL, 0, 0xFF01);
+	RHDRegMask(Crtc, D2CRTC_CONTROL, 0, 0x00000301);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
-	    if (!(RHDRegRead(Crtc, D2CRTC_STATUS) & 1)) {
-		RHDRegMask(Crtc, D2CRTC_CONTROL, Control, 0x0300);
+	    if (!(RHDRegRead(Crtc, D2CRTC_CONTROL) & 0x00010000)) {
 		RHDDebug(Crtc->scrnIndex, "%s: %d loops\n", __func__, i);
+		RHDRegMask(Crtc, D2CRTC_CONTROL, Control, 0x00000300);
 		return;
 	    }
-	xf86DrvMsg(Crtc->scrnIndex, X_WARNING,
+	xf86DrvMsg(Crtc->scrnIndex, X_ERROR,
 		   "%s: Failed to Unsync %s\n", __func__, Crtc->Name);
+	RHDRegMask(Crtc, D2CRTC_CONTROL, Control, 0x00000300);
     }
 }
 
