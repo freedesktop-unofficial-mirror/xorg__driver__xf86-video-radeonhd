@@ -1567,11 +1567,13 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	    }
 
 	    /* Check PLL */
-	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
-	    if (Status != MODE_OK)
-		return Status;
-	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
-		continue;
+	    if (Crtc->PLL->Valid) {
+		Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
+		if (Status != MODE_OK)
+		    return Status;
+		if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		    continue;
+	    }
 	}
 
 	/* Check Output */
