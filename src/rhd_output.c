@@ -178,8 +178,8 @@ RHDOutputPrintSensedType(struct rhdOutput *Output)
     struct { enum rhdSensedOutput type; char *name; } 
     list[] = { { RHD_SENSED_NONE, "none" },
 	     { RHD_SENSED_VGA, "VGA" },
-	     { RHD_SENSED_DVI, "DIV" },
-	     { RHD_SENSED_DVI_DUAL, "DIV_DUAL" },
+	     { RHD_SENSED_DVI, "DVI" },
+	     { RHD_SENSED_DVI_DUAL, "DVI_DUAL" },
 	     { RHD_SENSED_TV_SVIDEO, "TV_SVIDEO"},
 	     { RHD_SENSED_TV_COMPOSITE, "TV_COMPOSITE" },
 	     { RHD_SENSED_TV_COMPONENT, "TV_COMPONENT" },

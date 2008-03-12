@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007-2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007-2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007-2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -541,9 +541,10 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
  *
  */
 struct rhdTMDSBPrivate {
+    Bool RunsDualLink;
+
     Bool Stored;
 
-    Bool DualLink;
     CARD32 StoreControl;
     CARD32 StoreSource;
     CARD32 StoreFormat;
@@ -574,9 +575,13 @@ TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     if (Mode->Clock < 25000)
 	return MODE_CLOCK_LOW;
 
-    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
-	&& Mode->Clock > 165000)
-	return MODE_CLOCK_HIGH;
+    if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE) {
+	if (Mode->Clock > 165000)
+	    return MODE_CLOCK_HIGH;
+    } else if (Output->Connector->Type == RHD_CONNECTOR_DVI) {
+	if (Mode->Clock > 330000) /* could go higher still */
+	    return MODE_CLOCK_HIGH;
+    }
 
     return MODE_OK;
 }
@@ -680,8 +685,6 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDFUNC(Output);
 
-    Private->DualLink =  (Mode->SynthClock > 165000) ? TRUE : FALSE;
-
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
     if (rhdPtr->ChipSet < RHD_RS600) /* r5xx */
 	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
@@ -711,10 +714,15 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     /* Select CRTC, select syncA, no stereosync */
     RHDRegMask(Output, LVTMA_SOURCE_SELECT, Output->Crtc->Id, 0x00010101);
 
-    /* Single link, for now */
     RHDRegWrite(Output, LVTMA_COLOR_FORMAT, 0);
-    RHDRegMask(Output, LVTMA_CNTL,
-	       (Private->DualLink) ? 0x01000000 : 0, 0x01000000);
+
+    if (Mode->SynthClock > 165000) {
+	RHDRegMask(Output, LVTMA_CNTL, 0x01000000, 0x01000000);
+	Private->RunsDualLink = TRUE; /* for TRANSMITTER_ENABLE in TMDSBPower */
+    } else {
+	RHDRegMask(Output, LVTMA_CNTL, 0, 0x01000000);
+	Private->RunsDualLink = FALSE;
+    }
 
     if (rhdPtr->ChipSet > RHD_R600) /* Rv6xx: disable split mode */
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x20000000);
@@ -765,8 +773,12 @@ TMDSBPower(struct rhdOutput *Output, int Power)
     switch (Power) {
     case RHD_POWER_ON:
 	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
-	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE,
-		   (Private->DualLink) ? 0x00003E3E : 0x0000003E, 0x00003E3E);
+
+	if (Private->RunsDualLink)
+	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x00003E3E,0x00003E3E);
+	else
+	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x0000003E, 0x00003E3E);
+
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
@@ -916,7 +928,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Restore = TMDSBRestore;
 
 	Output->Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
-	((struct rhdTMDSBPrivate *)Output->Private)->DualLink = FALSE;
+	((struct rhdTMDSBPrivate *)Output->Private)->RunsDualLink = FALSE;
     }
 
     return Output;
