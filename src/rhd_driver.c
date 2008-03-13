@@ -480,7 +480,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* Get server verbosity level */
     rhdPtr->verbosity = xf86GetVerbosity();
-    
+
     /* This driver doesn't expect more than one entity per screen */
     if (pScrn->numEntities > 1) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -627,7 +627,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    {NULL, RHD_TV_NONE}
 	};
 
-	
+
 	if (rhdPtr->tvModeName.set) {
 	    int i = 0;
 
@@ -636,12 +636,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		    rhdPtr->tvMode = rhdTVModeMapName[i].mode;
 		    break;
 		}
+		i++;
 	    }
 	    if (rhdPtr->tvMode == RHD_TV_NONE) {
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			   "Specified TV Mode %s is invalid\n", rhdPtr->tvModeName.val.string);
 	    }
-	} 
+	}
 #ifdef ATOM_BIOS
 	if (rhdPtr->tvMode == RHD_TV_NONE) {
 	    AtomBiosArgRec atomBiosArg;
@@ -654,7 +655,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		rhdPtr->tvMode = atomBiosArg.tvMode;
 		while (rhdTVModeMapName[i].name) {
 		    if (rhdTVModeMapName[i].mode == rhdPtr->tvMode) {
-			xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, 
+			xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 				   "Found default TV Mode %s\n",rhdTVModeMapName[i].name);
 			break;
 		    }
@@ -1575,7 +1576,7 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
     /* First, try to sense */
     for (i = 0; i < 2; i++) {
 	Output = Connector->Output[i];
-	if (Output && Output->Sense 
+	if (Output && Output->Sense
 	    && (Output->SensedType = Output->Sense(Output, Connector->Type))) {
 	    RHDOutputPrintSensedType(Output);
 	    Output->Connector = Connector;
