@@ -101,7 +101,7 @@ struct DIGPrivate
     enum encoderID EncoderID;
     enum encoderMode EncoderMode;
     Bool Coherent;
-    Bool DualLink;
+    Bool RunDualLink;
     /* LVDS */
     Bool FPDI;
     struct rhdFMTDither FMTDither;
@@ -163,7 +163,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 	     (Mode->SynthClock),(Mode->SynthClock / 10), Private->EncoderMode);
 
     /* Set up magic value that's used for list lookup */
-    value = ((Mode->SynthClock / 10 / ((Private->DualLink) ? 2 : 1)) & 0xffff)
+    value = ((Mode->SynthClock / 10 / ((Private->RunDualLink) ? 2 : 1)) & 0xffff)
 	| (Private->EncoderMode << 16)
 	| ((Private->Coherent ? 0x2 : 0) << 24);
 
@@ -244,7 +244,7 @@ LVTMATransmitterPower(struct rhdOutput *Output, int Power)
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
 		       RV62_LVTMA_LNKL,
 		       RV62_LVTMA_LNK_ALL);
-	    if (Private->DualLink) {
+	    if (Private->RunDualLink) {
 		usleep (28);
 		/* enable upper link */
 		RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE,
@@ -394,10 +394,10 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     RHDFUNC(Output);
 
-    if (Private->DualLink)
-	atc->mode = atomDVI_DUAL;
+    if (Private->RunDualLink)
+	atc->mode = atomDVI_2Link;
     else
-	atc->mode = atomDVI;
+	atc->mode = atomDVI_1Link;
     atc->pixelClock = Mode->SynthClock;
 
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
@@ -416,10 +416,10 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 	= (struct ATOMTransmitterPrivate*) Private->Transmitter.Private;
     struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
 
-    if (Private->DualLink)
-	atc->mode = atomDVI_DUAL;
+    if (Private->RunDualLink)
+	atc->mode = atomDVI_2Link;
     else
-	atc->mode = atomDVI;
+	atc->mode = atomDVI_1Link;
 
     RHDFUNC(Output);
 
@@ -436,7 +436,7 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 	    break;
 	case RHD_POWER_SHUTDOWN:
 	    if (!Output->Connector || Output->Connector->Type == RHD_CONNECTOR_DVI)
-		atc->mode = atomDVI_DUAL;
+		atc->mode = atomDVI_2Link;
 
 	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
 					 atomTransDisableOutput, atc);
@@ -572,7 +572,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 		   ((Private->EncoderID == ENCODER_DIG2)
 		    ? RV62_LINK_STEER_SWAP
 		    : 0)); /* swap if DIG2 */
-	if (!Private->DualLink) {
+	if (!Private->RunDualLink) {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, RV62_DIG_SWAP |  RV62_DIG_DUAL_LINK_ENABLE);
 	} else {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
@@ -601,7 +601,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     RHDRegMask(Output, off + RV620_DIG1_CNTL,
 	       (Private->EncoderMode & 0x7) << 8
 	       | RV62_DIG_START
-	       | (Private->DualLink ? RV62_DIG_DUAL_LINK_ENABLE : 0)
+	       | (Private->RunDualLink ? RV62_DIG_DUAL_LINK_ENABLE : 0)
 	       | Output->Crtc->Id,
 	       RV62_DIG_MODE
 	       | RV62_DIG_START
@@ -736,7 +736,7 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 
     Private->FPDI = ((RHDRegRead(rhdPtr, off + RV620_LVDS1_DATA_CNTL)
 				 & RV62_LVDS_24BIT_FORMAT) != 0);
-    Private->DualLink = ((RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL)
+    Private->RunDualLink = ((RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL)
 				 & RV62_DIG_DUAL_LINK_ENABLE) != 0);
     Private->FMTDither.LVDS24Bit = ((RHDRegRead(rhdPtr, off  + RV620_LVDS1_DATA_CNTL)
 			   & RV62_LVDS_24BIT_ENABLE) != 0);
@@ -764,7 +764,7 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_DUALLINK, &data) == ATOM_SUCCESS)
-	    Private->DualLink = data.val;
+	    Private->RunDualLink = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_24BIT, &data) == ATOM_SUCCESS)
@@ -853,7 +853,7 @@ DigMode(struct rhdOutput *Output, DisplayModePtr Mode)
      * Do it here as it is convenient.
      */
     if (Output->Connector->Type == RHD_CONNECTOR_DVI)
-	Private->DualLink = (Mode->SynthClock > 165000) ? TRUE : FALSE;
+	Private->RunDualLink = (Mode->SynthClock > 165000) ? TRUE : FALSE;
 
     Encoder->Mode(Output, Crtc, Mode);
     Transmitter->Mode(Output, Crtc, Mode);
@@ -1036,11 +1036,11 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    GetLVDSInfo(rhdPtr, Private);
 	    break;
 	case RHD_CONNECTOR_DVI:
-	    Private->DualLink = FALSE;
-	    Private->EncoderMode = TMDS_DVI; /* will be set later acc to pxclk */
+	    Private->RunDualLink = FALSE; /* will be set later acc to pxclk */
+	    Private->EncoderMode = TMDS_DVI;
 	    break;
 	case RHD_CONNECTOR_DVI_SINGLE:
-	    Private->DualLink = FALSE;
+	    Private->RunDualLink = FALSE;
 	    Private->EncoderMode = TMDS_DVI;  /* currently also HDMI */
 	    break;
     }

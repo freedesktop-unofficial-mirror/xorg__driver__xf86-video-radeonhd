@@ -149,8 +149,8 @@ enum atomEncoder {
 };
 
 enum atomEncoderMode {
-    atomDVI,
-    atomDVI_DUAL,
+    atomDVI_1Link,
+    atomDVI_2Link,
     atomDP,
     atomDP_8Lane,
     atomLVDS,

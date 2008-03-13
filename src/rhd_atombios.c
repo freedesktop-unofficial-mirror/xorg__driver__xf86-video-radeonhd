@@ -719,13 +719,13 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 
     Transmitter.ucConfig = 0;
     switch (config->mode) {
-	case atomDVI:
+	case atomDVI_1Link:
 	case atomHDMI:
 	case atomLVDS:
 	    Transmitter.usPixelClock = config->pixelClock / 10;
 	    break;
 
-	case atomDVI_DUAL:
+	case atomDVI_2Link:
 	case atomLVDS_DUAL:
 	    Transmitter.usPixelClock = config->pixelClock / 20;
 	    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_8LANE_LINK;
