@@ -108,12 +108,9 @@ TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
     RHDDebug(Output->scrnIndex, "%s: %s\n", __func__,
 	     ret ? "Attached" : "Disconnected");
 
-    if (ret) {
-	if (Type == RHD_CONNECTOR_DVI) /* hrm... confusing */
-	    return RHD_SENSED_DVI_DUAL;
-	else
-	    return RHD_SENSED_DVI;
-    } else
+    if (ret)
+	return RHD_SENSED_DVI;
+    else
 	return RHD_SENSED_NONE;
 }
 
