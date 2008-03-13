@@ -112,6 +112,9 @@ struct LVDSPrivate {
     CARD16 PowerDigToDE;
     CARD16 PowerDEToBL;
     CARD16 OffDelay;
+    Bool   TemporalDither;
+    Bool   SpatialDither;
+    int    GreyLevel;
 
     Bool Stored;
 
@@ -174,21 +177,12 @@ LVDSSet(struct rhdOutput *Output, DisplayModePtr Mode)
 	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00101010); /* dithering bit depth != 24 */
     }
 
-#if 0
-    if (LVDS_Info->LVDS_Misc & 0x40) { /* enable dithering? */
-	if (LVDS_Info->LVDS_Misc & 0x0C) /* no idea. */
-	    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x01000000, 0x01000000); /* grey level 4 */
-	else
-	    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x01000000); /* grey level 2 */
-
-	/* enable temporal bit depth reduction */
-	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x00010000, 0x00010000);
-    } else
-	RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0, 0x00010101);
-#endif
-
     /* enable temporal dithering, disable spatial dithering and disable truncation */
-    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x01010000, 0x01010101);
+    RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL,
+	       Private->TemporalDither ? 1 << 16 : 0
+	       | Private->SpatialDither ? 1 << 8 : 0
+	       | (Private->GreyLevel > 2) ? 1 << 24 : 0,
+	       0x01010101);
 
     /* reset the temporal dithering */
     RHDRegMask(Output, LVTMA_BIT_DEPTH_CONTROL, 0x04000000, 0x04000000);
@@ -475,6 +469,11 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
     Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
     Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000010;
 
+    tmp = RHDRegRead(rhdPtr, LVTMA_BIT_DEPTH_CONTROL);
+    Private->TemporalDither =  ((tmp & (1 << 16)) != 0);
+    Private->SpatialDither = ((tmp & (1 << 8)) != 0);
+    Private->GreyLevel = (tmp & (1 << 24)) ? 4 : 2;
+
 #ifdef ATOM_BIOS
     {
 	AtomBiosArgRec data;
@@ -500,8 +499,23 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 	    Private->LVDS24Bit = data.val;
 
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_LVDS_FPDI, &data) == ATOM_SUCCESS)
+			    ATOM_LVDS_FPDI, &data) == ATOM_SUCCESS)
 	    Private->FPDI = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_TEMPORAL_DITHER, &data) == ATOM_SUCCESS)
+	    Private->TemporalDither = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_SPATIAL_DITHER, &data) == ATOM_SUCCESS)
+	    Private->SpatialDither = data.val;
+
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_LVDS_GREYLVL, &data) == ATOM_SUCCESS) {
+	    Private->GreyLevel = data.val;
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "AtomBIOS returned %i Grey Levels\n",
+		       Private->GreyLevel);
+	}
     }
 #endif
 
