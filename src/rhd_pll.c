@@ -1161,7 +1161,7 @@ RHDPLLsInit(RHDPtr rhdPtr)
 	PLL->Power = R500PLL2Power;
 	PLL->Save = R500PLL2Save;
 	PLL->Restore = R500PLL2Restore;
-    }{
+    } else {
 	PLL->Set = RV620PLL2Set;
 	PLL->Power = RV620PLL2Power;
 	PLL->Save = RV620PLL2Save;
