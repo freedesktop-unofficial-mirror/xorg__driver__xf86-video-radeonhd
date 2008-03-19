@@ -280,8 +280,10 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE,
 	    "\tR600  : Radeon HD 2900 GT/Pro/XT; FireGL V7600/V8600/V8650.\n"
 	    "\tRV610 : Radeon HD 2350, HD 2400 Pro/XT, HD 2400 Pro AGP; FireGL V4000.\n"
+	    "\tRV620 : Radeon HD 3450, HD 3470.\n"
 	    "\tRV630 : Radeon HD 2600 LE/Pro/XT, HD 2600 Pro/XT AGP; Gemini RV630;\n"
 	    "\t\tFireGL V3600/V5600.\n"
+	    "\tRV635 : Radeon HD 3650, HD 3670.\n"
 	    "\tRV670 : Radeon HD 3850, HD 3870, FireGL V7700.\n"
 	    "\tR680  : Radeon HD 3870 X2.\n");
     xf86Msg(X_NONE,
@@ -304,8 +306,6 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE,
 	    "\tRS600 : Radeon Xpress 1200, Xpress 1250.\n"
 	    "\tRS690 : Radeon X1200, X1250, X1270.\n"
-	    "\tRV620 : Radeon HD 3400.\n"
-	    "\tRV635 : Radeon HD 3600.\n"
 	    /* NOT YET "\tRS740  : RS740, RS740M\n" */ );
     xf86Msg(X_NONE, "\n");
 
