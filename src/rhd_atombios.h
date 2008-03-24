@@ -79,6 +79,8 @@ typedef enum _AtomBiosRequestID {
     ATOM_ANALOG_TV_DEFAULT_MODE,
     ATOM_ANALOG_TV_SUPPORTED_MODES,
     ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS,
+    ATOM_GET_PCIENB_CFG_REG7,
+    ATOM_GET_CAPABILITY_FLAG,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -122,6 +124,7 @@ typedef union AtomBiosArg
 {
     CARD32 val;
     struct rhdConnectorInfo	*connectorInfo;
+    enum RHD_CHIPSETS		chipset;
     struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
     struct {
@@ -193,10 +196,8 @@ struct atomTransmitterConfig
     Bool coherent;
 };
 
-Bool
-rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
-			     enum atomTransmitterAction action, struct atomTransmitterConfig *config);
-
+Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
+				  enum atomTransmitterAction action, struct atomTransmitterConfig *config);
 
 # endif
 

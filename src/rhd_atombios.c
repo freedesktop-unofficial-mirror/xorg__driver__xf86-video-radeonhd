@@ -115,6 +115,9 @@ static AtomBiosResult rhdAtomExec(atomBiosHandlePtr handle,
 static AtomBiosResult
 rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 			      AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
+				 AtomBiosRequestID func, AtomBiosArgPtr data);
 
 
 enum msgDataFormat {
@@ -223,6 +226,10 @@ struct atomBIOSRequests {
      "Analog TV Supported Modes",		MSG_FORMAT_HEX},
     {ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS, rhdAtomGetConditionalGoldenSetting,
      "Conditional Golden Settings",		MSG_FORMAT_NONE},
+    {ATOM_GET_PCIENB_CFG_REG7, rhdAtomIntegratedSystemInfoQuery,
+     "PCIE NB Cfg7Reg",				MSG_FORMAT_HEX},
+    {ATOM_GET_CAPABILITY_FLAG, rhdAtomIntegratedSystemInfoQuery,
+     "CapabilityFlag",				MSG_FORMAT_HEX},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -1334,6 +1341,47 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
     return ATOM_SUCCESS;
 }
 
+static AtomBiosResult
+rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
+			AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    CARD32 *val = &data->val;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+
+    if (!rhdAtomGetTableRevisionAndSize(
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->IntegratedSystemInfo.base),
+	    &frev,&crev,NULL)) {
+	return ATOM_FAILED;
+    }
+
+    switch (crev) {
+	case 1:
+	    switch (func) {
+		case ATOM_GET_PCIENB_CFG_REG7:
+		    *val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo->usPCIENBCfgReg7;
+		    break;
+		case ATOM_GET_CAPABILITY_FLAG:
+		    *val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo->usCapabilityFlag;
+		    break;
+		default:
+		    return ATOM_NOT_IMPLEMENTED;
+	    }
+	    break;
+	case 2:
+	    switch (func) {
+		default:
+		    return ATOM_NOT_IMPLEMENTED;
+	    }
+	    break;
+    }
+    return ATOM_SUCCESS;
+}
+
 static DisplayModePtr
 rhdAtomAnalogTVTimings(atomBiosHandlePtr handle,
 		       ATOM_ANALOG_TV_INFO *tv_info,
@@ -1734,6 +1782,11 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
      xf86DrvMsg(handle->scrnIndex,X_ERROR,"%s: %s %i exceeds maximum %i\n", \
 		__func__,name,n,max), TRUE) : FALSE)
 
+enum rhdChipKind {
+    RHD_CHIP_EXTERNAL = 0,
+    RHD_CHIP_IGP = 1
+};
+
 static const struct _rhd_connector_objs
 {
     char *name;
@@ -1765,7 +1818,7 @@ static const int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(str
 static const struct _rhd_encoders
 {
     char *name;
-    rhdOutputType ot[2];
+    rhdOutputType ot[2];  /* { RHD_CHIP_EXTERNAL, RHD_CHIP_IGP } */
 } rhd_encoders[] = {
     { "NONE", {RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "INTERNAL_LVDS", { RHD_OUTPUT_LVDS, RHD_OUTPUT_NONE }},
@@ -1829,18 +1882,18 @@ static const int n_rhd_connectors = sizeof(rhd_connectors) / sizeof(struct _rhd_
 static const struct _rhd_devices
 {
     char *name;
-    rhdOutputType ot;
+    rhdOutputType ot[2];
 } rhd_devices[] = {
-    {" CRT1", RHD_OUTPUT_NONE },
-    {" LCD1", RHD_OUTPUT_LVTMA },
-    {" TV1", RHD_OUTPUT_NONE },
-    {" DFP1", RHD_OUTPUT_TMDSA },
-    {" CRT2", RHD_OUTPUT_NONE },
-    {" LCD2", RHD_OUTPUT_LVTMA },
-    {" TV2", RHD_OUTPUT_NONE },
-    {" DFP2", RHD_OUTPUT_LVTMA },
-    {" CV", RHD_OUTPUT_NONE },
-    {" DFP3", RHD_OUTPUT_LVTMA }
+    {" CRT1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
+    {" LCD1", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA } },
+    {" TV1",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
+    {" DFP1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE } },
+    {" CRT2", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
+    {" LCD2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE } },
+    {" TV2",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
+    {" DFP2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_DVO } },
+    {" CV",   { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
+    {" DFP3", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA } }
 };
 static const int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
 
@@ -2210,6 +2263,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
  */
 static AtomBiosResult
 rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
+					 enum rhdChipKind kind,
 					 rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
@@ -2277,7 +2331,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    if ((devices[n].ot
 		 = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
 		== RHD_OUTPUT_NONE) {
-		devices[n].ot = rhd_devices[n].ot;
+		devices[n].ot = rhd_devices[n].ot[kind];
 	    }
 	} else
 	    devices[n].ot = RHD_OUTPUT_NONE;
@@ -2398,18 +2452,37 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 /*
  *
  */
+enum rhdChipKind
+rhdAtomGetChipKind(enum RHD_CHIPSETS chipset)
+{
+    switch (chipset) {
+	case RHD_RS600:
+	case RHD_RS690:
+	case RHD_RS740:
+	    return RHD_CHIP_IGP;
+	default:
+	    return RHD_CHIP_EXTERNAL;
+    }
+}
+
+/*
+ *
+ */
 static AtomBiosResult
 rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 		     AtomBiosRequestID unused, AtomBiosArgPtr data)
 {
+    int chipset = data->chipset;
     data->connectorInfo = NULL;
 
     if (rhdAtomConnectorInfoFromObjectHeader(handle,&data->connectorInfo)
 	== ATOM_SUCCESS)
 	return ATOM_SUCCESS;
-    else
-	return rhdAtomConnectorInfoFromSupportedDevices(handle,
+    else {
+	enum rhdChipKind kind = rhdAtomGetChipKind(chipset);
+	return rhdAtomConnectorInfoFromSupportedDevices(handle, kind,
 							&data->connectorInfo);
+    }
 }
 
 struct atomCodeDataTableHeader

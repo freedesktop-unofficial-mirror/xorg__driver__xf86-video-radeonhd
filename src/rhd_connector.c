@@ -210,6 +210,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	AtomBiosArgRec data;
 	AtomBiosResult result;
 
+	data.chipset = rhdPtr->ChipSet;
 	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_CONNECTORS, &data);
 	if (result == ATOM_SUCCESS) {
@@ -323,6 +324,11 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    Output = RHDLVTMAInit(rhdPtr, ConnectorInfo[i].Type);
 		    RHDOutputAdd(rhdPtr, Output);
 		    break;
+		    case RHD_OUTPUT_DVO:
+		    Output = RHDDDIAInit(rhdPtr, ConnectorInfo[i].Type);
+		    if (Output)
+			RHDOutputAdd(rhdPtr, Output);
+		    break;
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
@@ -416,8 +422,8 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 
     const char *output_name[] =
 	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",
-	  "RHD_OUTPUT_LVTMA", "RHD_OUTPUT_KLDSKP_LVTMA", "RHD_OUTPUT_UNIPHYA", "RHD_OUTPUT_UNIPHYB"
-	};
+	  "RHD_OUTPUT_LVTMA", "RHD_OUTPUT_DVO", "RHD_OUTPUT_KLDSKP_LVTMA",
+	  "RHD_OUTPUT_UNIPHYA", "RHD_OUTPUT_UNIPHYB" };
     const char **hpd_name;
 
     switch (rhdPtr->hpdUsage) {

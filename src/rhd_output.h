@@ -34,6 +34,7 @@ typedef enum rhdOutputType {
     RHD_OUTPUT_DACB,
     RHD_OUTPUT_TMDSA,
     RHD_OUTPUT_LVTMA,
+    RHD_OUTPUT_DVO,
     RHD_OUTPUT_KLDSKP_LVTMA,
     RHD_OUTPUT_UNIPHYA,
     RHD_OUTPUT_UNIPHYB,
@@ -99,4 +100,5 @@ struct rhdOutput *RHDDACBInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType);
+struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType);
 #endif /* _RHD_OUTPUT_H */

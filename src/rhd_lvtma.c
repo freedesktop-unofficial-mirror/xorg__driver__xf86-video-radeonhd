@@ -478,7 +478,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
     {
 	AtomBiosArgRec data;
 
-	if(RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			   ATOM_LVDS_SEQ_DIG_ONTO_DE, &data) == ATOM_SUCCESS)
 	    Private->PowerDigToDE = data.val;
 
