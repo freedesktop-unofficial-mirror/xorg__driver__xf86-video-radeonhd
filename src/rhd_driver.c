@@ -2080,6 +2080,43 @@ _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
     _RHDRegWrite(scrnIndex, offset, tmp);
 }
 
+#ifdef RHD_DEBUG
+/*
+ *
+ */
+CARD32
+_RHDRegReadD(int scrnIndex, CARD16 offset)
+{
+    CARD32 tmp =  *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset);
+    xf86DrvMsg(scrnIndex, X_INFO, "RHDRegRead(0x%4.4x) = 0x%4.4x\n",offset,tmp);
+    return tmp;
+}
+
+/*
+ *
+ */
+void
+_RHDRegWriteD(int scrnIndex, CARD16 offset, CARD32 value)
+{
+    xf86DrvMsg(scrnIndex, X_INFO, "RHDRegWrite(0x%4.4x,0x%4.4x)\n",offset,tmp);
+    *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset) = value;
+}
+
+/*
+ *
+ */
+void
+_RHDRegMaskD(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
+{
+    CARD32 tmp;
+
+    tmp = _RHDRegReadD(scrnIndex, offset);
+    tmp &= ~mask;
+    tmp |= (value & mask);
+    _RHDRegWriteD(scrnIndex, offset, tmp);
+}
+#endif /* RHD_DEBUG */
+
 /* The following two are R5XX only. R6XX doesn't require these */
 CARD32
 _RHDReadMC(int scrnIndex, CARD32 addr)

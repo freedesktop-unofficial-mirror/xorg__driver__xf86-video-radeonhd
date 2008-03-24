@@ -321,9 +321,19 @@ void RHDDebugContVerb(int verb, const char *format, ...);
 #define RHDFUNC(ptr) RHDDebug((ptr)->scrnIndex, "FUNCTION: %s\n", __func__)
 #define RHDFUNCI(scrnIndex) RHDDebug(scrnIndex, "FUNCTION: %s\n", __func__)
 void RhdDebugDump(int scrnIndex, unsigned char *start, int size);
+
 #ifdef RHD_DEBUG
+CARD32 _RHDRegReadD(int scrnIndex, CARD16 offset);
+# define RHDRegReadD(ptr, offset) _RHDRegReadD((ptr)->scrnIndex, (offset))
+void _RHDRegWriteD(int scrnIndex, CARD16 offset, CARD32 value);
+# define RHDRegWriteD(ptr, offset, value) _RHDRegWriteD((ptr)->scrnIndex, (offset), (value))
+void _RHDRegMaskD(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
+# define RHDRegMaskD(ptr, offset, value, mask) _RHDRegMaskD((ptr)->scrnIndex, (offset), (value), (mask))
 # define DEBUGP(x) {x;}
 #else
+# define RHDRegReadD(ptr, offset) RHDRegRead(ptr, offset)
+# define RHDRegWriteD(ptr, offset, value) RHDRegWrite(ptr, offset, value)
+# define RHDRegMaskD(ptr, offset, value, mask) RHDRegMask(ptr, offset, value, mask)
 # define DEBUGP(x)
 #endif
 
