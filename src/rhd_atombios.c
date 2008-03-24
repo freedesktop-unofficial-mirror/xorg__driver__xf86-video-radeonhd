@@ -167,8 +167,8 @@ struct atomBIOSRequests {
       "Start of VRAM area used by Firmware",	MSG_FORMAT_HEX},
     {GET_FW_FB_SIZE,			rhdAtomVramInfoQuery,
       "Framebuffer space used by Firmware (kb)", MSG_FORMAT_DEC},
-    {ATOM_TMDS_FREQUENCY,		rhdAtomTmdsInfoQuery,
-     "TMDS Frequency",				MSG_FORMAT_DEC},
+    {ATOM_TMDS_MAX_FREQUENCY,		rhdAtomTmdsInfoQuery,
+     "TMDS Max Frequency",			MSG_FORMAT_DEC},
     {ATOM_TMDS_PLL_CHARGE_PUMP,		rhdAtomTmdsInfoQuery,
      "TMDS PLL ChargePump",			MSG_FORMAT_DEC},
     {ATOM_TMDS_PLL_DUTY_CYCLE,		rhdAtomTmdsInfoQuery,
@@ -937,7 +937,7 @@ rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
 {
     atomDataTablesPtr atomDataPtr;
     CARD32 *val = &data->val;
-    int idx = *val;
+    int i = 0, clock = *val;
 
     atomDataPtr = handle->atomDataPtr;
     if (!rhdAtomGetTableRevisionAndSize(
@@ -948,25 +948,38 @@ rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
 
     RHDFUNC(handle);
 
-    switch (func) {
-	case ATOM_TMDS_FREQUENCY:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].usFrequency;
-	    break;
-	case ATOM_TMDS_PLL_CHARGE_PUMP:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_ChargePump;
-	    break;
-	case ATOM_TMDS_PLL_DUTY_CYCLE:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_DutyCycle;
-	    break;
-	case ATOM_TMDS_PLL_VCO_GAIN:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_VCO_Gain;
-	    break;
-	case ATOM_TMDS_PLL_VOLTAGE_SWING:
-	    *val = atomDataPtr->TMDS_Info->asMiscInfo[idx].ucPLL_VoltageSwing;
-	    break;
-	default:
-	    return ATOM_NOT_IMPLEMENTED;
+    if (func == ATOM_TMDS_MAX_FREQUENCY)
+	*val = atomDataPtr->TMDS_Info->usMaxFrequency * 10;
+    else {
+	if (clock > atomDataPtr->TMDS_Info->usMaxFrequency * 10)
+	    return ATOM_FAILED;
+
+	for (;i < ATOM_MAX_MISC_INFO; i++) {
+	    if (clock < atomDataPtr->TMDS_Info->asMiscInfo[i].usFrequency * 10) {
+		switch (func) {
+		    case ATOM_TMDS_PLL_CHARGE_PUMP:
+			*val = atomDataPtr->TMDS_Info->asMiscInfo[i].ucPLL_ChargePump;
+			break;
+		    case ATOM_TMDS_PLL_DUTY_CYCLE:
+			*val = atomDataPtr->TMDS_Info->asMiscInfo[i].ucPLL_DutyCycle;
+			break;
+		    case ATOM_TMDS_PLL_VCO_GAIN:
+			*val = atomDataPtr->TMDS_Info->asMiscInfo[i].ucPLL_VCO_Gain;
+			break;
+		    case ATOM_TMDS_PLL_VOLTAGE_SWING:
+			*val = atomDataPtr->TMDS_Info->asMiscInfo[i].ucPLL_VoltageSwing;
+			break;
+		    default:
+			return ATOM_NOT_IMPLEMENTED;
+		}
+		break;
+	    }
+	}
     }
+    
+    if (i > ATOM_MAX_MISC_INFO)
+	return ATOM_FAILED;
+
     return ATOM_SUCCESS;
 }
 
