@@ -277,25 +277,6 @@ TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     /* use IDCLK */
     RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000010, 0x00000010);
-
-    /* reset transmitter */
-    RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
-    usleep(2);
-    RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000002);
-    usleep(20);
-
-    /* restart data synchronisation */
-    if (rhdPtr->ChipSet < RHD_R600) {
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0x00000001, 0x00000001);
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0x00000100, 0x00000100);
-	usleep(2);
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0, 0x00000001);
-    } else {
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0x00000001, 0x00000001);
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0x00000100, 0x00000100);
-	usleep(2);
-	RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0, 0x00000001);
-    }
 }
 
 /*
@@ -304,6 +285,7 @@ TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 TMDSAPower(struct rhdOutput *Output, int Power)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
 
     RHDFUNC(Output);
@@ -312,20 +294,41 @@ TMDSAPower(struct rhdOutput *Output, int Power)
     case RHD_POWER_ON:
 	RHDRegMask(Output, TMDSA_CNTL, 0x00000001, 0x00000001);
 
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
+	usleep(20);
+
+	/* reset transmitter PLL */
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
+	usleep(2);
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000002);
+
+	usleep(30);
+
+	/* restart data synchronisation */
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0x00000001, 0x00000001);
+	    usleep(2);
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0x00000100, 0x00000100);
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R500, 0, 0x00000001);
+	} else {
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0x00000001, 0x00000001);
+	    usleep(2);
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0x00000100, 0x00000100);
+	    RHDRegMask(Output, TMDSA_DATA_SYNCHRONIZATION_R600, 0, 0x00000001);
+	}
+
 	if (Private->RunsDualLink) {
 	    /* bit 9 is not known by anything below RV610, but is ignored by
 	       the hardware anyway */
 	    RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x00001F1F, 0x00001F1F);
 	} else
 	    RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x0000001F, 0x00001F1F);
-
-	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
-	usleep(2);
-	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0, 0x00000002);
 	return;
+
     case RHD_POWER_RESET:
 	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0, 0x00001F1F);
 	return;
+
     case RHD_POWER_SHUTDOWN:
     default:
 	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
