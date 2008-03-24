@@ -90,6 +90,7 @@ struct rhdCrtcStore {
     CARD32 CrtcVSyncACntl;
     CARD32 CrtcVSyncB;
     CARD32 CrtcVSyncBCntl;
+    CARD32 CrtcCountControl;
 
     CARD32 CrtcBlackColor;
     CARD32 CrtcBlankControl;
@@ -342,6 +343,9 @@ DxModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
     RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_A,
 		(Mode->CrtcVSyncEnd - Mode->CrtcVSyncStart) << 16);
     RHDRegWrite(Crtc, RegOff + D1CRTC_V_SYNC_A_CNTL, Mode->Flags & V_NVSYNC);
+
+    /* set D1CRTC_HORZ_COUNT_BY2_EN to 0; should only be set to 1 on 30bpp DVI modes */
+    RHDRegMask(Crtc, RegOff + D1CRTC_COUNT_CONTROL, 0x0, 0x1);
 
     Crtc->CurrentMode = Mode;
 }
@@ -727,6 +731,10 @@ DxSave(struct rhdCrtc *Crtc)
     Store->CrtcBlackColor = RHDRegRead(Crtc, RegOff + D1CRTC_BLACK_COLOR);
     Store->CrtcBlankControl = RHDRegRead(Crtc, RegOff + D1CRTC_BLANK_CONTROL);
 
+    Store->CrtcCountControl = RHDRegRead(Crtc, RegOff + D1CRTC_COUNT_CONTROL);
+    RHDDebug(Crtc->scrnIndex, "Saved CrtcCountControl[%i] = 0x%8.8x\n",
+	     Crtc->Id,Store->CrtcCountControl);
+
     if (Crtc->Id == RHD_CRTC_1)
 	Store->CrtcPCLKControl = RHDRegRead(Crtc, PCLK_CRTC1_CNTL);
     else
@@ -823,6 +831,8 @@ DxRestore(struct rhdCrtc *Crtc)
 
     RHDRegWrite(Crtc, RegOff + D1CRTC_BLACK_COLOR, Store->CrtcBlackColor);
     RHDRegWrite(Crtc, RegOff + D1CRTC_BLANK_CONTROL, Store->CrtcBlankControl);
+
+    RHDRegWrite(Crtc, RegOff + D1CRTC_COUNT_CONTROL, Store->CrtcCountControl);
 
     if (Crtc->Id == RHD_CRTC_1)
 	RHDRegWrite(Crtc, PCLK_CRTC1_CNTL, Store->CrtcPCLKControl);
