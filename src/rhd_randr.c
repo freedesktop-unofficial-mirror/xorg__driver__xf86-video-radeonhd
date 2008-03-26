@@ -772,6 +772,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 		if ((rout->Output->SensedType
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector->Type))) {
+		    RHDOutputPrintSensedType(rout->Output);
 		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    return XF86OutputStatusConnected;
 		} else
@@ -790,8 +791,10 @@ rhdRROutputDetect(xf86OutputPtr output)
 			o->Output->Sense) {
 			/* Yes, this looks wrong, but is correct */
 			if ((o->Output->SensedType =
-			     o->Output->Sense(o->Output, o->Connector->Type)))
+			     o->Output->Sense(o->Output, o->Connector->Type))) {
+			    RHDOutputPrintSensedType(o->Output);
 			    return XF86OutputStatusDisconnected;
+			}
 		    }
 		}
 		rout->Output->Connector = rout->Connector; /* @@@ */
@@ -811,6 +814,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector->Type))) {
 		    rout->Output->Connector = rout->Connector; /* @@@ */
+		    RHDOutputPrintSensedType(rout->Output);
 		    return XF86OutputStatusConnected;
 		}
 	    }
@@ -824,6 +828,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    if ((rout->Output->SensedType
 		 = rout->Output->Sense(rout->Output, rout->Connector->Type))) {
 		    rout->Output->Connector = rout->Connector; /* @@@ */
+		    RHDOutputPrintSensedType(rout->Output);
 		    return XF86OutputStatusConnected;
 	    } else
 		return XF86OutputStatusDisconnected;
