@@ -69,6 +69,9 @@ DDIAModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
+    if (Mode->Flags & V_INTERLACE)
+        return MODE_NO_INTERLACE;
+
     if (Mode->Clock < 25000)
 	return MODE_CLOCK_LOW;
 

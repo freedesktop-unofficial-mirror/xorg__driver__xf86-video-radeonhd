@@ -1,8 +1,8 @@
 /*
- * Copyright 2004-2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007       Matthias Hopf <mhopf@novell.com>
- * Copyright 2007       Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2004-2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008 Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008 Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@
 #include "xf86.h"
 #include "xf86DDC.h"
 #if HAVE_XF86_ANSIC_H
-# include "xf86_ansic.h" 
+# include "xf86_ansic.h"
 #else
 # include <stdio.h>
 # include <string.h>
@@ -535,10 +535,6 @@ rhdModeSanity(DisplayModePtr Mode)
     if ((Mode->VScan != 0) && (Mode->VScan != 1))
         return MODE_NO_VSCAN;
 
-    /* should be possible, but is untested */
-    if (Mode->Flags & V_INTERLACE)
-        return MODE_NO_INTERLACE;
-
     if (Mode->Flags & V_DBLSCAN)
         return MODE_NO_DBLESCAN;
 
@@ -605,6 +601,10 @@ rhdModeFillOutCrtcValues(DisplayModePtr Mode)
     Mode->HSync = ((float) Mode->SynthClock) / Mode->CrtcHTotal;
     Mode->VRefresh = (Mode->SynthClock * 1000.0) /
         (Mode->CrtcHTotal * Mode->CrtcVTotal);
+    if (Mode->Flags & V_INTERLACE)
+	Mode->VRefresh *= 2.0;
+    if (Mode->Flags & V_DBLSCAN)
+	Mode->VRefresh /= 2.0;
 
     /* We're usually first in the chain, right after rhdModeSanity. */
     Mode->CrtcHAdjusted = FALSE;

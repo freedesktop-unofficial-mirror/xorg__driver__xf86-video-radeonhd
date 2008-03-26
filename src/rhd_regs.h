@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -108,9 +108,10 @@ enum {
 
     D1CRTC_CONTROL                 = 0x6080,
     D1CRTC_BLANK_CONTROL           = 0x6084,
+    D1CRTC_INTERLACE_CONTROL	   = 0x6088,
     D1CRTC_BLACK_COLOR             = 0x6098,
     D1CRTC_STATUS                  = 0x609C,
-    D1CRTC_COUNT_CONTROL	   = 0x60B4,
+    D1CRTC_COUNT_CONTROL           = 0x60B4,
 
     /* D1GRPH registers */
     D1GRPH_ENABLE                  = 0x6100,
@@ -118,6 +119,7 @@ enum {
     D1GRPH_LUT_SEL                 = 0x6108,
     D1GRPH_SWAP_CNTL               = 0x610C,
     D1GRPH_PRIMARY_SURFACE_ADDRESS = 0x6110,
+    D1GRPH_SECONDARY_SURFACE_ADDRESS = 0x6118,
     D1GRPH_PITCH                   = 0x6120,
     D1GRPH_SURFACE_OFFSET_X        = 0x6124,
     D1GRPH_SURFACE_OFFSET_Y        = 0x6128,
@@ -161,6 +163,7 @@ enum {
     D1MODE_VIEWPORT_SIZE           = 0x6584,
     D1MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6588,
     D1MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x658C,
+    D1MODE_DATA_FORMAT             = 0x6528,
 
     /* D1SCL */
     D1SCL_ENABLE                   = 0x6590,
@@ -191,8 +194,9 @@ enum {
     D2CRTC_CONTROL                 = 0x6880,
     D2CRTC_BLANK_CONTROL           = 0x6884,
     D2CRTC_BLACK_COLOR             = 0x6898,
+    D2CRTC_INTERLACE_CONTROL       = 0x6888,
     D2CRTC_STATUS                  = 0x689C,
-    D2CRTC_COUNT_CONTROL	   = 0x68B4,
+    D2CRTC_COUNT_CONTROL           = 0x68B4,
 
     /* D2GRPH registers */
     D2GRPH_ENABLE                  = 0x6900,
@@ -223,6 +227,7 @@ enum {
     D2MODE_VIEWPORT_SIZE           = 0x6D84,
     D2MODE_EXT_OVERSCAN_LEFT_RIGHT = 0x6D88,
     D2MODE_EXT_OVERSCAN_TOP_BOTTOM = 0x6D8C,
+    D2MODE_DATA_FORMAT             = 0x6D28,
 
     /* D2SCL */
     D2SCL_ENABLE                   = 0x6D90,
