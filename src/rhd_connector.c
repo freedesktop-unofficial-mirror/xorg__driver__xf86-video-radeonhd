@@ -116,7 +116,14 @@ RHDHPDSet(RHDPtr rhdPtr)
 static Bool
 RHDHPDCheck(struct rhdConnector *Connector)
 {
-    return (RHDRegRead(Connector, DC_GPIO_HPD_Y) & Connector->HPDMask);
+    Bool ret;
+
+    RHDFUNC(Connector);
+
+    ret = (RHDRegRead(Connector, DC_GPIO_HPD_Y) & Connector->HPDMask);
+    RHDDebug(Connector->scrnIndex, "%s returned: %x\n",__func__,ret);
+
+    return ret;
 }
 
 struct rhdCsState {
