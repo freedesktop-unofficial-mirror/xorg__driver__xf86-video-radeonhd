@@ -2104,6 +2104,7 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 		    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->IntegratedSystemInfo.base),
 		    &frev,&crev,NULL) || crev != 2)
 		return RHD_CONNECTOR_NONE; 	    /* sorry, we can't do any better */
+	    RHDDebug(handle->scrnIndex,"PCIE[%i]", num);
 	    switch (num) {
 		case 1:
 		    val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot1Config;
@@ -2111,12 +2112,18 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 		case 2:
 		    val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot2Config;
 		default:
+		    RHDDebugCont("\n");
 		    return RHD_CONNECTOR_NONE;
 	    }
 	    val >>= 16;
 	    val &= 8;
-	    if (!Limit(val, n_rhd_connector_objs, "obj_id"))
+	    RHDDebugCont(" ObjectID: %i",val);
+	    if (!Limit(val, n_rhd_connector_objs, "obj_id")) {
+		RHDDebugCont("\n");
 		return RHD_CONNECTOR_NONE;
+	    }
+
+	    RHDDebugCont(" ConnectorName: %s\n",rhd_connector_objs[val].name);
 	    return  rhd_connector_objs[val].con;
 	}
 	default:
