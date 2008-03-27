@@ -230,6 +230,8 @@ struct atomBIOSRequests {
      "PCIE NB Cfg7Reg",				MSG_FORMAT_HEX},
     {ATOM_GET_CAPABILITY_FLAG, rhdAtomIntegratedSystemInfoQuery,
      "CapabilityFlag",				MSG_FORMAT_HEX},
+    {ATOM_GET_PCIE_LANES, rhdAtomIntegratedSystemInfoQuery,
+     "PCI Lanes",				MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -1345,6 +1347,29 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
     return ATOM_SUCCESS;
 }
 
+/*
+ *
+ */
+enum atomPCIELanes atomPCIELanesMap[] = {
+    atomPCIELaneNONE,
+    atomPCIELane0_3,
+    atomPCIELane4_7,
+    atomPCIELane0_7,
+    atomPCIELane8_11,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELane12_15,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELane8_15,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE,
+    atomPCIELaneNONE
+};
+
 static AtomBiosResult
 rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
 			AtomBiosRequestID func, AtomBiosArgPtr data)
@@ -1378,11 +1403,32 @@ rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
 	    break;
 	case 2:
 	    switch (func) {
+		case ATOM_GET_PCIE_LANES:
+		{
+		    CARD32 n;
+		    switch (*val) {
+			case 1:
+			    n = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot1Config;
+			    break;
+			case 2:
+			    n = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot2Config;
+			    break;
+			default:
+			    return ATOM_FAILED;
+		    }
+		    data->pcieLanes.Chassis = atomPCIELanesMap[n & 0xf];
+		    data->pcieLanes.Docking = atomPCIELanesMap[(n >> 4) & 0xf];
+		    RHDDebug(handle->scrnIndex, "AtomBIOS IntegratedSystemInfo PCIELanes: Chassis=%x Docking=%x\n",
+			     data->pcieLanes.Chassis, data->pcieLanes.Docking);
+		    return ATOM_SUCCESS;
+		}
+		break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
 	    }
-	    break;
+	    return ATOM_NOT_IMPLEMENTED;
     }
+    
     return ATOM_SUCCESS;
 }
 
@@ -2118,7 +2164,7 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 	    val >>= 16;
 	    val &= 8;
 	    RHDDebugCont(" ObjectID: %i",val);
-	    if (!Limit(val, n_rhd_connector_objs, "obj_id")) {
+	    if (!Limit((int)val, n_rhd_connector_objs, "obj_id")) {
 		RHDDebugCont("\n");
 		return RHD_CONNECTOR_NONE;
 	    }

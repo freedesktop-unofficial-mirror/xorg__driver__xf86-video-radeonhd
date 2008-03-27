@@ -81,6 +81,7 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS,
     ATOM_GET_PCIENB_CFG_REG7,
     ATOM_GET_CAPABILITY_FLAG,
+    ATOM_GET_PCIE_LANES,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -112,6 +113,16 @@ typedef enum AtomTVMode {
     ATOM_TV_SECAM = 1 << 7
 } AtomTVMode;
 
+enum atomPCIELanes {
+    atomPCIELaneNONE,
+    atomPCIELane0_3,
+    atomPCIELane0_7,
+    atomPCIELane4_7,
+    atomPCIELane8_11,
+    atomPCIELane8_15,
+    atomPCIELane12_15
+};
+
 typedef struct AtomGoldenSettings
 {
     unsigned char *BIOSPtr;
@@ -131,6 +142,11 @@ typedef union AtomBiosArg
 	unsigned char *loc;
 	unsigned short size;
     } CommandDataTable;
+    struct
+    {
+	enum atomPCIELanes	Chassis;
+	enum atomPCIELanes	Docking;
+    } pcieLanes;
     atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;
