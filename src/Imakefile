@@ -26,6 +26,7 @@ rhd_connector.c \
 rhd_cursor.c \
 rhd_dac.c \
 rhd_dig.c \
+rhd_ddia.c \
 rhd_driver.c \
 rhd_edid.c \
 rhd_helper.c \
@@ -54,6 +55,7 @@ rhd_connector.o \
 rhd_cursor.o \
 rhd_dac.o \
 rhd_dig.o \
+rhd_ddia.o \
 rhd_driver.o \
 rhd_edid.o \
 rhd_helper.o \
