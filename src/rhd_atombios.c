@@ -1812,7 +1812,7 @@ static const struct _rhd_connector_objs
     { "HDMI_TYPE_B", RHD_CONNECTOR_DVI },
     { "LVDS", RHD_CONNECTOR_PANEL },
     { "7PIN_DIN", RHD_CONNECTOR_TV },
-    { "PCIE_CONNECTOR", RHD_CONNECTOR_NONE },
+    { "PCIE_CONNECTOR", RHD_CONNECTOR_PCIE },
     { "CROSSFIRE", RHD_CONNECTOR_NONE },
     { "HARDCODE_DVI", RHD_CONNECTOR_NONE },
     { "DISPLAYPORT", RHD_CONNECTOR_NONE}
@@ -2086,6 +2086,47 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 /*
  *
  */
+rhdConnectorType
+rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int num)
+{
+    RHDFUNC(handle);
+
+    switch (connector) {
+	case RHD_CONNECTOR_PCIE:
+	{
+	    atomDataTablesPtr atomDataPtr;
+	    CARD8 crev, frev;
+	    CARD32 val;
+
+	    atomDataPtr = handle->atomDataPtr;
+
+	    if (!rhdAtomGetTableRevisionAndSize(
+		    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->IntegratedSystemInfo.base),
+		    &frev,&crev,NULL) || crev != 2)
+		return RHD_CONNECTOR_NONE; 	    /* sorry, we can't do any better */
+	    switch (num) {
+		case 1:
+		    val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot1Config;
+		    break;
+		case 2:
+		    val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot2Config;
+		default:
+		    return RHD_CONNECTOR_NONE;
+	    }
+	    val >>= 16;
+	    val &= 8;
+	    if (!Limit(val, n_rhd_connector_objs, "obj_id"))
+		return RHD_CONNECTOR_NONE;
+	    return  rhd_connector_objs[val].con;
+	}
+	default:
+	    return connector;
+    }
+}
+
+/*
+ *
+ */
 static AtomBiosResult
 rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 				     rhdConnectorInfoPtr *ptr)
@@ -2179,7 +2220,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	    continue;
 	}
 
-	cp[ncon].Type = rhd_connector_objs[obj_id].con;
+	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
