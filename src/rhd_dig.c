@@ -1001,7 +1001,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 #endif
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
-	    Output->Name = "UNIPHY_KLDSK_LVTMA";
+	    Output->Name = "UNIPHY_KLDSKP_LVTMA";
 	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
 		(struct LVTMATransmitterPrivate *)xnfcalloc(sizeof (struct LVTMATransmitterPrivate), 1);

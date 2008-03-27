@@ -189,7 +189,8 @@ RHDOutputPrintSensedType(struct rhdOutput *Output)
     while (list[i].name) {
 	if (list[i].type == Output->SensedType) {
 	    xf86DrvMsgVerb(Output->scrnIndex, X_INFO, 3,
-			   "Sensed Output: %s\n",list[i].name);
+			   "%s: Sensed Output: %s\n",Output->Name,
+			   list[i].name);
 	    return;
 	}
 	i++;
