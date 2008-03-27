@@ -75,6 +75,7 @@ SymTabRec RHDChipsets[] = {
     { RHD_R680,  "R680"  },
     { RHD_RV620, "RV620" },
     { RHD_RV635, "RV635" },
+    { RHD_RS780, "RS780" },
     { -1,      NULL }
 };
 
@@ -256,6 +257,7 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x95CD, RHD_RV620 ), /* ATI FireMV 2450  */
     RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2260  */
     RHD_DEVICE_MATCH(  0x95CF, RHD_RV620 ), /* ATI FireMV 2260  */
+    RHD_DEVICE_MATCH(  0x9612, RHD_RS780 ), /* ATI FireMV 2260  */
     LIST_END
 };
 
@@ -347,6 +349,7 @@ RHDIdentify(int flags)
     xf86Msg(X_NONE,
 	    "\tRS600 : Radeon Xpress 1200, Xpress 1250.\n"
 	    "\tRS690 : Radeon X1200, X1250, X1270.\n"
+	    "\tRS780 : Radeon HD 3200 Series.\n"
 	    /* NOT YET "\tRS740  : RS740, RS740M\n" */ );
     xf86Msg(X_NONE, "\n");
 
