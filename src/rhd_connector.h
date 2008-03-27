@@ -33,7 +33,8 @@ typedef enum rhdConnectorType {
     RHD_CONNECTOR_DVI,
     RHD_CONNECTOR_DVI_SINGLE,
     RHD_CONNECTOR_PANEL,
-    RHD_CONNECTOR_TV
+    RHD_CONNECTOR_TV,
+    RHD_CONNECTOR_PCIE
 } rhdConnectorType;
 /* add whatever */
 

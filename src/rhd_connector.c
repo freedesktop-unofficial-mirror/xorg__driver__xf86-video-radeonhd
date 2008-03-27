@@ -426,7 +426,8 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 
     const char *c_name[] =
 	{ "RHD_CONNECTOR_NONE", "RHD_CONNECTOR_VGA", "RHD_CONNECTOR_DVI",
-	  "RHD_CONNECTOR_DVI_SINGLE", "RHD_CONNECTOR_PANEL", "RHD_CONNECTOR_TV" };
+	  "RHD_CONNECTOR_DVI_SINGLE", "RHD_CONNECTOR_PANEL",
+	  "RHD_CONNECTOR_TV", "RHD_CONNECTOR_PCIE" };
 
     const char *ddc_name[] =
 	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
