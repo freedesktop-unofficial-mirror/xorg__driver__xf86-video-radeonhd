@@ -196,6 +196,9 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 	    snprintf(str, 20, "TV %s",str1);
 	    xfree(str1);
 
+	case RHD_CONNECTOR_PCIE: /* should never get here */
+	    return NULL;
+
 	    return str;
     }
     return NULL;

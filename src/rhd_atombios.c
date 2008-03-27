@@ -1859,11 +1859,6 @@ rhdAtomGetConditionalGoldenSetting(atomBiosHandlePtr handle,
      xf86DrvMsg(handle->scrnIndex,X_ERROR,"%s: %s %i exceeds maximum %i\n", \
 		__func__,name,n,max), TRUE) : FALSE)
 
-enum rhdChipKind {
-    RHD_CHIP_EXTERNAL = 0,
-    RHD_CHIP_IGP = 1
-};
-
 static const struct _rhd_connector_objs
 {
     char *name;
@@ -2388,7 +2383,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
  */
 static AtomBiosResult
 rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
-					 enum rhdChipKind kind,
+					 Bool igp,
 					 rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
@@ -2456,7 +2451,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    if ((devices[n].ot
 		 = acc_dac[ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC])
 		== RHD_OUTPUT_NONE) {
-		devices[n].ot = rhd_devices[n].ot[kind];
+		devices[n].ot = rhd_devices[n].ot[igp ? 1 : 0];
 	    }
 	} else
 	    devices[n].ot = RHD_OUTPUT_NONE;
@@ -2588,22 +2583,6 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 /*
  *
  */
-enum rhdChipKind
-rhdAtomGetChipKind(enum RHD_CHIPSETS chipset)
-{
-    switch (chipset) {
-	case RHD_RS600:
-	case RHD_RS690:
-	case RHD_RS740:
-	    return RHD_CHIP_IGP;
-	default:
-	    return RHD_CHIP_EXTERNAL;
-    }
-}
-
-/*
- *
- */
 static AtomBiosResult
 rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 		     AtomBiosRequestID unused, AtomBiosArgPtr data)
@@ -2615,8 +2594,8 @@ rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 	== ATOM_SUCCESS)
 	return ATOM_SUCCESS;
     else {
-	enum rhdChipKind kind = rhdAtomGetChipKind(chipset);
-	return rhdAtomConnectorInfoFromSupportedDevices(handle, kind,
+	Bool igp = RHDIsIGP(chipset);
+	return rhdAtomConnectorInfoFromSupportedDevices(handle, igp,
 							&data->connectorInfo);
     }
 }

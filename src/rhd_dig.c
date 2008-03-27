@@ -1118,6 +1118,18 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		atc->coherent = Private->Coherent;
 		atc->encoder = atomEncoderDIG1;
 		atc->link = atomTransLinkA;
+		if (RHDIsIGP(rhdPtr->ChipSet)) {
+		    AtomBiosArgRec data;
+		    data.val = 1;
+		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
+					&data) == ATOM_SUCCESS)
+			atc->lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
+		    else {
+			xfree(Private);
+			xfree(Output);
+			return NULL;
+		    }
+		}
 		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
 	    }
 	    break;
@@ -1148,9 +1160,20 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
 		atc->encoder = atomEncoderDIG2;
 		atc->link = atomTransLinkB;
+		if (RHDIsIGP(rhdPtr->ChipSet)) {
+		    AtomBiosArgRec data;
+		    data.val = 2;
+		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
+					&data) == ATOM_SUCCESS)
+			atc->lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
+		    else {
+			xfree(Private);
+			xfree(Output);
+			return NULL;
+		    }
+		}
+		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
 	    }
-	    ((struct ATOMTransmitterPrivate *)Private->Transmitter.Private)->atomTransmitterID
-		= atomTransmitterUNIPHY;
 	    break;
 #else
 	    xfree(Private);
