@@ -772,6 +772,33 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_DIG2_ENCODER;
 		    break;
 	    }
+	    if (id == atomTransmitterPCIEPHY) {
+		switch (config->lanes) {
+		    case atomPCIELaneNONE:
+			Transmitter.ucConfig |= 0;
+			break;
+		    case atomPCIELane0_3:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_0_3;
+			break;
+		    case atomPCIELane0_7:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_0_7;
+			break;
+		    case atomPCIELane4_7:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_4_7;
+			break;
+		    case atomPCIELane8_11:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_8_11;
+			break;
+		    case atomPCIELane8_15:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_8_15;
+			break;
+		    case atomPCIELane12_15:
+			Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LANE_12_15;
+			break;
+		}
+		/* According to ATI this is the only one used so far */
+		Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_CLKSRC_PPLL;
+	    }
 	    data.exec.index =  GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
 	    name = "UNIPHYTransmitterControl";
 

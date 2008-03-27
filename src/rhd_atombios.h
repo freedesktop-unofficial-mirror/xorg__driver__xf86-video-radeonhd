@@ -207,6 +207,7 @@ struct atomTransmitterConfig
 {
     int pixelClock;
     enum atomEncoder encoder;
+    enum atomPCIELanes lanes;
     enum atomEncoderMode mode;
     enum atomTransmitterLink link;
     Bool coherent;
