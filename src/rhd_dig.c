@@ -834,6 +834,8 @@ struct DIGEncoder
 {
     Bool Stored;
 
+    CARD32 StoredReg420;
+    CARD32 StoredReg424;
     CARD32 StoredDIGClockPattern;
     CARD32 StoredLVDSDataCntl;
     CARD32 StoredTMDSPixelEncoding;
@@ -933,6 +935,8 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 		   ((Private->EncoderID == ENCODER_DIG2)
 		    ? 0
 		    : RV62_LINK_STEER_SWAP), RV62_LINK_STEER_SWAP);
+    } else { /* LVTMA */
+	RHDRegMask(Output, RV620_0424, 0, 0x100);
     }
 
     if (Private->EncoderMode == LVDS)
@@ -965,7 +969,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
     CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
     RHDFUNC(Output);
-    /* disable DP ?*/
+    /* clock src is pixel PLL */
     RHDRegMask(Output, RV620_DCCG_SYMCLK_CNTL, 0x0,
 	       0x3 << ((Private->EncoderID == ENCODER_DIG2)
 		       ? RV62_SYMCLKB_SRC_SHIFT
@@ -984,6 +988,10 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	case RHD_POWER_SHUTDOWN:
 	default:
 	    /* disable DIG */
+	    if (Private->EncoderID == ENCODER_DIG1)
+		RHDRegMask(Output, RV620_0420, 0, 0xf00);
+	    else
+		RHDRegMask(Output, RV620_0424, 0, 0x100);
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x1010);
 	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
@@ -1005,6 +1013,8 @@ EncoderSave(struct rhdOutput *Output)
 
     RHDFUNC(Output);
 
+    Private->StoredReg424          = RHDRegRead(Output, off + RV620_0424);
+    Private->StoredReg420          = RHDRegRead(Output, off + RV620_0420);
     Private->StoredDIGClockPattern = RHDRegRead(Output, off + RV620_DIG1_CLOCK_PATTERN);
     Private->StoredLVDSDataCntl    = RHDRegRead(Output, off + RV620_LVDS1_DATA_CNTL);
     Private->StoredDIGCntl         = RHDRegRead(Output, off + RV620_DIG1_CNTL);
@@ -1039,6 +1049,8 @@ EncoderRestore(struct rhdOutput *Output)
 	return;
     }
 
+    RHDRegWrite(Output, off + RV620_0424, Private->StoredReg424);
+    RHDRegWrite(Output, off + RV620_0420, Private->StoredReg420);
     /* reprogram all values but don't start the encoder, yet */
     RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl & ~(CARD32)RV62_DIG_START);
     RHDRegWrite(Output, RV620_DCIO_LINK_STEER_CNTL, Private->StoredDCIOLinkSteerCntl);

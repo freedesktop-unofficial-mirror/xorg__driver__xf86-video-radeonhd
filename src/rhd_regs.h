@@ -439,6 +439,8 @@ enum rv620Regs {
     RV620_FMT2_CNTL		= 0x6F10,
     RV620_FMT2_CLAMP_CNTL	= 0x6F2C,
 
+    RV620_0420                  = 0x0420,
+    RV620_0424                  = 0x0424,
     RV620_DCCG_PCLK_DIGA_CNTL   = 0x04b0,
     RV620_DCCG_PCLK_DIGB_CNTL   = 0x04b4,
     RV620_DCCG_SYMCLK_CNTL	= 0x04b8
