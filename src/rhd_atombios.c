@@ -1116,7 +1116,7 @@ rhdAtomLvdsGetTimings(atomBiosHandlePtr handle, AtomBiosRequestID func,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
-	    &frev,&crev,NULL)) {
+	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
 
@@ -1180,7 +1180,7 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->LVDS_Info.base),
-	    &frev,&crev,NULL)) {
+	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
 
@@ -1298,7 +1298,7 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->CompassionateData),
-	    &frev,&crev,NULL)) {
+	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
 
@@ -1355,7 +1355,7 @@ rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->IntegratedSystemInfo.base),
-	    &frev,&crev,NULL)) {
+	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
 
@@ -1498,7 +1498,7 @@ rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->AnalogTV_Info),
-	    &frev,&crev,NULL)) {
+	    &crev,&frev,NULL)) {
 	return ATOM_FAILED;
     }
     switch (func) {
@@ -1549,7 +1549,7 @@ rhdAtomGPIOI2CInfoQuery(atomBiosHandlePtr handle,
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->GPIO_I2C_Info),
-	    &frev,&crev,&size)) {
+	    &crev,&frev,&size)) {
 	return ATOM_FAILED;
     }
 
