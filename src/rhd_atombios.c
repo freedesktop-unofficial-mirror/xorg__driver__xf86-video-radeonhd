@@ -1455,7 +1455,7 @@ rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
 	    }
 	    return ATOM_NOT_IMPLEMENTED;
     }
-    
+
     return ATOM_SUCCESS;
 }
 
@@ -2170,8 +2170,9 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 
 	    if (!rhdAtomGetTableRevisionAndSize(
 		    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->IntegratedSystemInfo.base),
-		    &frev,&crev,NULL) || crev != 2)
-		return RHD_CONNECTOR_NONE; 	    /* sorry, we can't do any better */
+		    &crev,&frev,NULL) || crev != 2) {
+		    return RHD_CONNECTOR_NONE; 	    /* sorry, we can't do any better */
+	    }
 	    RHDDebug(handle->scrnIndex,"PCIE[%i]", num);
 	    switch (num) {
 		case 1:
@@ -2186,7 +2187,7 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 	    val >>= 16;
 	    val &= 8;
 	    RHDDebugCont(" ObjectID: %i",val);
-	    if (!Limit((int)val, n_rhd_connector_objs, "obj_id")) {
+	    if (Limit((int)val, n_rhd_connector_objs, "obj_id")) {
 		RHDDebugCont("\n");
 		return RHD_CONNECTOR_NONE;
 	    }
@@ -2294,7 +2295,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 		       "beyond Object_Header table\n",__func__,i);
 	    continue;
 	}
-
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
