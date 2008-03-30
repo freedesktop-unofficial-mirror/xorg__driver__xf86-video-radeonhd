@@ -198,6 +198,12 @@ DDIAMode(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDRegMask(Output, RS69_DDIA_PCIE_PHY_CONTROL2, 0x0, 0x600);
 
     /* hw reset will be turned off at POWER_ON */
+
+    /* select crtc source, sync_a, no stereosync */
+    RHDRegMask(Output, RS69_DDIA_SOURCE_SELECT, Output->Crtc->Id,
+	       RS69_DDIA_SOURCE_SELECT_BIT
+	       | RS69_DDIA_SYNC_SELECT
+	       | RS69_DDIA_STEREOSYNC_SELECT);
 }
 
 /*
