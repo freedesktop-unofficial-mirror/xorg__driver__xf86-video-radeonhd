@@ -382,11 +382,11 @@ static void
 LVTMA_TMDSTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
-#if 1
-     /* ?? */
+
+    /* TMDS Mode */
     RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 	       RV62_LVTMA_USE_CLK_DATA, RV62_LVTMA_USE_CLK_DATA);
-#endif
+
     LVTMATransmitterSet(Output, Crtc, Mode);
 
     /* use differential post divider input */
@@ -426,7 +426,7 @@ LVTMA_TMDSTransmitterPower(struct rhdOutput *Output, int Power)
 	    RHDRegMask(Output, RV620_LVTMA_DATA_SYNCHRONIZATION,
 		       RV62_LVTMA_DSYNSEL, RV62_LVTMA_DSYNSEL);
 #if 1
-	    /* ?? */
+	    /* TMDS Mode ?? */
 	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		       RV62_LVTMA_MODE, RV62_LVTMA_MODE);
 #endif
@@ -513,6 +513,10 @@ LVTMA_LVDSTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, Display
 {
     RHDFUNC(Output);
 
+    /* LVDS Mode */
+    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
+	       0, RV62_LVTMA_USE_CLK_DATA);
+
     LVTMATransmitterSet(Output, Crtc, Mode);
 
     /* use IDCLK */
@@ -566,6 +570,9 @@ LVTMA_LVDSTransmitterPower(struct rhdOutput *Output, int Power)
 	    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_CNTL,
 		       RV62_LVTMA_PWRSEQ_DISABLE_SYNCEN_CONTROL_OF_TX_EN,
 		       RV62_LVTMA_PWRSEQ_DISABLE_SYNCEN_CONTROL_OF_TX_EN);
+	    /* LVDS Mode ?? */
+	    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
+		       0, RV62_LVTMA_MODE);
 	    /* enable links */
 	    if (Private->RunDualLink) {
 		if (Private->FMTDither.LVDS24Bit)
