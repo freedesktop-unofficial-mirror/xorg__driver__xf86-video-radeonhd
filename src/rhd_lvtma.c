@@ -908,7 +908,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     RHDFUNC(rhdPtr);
 
     /* Stop weird connector types */
-    if ((Type != RHD_CONNECTOR_PANEL) && (Type != RHD_CONNECTOR_DVI)) {
+    if ((Type != RHD_CONNECTOR_PANEL) && (Type != RHD_CONNECTOR_DVI) && (Type != RHD_CONNECTOR_DVI_SINGLE)) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unhandled connector type:"
 		   " %d\n", __func__, Type);
 	return NULL;
