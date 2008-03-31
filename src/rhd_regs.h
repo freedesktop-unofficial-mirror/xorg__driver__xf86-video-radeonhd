@@ -42,6 +42,9 @@ enum {
     HDP_FB_LOCATION       =	  0x0134,
 
     SEPROM_CNTL1	  =       0x1C0,  /* (RW) */
+
+    AGP_BASE              =       0x0170,
+
     GPIOPAD_MASK          =       0x198,  /* (RW) */
     GPIOPAD_A		  =       0x19C,  /* (RW) */
     GPIOPAD_EN		  =       0x1A0,  /* (RW) */
@@ -95,10 +98,15 @@ enum {
 
     DCCG_DISP_CLK_SRCSEL           = 0x0538, /* rv620+ */
 
+    AGP_STATUS                     = 0x0F5C,
+
     R6XX_MC_VM_FB_LOCATION	   = 0x2180,
     R6XX_HDP_NONSURFACE_BASE       = 0x2C04,
     R6XX_CONFIG_MEMSIZE            = 0x5428,
     R6XX_CONFIG_FB_BASE            = 0x542C, /* AKA CONFIG_F0_BASE */
+    /* PCI config space */
+    PCI_CONFIG_SPACE_BASE          = 0x5000,
+    PCI_CAPABILITIES_PTR           = 0x5034,
 
     /* CRTC1 registers */
     D1CRTC_H_TOTAL                 = 0x6000,
@@ -979,6 +987,17 @@ enum {
 
     /* MC_IND_DATA */
 #define MC_IND_DATA_BIT  0xffffffff
+};
+
+enum AGP_STATUS_BITS {
+    AGP_1X_MODE          = 0x01,
+    AGP_2X_MODE          = 0x02,
+    AGP_4X_MODE          = 0x04,
+    AGP_FW_MODE          = 0x10,
+    AGP_MODE_MASK        = 0x17,
+    AGPv3_MODE           = 0x08,
+    AGPv3_4X_MODE        = 0x01,
+    AGPv3_8X_MODE        = 0x02
 };
 
 

@@ -64,7 +64,7 @@ radeonhd_drv_la_SOURCES += r5xx_exa.c
 endif
 
 if USE_DRI
-#radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h
+radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h
 endif
 
 if ATOM_BIOS

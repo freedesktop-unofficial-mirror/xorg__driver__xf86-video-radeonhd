@@ -156,6 +156,7 @@ static void     rhdUnmapFB(RHDPtr rhdPtr);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
 static void     rhdFbOffscreenGrab(ScrnInfoPtr pScrn);
 static void	rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr);
+static enum rhdCardType rhdGetCardType(RHDPtr rhdPtr);
 
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
@@ -855,6 +856,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->FbScanoutStart = RHDAllocFb(rhdPtr, rhdPtr->FbScanoutSize,
 					"ScanoutBuffer");
     ASSERT(rhdPtr->FbScanoutStart != (unsigned)-1);
+
+    rhdPtr->cardType = rhdGetCardType(rhdPtr);
 
     if (!rhdPtr->randr)
 	xf86PrintModes(pScrn);
@@ -2549,7 +2552,31 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
 #endif
 	    break;
     }
+}
 
+
+/*
+ *
+ */
+static enum rhdCardType
+rhdGetCardType(RHDPtr rhdPtr)
+{
+    CARD32 CapPtr = RHDRegRead(rhdPtr, PCI_CAPABILITIES_PTR) & 0xff;
+    RHDFUNC(rhdPtr);
+
+    while (CapPtr) {
+	CARD32 CapID = RHDRegRead(rhdPtr,
+				  PCI_CONFIG_SPACE_BASE | CapPtr);
+	/* look for PCIE or APG capability ID in PCI config space */
+	switch (CapID & 0xff) {
+	    case RHD_PCI_CAPID_AGP:
+		return RHD_CARD_AGP;
+	    case RHD_PCI_CAPID_PCIE:
+		return RHD_CARD_PCIE;
+	}
+	CapPtr = (CapID >> 8) & 0xff;
+    };
+    return RHD_CARD_NONE;
 }
 
 /* Allocate a chunk of the framebuffer. -1 on fail. So far no free()! */

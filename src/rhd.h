@@ -160,6 +160,29 @@ union rhdPropertyData
 
 #define RHD_VBIOS_SIZE 0x10000
 
+#ifndef XSERVER_LIBPCIACCESS
+# define PCI_BUS(x)	((x)->bus)
+# define PCI_DEV(x)	((x)->device)
+# define PCI_FUNC(x)	((x)->func)
+#else
+# define PCI_BUS(x)	(((x)->domain << 8) | (x)->bus)
+# define PCI_DEV(x)	((x)->dev)
+# define PCI_FUNC(x)	((x)->func)
+typedef struct pci_device *pciVideoPtr;
+#endif
+
+enum rhdCardType {
+    RHD_CARD_NONE,
+    RHD_CARD_AGP,
+    RHD_CARD_PCIE
+};
+
+enum {
+    RHD_PCI_CAPID_AGP    = 0x02,
+    RHD_PCI_CAPID_PCIE   = 0x10
+};
+
+
 typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBiosHandle *atomBiosHandlePtr;
 typedef struct _rhdShadowRec *rhdShadowPtr;
@@ -198,6 +221,7 @@ typedef struct RHDRec {
     PCITAG		NBPciTag;
 #endif
     unsigned int	PciDeviceID;
+    enum rhdCardType	cardType;
     int			entityIndex;
     struct rhdCard      *Card;
     OptionInfoPtr       Options;
@@ -283,6 +307,10 @@ typedef struct RHDRec {
     struct rhdRandr    *randr;
     /* log verbosity - store this for convenience */
     int			verbosity;
+
+    /* DRI */
+    struct rhdDri      *dri;
+
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
