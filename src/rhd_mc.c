@@ -94,7 +94,7 @@ RHDSaveMC(RHDPtr rhdPtr)
 	return;
 
     if (rhdPtr->ChipSet < RHD_RS690) {
-	if (rhdPtr->ChipSet == RHD_RV515)
+	if (rhdPtr->ChipSet == RHD_RV515 || rhdPtr->ChipSet == RHD_RV550)
 	    MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_FB_LOCATION);
 	else
 	    MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION);
@@ -126,7 +126,7 @@ RHDRestoreMC(RHDPtr rhdPtr)
 	return;
     }
     if (rhdPtr->ChipSet < RHD_RS690) {
-	if (rhdPtr->ChipSet == RHD_RV515)
+	if (rhdPtr->ChipSet == RHD_RV515 || rhdPtr->ChipSet == RHD_RV550)
 	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | RV515_MC_FB_LOCATION,
 		       MC->FbLocation);
 	else
@@ -156,7 +156,7 @@ RHDMCSetup(RHDPtr rhdPtr)
     if (rhdPtr->ChipSet < RHD_RS600) {
 	unsigned int reg;
 
-	if (rhdPtr->ChipSet == RHD_RV515)
+	if (rhdPtr->ChipSet == RHD_RV515 || rhdPtr->ChipSet == RHD_RV550)
 	    reg = RV515_MC_FB_LOCATION | MC_IND_ALL;
 	else
 	    reg = R5XX_MC_FB_LOCATION | MC_IND_ALL;
@@ -208,7 +208,10 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
     RHDFUNC(rhdPtr);
 
     do {
-	if (rhdPtr->ChipSet < RHD_RS690) {
+	if (rhdPtr->ChipSet == RHD_RV515 || rhdPtr->ChipSet == RHD_RV550) {
+	    if (RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_STATUS) & RV515_MC_IDLE)
+		return TRUE;
+	} else if (rhdPtr->ChipSet < RHD_RS690) {
 	    if (RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_STATUS) & R5XX_MC_IDLE)
 		return TRUE;
 	} else if (rhdPtr->ChipSet < RHD_R600) {

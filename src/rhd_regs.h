@@ -521,7 +521,8 @@ enum RV620_FMT_CONTROL {
 enum _r5xxMCRegs {
     R5XX_MC_STATUS                 = 0x0000,
     RV515_MC_FB_LOCATION	   = 0x0001,
-    R5XX_MC_FB_LOCATION		   = 0x0004
+    R5XX_MC_FB_LOCATION		   = 0x0004,
+    RV515_MC_STATUS                = 0x0008
 };
 
 enum _r5xxRegs {
@@ -706,6 +707,10 @@ enum RS69_MC_SYSTEM_STATUS_BITS {
 enum R5XX_MC_STATUS_BITS {
     R5XX_MEM_PWRUP_COMPL = (0x1 << 0),
     R5XX_MC_IDLE	    = (0x1 << 1)
+};
+
+enum RV515_MC_STATUS_BITS {
+    RV515_MC_IDLE        = (0x1 << 4)
 };
 
 enum BUS_CNTL_BITS {
