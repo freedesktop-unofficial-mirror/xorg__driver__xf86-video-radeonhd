@@ -116,7 +116,7 @@ struct LVDSPrivate {
     Bool   TemporalDither;
     Bool   SpatialDither;
     int    GreyLevel;
-    
+
     Bool Stored;
 
     CARD32 StoreControl;
@@ -558,6 +558,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
  */
 struct rhdTMDSBPrivate {
     Bool RunsDualLink;
+    Bool Coherent;
 
     Bool Stored;
 
@@ -603,37 +604,179 @@ TMDSBModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 }
 
 /*
+ *
+ */
+static void
+RS600VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+#ifdef NOT_YET
+    if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
+	int clock = Mode->SynthClock;
+
+	if (Private->RunsDualLink)
+	    clock >>= 1;
+	if (clock <= 75000) {
+	    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00010213);
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x000a0000);
+	} else {
+	    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00000213);
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000);
+	}
+    } else
+#endif
+    {
+	if (Private->RunsDualLink) {
+	    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0000020f);
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000);
+	} else {
+	    if (Mode->SynthClock < 39000)
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0002020f);
+	    else
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0000020f);
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x00100000);
+	}
+    }
+}
+
+/*
+ *
+ */
+static void
+RS690VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+    CARD32 rev = (RHDRegRead(Output, CONFIG_CNTL) && RS69_CFG_ATI_REV_ID_MASK) >> RS69_CFG_ATI_REV_ID_SHIFT;
+
+    if (rev < 3) {
+#ifdef NOT_YET
+	if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
+	    if (Mode->SynthClock > 75000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0xa001632f);
+		RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x05120000);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+	    } else if (Mode->SynthClock > 41000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0000632f);
+		RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x05120000);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+	    } else {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0003632f);
+		RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x050b000);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x0, 0x10000000);
+	    }
+	} else
+#endif
+	{
+	    int clock = Mode->SynthClock;
+
+	    if (Private->RunsDualLink)
+		clock >>= 1;
+
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x05120000);
+
+	    if (clock > 75000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0xa001631f);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+	    } else if (clock > 41000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0000631f);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+	    } else {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0003631f);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x0, 0x10000000);
+	    }
+	}
+    } else {
+#ifdef NOT_YET
+	if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
+	    if (Mode->SynthClock <= 75000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0002612f);
+		RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x010b0000);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x0, 0x10000000);
+	    } else {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0000642f);
+		RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x01120000);
+		RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+	    }
+	} else
+#endif
+	{
+	    int clock = Mode->SynthClock;
+
+	    if (Private->RunsDualLink)
+		clock >>= 1;
+
+	    RHDRegWrite(Output, LVTMA_R600_REG_TEST_OUTPUT, 0x01120000);
+	    RHDRegMask(Output,  LVTMA_R600_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
+
+	    if (Mode->SynthClock > 75000) {
+		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00016318);
+	    } else {
+		{
+#ifdef ATOM_BIOS
+		    AtomBiosArgRec data;
+
+		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+					ATOM_GET_CAPABILITY_FLAG, &data) == ATOM_SUCCESS) {
+			if (((data.val & 0x60) == 0x20 || (data.val & 0x80))) {
+			    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00016318);
+			} else {
+			    RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00006318);
+			}
+		    } else
+#endif
+		    {
+			RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x00006318);
+		    }
+		}
+	    }
+	}
+    }
+}
+
+/*
  * This information is not provided in an atombios data table.
  */
 static struct R5xxTMDSBMacro {
     CARD16 Device;
-    CARD32 Macro;
+    CARD32 MacroSingle;
+    CARD32 MacroDual;
 } R5xxTMDSBMacro[] = {
-    { 0x7104, 0x00F20616 }, /* R520  */
-    { 0x7142, 0x00F2061C }, /* RV515 */
-    { 0x7146, 0x00F1061D }, /* RV515 */
-    { 0x7147, 0x0082041D }, /* RV505 */
-    { 0x7152, 0x00F2061C }, /* RV515 */
-    { 0x7183, 0x00B2050C }, /* RV530 */
-    { 0x71C1, 0x0062041D }, /* RV535 */
-    { 0x71C2, 0x00F1061D }, /* RV530 */
-    { 0x71C6, 0x00F2061D }, /* RV530 */
-    { 0x71D2, 0x00F10610 }, /* RV530: atombios uses 0x00F1061D */
-    { 0x7249, 0x00F1061D }, /* R580  */
-    { 0x724B, 0x00F10610 }, /* R580: atombios uses 0x00F1061D */
-    { 0x7280, 0x0042041F }, /* RV570 */
-    { 0x7288, 0x0042041F }, /* RV570 */
-    { 0x791E, 0x0001642F }, /* RS690 */
-    { 0x791F, 0x0001642F }, /* RS690 */
-    { 0x9400, 0x00020213 }, /* R600  */
-    { 0x9401, 0x00020213 }, /* R600  */
-    { 0x9402, 0x00020213 }, /* R600  */
-    { 0x9403, 0x00020213 }, /* R600  */
-    { 0x9405, 0x00020213 }, /* R600  */
-    { 0x940A, 0x00020213 }, /* R600  */
-    { 0x940B, 0x00020213 }, /* R600  */
-    { 0x940F, 0x00020213 }, /* R600  */
-    { 0, 0} /* End marker */
+    /*
+     * this list isn't complete yet.
+     *  Some more values for dual need to be dug up
+     */
+    { 0x7104, 0x00F20616, 0x00F20616 }, /* R520  */
+    { 0x7142, 0x00F2061C, 0x00F2061C }, /* RV515 */
+    { 0x7145, 0x00F1061D, 0x00F2061D }, /**/
+    { 0x7146, 0x00F1061D, 0x00F1061D }, /* RV515 */
+    { 0x7147, 0x0082041D, 0x0082041D }, /* RV505 */
+    { 0x7149, 0x00F1061D, 0x00D2061D }, /**/
+    { 0x7152, 0x00F2061C, 0x00F2061C }, /* RV515 */
+    { 0x7183, 0x00B2050C, 0x00B2050C }, /* RV530 */
+    { 0x71C0, 0x00F1061F, 0x00f2061D }, /**/
+    { 0x71C1, 0x0062041D, 0x0062041D }, /* RV535 *//**/
+    { 0x71C2, 0x00F1061D, 0x00F2061D }, /* RV530 *//**/
+    { 0x71C5, 0x00D1061D, 0x00D2061D }, /**/
+    { 0x71C6, 0x00F2061D, 0x00F2061D }, /* RV530 */
+    { 0x71D2, 0x00F10610, 0x00F20610 }, /* RV530: atombios uses 0x00F1061D *//**/
+    { 0x7249, 0x00F1061D, 0x00F1061D }, /* R580  */
+    { 0x724B, 0x00F10610, 0x00F10610 }, /* R580: atombios uses 0x00F1061D */
+    { 0x7280, 0x0042041F, 0x0042041F }, /* RV570 *//**/
+    { 0x7288, 0x0042041F, 0x0042041F }, /* RV570 */
+    { 0x791E, 0x0001642F, 0x0001642F }, /* RS690 */
+    { 0x791F, 0x0001642F, 0x0001642F }, /* RS690 */
+    { 0x9400, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x9401, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x9402, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x9403, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x9405, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x940A, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x940B, 0x00020213, 0x00020213 }, /* R600  */
+    { 0x940F, 0x00020213, 0x00020213 }, /* R600  */
+    { 0, 0, 0 } /* End marker */
 };
 
 static struct RV6xxTMDSBMacro {
@@ -654,15 +797,35 @@ static struct RV6xxTMDSBMacro {
 };
 
 static void
-TMDSBVoltageControl(struct rhdOutput *Output)
+TMDSBVoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 {
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
     int i;
 
-    if (rhdPtr->ChipSet < RHD_RV610) { /* R5xx, RS690 and R600 */
+    /* IGP chipsets are rather special */
+    if (rhdPtr->ChipSet == RHD_RS690) {
+	RS690VoltageControl(Output, Mode);
+	return;
+    } else if (rhdPtr->ChipSet == RHD_RS600) {
+	RS600VoltageControl(Output, Mode);
+	return;
+    }
+
+    /* TEST_OUTPUT register - IGPs are handled above */
+    if (rhdPtr->ChipSet < RHD_RS600) /* r5xx */
+	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
+    else if (rhdPtr->ChipSet < RHD_RV670)
+	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
+
+    /* macro control values */
+    if (rhdPtr->ChipSet < RHD_RV610) { /* R5xx and R600 */
 	for (i = 0; R5xxTMDSBMacro[i].Device; i++)
 	    if (R5xxTMDSBMacro[i].Device == rhdPtr->PciDeviceID) {
-		RHDRegWrite(Output, LVTMA_MACRO_CONTROL, R5xxTMDSBMacro[i].Macro);
+		if (!Private->RunsDualLink)
+		    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, R5xxTMDSBMacro[i].MacroSingle);
+		else
+		    RHDRegWrite(Output, LVTMA_MACRO_CONTROL, R5xxTMDSBMacro[i].MacroDual);
 		return;
 	    }
 
@@ -702,12 +865,6 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDFUNC(Output);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
-    if (rhdPtr->ChipSet < RHD_RS600) /* r5xx */
-	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00200000, 0x00200000);
-    else if ((rhdPtr->ChipSet == RHD_RS600) || (rhdPtr->ChipSet == RHD_RS690))
-	RHDRegWrite(Output, LVTMA_REG_TEST_OUTPUT, 0x01120000);
-    else if (rhdPtr->ChipSet < RHD_RV670)
-	RHDRegMask(Output, LVTMA_REG_TEST_OUTPUT, 0x00100000, 0x00100000);
 
     /* Clear out some HPD events first: this should be under driver control. */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x0000000C);
@@ -749,18 +906,19 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     /* DC balancer enable */
     RHDRegMask(Output, LVTMA_DCBALANCER_CONTROL, 0x00000001, 0x00000001);
 
-    TMDSBVoltageControl(Output);
+    TMDSBVoltageControl(Output, Mode);
 
     /* use IDCLK */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
-    /* coherent mode */
-    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x10000000);
-    /* LVTMA only: use clock selected by previous write */
+    /* LVTMA only: use clock selected by next write */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
+    /* coherent mode */
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL,
+	       Private->Coherent ? 0 : 0x10000000, 0x10000000);
     /* clear LVDS clock pattern */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x03FF0000);
 
-    /* reset transmitter */
+    /* reset transmitter pll */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000002, 0x00000002);
     usleep(2);
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
@@ -935,6 +1093,8 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
 	Output->Private = LVDSInfoRetrieve(rhdPtr);
     } else {
+	struct rhdTMDSBPrivate *Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
+
 	Output->Name = "TMDS B";
 
 	Output->ModeValid = TMDSBModeValid;
@@ -943,8 +1103,10 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Save = TMDSBSave;
 	Output->Restore = TMDSBRestore;
 
-	Output->Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
-	((struct rhdTMDSBPrivate *)Output->Private)->RunsDualLink = FALSE;
+	Output->Private = Private;
+
+	Private->RunsDualLink = FALSE;
+	Private->Coherent = TRUE;
     }
 
     return Output;

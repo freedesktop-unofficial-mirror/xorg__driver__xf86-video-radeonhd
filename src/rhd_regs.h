@@ -31,6 +31,7 @@ enum {
     BUS_CNTL		  =       0x4C, /* (RW) */
     MC_IND_INDEX	  =       0x70, /* (RW) */
     MC_IND_DATA           =       0x74, /* (RW) */
+    CONFIG_CNTL		  =	  0xE0,
     /* RS690 ?? */
     RS69_MC_INDEX		  =	  0xE8,
     RS69_MC_DATA		  =	  0xEC,
@@ -325,6 +326,11 @@ enum {
     DC_GPIO_HPD_A                  = 0x7E94,
     DC_GPIO_HPD_EN                 = 0x7E98,
     DC_GPIO_HPD_Y                  = 0x7E9C
+};
+
+enum CONFIG_CNTL_BITS {
+    RS69_CFG_ATI_REV_ID_SHIFT      = 8,
+    RS69_CFG_ATI_REV_ID_MASK       = 0xF << RS69_CFG_ATI_REV_ID_SHIFT
 };
 
 enum rv620Regs {
