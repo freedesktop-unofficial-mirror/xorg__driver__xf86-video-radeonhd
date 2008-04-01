@@ -218,8 +218,9 @@ typedef struct RHDRec {
     unsigned int        FbIntAddress; /* card internal address of FB */
 
     /* Some simplistic memory handling */
+#define ALIGN(x,align)	(((x)+(align)-1)&~((align)-1))
     /* Use this macro to always chew up 4096byte aligned pieces. */
-#define RHD_FB_CHUNK(x)     (((x) + 0xFFF) & ~0xFFF) /* align */
+#define RHD_FB_CHUNK(x)     ALIGN((x),0x1000)
     unsigned int        FbFreeStart;
     unsigned int        FbFreeSize;
 
@@ -314,6 +315,7 @@ CARD32 _RHDReadPLL(int scrnIndex, CARD16 offset);
 #define RHDReadPLL(ptr, off) _RHDReadPLL((ptr)->scrnIndex,(off))
 void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
 #define RHDWritePLL(ptr, off, value) _RHDWritePLL((ptr)->scrnIndex,(off),(value))
+unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name);
 
 /* rhd_id.c */
 enum RHD_FAMILIES RHDFamily(enum RHD_CHIPSETS chipset);

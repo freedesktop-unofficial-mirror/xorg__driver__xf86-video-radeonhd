@@ -850,14 +850,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
                "Using %dx%d Framebuffer with %d pitch\n", pScrn->virtualX,
                pScrn->virtualY, pScrn->displayWidth);
     /* grab the real scanout area and adjust the free space */
-    rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
     rhdPtr->FbScanoutSize = RHD_FB_CHUNK(pScrn->displayWidth * pScrn->bitsPerPixel *
 					 pScrn->virtualY / 8);
-    RHDDebug(pScrn->scrnIndex, "ScanoutBuffer at offset 0x%08X (size = 0x%08X)\n",
-	     rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize);
-
-    rhdPtr->FbFreeStart = rhdPtr->FbScanoutStart + rhdPtr->FbScanoutSize;
-    rhdPtr->FbFreeSize -= rhdPtr->FbScanoutSize;
+    rhdPtr->FbScanoutStart = RHDAllocFb(rhdPtr, rhdPtr->FbScanoutSize,
+					"ScanoutBuffer");
+    ASSERT(rhdPtr->FbScanoutStart != (unsigned)-1);
 
     if (!rhdPtr->randr)
 	xf86PrintModes(pScrn);
@@ -1600,14 +1597,9 @@ rhdFbOffscreenGrab(ScrnInfoPtr pScrn)
 
     tmp = RHD_FB_CHUNK(tmp);
 
-    rhdPtr->FbOffscreenStart = rhdPtr->FbFreeStart;
     rhdPtr->FbOffscreenSize = tmp;
-
-    rhdPtr->FbFreeStart += rhdPtr->FbOffscreenSize;
-    rhdPtr->FbFreeSize -= rhdPtr->FbOffscreenSize;
-
-    RHDDebug(pScrn->scrnIndex, "Offscreen Buffer at offset 0x%08X (size = 0x%08X)\n",
-	     rhdPtr->FbOffscreenStart, rhdPtr->FbOffscreenSize);
+    rhdPtr->FbOffscreenStart = RHDAllocFb(rhdPtr, tmp, "Offscreen Buffer");
+    ASSERT(rhdPtr->FbOffscreenStart != (unsigned)-1);
 }
 
 /*
@@ -2559,3 +2551,23 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
     }
 
 }
+
+/* Allocate a chunk of the framebuffer. -1 on fail. So far no free()! */
+unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name)
+{
+    unsigned int chunk;
+    size = RHD_FB_CHUNK(size);
+    if (rhdPtr->FbFreeSize < size) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "FB: Failed allocating %s (%d KB)\n", name, size/1024);
+	return -1;
+    }
+    chunk = rhdPtr->FbFreeStart;
+    rhdPtr->FbFreeStart += size;
+    rhdPtr->FbFreeSize  -= size;
+    RHDDebug(rhdPtr->scrnIndex,
+	     "FB: Allocated %s at offset 0x%08X (size = 0x%08X)\n",
+	     name, chunk, size);
+    return chunk;
+}
+
