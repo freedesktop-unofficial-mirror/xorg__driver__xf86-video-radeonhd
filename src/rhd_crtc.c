@@ -226,8 +226,6 @@ DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
 
     RHDRegWrite(Crtc, RegOff + D1GRPH_PRIMARY_SURFACE_ADDRESS,
 		rhdPtr->FbIntAddress + Offset);
-    RHDRegWrite(Crtc, RegOff + D1GRPH_SECONDARY_SURFACE_ADDRESS,
-		rhdPtr->FbIntAddress + Offset + Width);
     RHDRegWrite(Crtc, RegOff + D1GRPH_PITCH, Pitch);
     RHDRegWrite(Crtc, RegOff + D1GRPH_SURFACE_OFFSET_X, 0);
     RHDRegWrite(Crtc, RegOff + D1GRPH_SURFACE_OFFSET_Y, 0);
@@ -255,6 +253,14 @@ DxModeValid(struct rhdCrtc *Crtc, DisplayModePtr Mode)
     CARD32 tmp;
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
+
+    /* Work around HW bug: need at least 2 lines of front porch
+       for interlaced mode */
+    if ((Mode->Flags & V_INTERLACE)
+	&& (Mode->CrtcVSyncStart < (Mode->CrtcVDisplay + 2))) {
+	Mode->CrtcVSyncStart = Mode->CrtcVDisplay + 2;
+	Mode->CrtcVAdjusted = TRUE;
+    }
 
     /* D1_MODE_VIEWPORT_WIDTH: 14bits */
     if (Mode->CrtcHDisplay >= 0x4000)
