@@ -199,12 +199,10 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x793F, RHD_RS600 ), /* Radeon Xpress 1200 */
     RHD_DEVICE_MATCH(  0x7941, RHD_RS600 ), /* Radeon Xpress 1200 */
     RHD_DEVICE_MATCH(  0x7942, RHD_RS600 ), /* Radeon Xpress 1200 (M) */
-#if 0 /* Not seen yet */
     RHD_DEVICE_MATCH(  0x796C, RHD_RS740 ), /* RS740 */
     RHD_DEVICE_MATCH(  0x796D, RHD_RS740 ), /* RS740M */
     RHD_DEVICE_MATCH(  0x796E, RHD_RS740 ), /* ATI Radeon 2100 RS740 */
     RHD_DEVICE_MATCH(  0x796F, RHD_RS740 ), /* RS740M */
-#endif
     RHD_DEVICE_MATCH(  0x9400, RHD_R600  ), /* Radeon HD 2900 XT */
     RHD_DEVICE_MATCH(  0x9401, RHD_R600  ), /* Radeon HD 2900 XT */
     RHD_DEVICE_MATCH(  0x9402, RHD_R600  ), /* Radeon HD 2900 XT */
@@ -260,6 +258,45 @@ const PCI_ID_LIST = {
     LIST_END
 };
 
+static enum RHD_FAMILIES  rhdFamily[] = {
+    RHD_FAMILY_UNKNOWN, /* RHD_UNKNOWN */
+    RHD_FAMILY_RV515,   /* RHD_RV505 */
+    RHD_FAMILY_RV515,   /* RHD_RV515 */
+    RHD_FAMILY_RV515,   /* RHD_RV516 */
+    RHD_FAMILY_R520,    /* RHD_R520 */
+    RHD_FAMILY_RV530,   /* RHD_RV530 */
+    RHD_FAMILY_RV530,   /* RHD_RV535 */
+    RHD_FAMILY_RV515,   /* RHD_RV550 */
+    RHD_FAMILY_RV560,   /* RHD_RV560 */
+    RHD_FAMILY_RV570,   /* RHD_RV570 */
+    RHD_FAMILY_R580,    /* RHD_R580 */
+    RHD_FAMILY_RV515,   /* RHD_M52 */
+    RHD_FAMILY_RV515,   /* RHD_M54 */
+    RHD_FAMILY_RV530,   /* RHD_M56 */
+    RHD_FAMILY_R520,    /* RHD_M58 */
+    RHD_FAMILY_RV515,   /* RHD_M62 */
+    RHD_FAMILY_RV515,   /* RHD_M64 */
+    RHD_FAMILY_RV530,   /* RHD_M66 */
+    RHD_FAMILY_R580,    /* RHD_M68 */
+    RHD_FAMILY_RV515,   /* RHD_M71 */
+    RHD_FAMILY_RS690,   /* RHD_RS600 */
+    RHD_FAMILY_RS690,   /* RHD_RS690 */
+    RHD_FAMILY_RS690,   /* RHD_RS740 */
+    RHD_FAMILY_R600,    /* RHD_R600 */
+    RHD_FAMILY_RV610,   /* RHD_RV610 */
+    RHD_FAMILY_RV630,   /* RHD_RV630 */
+    RHD_FAMILY_RV610,   /* RHD_M72 */
+    RHD_FAMILY_RV610,   /* RHD_M74 */
+    RHD_FAMILY_RV630,   /* RHD_M76 */
+    RHD_FAMILY_RV670,   /* RHD_RV670 */
+    RHD_FAMILY_RV670,   /* RHD_R680 */
+    RHD_FAMILY_RV620,   /* RHD_RV620 */
+    RHD_FAMILY_RV620,   /* RHD_M82 */
+    RHD_FAMILY_RV620,   /* RHD_RV635 */
+    RHD_FAMILY_UNKNOWN  /* RHD_M86 */
+    /* RHD_CHIP_END */
+};
+
 /*
  *
  */
@@ -312,6 +349,17 @@ RHDIdentify(int flags)
 
     xf86Msg(X_INFO, "%s: version %s, built from %s\n\n",
 	    RHD_NAME, PACKAGE_VERSION, GIT_MESSAGE);
+}
+
+/*
+ *
+ */
+enum RHD_FAMILIES
+RHDFamily(enum RHD_CHIPSETS chipset)
+{
+    assert(chipset <= sizeof(RHDFamily));
+
+    return rhdFamily[chipset];
 }
 
 /*

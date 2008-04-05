@@ -90,6 +90,22 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
+enum RHD_FAMILIES {
+    RHD_FAMILY_UNKNOWN = 0,
+    RHD_FAMILY_RV515,
+    RHD_FAMILY_R520,
+    RHD_FAMILY_RV530,
+    RHD_FAMILY_RV560,
+    RHD_FAMILY_RV570,
+    RHD_FAMILY_R580,
+    RHD_FAMILY_RS690,
+    RHD_FAMILY_R600,
+    RHD_FAMILY_RV610,
+    RHD_FAMILY_RV630,
+    RHD_FAMILY_RV670,
+    RHD_FAMILY_RV620
+};
+
 enum RHD_HPD_USAGE {
     RHD_HPD_USAGE_AUTO = 0,
     RHD_HPD_USAGE_OFF,
@@ -276,6 +292,9 @@ CARD32 _RHDReadPLL(int scrnIndex, CARD16 offset);
 #define RHDReadPLL(ptr, off) _RHDReadPLL((ptr)->scrnIndex,(off))
 void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
 #define RHDWritePLL(ptr, off, value) _RHDWritePLL((ptr)->scrnIndex,(off),(value))
+
+/* rhd_id.c */
+enum RHD_FAMILIES RHDFamily(enum RHD_CHIPSETS chipset);
 
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,
