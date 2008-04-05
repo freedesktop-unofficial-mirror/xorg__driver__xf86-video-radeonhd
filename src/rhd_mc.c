@@ -55,10 +55,6 @@ RHDMCInit(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    /* for now */
-    if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS600)
-	return;
-
     MC = xnfcalloc(1, sizeof(struct rhdMC));
     MC->Stored = FALSE;
 
@@ -98,7 +94,7 @@ RHDSaveMC(RHDPtr rhdPtr)
 	    MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_FB_LOCATION);
 	else
 	    MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION);
-    } else if (rhdPtr->ChipSet < RHD_R600) {
+    } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS690) {
 	MC->FbLocation = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
     } else {
 	MC->FbLocation = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
