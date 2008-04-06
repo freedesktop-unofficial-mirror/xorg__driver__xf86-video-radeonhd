@@ -120,10 +120,11 @@ RHDHPDCheck(struct rhdConnector *Connector)
 
     RHDFUNC(Connector);
 
-    ret = (RHDRegRead(Connector, DC_GPIO_HPD_Y) & Connector->HPDMask);
-    RHDDebug(Connector->scrnIndex, "%s returned: %x\n",__func__,ret);
+    ret = RHDRegRead(Connector, DC_GPIO_HPD_Y);
+    RHDDebug(Connector->scrnIndex, "%s returned: %x mask: %x\n",
+	     __func__,ret, Connector->HPDMask);
 
-    return ret;
+    return (ret & Connector->HPDMask);
 }
 
 struct rhdCsState {

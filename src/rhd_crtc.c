@@ -392,7 +392,8 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 {
     CARD16 RegOff;
 
-    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
+    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s viewport: %ix%i\n", __func__, Crtc->Name,
+	     Mode->CrtcHDisplay, Mode->CrtcVDisplay);
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
