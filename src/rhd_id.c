@@ -292,7 +292,7 @@ static enum RHD_FAMILIES  rhdFamily[] = {
     RHD_FAMILY_RV670,   /* RHD_R680 */
     RHD_FAMILY_RV620,   /* RHD_RV620 */
     RHD_FAMILY_RV620,   /* RHD_M82 */
-    RHD_FAMILY_RV620,   /* RHD_RV635 */
+    RHD_FAMILY_RV635,   /* RHD_RV635 */
     RHD_FAMILY_UNKNOWN  /* RHD_M86 */
     /* RHD_CHIP_END */
 };
