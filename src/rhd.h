@@ -175,8 +175,10 @@ typedef struct RHDRec {
     int                 ChipSet;
 #ifdef XSERVER_LIBPCIACCESS
     struct pci_device   *PciInfo;
+    struct pci_device   *NBPciInfo;
 #else
     pciVideoRec         *PciInfo;
+    PCITAG		NBPciTag;
 #endif
     PCITAG              PciTag;
     unsigned int	PciDeviceID;

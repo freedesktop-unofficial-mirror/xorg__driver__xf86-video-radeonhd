@@ -155,6 +155,7 @@ static Bool     rhdMapFB(RHDPtr rhdPtr);
 static void     rhdUnmapFB(RHDPtr rhdPtr);
 static CARD32   rhdGetVideoRamSize(RHDPtr rhdPtr);
 static void     rhdFbOffscreenGrab(ScrnInfoPtr pScrn);
+static void	rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr);
 
 /* rhd_id.c */
 extern SymTabRec RHDChipsets[];
@@ -513,6 +514,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
 
     xfree(pEnt);
+
+    if (RHDIsIGP(rhdPtr->ChipSet))
+	rhdGetIGPNorthBridgeInfo(rhdPtr);
 
     pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, rhdPtr->ChipSet);
 
@@ -2429,4 +2433,25 @@ RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 	return rhdR5XXDoReadPCIBios(rhdPtr, ptr);
     else
 	return rhdR6XXDoReadPCIBios(rhdPtr, ptr);
+}
+
+/*
+ *
+ */
+static void
+rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
+{
+    switch (rhdPtr->ChipSet) {
+	case RHD_RS600:
+	    break;
+	case RHD_RS690:
+	case RHD_RS740:
+#ifdef XSERVER_LIBPCIACCESS
+	    rhdPtr->NBPciInfo = pci_device_find_by_slot(0,0,0,0);
+#else
+	    rhdPtr->NBPciTag = pciTag(0,0,0);
+#endif
+	    break;
+    }
+
 }
