@@ -178,9 +178,9 @@ typedef struct RHDRec {
     struct pci_device   *NBPciInfo;
 #else
     pciVideoRec         *PciInfo;
+    PCITAG              PciTag;
     PCITAG		NBPciTag;
 #endif
-    PCITAG              PciTag;
     unsigned int	PciDeviceID;
     int			entityIndex;
     struct rhdCard      *Card;

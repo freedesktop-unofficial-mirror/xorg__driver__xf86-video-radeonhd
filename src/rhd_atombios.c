@@ -320,7 +320,6 @@ typedef struct _atomBiosHandle {
     atomDataTablesPtr atomDataPtr;
     pointer *scratchBase;
     CARD32 fbBase;
-    PCITAG PciTag;
     unsigned int BIOSImageSize;
     unsigned char *codeTable;
 } atomBiosHandleRec;
@@ -875,7 +874,6 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     handle->BIOSBase = ptr;
     handle->atomDataPtr = atomDataPtr;
     handle->scrnIndex = scrnIndex;
-    handle->PciTag = rhdPtr->PciTag;
     handle->BIOSImageSize = BIOSImageSize;
     handle->codeTable = codeTable;
 
@@ -2790,7 +2788,7 @@ CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 VOID
 CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 idx,UINT16 size)
 {
-    PCITAG tag = ((atomBiosHandlePtr)CAIL)->PciTag;
+    PCITAG tag = RHDPTRI((atomBiosHandlePtr)CAIL)->PciTag;
 
     CAILFUNC(CAIL);
 
@@ -2818,7 +2816,7 @@ CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 idx,UINT16 size)
 VOID
 CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 {
-    PCITAG tag = ((atomBiosHandlePtr)CAIL)->PciTag;
+    PCITAG tag = RHDPTRI((atomBiosHandlePtr)CAIL)->PciTag;
 
     CAILFUNC(CAIL);
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx,(*(unsigned int*)src)));

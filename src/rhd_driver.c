@@ -376,9 +376,6 @@ RHDPciProbe(DriverPtr drv, int entityNum,
 	rhdPtr = RHDPTR(pScrn);
 
 	rhdPtr->PciInfo = dev;
-	rhdPtr->PciTag = pciTag(dev->bus,
-				dev->dev,
-				dev->func);
 	rhdPtr->ChipSet = matchData;
     }
 
