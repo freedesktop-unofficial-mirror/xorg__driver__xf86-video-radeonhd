@@ -2132,8 +2132,14 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
     } else {
-	_RHDRegWrite(scrnIndex, RS69_MC_INDEX, addr);
-	ret = _RHDRegRead(scrnIndex, RS69_MC_DATA);
+#ifdef XSERVER_LIBPCIACCESS
+	CARD32 data = addr & ~RS69_C_IND_WR_EN;
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), RS69_MC_INDEX, 4, NULL);
+	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, RS69_MC_DATA, 4, NULL);
+#else
+	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr & ~RS69_C_IND_WR_EN);
+	ret = pciReadLong(rhdPtr->NBPciTag, RS69_MC_DATA);
+#endif
     }
 
     RHDDebug(scrnIndex,"%s(0x%08X) = 0x%08X\n",__func__,(unsigned int)addr,
@@ -2150,11 +2156,18 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 	     (unsigned int)data);
 
     if (rhdPtr->ChipSet < RHD_RS690) {
-	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
+	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr | MC_IND_WR_EN);
 	_RHDRegWrite(scrnIndex, MC_IND_DATA, data);
     } else {
-	_RHDRegWrite(scrnIndex, RS69_MC_INDEX, addr);
-	_RHDRegWrite(scrnIndex, RS69_MC_DATA, data);
+#ifdef XSERVER_LIBPCIACCESS
+	CARD32 tmp = addr & ~RS69_C_IND_WR_EN;
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &tmp, RS69_MC_INDEX, 4, NULL);
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &data, RS69_MC_DATA, 4, NULL);
+#else
+	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr | RS69_C_IND_WR_EN);
+	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_DATA, data);
+#endif
+
     }
 }
 

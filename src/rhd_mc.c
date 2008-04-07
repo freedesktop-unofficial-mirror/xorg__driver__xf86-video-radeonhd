@@ -55,6 +55,10 @@ RHDMCInit(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
+    /* we know nothing about RS600, yet */
+    if (rhdPtr->ChipSet == RHD_RS600)
+	return;
+
     MC = xnfcalloc(1, sizeof(struct rhdMC));
     MC->Stored = FALSE;
 
@@ -123,14 +127,13 @@ RHDRestoreMC(RHDPtr rhdPtr)
     }
     if (rhdPtr->ChipSet < RHD_RS690) {
 	if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RV515)
-	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | RV515_MC_FB_LOCATION,
+	    RHDWriteMC(rhdPtr, MC_IND_ALL |  RV515_MC_FB_LOCATION,
 		       MC->FbLocation);
 	else
-	    RHDWriteMC(rhdPtr, MC_IND_ALL | MC_IND_WR_EN | R5XX_MC_FB_LOCATION,
+	    RHDWriteMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION,
 		       MC->FbLocation);
-    } else if (rhdPtr->ChipSet < RHD_R600) {
-	RHDWriteMC(rhdPtr, RS69_C_IND_WR_EN | RS69_MCCFG_FB_LOCATION,
-		   MC->FbLocation);
+    } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS690) {
+	RHDWriteMC(rhdPtr,  RS69_MCCFG_FB_LOCATION, MC->FbLocation);
     } else {
 	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, MC->FbLocation);
 	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->MiscOffset);
@@ -166,7 +169,7 @@ RHDMCSetup(RHDPtr rhdPtr)
 		 "[fb_size: 0x%04X] -> fb_location: 0x%08X\n",
 		 __func__, (unsigned int)fb_location,
 		 fb_size,(unsigned int)fb_location_tmp);
-	RHDWriteMC(rhdPtr, reg | MC_IND_WR_EN, fb_location_tmp);
+	RHDWriteMC(rhdPtr, reg, fb_location_tmp);
     } else if (rhdPtr->ChipSet < RHD_R600) {
 	fb_location = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
 	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
@@ -177,7 +180,7 @@ RHDMCSetup(RHDPtr rhdPtr)
 		 "[fb_size: 0x%04X] -> fb_location: 0x%08X\n",
 		 __func__, (unsigned int)fb_location,
 		 fb_size,(unsigned int)fb_location_tmp);
-	RHDWriteMC(rhdPtr, RS69_C_IND_WR_EN | RS69_MCCFG_FB_LOCATION,
+	RHDWriteMC(rhdPtr, RS69_MCCFG_FB_LOCATION,
 		   fb_location_tmp);
     } else {
 	fb_location = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
@@ -210,8 +213,8 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
 	} else if (rhdPtr->ChipSet < RHD_RS690) {
 	    if (RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_STATUS) & R5XX_MC_IDLE)
 		return TRUE;
-	} else if (rhdPtr->ChipSet < RHD_R600) {
-	    if (RHDReadMC(rhdPtr, RS69_MC_SYSTEM_STATUS) & MC_SYSTEM_IDLE)
+	} else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS690) {
+	    if (RHDReadMC(rhdPtr, RS69_MC_SYSTEM_STATUS) & RS69_MC_SEQUENCER_IDLE)
 		return TRUE;
 	} else {
 	    if (!(RHDRegRead(rhdPtr, R6_MCLK_PWRMGT_CNTL) & R6_MC_BUSY))
