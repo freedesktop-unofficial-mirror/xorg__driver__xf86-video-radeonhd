@@ -41,6 +41,7 @@
 #include "rhd_pll.h"
 #include "rhd_lut.h"
 #include "rhd_regs.h"
+#include "rhd_modes.h"
 
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
@@ -317,10 +318,16 @@ DxModeValid(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 static void
 DxModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
     CARD16 BlankStart, BlankEnd;
     CARD16 RegOff;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s\n", __func__, Crtc->Name);
+
+    if (rhdPtr->verbosity > 6) {
+	xf86DrvMsg(Crtc->scrnIndex, X_INFO, "%s: Setting ",__func__);
+	RHDPrintModeline(Mode);
+    }
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
