@@ -111,6 +111,7 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
 	    return 0;
     case RHD_RS600:
     case RHD_RS690:
+    case RHD_RS740:
 	/* depending on MiscInfo also 0x00120004 */
 	return 0x00120704;
     case RHD_R600:

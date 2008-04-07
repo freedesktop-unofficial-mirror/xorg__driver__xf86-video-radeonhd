@@ -328,6 +328,8 @@ DDIADestroy(struct rhdOutput *Output)
 struct rhdOutput *
 RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
 {
+    RHDFUNC(rhdPtr);
+
 #ifdef ATOM_BIOS
     struct rhdOutput *Output;
     struct DDIAPrivate *Private;
@@ -338,7 +340,7 @@ RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
      * This needs to be handled separately
      * for now we only deal with it here.
      */
-    if (rhdPtr->ChipSet != RHD_RS690)
+    if (RHDFamily(rhdPtr->ChipSet) != RHD_FAMILY_RS690)
 	return FALSE;
 
     Output = xnfcalloc(sizeof(struct rhdOutput), 1);

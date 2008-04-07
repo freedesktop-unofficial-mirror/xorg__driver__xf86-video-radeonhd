@@ -1083,7 +1083,7 @@ rhdInitI2C(int scrnIndex)
 	I2CPtr->scrnIndex = scrnIndex;
 	if (rhdPtr->ChipSet < RHD_RS600)
 	    I2CPtr->I2CWriteRead = rhd5xxWriteRead;
-	else if (rhdPtr->ChipSet < RHD_R600)
+	else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS690)
 	    I2CPtr->I2CWriteRead = rhdRS69WriteRead;
 	else if (rhdPtr->ChipSet < RHD_RV620)
 	    I2CPtr->I2CWriteRead = rhd6xxWriteRead;
