@@ -258,42 +258,45 @@ const PCI_ID_LIST = {
     LIST_END
 };
 
-static enum RHD_FAMILIES  rhdFamily[] = {
-    RHD_FAMILY_UNKNOWN, /* RHD_UNKNOWN */
-    RHD_FAMILY_RV515,   /* RHD_RV505 */
-    RHD_FAMILY_RV515,   /* RHD_RV515 */
-    RHD_FAMILY_RV515,   /* RHD_RV516 */
-    RHD_FAMILY_R520,    /* RHD_R520 */
-    RHD_FAMILY_RV530,   /* RHD_RV530 */
-    RHD_FAMILY_RV530,   /* RHD_RV535 */
-    RHD_FAMILY_RV515,   /* RHD_RV550 */
-    RHD_FAMILY_RV560,   /* RHD_RV560 */
-    RHD_FAMILY_RV570,   /* RHD_RV570 */
-    RHD_FAMILY_R580,    /* RHD_R580 */
-    RHD_FAMILY_RV515,   /* RHD_M52 */
-    RHD_FAMILY_RV515,   /* RHD_M54 */
-    RHD_FAMILY_RV530,   /* RHD_M56 */
-    RHD_FAMILY_R520,    /* RHD_M58 */
-    RHD_FAMILY_RV515,   /* RHD_M62 */
-    RHD_FAMILY_RV515,   /* RHD_M64 */
-    RHD_FAMILY_RV530,   /* RHD_M66 */
-    RHD_FAMILY_R580,    /* RHD_M68 */
-    RHD_FAMILY_RV515,   /* RHD_M71 */
-    RHD_FAMILY_RS690,   /* RHD_RS600 */
-    RHD_FAMILY_RS690,   /* RHD_RS690 */
-    RHD_FAMILY_RS690,   /* RHD_RS740 */
-    RHD_FAMILY_R600,    /* RHD_R600 */
-    RHD_FAMILY_RV610,   /* RHD_RV610 */
-    RHD_FAMILY_RV630,   /* RHD_RV630 */
-    RHD_FAMILY_RV610,   /* RHD_M72 */
-    RHD_FAMILY_RV610,   /* RHD_M74 */
-    RHD_FAMILY_RV630,   /* RHD_M76 */
-    RHD_FAMILY_RV670,   /* RHD_RV670 */
-    RHD_FAMILY_RV670,   /* RHD_R680 */
-    RHD_FAMILY_RV620,   /* RHD_RV620 */
-    RHD_FAMILY_RV620,   /* RHD_M82 */
-    RHD_FAMILY_RV635,   /* RHD_RV635 */
-    RHD_FAMILY_UNKNOWN  /* RHD_M86 */
+static struct rhdChipsetMapStruct {
+    enum RHD_FAMILIES family;
+    Bool IGP;
+} rhdChipsetMap[] = {
+    { RHD_FAMILY_UNKNOWN, 0 }, /* RHD_UNKNOWN */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_RV505 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_RV515 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_RV516 */
+    { RHD_FAMILY_R520,  0 },     /* RHD_R520 */
+    { RHD_FAMILY_RV530, 0 },     /* RHD_RV530 */
+    { RHD_FAMILY_RV530, 0 },     /* RHD_RV535 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_RV550 */
+    { RHD_FAMILY_RV560, 0 },     /* RHD_RV560 */
+    { RHD_FAMILY_RV570, 0 },     /* RHD_RV570 */
+    { RHD_FAMILY_R580,  0 },     /* RHD_R580 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_M52 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_M54 */
+    { RHD_FAMILY_RV530, 0 },     /* RHD_M56 */
+    { RHD_FAMILY_R520,  0 },     /* RHD_M58 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_M62 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_M64 */
+    { RHD_FAMILY_RV530, 0 },     /* RHD_M66 */
+    { RHD_FAMILY_R580,  0 },     /* RHD_M68 */
+    { RHD_FAMILY_RV515, 0 },     /* RHD_M71 */
+    { RHD_FAMILY_RS690, 1 },     /* RHD_RS600 */
+    { RHD_FAMILY_RS690, 1 },     /* RHD_RS690 */
+    { RHD_FAMILY_RS690, 1 },     /* RHD_RS740 */
+    { RHD_FAMILY_R600,  0 },     /* RHD_R600 */
+    { RHD_FAMILY_RV610, 0 },     /* RHD_RV610 */
+    { RHD_FAMILY_RV630, 0 },     /* RHD_RV630 */
+    { RHD_FAMILY_RV610, 0 },     /* RHD_M72 */
+    { RHD_FAMILY_RV610, 0 },     /* RHD_M74 */
+    { RHD_FAMILY_RV630, 0 },     /* RHD_M76 */
+    { RHD_FAMILY_RV670, 0 },     /* RHD_RV670 */
+    { RHD_FAMILY_RV670, 0 },     /* RHD_R680 */
+    { RHD_FAMILY_RV620, 0 },     /* RHD_RV620 */
+    { RHD_FAMILY_RV620, 0 },     /* RHD_M82 */
+    { RHD_FAMILY_RV635, 0 },     /* RHD_RV635 */
+    { RHD_FAMILY_UNKNOWN, 0 }    /* RHD_M86 */
     /* RHD_CHIP_END */
 };
 
@@ -357,9 +360,20 @@ RHDIdentify(int flags)
 enum RHD_FAMILIES
 RHDFamily(enum RHD_CHIPSETS chipset)
 {
-    assert(chipset <= sizeof(RHDFamily));
+    assert(chipset <= sizeof(RHDChipsetMap)/sizeof(rhdChipsetMapStruct));
 
-    return rhdFamily[chipset];
+    return rhdChipsetMap[chipset].family;
+}
+
+/*
+ *
+ */
+Bool
+RHDIsIGP(enum RHD_CHIPSETS chipset)
+{
+    assert(chipset <= sizeof(RHDChipsetMap)/sizeof(rhdChipsetMapStruct));
+
+    return rhdChipsetMap[chipset].IGP;
 }
 
 /*

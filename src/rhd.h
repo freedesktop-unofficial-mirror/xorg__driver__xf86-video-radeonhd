@@ -296,6 +296,7 @@ void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
 
 /* rhd_id.c */
 enum RHD_FAMILIES RHDFamily(enum RHD_CHIPSETS chipset);
+Bool RHDIsIGP(enum RHD_CHIPSETS chipset);
 
 /* rhd_helper.c */
 void RhdGetOptValBool(const OptionInfoRec *table, int token,
