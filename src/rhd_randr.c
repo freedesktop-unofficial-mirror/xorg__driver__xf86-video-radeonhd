@@ -101,9 +101,10 @@ typedef struct _rhdRandrOutput {
 #define ATOM_CONNECTOR_NUMBER "RANDR_CONNECTOR_NUMBER"
 #define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
 #define ATOM_PANNING_AREA     "RANDR_PANNING_AREA"
+#define ATOM_BACKLIGHT        "BACKLIGHT"
 
 static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
-	    atomOutputNumber, atomPanningArea;
+	    atomOutputNumber, atomPanningArea, atomBacklight;
 
 
 /* Get RandR property values */
@@ -414,7 +415,9 @@ static Bool
 rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
 			DisplayModePtr mode,
 			DisplayModePtr adjusted_mode)
-{ return TRUE; }
+{
+    return TRUE;
+}
 
 #if 0 /* Needed if we want to support rotation w/o own hardware support */
     void *
@@ -455,6 +458,8 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     struct rhdOutput *o;
     const char       *val;
     CARD32            num;
+    int              err;
+    INT32            range[2];
 
     RHDFUNC(rhdPtr);
 
@@ -479,6 +484,33 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 			      FALSE, FALSE, TRUE, 0, NULL);
     RRConfigureOutputProperty(out->randr_output, atomPanningArea,
 			      FALSE, FALSE, FALSE, 0, NULL);
+
+    if (rout->Output->Id == RHD_OUTPUT_LVTMA &&
+	rout->Connector->Type == RHD_CONNECTOR_PANEL) {
+	atomBacklight = MakeAtom(ATOM_BACKLIGHT,
+				 sizeof(ATOM_BACKLIGHT)-1, TRUE);
+
+	range[0] = 0;
+	range[1] = 255;
+	err = RRConfigureOutputProperty(out->randr_output, atomBacklight,
+					FALSE, TRUE, FALSE, 2, range);
+	if (err != 0)
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		       "RRConfigureOutputProperty error: %d\n", err);
+	else {
+	    int data = rout->Output->Backlight ?
+		rout->Output->Backlight(rout->Output) : 255;
+
+	    err = RRChangeOutputProperty(out->randr_output, atomBacklight,
+					 XA_INTEGER, 32, PropModeReplace,
+					 1, &data, FALSE, FALSE);
+	    if (err != 0)
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "In %s RRChangeOutputProperty error: %d\n",
+			   __func__, err);
+	}
+    }
+
     val = rhdGetSignalFormat(rout);
     RRChangeOutputProperty(out->randr_output, atomSignalFormat,
 			   XA_STRING, 8, PropModeReplace,
@@ -946,11 +978,52 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	default:
 	    return FALSE;
 	}
+    } else if (property == atomBacklight) {
+	if (value->type != XA_INTEGER || value->format != 32) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
+	    return FALSE;
+	}
+	if (rout->Output->SetBacklight) {
+	    rout->Output->SetBacklight(rout->Output, *(int*)(value->data));
+	}
+	return TRUE;
     }
 
     return FALSE;	/* Others are not mutable */
 }
 
+
+#ifdef RANDR_13_INTERFACE
+static Bool
+rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
+{
+    RHDPtr rhdPtr          = RHDPTR(out->scrn);
+    rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
+    int data = 255, err;
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "In %s\n", __func__);
+
+    if (property == atomBacklight) {
+	if (rout->Output->Backlight == NULL)
+	    return FALSE;
+
+	data = rout->Output->Backlight(rout->Output);
+
+	err = RRChangeOutputProperty(out->randr_output, atomBacklight,
+		XA_INTEGER, 32, PropModeReplace,
+		1, &data, FALSE, FALSE);
+
+	if (err != 0) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "In %s RRChangeOutputProperty error: %d\n", __func__, err);
+	    return FALSE;
+	}
+
+	return TRUE;
+    }
+
+    return FALSE;
+}
+#endif
 
 /*
  * Xorg Interface
@@ -981,6 +1054,9 @@ static const xf86OutputFuncsRec rhdRROutputFuncs = {
     rhdRROutputPrepare, rhdRROutputCommit,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
     rhdRROutputSetProperty,		       /* Only(!) RANDR_12_INTERFACE */
+#ifdef RANDR_13_INTERFACE
+    rhdRROutputGetProperty,  /* get_property */
+#endif
     NULL						/* Destroy */
 };
 

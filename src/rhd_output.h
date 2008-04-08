@@ -80,6 +80,8 @@ struct rhdOutput {
     void (*Save) (struct rhdOutput *Output);
     void (*Restore) (struct rhdOutput *Output);
     void (*Destroy) (struct rhdOutput *Output);
+    int (*Backlight) (struct rhdOutput *Output);
+    void (*SetBacklight) (struct rhdOutput *Output, int level);
 
     /* Output Private data */
     void *Private;

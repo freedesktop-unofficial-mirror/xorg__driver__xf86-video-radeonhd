@@ -90,6 +90,8 @@ LVTMAChipGenerationSelect(int ChipSet, CARD32 R500, CARD32 R600)
     LVTMAGENSEL(LVTMA_R500_TRANSMITTER_CONTROL, LVTMA_R600_TRANSMITTER_CONTROL)
 #define LVTMA_REG_TEST_OUTPUT \
     LVTMAGENSEL(LVTMA_R500_REG_TEST_OUTPUT, LVTMA_R600_REG_TEST_OUTPUT)
+#define LVTMA_BL_MOD_CNTL \
+    LVTMAGENSEL(LVTMA_R500_BL_MOD_CNTL, LVTMA_R600_BL_MOD_CNTL)
 
 #define LVTMA_DITHER_RESET_BIT LVTMAGENSEL(0x04000000, 0x02000000)
 
@@ -405,6 +407,54 @@ LVDSSave(struct rhdOutput *Output)
     Private->Stored = TRUE;
 }
 
+static int
+LVDSBacklight(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    CARD32 tmp;
+    Bool Blon, BlonOvrd, BlonPol, BlModEn;
+    int BlModLevel, BlModRes = 0;
+
+    tmp = (RHDRegRead(Output, LVTMA_PWRSEQ_STATE) >> 3) & 0x01;
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: PWRSEQ BLON State: %s\n",
+	    __func__, tmp ? "on" : "off");
+    tmp = RHDRegRead(rhdPtr, LVTMA_PWRSEQ_CNTL);
+    Blon = (tmp >> 24) & 0x1;
+    BlonOvrd = (tmp >> 25) & 0x1;
+    BlonPol = (tmp >> 26) & 0x1;
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: BLON: %s BLON_OVRD: %s BLON_POL: %s\n",
+	    __func__, Blon ? "on" : "off",
+	    BlonOvrd ? "enabled" : "disabled",
+	    BlonPol ? "invert" : "non-invert");
+
+    tmp = RHDRegRead(rhdPtr, LVTMA_BL_MOD_CNTL);
+    BlModEn = tmp & 0x1;
+    BlModLevel = (tmp >> 8) & 0xFF;
+    if (rhdPtr->ChipSet >= RHD_RS600)
+	BlModRes = (tmp >> 16) & 0xFF;
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: BL_MOD: %s BL_MOD_LEVEL: %d BL_MOD_RES: %d\n",
+	    __func__, BlModEn ? "enable" : "disable",
+	    BlModLevel, BlModRes);
+
+    return BlModLevel;
+}
+
+static void
+LVDSSetBacklight(struct rhdOutput *Output, int level)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: trying to set BL_MOD_LEVEL to: %d\n", __func__, level);
+    RHDRegMask(rhdPtr, LVTMA_BL_MOD_CNTL, (level << 8) | 0x1, 0xFF01);
+
+    /*
+     * Poor man's debug
+     */
+    LVDSBacklight(Output);
+}
+
 /*
  * This needs to reset things like the temporal dithering and the TX appropriately.
  * Currently it's a dumb register dump.
@@ -437,6 +487,11 @@ LVDSRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTxEnable);
     RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacroControl);
     RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL,  Private->StoreTXControl);
+
+    /*
+     * Poor man's debug
+     */
+    LVDSBacklight(Output);
 }
 
 /*
@@ -473,6 +528,14 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
     Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
     Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
     Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000010;
+
+    {
+	struct rhdOutput *ro = rhdPtr->Outputs;
+	while(ro && ro->Id != RHD_OUTPUT_LVTMA)
+	    ro = ro->Next;
+	if (ro)
+	    LVDSBacklight(ro);
+    }
 
     tmp = RHDRegRead(rhdPtr, LVTMA_BIT_DEPTH_CONTROL);
     Private->TemporalDither =  ((tmp & (1 << 16)) != 0);
@@ -1096,6 +1159,8 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Power = LVDSPower;
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
+	Output->Backlight = LVDSBacklight;
+	Output->SetBacklight = LVDSSetBacklight;
 
 	Output->Private = LVDSInfoRetrieve(rhdPtr);
     } else {
