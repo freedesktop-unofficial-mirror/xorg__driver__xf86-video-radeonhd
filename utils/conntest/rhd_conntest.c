@@ -65,16 +65,17 @@ typedef int Bool;
 typedef unsigned char CARD8;
 typedef unsigned short CARD16;
 typedef unsigned int CARD32;
-#define VBIOS_BASE 0xC0000
-#define VBIOS_MAXSIZE 0x10000
-#define DEV_MEM "/dev/mem"
-#define TARGET_HW_I2C_CLOCK 25 /*  kHz */
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define SHORT(x) (x)
 #else
 #define SHORT(x) (((x & 0xff) << 8) | ((x & 0xff) >> 8))
 #endif
+
+#define VBIOS_BASE 0xC0000
+#define VBIOS_MAXSIZE 0x10000
+#define DEV_MEM "/dev/mem"
+#define TARGET_HW_I2C_CLOCK 25 /*  kHz */
 
 /* Some register names */
 enum {
@@ -253,7 +254,7 @@ typedef enum dacOutput {
     DAC_COMPONENT
 } dacOutput;
 
-/* for RHD_R500/R600 */
+/* for RHD_R500/R600/RS690/RV620 */
 chipType ChipType;
 
 typedef struct _tableVersion
@@ -2414,7 +2415,8 @@ main(int argc, char *argv[])
     int bus, dev, func;
     int ret;
     int saved_errno;
-    Bool dumpBios = FALSE, deviceSet = FALSE, scanDDCBus = FALSE;
+    Bool deviceSet = FALSE;
+    Bool dumpBios = FALSE, scanDDCBus = FALSE;
     unsigned long DumpI2CData = 0;
     int i;
     unsigned char *rombase;
