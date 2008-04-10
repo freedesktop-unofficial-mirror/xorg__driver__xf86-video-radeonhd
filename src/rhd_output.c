@@ -175,7 +175,7 @@ RHDOutputsDestroy(RHDPtr rhdPtr)
 void
 RHDOutputPrintSensedType(struct rhdOutput *Output)
 {
-    struct { enum rhdSensedOutput type; char *name; } 
+    struct { enum rhdSensedOutput type; char *name; }
     list[] = { { RHD_SENSED_NONE, "none" },
 	     { RHD_SENSED_VGA, "VGA" },
 	     { RHD_SENSED_DVI, "DVI" },

@@ -52,6 +52,11 @@ typedef enum rhdSensedOutput {
     RHD_SENSED_TV_COMPONENT
 } rhdSensedOutput;
 
+enum rhdOutputProperty {
+    RHD_OUTPUT_BACKLIGHT,
+    RHD_OUTPUT_COHERENT
+};
+
 /*
  *
  * This structure should deal with everything output related.
@@ -80,6 +85,8 @@ struct rhdOutput {
     void (*Save) (struct rhdOutput *Output);
     void (*Restore) (struct rhdOutput *Output);
     void (*Destroy) (struct rhdOutput *Output);
+    Bool (*Property) (struct rhdOutput *Output,
+		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
     int (*Backlight) (struct rhdOutput *Output);
     void (*SetBacklight) (struct rhdOutput *Output, int level);
 

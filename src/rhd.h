@@ -129,6 +129,18 @@ enum RHD_TV_MODE {
     RHD_TV_CV = 1 << 9
 };
 
+enum rhdPropertyAction {
+    rhdPropertyCheck,
+    rhdPropertyGet,
+    rhdPropertySet
+};
+
+union rhdPropertyData
+{
+    CARD32 integer;
+    char * string;
+};
+
 #define RHD_CONNECTORS_MAX 4
 
 /* Just define where which PCI BAR lives for now. Will deal with different
