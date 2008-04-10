@@ -299,7 +299,8 @@ static struct rhdChipsetMapStruct {
     { RHD_FAMILY_RV620, 0 },     /* RHD_RV620 */
     { RHD_FAMILY_RV620, 0 },     /* RHD_M82 */
     { RHD_FAMILY_RV635, 0 },     /* RHD_RV635 */
-    { RHD_FAMILY_UNKNOWN, 0 }    /* RHD_M86 */
+    { RHD_FAMILY_UNKNOWN, 0 },   /* RHD_M86 */
+    { RHD_FAMILY_RS780, 1 }      /* RHD_RS780 */
     /* RHD_CHIP_END */
 };
 
