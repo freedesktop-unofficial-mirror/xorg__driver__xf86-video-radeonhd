@@ -22,7 +22,8 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-
+/* for backlight control testing */
+#define DEBUG
 /*
  * Deals with the Shared LVDS/TMDS encoder.
  *
@@ -408,7 +409,7 @@ LVDSSave(struct rhdOutput *Output)
 }
 
 static int
-LVDSBacklight(struct rhdOutput *Output)
+LVDSGetBacklight(struct rhdOutput *Output)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 tmp;
@@ -416,14 +417,14 @@ LVDSBacklight(struct rhdOutput *Output)
     int BlModLevel, BlModRes = 0;
 
     tmp = (RHDRegRead(Output, LVTMA_PWRSEQ_STATE) >> 3) & 0x01;
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: PWRSEQ BLON State: %s\n",
+    RHDDebug(rhdPtr->scrnIndex, "%s: PWRSEQ BLON State: %s\n",
 	    __func__, tmp ? "on" : "off");
     tmp = RHDRegRead(rhdPtr, LVTMA_PWRSEQ_CNTL);
     Blon = (tmp >> 24) & 0x1;
     BlonOvrd = (tmp >> 25) & 0x1;
     BlonPol = (tmp >> 26) & 0x1;
 
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: BLON: %s BLON_OVRD: %s BLON_POL: %s\n",
+    RHDDebug(rhdPtr->scrnIndex, "%s: BLON: %s BLON_OVRD: %s BLON_POL: %s\n",
 	    __func__, Blon ? "on" : "off",
 	    BlonOvrd ? "enabled" : "disabled",
 	    BlonPol ? "invert" : "non-invert");
@@ -434,7 +435,7 @@ LVDSBacklight(struct rhdOutput *Output)
     if (rhdPtr->ChipSet >= RHD_RS600)
 	BlModRes = (tmp >> 16) & 0xFF;
 
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: BL_MOD: %s BL_MOD_LEVEL: %d BL_MOD_RES: %d\n",
+    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_INFO, 3, "%s: BL_MOD: %s BL_MOD_LEVEL: %d BL_MOD_RES: %d\n",
 	    __func__, BlModEn ? "enable" : "disable",
 	    BlModLevel, BlModRes);
 
@@ -449,10 +450,12 @@ LVDSSetBacklight(struct rhdOutput *Output, int level)
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "%s: trying to set BL_MOD_LEVEL to: %d\n", __func__, level);
     RHDRegMask(rhdPtr, LVTMA_BL_MOD_CNTL, (level << 8) | 0x1, 0xFF01);
 
+#ifdef DEBUG
     /*
      * Poor man's debug
      */
-    LVDSBacklight(Output);
+    LVDSGetBacklight(Output);
+#endif
 }
 
 /*
@@ -487,11 +490,12 @@ LVDSRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTxEnable);
     RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacroControl);
     RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL,  Private->StoreTXControl);
-
+#ifdef DEBUG
     /*
      * Poor man's debug
      */
-    LVDSBacklight(Output);
+    LVDSGetBacklight(Output);
+#endif
 }
 
 /*
@@ -528,14 +532,6 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
     Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
     Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
     Private->FPDI = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000010;
-
-    {
-	struct rhdOutput *ro = rhdPtr->Outputs;
-	while(ro && ro->Id != RHD_OUTPUT_LVTMA)
-	    ro = ro->Next;
-	if (ro)
-	    LVDSBacklight(ro);
-    }
 
     tmp = RHDRegRead(rhdPtr, LVTMA_BIT_DEPTH_CONTROL);
     Private->TemporalDither =  ((tmp & (1 << 16)) != 0);
@@ -1159,10 +1155,19 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Power = LVDSPower;
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
-	Output->Backlight = LVDSBacklight;
+	Output->Backlight = LVDSGetBacklight;
 	Output->SetBacklight = LVDSSetBacklight;
 
 	Output->Private = LVDSInfoRetrieve(rhdPtr);
+#ifdef DEBUG
+	{
+	    struct rhdOutput *ro = rhdPtr->Outputs;
+	    while(ro && ro->Id != RHD_OUTPUT_LVTMA)
+		ro = ro->Next;
+	    if (ro)
+		LVDSGetBacklight(ro);
+	}
+#endif
     } else {
 	struct rhdTMDSBPrivate *Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
 
