@@ -357,7 +357,7 @@ main(int argc, char *argv[])
     CARD32 start = DEFAULT_START, end = DEFAULT_END;
     int i;
     unsigned int j;
-    
+
 
     printf("%s: v%s, %s\n",
 	   "rhd_conntest", PACKAGE_VERSION, GIT_MESSAGE);
