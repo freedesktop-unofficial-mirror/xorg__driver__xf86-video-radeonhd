@@ -87,8 +87,6 @@ struct rhdOutput {
     void (*Destroy) (struct rhdOutput *Output);
     Bool (*Property) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
-    int (*Backlight) (struct rhdOutput *Output);
-    void (*SetBacklight) (struct rhdOutput *Output, int level);
 
     /* Output Private data */
     void *Private;

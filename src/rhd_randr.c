@@ -485,8 +485,8 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     RRConfigureOutputProperty(out->randr_output, atomPanningArea,
 			      FALSE, FALSE, FALSE, 0, NULL);
 
-    if (rout->Output->Id == RHD_OUTPUT_LVTMA &&
-	rout->Connector->Type == RHD_CONNECTOR_PANEL) {
+    if (rout->Output->Property
+	&& rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_BACKLIGHT, NULL)) {
 	atomBacklight = MakeAtom(ATOM_BACKLIGHT,
 				 sizeof(ATOM_BACKLIGHT)-1, TRUE);
 
@@ -498,12 +498,14 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		       "RRConfigureOutputProperty error: %d\n", err);
 	else {
-	    int data = rout->Output->Backlight ?
-		rout->Output->Backlight(rout->Output) : 255;
+	    union rhdPropertyData val;
+
+	    if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_BACKLIGHT, &val))
+		val.integer = 255;
 
 	    err = RRChangeOutputProperty(out->randr_output, atomBacklight,
 					 XA_INTEGER, 32, PropModeReplace,
-					 1, &data, FALSE, FALSE);
+					 1, &val.integer, FALSE, FALSE);
 	    if (err != 0)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			   "In %s RRChangeOutputProperty error: %d\n",
@@ -983,10 +985,13 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
 	    return FALSE;
 	}
-	if (rout->Output->SetBacklight) {
-	    rout->Output->SetBacklight(rout->Output, *(int*)(value->data));
+	if (rout->Output->Property) {
+	    union rhdPropertyData val;
+	    val.integer = *(int*)(value->data);
+	    return rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_BACKLIGHT, &val);
 	}
-	return TRUE;
+	return FALSE;
     }
 
     return FALSE;	/* Others are not mutable */

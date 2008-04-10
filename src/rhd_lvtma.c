@@ -459,6 +459,43 @@ LVDSSetBacklight(struct rhdOutput *Output, int level)
 }
 
 /*
+ *
+ */
+static Bool
+LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
+		    enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    switch (Action) {
+	case rhdPropertyCheck:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    val->integer = LVDSGetBacklight(Output);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    LVDSSetBacklight(Output, val->integer);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
  * This needs to reset things like the temporal dithering and the TX appropriately.
  * Currently it's a dumb register dump.
  */
@@ -1155,9 +1192,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Power = LVDSPower;
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
-	Output->Backlight = LVDSGetBacklight;
-	Output->SetBacklight = LVDSSetBacklight;
-
+	Output->Property = LVDSPropertyControl;
 	Output->Private = LVDSInfoRetrieve(rhdPtr);
 #ifdef DEBUG
 	{
