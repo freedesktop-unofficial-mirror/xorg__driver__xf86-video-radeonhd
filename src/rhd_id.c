@@ -360,7 +360,7 @@ RHDIdentify(int flags)
 enum RHD_FAMILIES
 RHDFamily(enum RHD_CHIPSETS chipset)
 {
-    assert(chipset <= sizeof(RHDChipsetMap)/sizeof(rhdChipsetMapStruct));
+    ASSERT(chipset < sizeof(rhdChipsetMap)/sizeof(struct rhdChipsetMapStruct));
 
     return rhdChipsetMap[chipset].family;
 }
@@ -371,7 +371,7 @@ RHDFamily(enum RHD_CHIPSETS chipset)
 Bool
 RHDIsIGP(enum RHD_CHIPSETS chipset)
 {
-    assert(chipset <= sizeof(RHDChipsetMap)/sizeof(rhdChipsetMapStruct));
+    ASSERT(chipset < sizeof(rhdChipsetMap)/sizeof(struct rhdChipsetMapStruct));
 
     return rhdChipsetMap[chipset].IGP;
 }
