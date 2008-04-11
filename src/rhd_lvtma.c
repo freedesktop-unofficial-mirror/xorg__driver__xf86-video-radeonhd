@@ -136,6 +136,7 @@ struct LVDSPrivate {
     CARD32 StoreTxEnable;
     CARD32 StoreMacroControl;
     CARD32 StoreTXControl;
+    CARD32 StoreBlModCntl;
 };
 
 /*
@@ -404,6 +405,7 @@ LVDSSave(struct rhdOutput *Output)
     Private->StoreTxEnable = RHDRegRead(Output, LVTMA_TRANSMITTER_ENABLE);
     Private->StoreMacroControl = RHDRegRead(Output, LVTMA_MACRO_CONTROL);
     Private->StoreTXControl = RHDRegRead(Output, LVTMA_TRANSMITTER_CONTROL);
+    Private->StoreBlModCntl = RHDRegRead(Output, LVTMA_BL_MOD_CNTL);
 
     Private->Stored = TRUE;
 }
@@ -527,6 +529,7 @@ LVDSRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, LVTMA_TRANSMITTER_ENABLE, Private->StoreTxEnable);
     RHDRegWrite(Output, LVTMA_MACRO_CONTROL, Private->StoreMacroControl);
     RHDRegWrite(Output, LVTMA_TRANSMITTER_CONTROL,  Private->StoreTXControl);
+    RHDRegWrite(Output, LVTMA_BL_MOD_CNTL, Private->StoreBlModCntl);
 #ifdef DEBUG
     /*
      * Poor man's debug

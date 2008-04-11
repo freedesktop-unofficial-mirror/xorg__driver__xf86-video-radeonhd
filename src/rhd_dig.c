@@ -146,11 +146,73 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     return MODE_OK;
 }
 
+static int
+LVDSGetBacklight(struct rhdOutput *Output)
+{
+    CARD32 tmp;
+
+    RHDFUNC(Output);
+
+    tmp = RHDRegRead(Output, RV620_LVTMA_BL_MOD_CNTL);
+    return (tmp & 0xff) >> LVTMA_BL_MOD_LEVEL_SHIFT;
+}
+
+static void
+LVDSSetBacklight(struct rhdOutput *Output, int level)
+{
+    RHDFUNC(Output);
+
+    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV, 0x144 << LVTMA_BL_MOD_REF_DI_SHIFT,
+	       0x7ff << LVTMA_BL_MOD_REF_DI_SHIFT);
+    RHDRegWrite(Output, RV620_LVTMA_BL_MOD_CNTL,
+		0xff << LVTMA_BL_MOD_RES_SHIFT
+		| level << LVTMA_BL_MOD_LEVEL_SHIFT
+		| LVTMA_BL_MOD_EN);
+}
+
 /*
  *
  */
 static Bool
-CommonTransmitterPropertyControl(struct rhdOutput *Output,
+LVDSTransmitterPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	switch (Property) {
+	    case RHD_OUTPUT_BACKLIGHT:
+		    return TRUE;
+	    default:
+		return FALSE;
+	}
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    val->integer = LVDSGetBacklight(Output);
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    LVDSSetBacklight(Output, val->integer);
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
@@ -160,15 +222,15 @@ CommonTransmitterPropertyControl(struct rhdOutput *Output,
 	case rhdPropertyCheck:
 	switch (Property) {
 	    case RHD_OUTPUT_COHERENT:
-		return TRUE;
+		    return TRUE;
 	    default:
 		return FALSE;
 	}
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
-		    return Private->Coherent;
-		    break;
+		    val->Bool =  Private->Coherent;
+		    return TRUE;
 		default:
 		    return FALSE;
 	    }
@@ -1035,7 +1097,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = ATOMTransmitterSave;
 	    Private->Transmitter.Restore = ATOMTransmitterRestore;
 	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
-	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
+	    Private->Transmitter.Property = TMDSTransmitterPropertyControl;
 	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
@@ -1066,7 +1128,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = ATOMTransmitterSave;
 	    Private->Transmitter.Restore = ATOMTransmitterRestore;
 	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
-	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
+	    Private->Transmitter.Property = TMDSTransmitterPropertyControl;
 	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
@@ -1096,7 +1158,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = LVTMATransmitterSave;
 	    Private->Transmitter.Restore = LVTMATransmitterRestore;
 	    Private->Transmitter.Destroy = LVTMATransmitterDestroy;
-	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
+	    if (Output->Connector->Type == RHD_CONNECTOR_PANEL)
+		Private->Transmitter.Property = LVDSTransmitterPropertyControl;
+	    else
+		Private->Transmitter.Property = TMDSTransmitterPropertyControl;
 	    break;
 
 	default:
