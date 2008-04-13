@@ -49,6 +49,8 @@
 
 struct rhdTMDSPrivate {
     Bool RunsDualLink;
+    DisplayModePtr Mode;
+    Bool Coherent;
 
     Bool Stored;
 
@@ -221,6 +223,49 @@ TMDSAVoltageControl(struct rhdOutput *Output)
 /*
  *
  */
+static Bool
+TMDSAPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct rhdTMDSPrivate *Private = (struct rhdTMDSPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	switch (Property) {
+	    case RHD_OUTPUT_COHERENT:
+		return TRUE;
+	    default:
+		return FALSE;
+	}
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    val->Bool = Private->Coherent;
+		    return TRUE;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    Private->Coherent = val->Bool;
+		    Output->Mode(Output, Private->Mode);
+		    Output->Power(Output, RHD_POWER_ON);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
 static void
 TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
 {
@@ -259,6 +304,7 @@ TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDRegWrite(Output, TMDSA_COLOR_FORMAT, 0);
 
     /* store this for TRANSMITTER_ENABLE in TMDSAPower */
+    Private->Mode = Mode;
     if (Mode->SynthClock > 165000) {
 	RHDRegMask(Output, TMDSA_CNTL, 0x01000000, 0x01000000);
 	Private->RunsDualLink = TRUE; /* for TRANSMITTER_ENABLE in TMDSAPower */
@@ -277,6 +323,11 @@ TMDSASet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     /* use IDCLK */
     RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000010, 0x00000010);
+
+    if (Private->Coherent)
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x00000000, 0x10000000);
+    else
+	RHDRegMask(Output, TMDSA_TRANSMITTER_CONTROL, 0x10000000, 0x10000000);
 }
 
 /*
@@ -449,9 +500,11 @@ RHDTMDSAInit(RHDPtr rhdPtr)
     Output->Save = TMDSASave;
     Output->Restore = TMDSARestore;
     Output->Destroy = TMDSADestroy;
+    Output->Property = TMDSAPropertyControl;
 
     Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
     Private->RunsDualLink = FALSE;
+    Private->Coherent = TRUE;
 
     Output->Private = Private;
 

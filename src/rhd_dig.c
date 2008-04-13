@@ -62,6 +62,9 @@ struct transmitter {
     void (*Save) (struct rhdOutput *Output);
     void (*Restore) (struct rhdOutput *Output);
     void (*Destroy) (struct rhdOutput *Output);
+    Bool (*Property) (struct rhdOutput *Output,
+		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
+
     void *Private;
 };
 
@@ -102,6 +105,8 @@ struct DIGPrivate
     enum encoderMode EncoderMode;
     Bool Coherent;
     Bool RunDualLink;
+    DisplayModePtr Mode;
+
     /* LVDS */
     Bool FPDI;
     struct rhdFMTDither FMTDither;
@@ -144,6 +149,48 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  *
  */
+static Bool
+CommonTransmitterPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	switch (Property) {
+	    case RHD_OUTPUT_COHERENT:
+		return TRUE;
+	    default:
+		return FALSE;
+	}
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    return Private->Coherent;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    Private->Coherent = val->Bool;
+		    Output->Mode(Output, Private->Mode);
+		    Output->Power(Output, RHD_POWER_ON);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
 static void
 LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
@@ -161,6 +208,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 	       Private->Coherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
 
+    Private->Mode = Mode;
 #ifdef ATOM_BIOS
     RHDDebug(Output->scrnIndex, "%s: SynthClock: %i Hex: %x EncoderMode: %x\n",__func__,
 	     (Mode->SynthClock),(Mode->SynthClock / 10), Private->EncoderMode);
@@ -397,6 +445,8 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     RHDFUNC(Output);
 
+    atc->coherent = Private->Coherent;
+
     if (Private->RunDualLink)
 	atc->mode = atomDVI_2Link;
     else
@@ -419,12 +469,14 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 	= (struct ATOMTransmitterPrivate*) Private->Transmitter.Private;
     struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
 
+    RHDFUNC(Output);
+
     if (Private->RunDualLink)
 	atc->mode = atomDVI_2Link;
     else
 	atc->mode = atomDVI_1Link;
 
-    RHDFUNC(Output);
+    atc->coherent = Private->Coherent;
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -841,6 +893,32 @@ DigPower(struct rhdOutput *Output, int Power)
 /*
  *
  */
+static Bool
+DigPropertyControl(struct rhdOutput *Output,
+			      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+
+    RHDFUNC(Output);
+
+    switch(Property) {
+	case RHD_OUTPUT_COHERENT:
+	{
+	    if (!Private->Transmitter.Property)
+		return FALSE;
+	    Private->Transmitter.Property(Output, Action, Property, val);
+	    break;
+	}
+	default:
+	    return FALSE;
+    }
+    return TRUE;
+}
+
+
+/*
+ *
+ */
 static void
 DigMode(struct rhdOutput *Output, DisplayModePtr Mode)
 {
@@ -937,6 +1015,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Output->Save = DigSave;
     Output->Restore = DigRestore;
     Output->Destroy = DigDestroy;
+    Output->Property = DigPropertyControl;
 
     Private = xnfcalloc(sizeof(struct DIGPrivate), 1);
     Output->Private = Private;
@@ -956,6 +1035,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = ATOMTransmitterSave;
 	    Private->Transmitter.Restore = ATOMTransmitterRestore;
 	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
+	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
 	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
@@ -986,11 +1066,11 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = ATOMTransmitterSave;
 	    Private->Transmitter.Restore = ATOMTransmitterRestore;
 	    Private->Transmitter.Destroy = ATOMTransmitterDestroy;
+	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
 	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->coherent = Private->Coherent;
 		atc->encoder = atomEncoderDIG2;
 		atc->link = atomTransLinkB;
 	    }
@@ -1016,6 +1096,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = LVTMATransmitterSave;
 	    Private->Transmitter.Restore = LVTMATransmitterRestore;
 	    Private->Transmitter.Destroy = LVTMATransmitterDestroy;
+	    Private->Transmitter.Property = CommonTransmitterPropertyControl;
 	    break;
 
 	default:

@@ -328,13 +328,12 @@ DDIADestroy(struct rhdOutput *Output)
 struct rhdOutput *
 RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
 {
-    RHDFUNC(rhdPtr);
-
 #ifdef ATOM_BIOS
     struct rhdOutput *Output;
     struct DDIAPrivate *Private;
     AtomBiosArgRec data;
 
+    RHDFUNC(rhdPtr);
 
     /*
      * This needs to be handled separately

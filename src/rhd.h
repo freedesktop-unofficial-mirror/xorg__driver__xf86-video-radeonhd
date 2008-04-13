@@ -138,7 +138,8 @@ enum rhdPropertyAction {
 union rhdPropertyData
 {
     CARD32 integer;
-    char * string;
+    char *string;
+    Bool Bool;
 };
 
 #define RHD_CONNECTORS_MAX 4

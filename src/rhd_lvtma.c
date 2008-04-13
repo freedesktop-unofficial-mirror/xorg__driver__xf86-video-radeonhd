@@ -658,6 +658,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 struct rhdTMDSBPrivate {
     Bool RunsDualLink;
     Bool Coherent;
+    DisplayModePtr Mode;
 
     Bool Stored;
 
@@ -958,6 +959,48 @@ TMDSBVoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  *
  */
+static Bool
+TMDSBPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    val->Bool = Private->Coherent;
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    Private->Coherent = val->Bool;
+		    Output->Mode(Output, Private->Mode);
+		    Output->Power(Output, RHD_POWER_ON);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
 static void
 TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
 {
@@ -991,6 +1034,7 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDRegWrite(Output, LVTMA_COLOR_FORMAT, 0);
 
+    Private->Mode = Mode;
     if (Mode->SynthClock > 165000) {
 	RHDRegMask(Output, LVTMA_CNTL, 0x01000000, 0x01000000);
 	Private->RunsDualLink = TRUE; /* for TRANSMITTER_ENABLE in TMDSBPower */
@@ -1213,6 +1257,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Power = TMDSBPower;
 	Output->Save = TMDSBSave;
 	Output->Restore = TMDSBRestore;
+	Output->Property = TMDSBPropertyControl;
 
 	Output->Private = Private;
 
