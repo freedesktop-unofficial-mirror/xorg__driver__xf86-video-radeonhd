@@ -110,6 +110,7 @@ struct DIGPrivate
     /* LVDS */
     Bool FPDI;
     struct rhdFMTDither FMTDither;
+    CARD32 BlLevel;
 };
 
 /*
@@ -146,23 +147,13 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     return MODE_OK;
 }
 
-static int
-LVDSGetBacklight(struct rhdOutput *Output)
-{
-    CARD32 tmp;
-
-    RHDFUNC(Output);
-
-    tmp = RHDRegRead(Output, RV620_LVTMA_BL_MOD_CNTL);
-    return (tmp & 0xff) >> LVTMA_BL_MOD_LEVEL_SHIFT;
-}
-
 static void
 LVDSSetBacklight(struct rhdOutput *Output, int level)
 {
     RHDFUNC(Output);
 
-    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV, 0x144 << LVTMA_BL_MOD_REF_DI_SHIFT,
+    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV,
+	       0x144 << LVTMA_BL_MOD_REF_DI_SHIFT,
 	       0x7ff << LVTMA_BL_MOD_REF_DI_SHIFT);
     RHDRegWrite(Output, RV620_LVTMA_BL_MOD_CNTL,
 		0xff << LVTMA_BL_MOD_RES_SHIFT
@@ -177,6 +168,8 @@ static Bool
 LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
 {
+    struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
+
     RHDFUNC(Output);
     switch (Action) {
 	case rhdPropertyCheck:
@@ -189,7 +182,7 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
-		    val->integer = LVDSGetBacklight(Output);
+		    val->integer = Private->BlLevel;
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -618,6 +611,7 @@ struct DIGEncoder
     CARD32 StoredDCCGPclkDigCntl;
     CARD32 StoredDCCGSymclkCntl;
     CARD32 StoredDCIOLinkSteerCntl;
+    CARD32 StoredBlModCntl;
 };
 
 /*
@@ -788,6 +782,7 @@ EncoderSave(struct rhdOutput *Output)
 						   ? RV620_DCCG_PCLK_DIGB_CNTL
 						   : RV620_DCCG_PCLK_DIGA_CNTL);
     Private->StoredDCCGSymclkCntl     = RHDRegRead(Output, RV620_DCCG_SYMCLK_CNTL);
+    Private->StoredBlModCntl          = RHDRegRead(Output, RV620_LVTMA_BL_MOD_CNTL);
 
     Private->Stored = TRUE;
 }
@@ -823,6 +818,7 @@ EncoderRestore(struct rhdOutput *Output)
     /* now enable the encoder */
     RHDRegWrite(Output, off + RV620_DIG1_CNTL, Private->StoredDIGCntl);
     RHDRegWrite(Output, RV620_DCCG_SYMCLK_CNTL, Private->StoredDCCGSymclkCntl);
+    RHDRegWrite(Output, RV620_LVTMA_BL_MOD_CNTL, Private->StoredBlModCntl);
 }
 
 /*
@@ -857,6 +853,8 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 				 & RV62_DIG_DUAL_LINK_ENABLE) != 0);
     Private->FMTDither.LVDS24Bit = ((RHDRegRead(rhdPtr, off  + RV620_LVDS1_DATA_CNTL)
 			   & RV62_LVDS_24BIT_ENABLE) != 0);
+    Private->BlLevel = ( RHDRegRead(rhdPtr, RV620_LVTMA_BL_MOD_CNTL)
+			>> LVTMA_BL_MOD_LEVEL_SHIFT )  & 0xff;
     /* This is really ugly! */
     {
 	CARD32 fmt_offset;
