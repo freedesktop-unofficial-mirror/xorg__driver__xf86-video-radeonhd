@@ -102,9 +102,10 @@ typedef struct _rhdRandrOutput {
 #define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
 #define ATOM_PANNING_AREA     "RANDR_PANNING_AREA"
 #define ATOM_BACKLIGHT        "BACKLIGHT"
+#define ATOM_COHERENT         "COHERENT"
 
 static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
-	    atomOutputNumber, atomPanningArea, atomBacklight;
+    atomOutputNumber, atomPanningArea, atomBacklight, atomCoherent;
 
 
 /* Get RandR property values */
@@ -485,31 +486,57 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     RRConfigureOutputProperty(out->randr_output, atomPanningArea,
 			      FALSE, FALSE, FALSE, 0, NULL);
 
-    if (rout->Output->Property
-	&& rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_BACKLIGHT, NULL)) {
-	atomBacklight = MakeAtom(ATOM_BACKLIGHT,
-				 sizeof(ATOM_BACKLIGHT)-1, TRUE);
+    if (rout->Output->Property) {
+	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_BACKLIGHT, NULL)) {
+	    atomBacklight = MakeAtom(ATOM_BACKLIGHT,
+				     sizeof(ATOM_BACKLIGHT)-1, TRUE);
 
-	range[0] = 0;
-	range[1] = 255;
-	err = RRConfigureOutputProperty(out->randr_output, atomBacklight,
-					FALSE, TRUE, FALSE, 2, range);
-	if (err != 0)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		       "RRConfigureOutputProperty error: %d\n", err);
-	else {
-	    union rhdPropertyData val;
-
-	    if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_BACKLIGHT, &val))
-		val.integer = 255;
-
-	    err = RRChangeOutputProperty(out->randr_output, atomBacklight,
-					 XA_INTEGER, 32, PropModeReplace,
-					 1, &val.integer, FALSE, FALSE);
+	    range[0] = 0;
+	    range[1] = 255;
+	    err = RRConfigureOutputProperty(out->randr_output, atomBacklight,
+					    FALSE, TRUE, FALSE, 2, range);
 	    if (err != 0)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-			   "In %s RRChangeOutputProperty error: %d\n",
-			   __func__, err);
+			   "RRConfigureOutputProperty error: %d\n", err);
+	    else {
+		union rhdPropertyData val;
+
+		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_BACKLIGHT, &val))
+		    val.integer = 255;
+
+		err = RRChangeOutputProperty(out->randr_output, atomBacklight,
+					     XA_INTEGER, 32, PropModeReplace,
+					     1, &val.integer, FALSE, FALSE);
+		if (err != 0)
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			       "In %s RRChangeOutputProperty error: %d\n",
+			       __func__, err);
+	    }
+	}
+	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_COHERENT, NULL)) {
+	    atomCoherent = MakeAtom(ATOM_COHERENT,
+				     sizeof(ATOM_COHERENT)-1, TRUE);
+
+	    range[0] = 0;
+	    range[1] = 1;
+	    err = RRConfigureOutputProperty(out->randr_output, atomCoherent,
+					    FALSE, TRUE, FALSE, 2, range);
+	    if (err != 0)
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "RRConfigureOutputProperty error: %d\n", err);
+	    else {
+		union rhdPropertyData val;
+
+		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_COHERENT, &val))
+		    val.Bool = 1;
+		err = RRChangeOutputProperty(out->randr_output, atomCoherent,
+					     XA_INTEGER, 32, PropModeReplace,
+					     1, &val.Bool, FALSE, FALSE);
+		if (err != 0)
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			       "In %s RRChangeOutputProperty error: %d\n",
+			       __func__, err);
+	    }
 	}
     }
 
@@ -990,6 +1017,18 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	    val.integer = *(int*)(value->data);
 	    return rout->Output->Property(rout->Output, rhdPropertySet,
 					  RHD_OUTPUT_BACKLIGHT, &val);
+	}
+	return FALSE;
+    } else if (property == atomCoherent) {
+	if (value->type != XA_INTEGER || value->format != 32) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
+	    return FALSE;
+	}
+	if (rout->Output->Property) {
+	    union rhdPropertyData val;
+	    val.Bool = *(int*)(value->data);
+	    return rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_COHERENT, &val);
 	}
 	return FALSE;
     }
