@@ -453,7 +453,7 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 	    break;
 	xf86DrvMsg(scrnIndex, X_INFO, "Connector[%i] {%s, \"%s\", %s, %s, { %s, %s } }\n",
 		   n, c_name[cp[n].Type], cp[n].Name,
-		   cp[n].DDC == RHD_DDC_NONE ? "DDC_NONE" : ddc_name[cp[n].DDC],
+		   cp[n].DDC == RHD_DDC_NONE ? "RHD_DDC_NONE" : ddc_name[cp[n].DDC],
 		   hpd_name[cp[n].HPD], output_name[cp[n].Output[0]],
 		   output_name[cp[n].Output[1]]);
     }
