@@ -38,6 +38,7 @@
 #include <pci/pci.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <alloca.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

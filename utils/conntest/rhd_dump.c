@@ -333,7 +333,7 @@ print_help(const char* progname, const char* message, const char* msgarg)
 {
 	if (message != NULL)
 	    fprintf(stderr, "%s %s\n", message, msgarg);
-	fprintf(stderr, "Usage: %s [start,end] PCI-tag\n"
+	fprintf(stderr, "Usage: %s [-r start,end] PCI-tag\n"
 			"       PCI-tag: bus:dev.func\n\n",
 		progname);
 }
@@ -360,7 +360,7 @@ main(int argc, char *argv[])
 
 
     printf("%s: v%s, %s\n",
-	   "rhd_conntest", PACKAGE_VERSION, GIT_MESSAGE);
+	   "rhd_dump", PACKAGE_VERSION, GIT_MESSAGE);
 
     /* init libpci */
     pciAccess = pci_alloc();
