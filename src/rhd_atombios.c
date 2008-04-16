@@ -828,35 +828,40 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
 	    return ATOM_FAILED;
 	}
     } else {
-	if (!xf86IsEntityPrimary(rhdPtr->entityIndex)) {
-	    if (!(BIOSImageSize = RHDReadPCIBios(rhdPtr, &ptr)))
-		return ATOM_FAILED;
-	    unposted = TRUE;
-	} else {
+	if (xf86IsEntityPrimary(rhdPtr->entityIndex)) {
 	    int read_len;
 	    unsigned char tmp[32];
 	    xf86DrvMsg(scrnIndex,X_INFO,"Getting BIOS copy from legacy VBIOS location\n");
 	    if (xf86ReadBIOS(legacyBIOSLocation, 0, tmp, 32) < 0) {
 		xf86DrvMsg(scrnIndex,X_ERROR,
 			   "Cannot obtain POSTed BIOS header\n");
+	    } else {
+		BIOSImageSize = tmp[2] * 512;
+		if (BIOSImageSize > legacyBIOSMax) {
+		    xf86DrvMsg(scrnIndex,X_ERROR,"Invalid BIOS length field\n");
+		    BIOSImageSize = 0;
+		} else {
+		    if (!(ptr = xcalloc(1,BIOSImageSize))) {
+			xf86DrvMsg(scrnIndex,X_ERROR,
+				   "Cannot allocate %i bytes of memory "
+				   "for BIOS image\n",BIOSImageSize);
+			BIOSImageSize = 0;
+		    } else {
+			if ((read_len = xf86ReadBIOS(legacyBIOSLocation, 0, ptr, BIOSImageSize)
+			     < 0)) {
+			    xf86DrvMsg(scrnIndex,X_ERROR,"Cannot read POSTed BIOS\n");
+			    BIOSImageSize = 0;
+			    xfree(ptr);
+			}
+		    }
+		}
+	    }
+	}
+	/* as last resort always try to read BIOS from PCI config space */
+	if (BIOSImageSize == 0) {
+	    if (!(BIOSImageSize = RHDReadPCIBios(rhdPtr, &ptr)))
 		return ATOM_FAILED;
-	    }
-	    BIOSImageSize = tmp[2] * 512;
-	    if (BIOSImageSize > legacyBIOSMax) {
-		xf86DrvMsg(scrnIndex,X_ERROR,"Invalid BIOS length field\n");
-		return ATOM_FAILED;
-	    }
-	    if (!(ptr = xcalloc(1,BIOSImageSize))) {
-		xf86DrvMsg(scrnIndex,X_ERROR,
-			   "Cannot allocate %i bytes of memory "
-			   "for BIOS image\n",BIOSImageSize);
-		return ATOM_FAILED;
-	    }
-	    if ((read_len = xf86ReadBIOS(legacyBIOSLocation, 0, ptr, BIOSImageSize)
-		 < 0)) {
-		xf86DrvMsg(scrnIndex,X_ERROR,"Cannot read POSTed BIOS\n");
-		goto error;
-	    }
+	    unposted = TRUE;
 	}
     }
 
