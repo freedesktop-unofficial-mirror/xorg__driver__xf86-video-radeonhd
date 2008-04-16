@@ -45,9 +45,17 @@ enum {
     GPIOPAD_EN		  =       0x1A0,  /* (RW) */
     VIPH_CONTROL          =       0xC40,  /* (RW) */
 
+    ROM_CNTL                       = 0x1600,
+    GENERAL_PWRMGT                 = 0x0618,
+    LOW_VID_LOWER_GPIO_CNTL        = 0x0724,
+    MEDIUM_VID_LOWER_GPIO_CNTL     = 0x0720,
+    HIGH_VID_LOWER_GPIO_CNTL       = 0x071C,
+    CTXSW_VID_LOWER_GPIO_CNTL      = 0x0718,
+    LOWER_GPIO_ENABLE              = 0x0710,
+
     /* VGA registers */
     VGA_RENDER_CONTROL             = 0x0300,
-    VGA_MODE_CONTROL             = 0x0308,
+    VGA_MODE_CONTROL               = 0x0308,
     VGA_MEMORY_BASE_ADDRESS        = 0x0310,
     VGA_HDP_CONTROL                = 0x0328,
     D1VGA_CONTROL                  = 0x0330,
@@ -781,6 +789,38 @@ enum VIPH_CONTROL_BITS {
     VIPH_PWR_DOWN        = (0x1 << 28),
     VIPH_PWR_DOWN_AK     = (0x1 << 28),
     VIPH_VIPCLK_DIS      = (0x1 << 29)
+};
+
+enum ROM_CNTL_BITS {
+    SCK_OVERWRITE            = 1 << 1,
+    CLOCK_GATING_EN          = 1 << 2,
+    CSB_ACTIVE_TO_SCK_SETUP_TIME_SHIFT = 8,
+    CSB_ACTIVE_TO_SCK_HOLD_TIME_SHIFT = 16,
+    SCK_PRESCALE_REFCLK_SHIFT      = 24,
+    SCK_PRESCALE_CRYSTAL_CLK_SHIFT = 28
+};
+
+enum GENERAL_PWRMGT_BITS {
+    GLOBAL_PWRMGT_EN           = 1 << 0,
+    STATIC_PM_EN               = 1 << 1,
+    MOBILE_SU                  = 1 << 2,
+    THERMAL_PROTECTION_DIS     = 1 << 3,
+    THERMAL_PROTECTION_TYPE    = 1 << 4,
+    ENABLE_GEN2PCIE            = 1 << 5,
+    SW_GPIO_INDEX_SHIFT        = 1 << 6,
+    LOW_VOLT_D2_ACPI           = 1 << 8,
+    LOW_VOLT_D3_ACPI           = 1 << 9,
+    VOLT_PWRMGT_EN             = 1 << 10,
+    OPEN_DRAIN_PADS            = 1 << 11,
+    AVP_SCLK_EN                = 1 << 12,
+    IDCT_SCLK_EN               = 1 << 13,
+    GPU_COUNTER_ACPI           = 1 << 14,
+    GPU_COUNTER_CLK            = 1 << 15,
+    BACKBIAS_PAD_EN            = 1 << 16,
+    BACKBIAS_VALUE             = 1 << 17,
+    BACKBIAS_DPM_CNTL          = 1 << 18,
+    SPREAD_SPECTRUM_INDEX_SHIFT = 19,
+    DYN_SPREAD_SPECTRUM_EN     = 1 << 2
 };
 
 enum VGA_RENDER_CONTROL_BITS {

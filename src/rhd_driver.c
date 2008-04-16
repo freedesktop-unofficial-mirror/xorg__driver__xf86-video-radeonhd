@@ -2363,16 +2363,22 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
  * rhdR5XXDoReadPCIBios(): enables access to R5xx BIOS, wraps rhdDoReadPCIBios()
  */
 static unsigned int
-rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+rhdReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
     unsigned int ret;
-    CARD32 save_seprom_cntl1,
+    CARD32 save_seprom_cntl1 = 0,
 	save_gpiopad_a, save_gpiopad_en, save_gpiopad_mask,
 	save_viph_cntl,
 	save_bus_cntl,
-	save_d1vga_control, save_d2vga_control, save_vga_render_control;
+	save_d1vga_control, save_d2vga_control, save_vga_render_control,
+	save_rom_cntl = 0,
+	save_gen_pwrmgt = 0,
+	save_low_vid_lower_gpio_cntl = 0, save_med_vid_lower_gpio_cntl = 0,
+	save_high_vid_lower_gpio_cntl = 0, save_ctxsw_vid_lower_gpio_cntl = 0,
+	save_lower_gpio_en = 0;
 
-    save_seprom_cntl1 = RHDRegRead(rhdPtr, SEPROM_CNTL1);
+    if (rhdPtr->ChipSet < RHD_R600)
+	save_seprom_cntl1 = RHDRegRead(rhdPtr, SEPROM_CNTL1);
     save_gpiopad_en = RHDRegRead(rhdPtr, GPIOPAD_EN);
     save_gpiopad_a = RHDRegRead(rhdPtr, GPIOPAD_A);
     save_gpiopad_mask = RHDRegRead(rhdPtr, GPIOPAD_MASK);
@@ -2381,8 +2387,19 @@ rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     save_d1vga_control = RHDRegRead(rhdPtr, D1VGA_CONTROL);
     save_d2vga_control = RHDRegRead(rhdPtr, D2VGA_CONTROL);
     save_vga_render_control = RHDRegRead(rhdPtr, VGA_RENDER_CONTROL);
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	save_rom_cntl                  = RHDRegRead(rhdPtr, ROM_CNTL);
+	save_gen_pwrmgt                = RHDRegRead(rhdPtr, GENERAL_PWRMGT);
+	save_low_vid_lower_gpio_cntl   = RHDRegRead(rhdPtr, LOW_VID_LOWER_GPIO_CNTL);
+	save_med_vid_lower_gpio_cntl   = RHDRegRead(rhdPtr, MEDIUM_VID_LOWER_GPIO_CNTL);
+	save_high_vid_lower_gpio_cntl  = RHDRegRead(rhdPtr, HIGH_VID_LOWER_GPIO_CNTL);
+	save_ctxsw_vid_lower_gpio_cntl = RHDRegRead(rhdPtr, CTXSW_VID_LOWER_GPIO_CNTL);
+	save_lower_gpio_en             = RHDRegRead(rhdPtr, LOWER_GPIO_ENABLE);
+    }
+
     /* Set SPI ROM prescale value to change the SCK period */
-    RHDRegMask(rhdPtr, SEPROM_CNTL1, 0x0C << 24, SCK_PRESCALE);
+    if (rhdPtr->ChipSet < RHD_R600)
+	RHDRegMask(rhdPtr, SEPROM_CNTL1, 0x0C << 24, SCK_PRESCALE);
     /* Let chip control GPIO pads - this is the default state after power up */
     RHDRegWrite(rhdPtr, GPIOPAD_EN, 0);
     RHDRegWrite(rhdPtr, GPIOPAD_A, 0);
@@ -2398,10 +2415,23 @@ rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     RHDRegMask(rhdPtr, D2VGA_CONTROL, 0,
 	       D2VGA_MODE_ENABLE | D2VGA_TIMING_SELECT);
     RHDRegMask(rhdPtr, VGA_RENDER_CONTROL, 0, VGA_VSTATUS_CNTL);
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	RHDRegMask(rhdPtr, ROM_CNTL, SCK_OVERWRITE
+		   | 1 << SCK_PRESCALE_CRYSTAL_CLK_SHIFT,
+		   SCK_OVERWRITE
+		   | 1 << SCK_PRESCALE_CRYSTAL_CLK_SHIFT);
+	RHDRegMask(rhdPtr, GENERAL_PWRMGT, 0, OPEN_DRAIN_PADS);
+	RHDRegMask(rhdPtr, LOW_VID_LOWER_GPIO_CNTL, 0, 0x400);
+	RHDRegMask(rhdPtr, MEDIUM_VID_LOWER_GPIO_CNTL, 0, 0x400);
+	RHDRegMask(rhdPtr, HIGH_VID_LOWER_GPIO_CNTL, 0, 0x400);
+	RHDRegMask(rhdPtr, CTXSW_VID_LOWER_GPIO_CNTL, 0, 0x400);
+	RHDRegMask(rhdPtr, LOWER_GPIO_ENABLE, 0x400, 0x400);
+    }
 
     ret = rhdDoReadPCIBios(rhdPtr, ptr);
 
-    RHDRegWrite(rhdPtr, SEPROM_CNTL1, save_seprom_cntl1);
+    if (rhdPtr->ChipSet < RHD_R600)
+	RHDRegWrite(rhdPtr, SEPROM_CNTL1, save_seprom_cntl1);
     RHDRegWrite(rhdPtr, GPIOPAD_EN, save_gpiopad_en);
     RHDRegWrite(rhdPtr, GPIOPAD_A, save_gpiopad_a);
     RHDRegWrite(rhdPtr, GPIOPAD_MASK, save_gpiopad_mask);
@@ -2410,39 +2440,17 @@ rhdR5XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     RHDRegWrite(rhdPtr, D1VGA_CONTROL, save_d1vga_control);
     RHDRegWrite(rhdPtr, D2VGA_CONTROL, save_d2vga_control);
     RHDRegWrite(rhdPtr, VGA_RENDER_CONTROL, save_vga_render_control);
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	RHDRegWrite(rhdPtr, ROM_CNTL, save_rom_cntl);
+	RHDRegWrite(rhdPtr, GENERAL_PWRMGT, save_gen_pwrmgt);
+	RHDRegWrite(rhdPtr, LOW_VID_LOWER_GPIO_CNTL, save_low_vid_lower_gpio_cntl);
+	RHDRegWrite(rhdPtr, MEDIUM_VID_LOWER_GPIO_CNTL, save_med_vid_lower_gpio_cntl);
+	RHDRegWrite(rhdPtr, HIGH_VID_LOWER_GPIO_CNTL, save_high_vid_lower_gpio_cntl);
+	RHDRegWrite(rhdPtr, CTXSW_VID_LOWER_GPIO_CNTL, save_ctxsw_vid_lower_gpio_cntl);
+	RHDRegWrite(rhdPtr, LOWER_GPIO_ENABLE, save_lower_gpio_en);
+    }
 
     return ret;
-}
-
-/*
- *
- */
-static unsigned int
-rhdR6XXDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
-{
-    unsigned int ret;
-    CARD32 save_600;
-
-    save_600 = RHDRegRead(rhdPtr, 0x600);
-    RHDRegMask(rhdPtr, 0x600, 0x02000000, 0x02000000);
-
-    ret = rhdDoReadPCIBios(rhdPtr, ptr);
-
-    RHDRegWrite(rhdPtr, 0x600, save_600);
-
-    return ret;
-}
-
-/*
- *
- */
-unsigned int
-RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
-{
-    if (rhdPtr->ChipSet < RHD_R600)
-	return rhdR5XXDoReadPCIBios(rhdPtr, ptr);
-    else
-	return rhdR6XXDoReadPCIBios(rhdPtr, ptr);
 }
 
 /*
