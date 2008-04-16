@@ -779,6 +779,11 @@ enum _rs600MCRegs {
     RS60_NB_FB_LOCATION		=	0xa
 };
 
+enum _rs780MCRegs {
+    RS78_MC_SYSTEM_STATUS	=	0x0,
+    RS78_MC_FB_LOCATION		=	0x10
+};
+
 enum RS6X_MC_SYSTEM_STATUS_BITS {
         RS6X_MC_SYSTEM_IDLE	 = (0x1 << 0),
 	RS6X_MC_SEQUENCER_IDLE	 = (0x1 << 1),
@@ -801,6 +806,19 @@ enum R5XX_MC_STATUS_BITS {
 
 enum RV515_MC_STATUS_BITS {
     RV515_MC_IDLE        = (0x1 << 4)
+};
+
+enum RS78_MC_SYSTEM_STATUS_BITS {
+    RS78_MC_SYSTEM_IDLE        =  1 << 0,
+    RS78_MC_SEQUENCER_IDLE     =  1 << 1,
+    RS78_MC_ARBITER_IDLE       = 1 << 2,
+    RS78_MC_SELECT_PM          = 1 << 3,
+    RS78_MC_STATUS_15_4_SHIFT  = 4,
+    RS78_MCA_INIT_EXECUTED     = 1 << 16,
+    RS78_MCA_IDLE              = 1 << 17,
+    RS78_MCA_SEQ_IDLE          = 1 << 18,
+    RS78_MCA_ARB_IDLE          = 1 << 19,
+    RS78_MC_STATUS_31_20_SHIFT = 20
 };
 
 enum BUS_CNTL_BITS {

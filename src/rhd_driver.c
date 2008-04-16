@@ -2487,6 +2487,7 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
 	    break;
 	case RHD_RS690:
 	case RHD_RS740:
+	case RHD_RS780:
 #ifdef XSERVER_LIBPCIACCESS
 	    rhdPtr->NBPciInfo = pci_device_find_by_slot(0,0,0,0);
 #else

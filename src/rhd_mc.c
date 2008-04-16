@@ -124,8 +124,12 @@ RHDSaveMC(RHDPtr rhdPtr)
     } else if (rhdPtr->ChipSet < RHD_R600) {
 	MC->FbLocation = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
 	MC->HdpFbBase = RHDRegRead(rhdPtr, HDP_FB_LOCATION);
+    } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS780) {
+ 	MC->FbLocation = RHDReadMC(rhdPtr, RS78_MC_FB_LOCATION);
+ 	MC->HdpFbBase = RHDRegRead(rhdPtr, R6XX_HDP_NONSURFACE_BASE);
     } else {
 	MC->FbLocation = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
+	/* RS780 uses the same register as R6xx */
 	MC->HdpFbBase = RHDRegRead(rhdPtr, R6XX_HDP_NONSURFACE_BASE);
     }
     MC->Stored = TRUE;
@@ -163,8 +167,12 @@ RHDRestoreMC(RHDPtr rhdPtr)
     } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS690) {
 	RHDWriteMC(rhdPtr,  RS69_MCCFG_FB_LOCATION, MC->FbLocation);
 	RHDRegWrite(rhdPtr, HDP_FB_LOCATION, MC->HdpFbBase);
+    } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS780) {
+ 	RHDWriteMC(rhdPtr, RS78_MC_FB_LOCATION, MC->FbLocation);
+ 	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->HdpFbBase);
     } else {
 	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, MC->FbLocation);
+	/* RS780 uses the same register as R6xx */
 	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->HdpFbBase);
     }
 }
@@ -224,6 +232,20 @@ RHDMCSetup(RHDPtr rhdPtr)
 		 fb_size,(unsigned int)fb_location_tmp);
 	RHDWriteMC(rhdPtr, RS69_MCCFG_FB_LOCATION, fb_location_tmp);
 	RHDRegWrite(rhdPtr, HDP_FB_LOCATION, fb_location_tmp & 0xFFFF);
+    } else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS780) {
+	fb_location = RHDReadMC(rhdPtr, RS78_MC_FB_LOCATION);
+	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
+	fb_location_tmp = rhdPtr->FbIntAddress >> 16;
+	fb_location_tmp |= (fb_location_tmp + fb_size) << 16;
+	hdp_fbbase_tmp = (rhdPtr->FbIntAddress >> 8) & 0xff0000;
+
+	RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
+		 "[fb_size: 0x%04X] -> fb_location: 0x%08X\n",
+		 __func__, (unsigned int)fb_location,
+		 fb_size,(unsigned int)fb_location_tmp);
+	RHDWriteMC(rhdPtr, RS78_MC_FB_LOCATION, fb_location_tmp);
+	/* RS780 uses the same register as R6xx */
+  	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
     } else {
 	fb_location = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
 	fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
@@ -238,8 +260,8 @@ RHDMCSetup(RHDPtr rhdPtr)
 		 RHDRegRead(rhdPtr,R6XX_HDP_NONSURFACE_BASE), fb_size,
 		 (unsigned int)fb_location_tmp, (unsigned int)hdp_fbbase_tmp);
 
-	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, fb_location_tmp);
-	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
+  	RHDRegWrite(rhdPtr, R6XX_MC_VM_FB_LOCATION, fb_location_tmp);
+ 	RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
     }
 }
 
@@ -261,11 +283,14 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
 	} else if (rhdPtr->ChipSet < RHD_R600) {
 	    if (RHDReadMC(rhdPtr, RS69_MC_SYSTEM_STATUS) & RS6X_MC_SEQUENCER_IDLE)
 		return TRUE;
+	} else if (RHDFamily(rhdPtr->ChipSet) == RHD_FAMILY_RS780) {
+ 	    if (RHDReadMC(rhdPtr, RS78_MC_SYSTEM_STATUS) & RS78_MC_SEQUENCER_IDLE)
+ 		return TRUE;
 	} else {
 	    if (!(RHDRegRead(rhdPtr, R6_MCLK_PWRMGT_CNTL) & R6_MC_BUSY))
 		return TRUE;
 	}
-
+	return TRUE;
 	usleep(10);
     } while (count--);
 
