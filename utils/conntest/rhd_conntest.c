@@ -38,7 +38,6 @@
 #include <pci/pci.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <alloca.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -2016,7 +2015,7 @@ DDCScanBus(void *map, int count)
     unsigned char *data = NULL;
 
     if (count)
-	data = alloca(count);
+	data = malloc(count);
 
     for (channel = 0; channel < max_chan; channel ++) {
 	int state = 0;
@@ -2039,6 +2038,7 @@ DDCScanBus(void *map, int count)
 	if (state == 1)
 	    printf("\n");
     }
+    if (data) free(data);
 }
 
 /*

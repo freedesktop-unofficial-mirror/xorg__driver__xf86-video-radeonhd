@@ -134,6 +134,13 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
  * All R500s, RS6x0, R600, RV610 and RV630.
  */
 
+void
+PllBreak() 
+{
+    static volatile int i = 0;
+    i++;
+}
+
 /*
  *
  */
@@ -147,7 +154,6 @@ PLL1Calibrate(struct rhdPLL *PLL)
     RHDRegMask(PLL, P1PLL_CNTL, 1, 0x01); /* Reset */
     usleep(2);
     RHDRegMask(PLL, P1PLL_CNTL, 0, 0x01); /* Set */
-
     for (i = 0; i < PLL_CALIBRATE_WAIT; i++)
 	if (((RHDRegRead(PLL, P1PLL_CNTL) >> 20) & 0x03) == 0x03)
 	    break;
@@ -161,6 +167,7 @@ PLL1Calibrate(struct rhdPLL *PLL)
 		       "%s: Locking failed.\n", __func__);
     } else
 	RHDDebug(PLL->scrnIndex, "%s: lock in %d loops\n", __func__, i);
+    PllBreak();
 }
 
 /*
@@ -271,6 +278,7 @@ static void
 R500PLL1SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
 	       CARD32 Control)
 {
+    RHDFUNC(PLL);
     RHDRegWrite(PLL, EXT1_PPLL_REF_DIV_SRC, 0x01); /* XTAL */
     RHDRegWrite(PLL, EXT1_PPLL_POST_DIV_SRC, 0x00); /* source = reference */
 
@@ -717,6 +725,7 @@ static void
 RV620PLL1SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
 		CARD8 ScalerDiv, CARD8 SymPostDiv, CARD32 Control)
 {
+    RHDFUNC(PLL);
     /* switch to external */
     RHDRegWrite(PLL, EXT1_PPLL_POST_DIV_SRC, 0);
     RHDRegMask(PLL, P1PLL_DISP_CLK_CNTL, 0x00000200, 0x00000300);
