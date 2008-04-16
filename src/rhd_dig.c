@@ -1156,7 +1156,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->Transmitter.Save = LVTMATransmitterSave;
 	    Private->Transmitter.Restore = LVTMATransmitterRestore;
 	    Private->Transmitter.Destroy = LVTMATransmitterDestroy;
-	    if (Output->Connector->Type == RHD_CONNECTOR_PANEL)
+	    if (ConnectorType == RHD_CONNECTOR_PANEL)
 		Private->Transmitter.Property = LVDSTransmitterPropertyControl;
 	    else
 		Private->Transmitter.Property = TMDSTransmitterPropertyControl;
