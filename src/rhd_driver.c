@@ -2362,8 +2362,8 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 /*
  * rhdR5XXDoReadPCIBios(): enables access to R5xx BIOS, wraps rhdDoReadPCIBios()
  */
-static unsigned int
-rhdReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
+unsigned int
+RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
 {
     unsigned int ret;
     CARD32 save_seprom_cntl1 = 0,
