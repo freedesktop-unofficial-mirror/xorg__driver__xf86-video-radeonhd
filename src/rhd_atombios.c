@@ -865,6 +865,137 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     return FALSE;
 }
 
+/*
+ *
+ */
+Bool
+rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutputAction action)
+{
+    AtomBiosArgRec data;
+    char *name;
+
+    union
+    {
+	DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS op;
+	DISPLAY_DEVICE_OUTPUT_CONTROL_PS_ALLOCATION opa;
+    } ps;
+
+    switch (action) {
+	case atomEnable:
+	    ps.op.ucAction = ATOM_ENABLE;
+	    break;
+	case atomDisable:
+	    ps.op.ucAction = ATOM_DISABLE;
+	    break;
+	default: /* handle below */
+	    if (id != atomLCDOutput)
+		return FALSE;
+    }
+
+    switch (id) {
+	case atomDVOOutput:
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
+	    name = "";
+	    break;
+	case atomLCDOutput:
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND,  LCD1OutputControl);
+	    name = "";
+	    switch (action) {
+		case atomEnable:
+		case atomDisable:
+		    break;
+		case atomLcdOn:
+		    ps.op.ucAction = ATOM_LCD_BLON;
+		    break;
+		case atomLcdOff:
+		    ps.op.ucAction = ATOM_LCD_BLOFF;
+		    break;
+		case atomLcdBrightnessControl:
+		    ps.op.ucAction = ATOM_LCD_BL_BRIGHTNESS_CONTROL;
+		    break;
+		case atomLcdSelftestStart:
+		    ps.op.ucAction = ATOM_LCD_SELFTEST_START;
+		    break;
+		case atomLcdSelftestStop:
+		    ps.op.ucAction = ATOM_LCD_SELFTEST_STOP;
+		    break;
+		case atomEncoderInit:
+		    ps.op.ucAction = ATOM_ENCODER_INIT;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case atomCVOutput:
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, CV1OutputControl);
+	    name = "CV1OutputControl";
+	    break;
+	case atomTVOutput:
+	    name = "TV1OutputControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, TV1OutputControl);
+	    break;
+	case atomLVTMAOutput:
+	    name = "LVTMAOutputControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, LVTMAOutputControl);
+	    break;
+	case atomTMDSAOutput:
+	    name = "TMDSAOutputControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, TMDSAOutputControl);
+	    break;
+	case atomDAC1Output:
+	    name = "DAC1OutputControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC1OutputControl);
+	    break;
+	case atomDAC2Output:
+	    name = "DAC2OutputControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC2OutputControl);
+	    break;
+	default:
+	    return FALSE;
+    }
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
+    return FALSE;
+}
+
+Bool
+AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomOutput id)
+{
+    AtomBiosArgRec data;
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC_LoadDetection);
+
+    switch (id) {
+	case atomDAC1Output:
+	case atomDAC2Output:
+	    break;
+	default:
+	    return FALSE;
+    }
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
+    return FALSE;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 			     enum atomTransmitterAction action, struct atomEncoderConfig *config)

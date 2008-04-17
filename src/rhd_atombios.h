@@ -196,6 +196,28 @@ enum atomEncoder {
     atomEncoderExternal
 };
 
+enum atomOutput {
+    atomDVOOutput,
+    atomLCDOutput,
+    atomCVOutput,
+    atomTVOutput,
+    atomLVTMAOutput,
+    atomTMDSAOutput,
+    atomDAC1Output,
+    atomDAC2Output
+};
+
+enum atomOutputAction {
+    atomEnable,
+    atomDisable,
+    atomLcdOn,
+    atomLcdOff,
+    atomLcdBrightnessControl,
+    atomLcdSelftestStart,
+    atomLcdSelftestStop,
+    atomEncoderInit
+};
+
 enum atomTransmitterAction {
     atomTransDisable,
     atomTransEnable,
