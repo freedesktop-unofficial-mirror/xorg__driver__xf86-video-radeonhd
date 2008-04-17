@@ -134,13 +134,6 @@ PLLElectrical(RHDPtr rhdPtr, CARD16 FeedbackDivider)
  * All R500s, RS6x0, R600, RV610 and RV630.
  */
 
-void
-PllBreak() 
-{
-    static volatile int i = 0;
-    i++;
-}
-
 /*
  *
  */
@@ -167,7 +160,6 @@ PLL1Calibrate(struct rhdPLL *PLL)
 		       "%s: Locking failed.\n", __func__);
     } else
 	RHDDebug(PLL->scrnIndex, "%s: lock in %d loops\n", __func__, i);
-    PllBreak();
 }
 
 /*
