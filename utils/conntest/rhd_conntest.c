@@ -83,6 +83,7 @@ enum {
     DACA_ENABLE                    = 0x7800,
     DACA_SOURCE_SELECT             = 0x7804,
     DACA_AUTODETECT_CONTROL        = 0x7828,
+    DACA_AUTODETECT_INT_CONTROL    = 0x7838,
     DACA_FORCE_OUTPUT_CNTL         = 0x783C,
     DACA_FORCE_DATA                = 0x7840,
     DACA_POWERDOWN                 = 0x7850,
@@ -109,6 +110,7 @@ enum {
     DACB_ENABLE                    = 0x7A00,
     DACB_SOURCE_SELECT             = 0x7A04,
     DACB_AUTODETECT_CONTROL        = 0x7A28,
+    DACB_AUTODETECT_INT_CONTROL    = 0x7A38,
     DACB_FORCE_OUTPUT_CNTL         = 0x7A3C,
     DACB_FORCE_DATA                = 0x7A40,
     DACB_POWERDOWN                 = 0x7A50,
@@ -605,20 +607,28 @@ DACLoadDetect(void *map, Bool tv, int dac)
     DetectControl = RegRead(map, offset + DACA_AUTODETECT_CONTROL);
     Enable = RegRead(map, offset + DACA_ENABLE);
 
+    /* enable */
     RegWrite(map, offset + DACA_ENABLE, 1);
+    /* ack autodetect */
+    RegMask(map, offset + DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
+    /* autodetect off */
     RegMask(map, offset + DACA_AUTODETECT_CONTROL, 0, 0x3);
+    /* zscale shift off */
     RegMask(map, offset + DACA_CONTROL2, 0, 0xff0000);
+    /* dac force off */
     RegMask(map, offset + DACA_CONTROL2, 0, 0x1);
 
+    /* set TV */
     RegMask(map, offset + DACA_CONTROL2, tv ? 0x100 : 0, 0x100);
 
     RegWrite(map, offset + DACA_FORCE_DATA, 0);
     RegMask(map, offset + DACA_CONTROL2, 0x1, 0x1);
 
-    RegMask(map, offset + DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
+    RegMask(map, offset + DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070101);
     RegWrite(map, offset + DACA_CONTROL1, 0x00050802);
+
     RegMask(map, offset + DACA_POWERDOWN, 0, 0x1); /* Shut down Bandgap Voltage Reference Power */
-    usleep(5);
+    usleep(5000);
 
     RegMask(map, offset + DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
 
@@ -632,6 +642,80 @@ DACLoadDetect(void *map, Bool tv, int dac)
 
     RegMask(map, offset + DACA_COMPARATOR_ENABLE, 0x100, 0x100);
     usleep(100);
+
+    /* Get RGB detect values
+     * If only G is detected, we could have a monochrome monitor,
+     * but we don't bother with this at the moment.
+     */
+    ret = (RegRead(map, offset + DACA_COMPARATOR_OUTPUT) & 0x0E) >> 1;
+#ifdef DEBUG
+    fprintf(stderr, "DAC%s: %x %s\n", dac ? "B" : "A", ret, tv ? "TV" : "");
+#endif
+    RegMask(map, offset + DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RegWrite(map, offset + DACA_CONTROL1, Control1);
+    RegMask(map, offset + DACA_CONTROL2, Control2, 0x1FF);
+    RegMask(map, offset + DACA_AUTODETECT_CONTROL, DetectControl, 0xFF);
+    RegMask(map, offset + DACA_ENABLE, Enable, 0xFF);
+
+    switch (ret & 0x7) {
+	case 0x7:
+	    if (tv)
+		return DAC_COMPONENT;
+	    else
+		return DAC_VGA;
+	case 0x1:
+	    if (tv)
+		return DAC_COMPOSITE;
+	    else
+		return DAC_NONE;
+	case 0x6:
+	    if (tv)
+		return DAC_SVIDEO;
+	    else
+		return DAC_NONE;
+	default:
+	    return DAC_NONE;
+    }
+}
+
+/*
+ *
+ */
+static dacOutput
+RS690DACLoadDetect(void *map, Bool tv, int dac)
+{
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
+    unsigned int offset = 0;
+
+    if (dac) offset = 0x200;
+
+    CompEnable = RegRead(map, offset + DACA_COMPARATOR_ENABLE);
+    Control1 = RegRead(map, offset + DACA_CONTROL1);
+    Control2 = RegRead(map, offset + DACA_CONTROL2);
+    DetectControl = RegRead(map, offset + DACA_AUTODETECT_CONTROL);
+    Enable = RegRead(map, offset + DACA_ENABLE);
+
+     /* Shut down Bandgap Voltage Reference Power */
+    RegMask(map, offset + DACA_POWERDOWN, 0, 0x1);
+    /* enable */
+    RegWrite(map, offset + DACA_ENABLE, 1);
+    /* autodetect off */
+    RegMask(map, offset + DACA_AUTODETECT_CONTROL, 0, 0x3);
+    /* zscale shift off */
+    RegMask(map, offset + DACA_CONTROL2, 0, 0xff0000);
+    /* set TV */
+    RegMask(map, offset + DACA_CONTROL2, tv ? 0x100 : 0, 0x100);
+    /* electrical */
+    RegWrite(map, offset + DACA_CONTROL1, 0x000A0A02);
+    usleep(1000);
+    /* 486 out of 1024 */
+    RegWrite(map, offset + DACA_FORCE_DATA, 0x1e6);
+    /* dac force on */
+    RegMask(map, offset + DACA_CONTROL2, 0x1, 0x1);
+    usleep(1000);
+    RegMask(map, offset + DACA_COMPARATOR_ENABLE, 0x100, 0x100);
+    usleep(37000);
 
     /* Get RGB detect values
      * If only G is detected, we could have a monochrome monitor,
@@ -802,12 +886,17 @@ LoadReport(void *map)
 
     switch (ChipType) {
 	case RHD_R500:
-	case RHD_RS690:
 	case RHD_R600:
 	    DACA = DACLoadDetect(map, FALSE, 0);
 	    DACB = DACLoadDetect(map, FALSE, 1);
 	    TVA = DACLoadDetect(map, TRUE, 0);
 	    TVB = DACLoadDetect(map, TRUE, 1);
+	    break;
+	case RHD_RS690:
+	    DACA = RS690DACLoadDetect(map, FALSE, 0);
+	    DACB = RS690DACLoadDetect(map, FALSE, 1);
+	    TVA = RS690DACLoadDetect(map, TRUE, 0);
+	    TVB = RS690DACLoadDetect(map, TRUE, 1);
 	    break;
 	case RHD_RV620:
 	    DACA = RV620DACLoadDetect(map, FALSE, 0);

@@ -84,6 +84,8 @@ DACSense(struct rhdOutput *Output, CARD32 offset, Bool TV)
     Enable = RHDRegRead(Output, offset + DACA_ENABLE);
 
     RHDRegWrite(Output, offset + DACA_ENABLE, 1);
+    /* ack autodetect */
+    RHDRegMask(Output, offset + DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
     RHDRegMask(Output, offset + DACA_AUTODETECT_CONTROL, 0, 0x00000003);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000001);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00ff0000);
@@ -96,7 +98,7 @@ DACSense(struct rhdOutput *Output, CARD32 offset, Bool TV)
     RHDRegWrite(Output, offset + DACA_FORCE_DATA, 0);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000001, 0x0000001);
 
-    RHDRegMask(Output, offset + DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070000);
+    RHDRegMask(Output, offset + DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070101);
     RHDRegWrite(Output, offset + DACA_CONTROL1, 0x00050802);
     RHDRegMask(Output, offset + DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
     usleep(5);
