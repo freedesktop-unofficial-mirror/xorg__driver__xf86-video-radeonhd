@@ -1043,30 +1043,42 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 {
     RHDPtr rhdPtr          = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
-    int data = 255, err;
+    int err;
+    union rhdPropertyData val;
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "In %s\n", __func__);
 
     if (property == atomBacklight) {
-	if (rout->Output->Backlight == NULL)
+	if (rout->Output->Property == NULL)
 	    return FALSE;
 
-	data = rout->Output->Backlight(rout->Output);
-
+	if (!rout->Output->Property(rout->Output, rhdPropertyGet,
+				    RHD_OUTPUT_BACKLIGHT, &val))
+	    return FALSE;
 	err = RRChangeOutputProperty(out->randr_output, atomBacklight,
-		XA_INTEGER, 32, PropModeReplace,
-		1, &data, FALSE, FALSE);
+				     XA_INTEGER, 32, PropModeReplace,
+				     1, &val.integer, FALSE, FALSE);
 
-	if (err != 0) {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "In %s RRChangeOutputProperty error: %d\n", __func__, err);
+    } else if (property == atomCoherent) {
+	if (rout->Output->Property == NULL)
 	    return FALSE;
-	}
 
-	return TRUE;
+	if (!rout->Output->Property(rout->Output, rhdPropertyGet,
+				    RHD_OUTPUT_COHERENT, &val))
+	    return FALSE;
+
+	err = RRChangeOutputProperty(out->randr_output, atomCoherent,
+				     XA_INTEGER, 32, PropModeReplace,
+				     1, &val.Bool, FALSE, FALSE);
     }
 
-    return FALSE;
+    if (err != 0) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "In %s RRChangeOutputProperty error: %d\n", __func__, err);
+	return FALSE;
+    }
+    return TRUE;
 }
+
 #endif
 
 /*
