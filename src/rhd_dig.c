@@ -110,7 +110,7 @@ struct DIGPrivate
     /* LVDS */
     Bool FPDI;
     struct rhdFMTDither FMTDither;
-    CARD32 BlLevel;
+    int BlLevel;
 };
 
 /*
@@ -150,7 +150,11 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 LVDSSetBacklight(struct rhdOutput *Output, int level)
 {
+    struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
+
     RHDFUNC(Output);
+
+    Private->BlLevel = level;
 
     RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV,
 	       0x144 << LVTMA_BL_MOD_REF_DI_SHIFT,
@@ -173,6 +177,8 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
     RHDFUNC(Output);
     switch (Action) {
 	case rhdPropertyCheck:
+	    if (Private->BlLevel < 0)
+		return FALSE;
 	switch (Property) {
 	    case RHD_OUTPUT_BACKLIGHT:
 		    return TRUE;
@@ -180,6 +186,8 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 		return FALSE;
 	}
 	case rhdPropertyGet:
+	    if (Private->BlLevel < 0)
+		return FALSE;
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
 		    val->integer = Private->BlLevel;
@@ -189,6 +197,8 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	    }
 	    break;
 	case rhdPropertySet:
+	    if (Private->BlLevel < 0)
+		return FALSE;
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
 		    LVDSSetBacklight(Output, val->integer);
@@ -844,6 +854,7 @@ void
 GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 {
     CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 tmp;
 
     RHDFUNC(rhdPtr);
 
@@ -853,12 +864,15 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 				 & RV62_DIG_DUAL_LINK_ENABLE) != 0);
     Private->FMTDither.LVDS24Bit = ((RHDRegRead(rhdPtr, off  + RV620_LVDS1_DATA_CNTL)
 			   & RV62_LVDS_24BIT_ENABLE) != 0);
-    Private->BlLevel = ( RHDRegRead(rhdPtr, RV620_LVTMA_BL_MOD_CNTL)
-			>> LVTMA_BL_MOD_LEVEL_SHIFT )  & 0xff;
+    tmp = RHDRegRead(rhdPtr, RV620_LVTMA_BL_MOD_CNTL);
+    if (tmp & 0x1)
+	Private->BlLevel = ( tmp >> LVTMA_BL_MOD_LEVEL_SHIFT )  & 0xff;
+    else
+	Private->BlLevel = -1;
+
     /* This is really ugly! */
     {
 	CARD32 fmt_offset;
-	CARD32 tmp;
 
 	tmp = RHDRegRead(rhdPtr, off + RV620_DIG1_CNTL);
 	fmt_offset = (tmp & RV62_DIG_SOURCE_SELECT) ? FMT2_OFFSET :0;

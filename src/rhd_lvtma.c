@@ -107,7 +107,7 @@ struct LVDSPrivate {
     Bool LVDS24Bit;
     Bool FPDI; /* LDI otherwise */
     CARD16 TXClockPattern;
-    CARD32 BlLevel;
+    int BlLevel;
     CARD32 MacroControl;
 
     /* Power timing for LVDS */
@@ -234,6 +234,8 @@ LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
     switch (Action) {
 	case rhdPropertyCheck:
 	    switch (Property) {
+		if (Private->BlLevel < 0)
+		    return FALSE;
 		case RHD_OUTPUT_BACKLIGHT:
 		    return TRUE;
 		default:
@@ -242,6 +244,8 @@ LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    if (Private->BlLevel < 0)
+			return FALSE;
 		    val->integer = Private->BlLevel;
 		    break;
 		default:
@@ -251,6 +255,8 @@ LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
 	case rhdPropertySet:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    if (Private->BlLevel < 0)
+			return FALSE;
 		    LVDSSetBacklight(Output, val->integer);
 		    break;
 		default:
@@ -406,7 +412,8 @@ LVDSEnable(struct rhdOutput *Output)
 		   "POWERUP_DONE state after %d loops (%d)\n",
 		   __func__, i, (int) tmp);
     }
-    LVDSSetBacklight(Output, Private->BlLevel);
+    if (Private->BlLevel >= 0)
+	LVDSSetBacklight(Output, Private->BlLevel);
 }
 
 /*
@@ -589,7 +596,11 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
     tmp = RHDRegRead(rhdPtr, LVTMA_PWRSEQ_REF_DIV);
     Private->PowerRefDiv = tmp & 0x0FFF;
     Private->BlonRefDiv = (tmp >> 16) & 0x0FFF;
-    Private->BlLevel = (RHDRegRead(rhdPtr, LVTMA_BL_MOD_CNTL) >> 8) & 0xff;
+    tmp = RHDRegRead(rhdPtr, LVTMA_BL_MOD_CNTL);
+    if (tmp & 0x1)
+	Private->BlLevel = (tmp >> 8) & 0xff;
+    else
+	Private->BlLevel = -1; /* Backlight control seems to be done some other way */
 
     Private->DualLink = (RHDRegRead(rhdPtr, LVTMA_CNTL) >> 24) & 0x00000001;
     Private->LVDS24Bit = RHDRegRead(rhdPtr, LVTMA_LVDS_DATA_CNTL) & 0x00000001;
