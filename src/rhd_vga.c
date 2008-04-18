@@ -85,11 +85,24 @@ RHDVGASave(RHDPtr rhdPtr)
     VGA->FBOffset =
 	RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS) - rhdPtr->FbIntAddress;
 
+    RHDDebug(rhdPtr->scrnIndex, "%s: FBOffset: 0x%8.8x\n",__func__,
+	     VGA->FBOffset);
 
     /* Could be that the VGA internal address no longer is pointing to what
        we know as our FB memory, in which case we should give up cleanly. */
     if (VGA->FBOffset < (unsigned) (pScrn->videoRam * 1024)) {
+
 	VGA->FBSize = 256 * 1024;
+
+	if ((VGA->FBOffset + VGA->FBSize)
+	    > (unsigned) (pScrn->videoRam * 1024)) {
+		VGA->FBSize = (unsigned) (pScrn->videoRam * 1024)
+		    - VGA->FBOffset;
+		RHDDebug(rhdPtr->scrnIndex,
+			 "%s: saving %i bytes of VGA memory\n",__func__,
+			 VGA->FBSize);
+	}
+
 	VGA->FB = xcalloc(VGA->FBSize, 1);
 	if (VGA->FB)
 	    memcpy(VGA->FB, ((CARD8 *) rhdPtr->FbBase) + VGA->FBOffset,
