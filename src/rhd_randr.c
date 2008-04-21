@@ -1043,7 +1043,7 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 {
     RHDPtr rhdPtr          = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
-    int err;
+    int err = BadValue;
     union rhdPropertyData val;
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "In %s\n", __func__);
@@ -1100,7 +1100,11 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     NULL, NULL, NULL,
     /* SetCursorColors,SetCursorPosition,ShowCursor,HideCursor,
      * LoadCursorImage,LoadCursorArgb,CrtcDestroy */
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL
+#ifdef XF86CRTCFUNCS_HAS_SETMODEMAJOR
+    /* set_mode_major */
+    , NULL
+#endif
 };
 
 static const xf86OutputFuncsRec rhdRROutputFuncs = {
@@ -1109,9 +1113,14 @@ static const xf86OutputFuncsRec rhdRROutputFuncs = {
     rhdRROutputModeValid, rhdRROutputModeFixup,
     rhdRROutputPrepare, rhdRROutputCommit,
     rhdRROutputModeSet, rhdRROutputDetect, rhdRROutputGetModes,
+#ifdef RANDR_12_INTERFACE
     rhdRROutputSetProperty,		       /* Only(!) RANDR_12_INTERFACE */
+#endif
 #ifdef RANDR_13_INTERFACE
     rhdRROutputGetProperty,  /* get_property */
+#endif
+#ifdef RANDR_GET_CRTC_INTERFACE
+    NULL,
 #endif
     NULL						/* Destroy */
 };

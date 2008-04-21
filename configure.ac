@@ -133,6 +133,16 @@ if test "x$MONREC_HAS_BANDWIDTH" = xyes; then
         AC_DEFINE(MONREC_HAS_BANDWIDTH, 1, [MonRec has member maxPixClock])
 fi
 
+# Check whether xf86CrtcFuncsRec has a set_mode_major member.
+AC_CHECK_MEMBER([xf86CrtcFuncsRec.set_mode_major],
+         [XF86CRTCFUNCS_HAS_SETMODEMAJOR=yes], [XF86CRTCFUNCS_HAS_SETMODEMAJOR=no],
+         [#include "${sdkdir}/xorg-server.h"
+#include "${sdkdir}/xf86.h"
+#include "${sdkdir}/xf86Crtc.h"])
+if test "x$XF86CRTCFUNCS_HAS_SETMODEMAJOR" = xyes; then
+        AC_DEFINE(XF86CRTCFUNCS_HAS_SETMODEMAJOR, 1, [xf86CrtcFuncsRec has member set_mode_major])
+fi
+
 CFLAGS="$SAVED_CFLAGS"
 
 AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
