@@ -1437,52 +1437,33 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
 static Bool
 rhdMapFB(RHDPtr rhdPtr)
 {
-    unsigned long membase;
     RHDFUNC(rhdPtr);
 
 #ifdef XSERVER_LIBPCIACCESS
 
+    rhdPtr->FbPhysAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
     rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
-    membase = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
 
     if (pci_device_map_range(rhdPtr->PciInfo,
-			     membase,
+			     rhdPtr->FbPhysAddress,
 			     rhdPtr->FbMapSize,
 			     PCI_DEV_MAP_FLAG_WRITABLE
-			     | PCI_DEV_MAP_FLAG_WRITE_COMBINE
-			     | PCI_DEV_MAP_FLAG_CACHABLE,
+ 			     | PCI_DEV_MAP_FLAG_WRITE_COMBINE,
 			     &rhdPtr->FbBase))
 	rhdPtr->FbBase = NULL;
 
 #else
 
+    rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
     rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
     rhdPtr->FbBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
-		      rhdPtr->PciInfo->memBase[RHD_FB_BAR], rhdPtr->FbMapSize);
-    membase = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
-
+		      rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
 #endif
 
     if (!rhdPtr->FbBase)
         return FALSE;
 
-    /* These devices have an internal address reference, which some other
-     * address registers in there also use. This can be different from the
-     * address in the BAR */
-    if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, HDP_FB_LOCATION)
-			       << 16;
-    else
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
-
-    if (rhdPtr->FbIntAddress != membase)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
-		       "0x%08X while card Internal Address is 0x%08X\n",
-		       (unsigned int) membase,
-		       rhdPtr->FbIntAddress);
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
-	       rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
 }
 
