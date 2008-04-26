@@ -960,28 +960,33 @@ getDDCSpeed(void)
 {
     CARD32 clock, ref_clk, ret;
 
-    switch  (AtomData.FirmwareInfoVersion.crev) {
-	case 1:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
-	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo->usReferenceClock;
-	    break;
-	case 2:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
-	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->usReferenceClock;
-	    break;
-	case 3:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
-	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->usReferenceClock;
-	    break;
-	case 4:
-	    clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
-	    ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->usReferenceClock;
-	    break;
-	default:
-	    /* no AtomBIOS info; use save default */
-	    clock = 70000;
-	    ref_clk = 270;
+    /* if no AtomBIOS info; use save default */
+    clock = 40000;
+    ref_clk = 270;
+
+    if (AtomData.FirmwareInfo.base) {
+	switch  (AtomData.FirmwareInfoVersion.crev) {
+	    case 1:
+		clock = AtomData.FirmwareInfo.FirmwareInfo->ulDefaultEngineClock;
+		ref_clk = AtomData.FirmwareInfo.FirmwareInfo->usReferenceClock;
+		break;
+	    case 2:
+		clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->ulDefaultEngineClock;
+		ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_2->usReferenceClock;
+		break;
+	    case 3:
+		clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->ulDefaultEngineClock;
+		ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_3->usReferenceClock;
+		break;
+	    case 4:
+		clock = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->ulDefaultEngineClock;
+		ref_clk = AtomData.FirmwareInfo.FirmwareInfo_V_1_4->usReferenceClock;
+		break;
+	    default:
+		break;
+	}
     }
+
     clock *= 10;
     ref_clk *= 10;
 
@@ -1333,7 +1338,7 @@ RS69I2CSetupStatus(void *map, int line)
     CARD16 prescale;
 
     prescale = getDDCSpeed();
-    if (!prescale)
+    if (!prescale || !AtomData.GPIO_I2C_Info)
 	return FALSE;
 
     RegMask(map, 0x28, 0x200, 0x200);
@@ -1876,6 +1881,10 @@ RV620I2CSetupStatus(void *map, int line, int prescale)
 	return FALSE;
 
     table = AtomBiosGetDataFromCodeTable(command_table, 0x36, &size);
+
+    if (!table)
+	return FALSE;
+
     while (i < size) {
 	if (table[i] == line) {
 	    reg_7d9c = table[i + 3] << 8 | table[i + 2];
@@ -2383,11 +2392,13 @@ struct atomCodeDataTableHeader
 unsigned char *
 AtomBiosGetDataFromCodeTable(unsigned char **tablelist, int n, short *size)
 {
-    ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *header = (ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *)
-	tablelist[n];
+    ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *header;
     unsigned char *code;
     int i;
 
+    if (!tablelist)
+	return FALSE;
+    header = (ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *) tablelist[n];
     if (!header)
 	return NULL;
     if (!AnalyzeCommonHdr(&header->CommonHeader))
@@ -2584,14 +2595,13 @@ main(int argc, char *argv[])
     rombase = GetVBIOS(&size);
     if (!rombase) {
 	fprintf(stderr, "Cannot get VBIOS. Are we root?\n");
-	return 1;
-    }
+    } else
     if (!InterpretATOMBIOS(rombase)) {
 	fprintf(stderr, "Cannot analyze AtomBIOS\n");
 	return 1;
     }
 
-    if (dumpBios) {
+    if (dumpBios && rombase) {
 	char name[1024] = "posted.vga.rom";
 
 	if (deviceSet) {
