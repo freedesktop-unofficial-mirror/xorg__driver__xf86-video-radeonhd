@@ -1438,11 +1438,14 @@ static Bool
 rhdMapFB(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
 
 #ifdef XSERVER_LIBPCIACCESS
 
     rhdPtr->FbPhysAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
     rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+    if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
+	rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
 
     if (pci_device_map_range(rhdPtr->PciInfo,
 			     rhdPtr->FbPhysAddress,
@@ -1456,6 +1459,9 @@ rhdMapFB(RHDPtr rhdPtr)
 
     rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
     rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
+    if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
+	rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
+
     rhdPtr->FbBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
 		      rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);

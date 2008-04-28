@@ -90,13 +90,15 @@ RHDVGASave(RHDPtr rhdPtr)
 
     /* Could be that the VGA internal address no longer is pointing to what
        we know as our FB memory, in which case we should give up cleanly. */
-    if (VGA->FBOffset < (unsigned) (pScrn->videoRam * 1024)) {
+    if (VGA->FBOffset < (unsigned) (rhdPtr->FbMapSize)) {
 
 	VGA->FBSize = 256 * 1024;
 
 	if ((VGA->FBOffset + VGA->FBSize)
-	    > (unsigned) (pScrn->videoRam * 1024)) {
-		VGA->FBSize = (unsigned) (pScrn->videoRam * 1024)
+	    > (unsigned) (rhdPtr->FbMapSize)) { /* clamp to the size of the
+						   aperture. Otherwise we
+						   would have to remap here */
+	    VGA->FBSize = (unsigned) (rhdPtr->FbMapSize)
 		    - VGA->FBOffset;
 		RHDDebug(rhdPtr->scrnIndex,
 			 "%s: saving %i bytes of VGA memory\n",__func__,
