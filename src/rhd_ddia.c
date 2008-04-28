@@ -215,7 +215,8 @@ DDIAMode(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 DDIAPower(struct rhdOutput *Output, int Power)
 {
-    RHDFUNC(Output);
+    RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
+	     rhdPowerString[Power]);
 
     switch (Power) {
 	case RHD_POWER_ON:

@@ -478,7 +478,8 @@ LVDSShutdown(struct rhdOutput *Output)
 static void
 LVDSPower(struct rhdOutput *Output, int Power)
 {
-    RHDFUNC(Output);
+    RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
+	     rhdPowerString[Power]);
 
     switch (Power) {
     case RHD_POWER_ON:
@@ -1122,7 +1123,8 @@ TMDSBPower(struct rhdOutput *Output, int Power)
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
 
-    RHDFUNC(Output);
+    RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
+	     rhdPowerString[Power]);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
 

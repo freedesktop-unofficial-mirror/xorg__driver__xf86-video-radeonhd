@@ -57,6 +57,8 @@ enum rhdOutputProperty {
     RHD_OUTPUT_COHERENT
 };
 
+char *rhdPowerString[4];
+
 /*
  *
  * This structure should deal with everything output related.

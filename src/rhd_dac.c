@@ -295,9 +295,13 @@ DACPower(struct rhdOutput *Output, CARD16 offset, int Power)
 {
     CARD32 powerdown;
 
+    RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
+	     rhdPowerString[Power]);
+
 
     switch (Power) {
-    case RHD_POWER_ON:
+
+	case RHD_POWER_ON:
 	switch (Output->SensedType) {
 	    case RHD_SENSED_TV_SVIDEO:
 		powerdown = 0 /* 0x100 */;

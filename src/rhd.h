@@ -154,6 +154,7 @@ union rhdPropertyData
 #define RHD_POWER_ON       0
 #define RHD_POWER_RESET    1   /* off temporarily */
 #define RHD_POWER_SHUTDOWN 2   /* long term shutdown */
+#define RHD_POWER_UNKNOWN  3   /* initial state */
 
 #define RHD_VBIOS_SIZE 0x10000
 

@@ -945,7 +945,8 @@ DigPower(struct rhdOutput *Output, int Power)
     struct transmitter *Transmitter = &Private->Transmitter;
     struct encoder *Encoder = &Private->Encoder;
 
-    RHDFUNC(Output);
+    RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
+	     rhdPowerString[Power]);
 
     switch (Power) {
 	case RHD_POWER_ON:
