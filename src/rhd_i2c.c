@@ -982,7 +982,9 @@ rhdTearDownI2C(I2CBusPtr *I2C)
 }
 
 #define TARGET_HW_I2C_CLOCK 25 /*  kHz */
-#define DEFAULT_ENGINE_CLOCK 700000 /* kHz (guessed) */
+#define DEFAULT_ENGINE_CLOCK 453000 /* kHz (guessed) */
+#define DEFAULT_REF_CLOCK 27000
+
 static CARD32
 rhdGetI2CPrescale(RHDPtr rhdPtr)
 {
@@ -991,18 +993,26 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
     RHDFUNC(rhdPtr);
 
     if (rhdPtr->ChipSet < RHD_R600) {
-	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg);
-	return (0x7f << 8)
-	    + (atomBiosArg.val / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg)
+	    == ATOM_SUCCESS) 
+	    return (0x7f << 8)
+		+ (atomBiosArg.val / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
+	else
+	    return (0x7f << 8)
+		+ (DEFAULT_ENGINE_CLOCK / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
     } else if (rhdPtr->ChipSet < RHD_RV620) {
-	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			GET_REF_CLOCK, &atomBiosArg);
-	return (atomBiosArg.val / TARGET_HW_I2C_CLOCK);
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
+	    return (atomBiosArg.val / TARGET_HW_I2C_CLOCK);
+	else
+	    return (DEFAULT_REF_CLOCK / TARGET_HW_I2C_CLOCK);
     } else {
-	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			GET_REF_CLOCK, &atomBiosArg);
-	return (atomBiosArg.val / (4 * TARGET_HW_I2C_CLOCK));
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
+	    return (atomBiosArg.val / (4 * TARGET_HW_I2C_CLOCK));
+	else
+	    return (DEFAULT_REF_CLOCK / (4 * TARGET_HW_I2C_CLOCK));
     }
 #else
     RHDFUNC(rhdPtr);
@@ -1011,9 +1021,9 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 	return (0x7f << 8)
 	    + (DEFAULT_ENGINE_CLOCK) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
     } else if {rhdPtr->ChipSet < RHD_RV620) {
-	return (DEFAULT_ENGINE_CLOCK / TARGET_HW_I2C_CLOCK);
+	return (DEFAULT_REF_CLOCK / TARGET_HW_I2C_CLOCK);
     } else
-	  return (DEFAULT_ENGINE_CLOCK / (4 * TARGET_HW_I2C_CLOCK));
+	  return (DEFAULT_REF_CLOCK / (4 * TARGET_HW_I2C_CLOCK));
 #endif
 }
 
