@@ -449,6 +449,35 @@ rhdMonitorTV(struct rhdConnector *Connector)
 /*
  *
  */
+DisplayModePtr
+RHDGetScaledMonitorMode(struct rhdMonitor *Monitor)
+{
+    RHDPtr rhdPtr = RHDPTRI(Monitor);
+
+    DisplayModePtr m = Monitor->Modes;
+
+    if (!Monitor->CanScale)
+	return NULL;
+    while (m) {
+	if (m->type & M_T_PREFERRED) {
+	    DisplayModePtr Mode = xnfcalloc(1, sizeof(DisplayModeRec));
+	    memcpy(Mode, m, sizeof(DisplayModeRec));
+	    Mode->prev = Mode->next = NULL;
+	    Mode->name = xstrdup(Mode->name);
+	    if (rhdPtr->verbosity >= 7) {
+		RHDDebug(rhdPtr->scrnIndex, "Monitor[%s]: found native mode: ", Monitor->Name);
+		RHDPrintModeline(Mode);
+	    }
+	    return Mode;
+	}
+	m = m->next;
+    }
+    return NULL;
+}
+
+/*
+ *
+ */
 struct rhdMonitor *
 RHDMonitorInit(struct rhdConnector *Connector)
 {

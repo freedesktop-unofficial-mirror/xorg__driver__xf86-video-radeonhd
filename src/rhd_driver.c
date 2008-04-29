@@ -1706,6 +1706,8 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		i++;
 
 		Output->Crtc->Active = TRUE;
+		/* We don't share crtcs between outputs. Once we do we might have to handle this here */
+		Output->Crtc->ScaledMode = RHDGetScaledMonitorMode(Monitor);
 
 		Found = TRUE;
 
@@ -1978,9 +1980,16 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		    pScrn->depth, rhdPtr->FbScanoutStart);
-	Crtc->ModeSet(Crtc, mode);
-	if (Crtc->ScaleSet)
-	    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	if (Crtc->ScaledMode) {
+	    Crtc->ModeSet(Crtc, Crtc->ScaledMode);
+	    if (Crtc->ScaleSet)
+		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Crtc->ScaledMode, mode);
+	} else {
+	    Crtc->ModeSet(Crtc, mode);
+	    if (Crtc->ScaleSet)
+		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	}
+
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc, mode);
@@ -1991,9 +2000,15 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
     if (Crtc->Active) {
 	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		    pScrn->depth, rhdPtr->FbScanoutStart);
-	Crtc->ModeSet(Crtc, mode);
-	if (Crtc->ScaleSet)
-	    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	if (Crtc->ScaledMode) {
+	    Crtc->ModeSet(Crtc, Crtc->ScaledMode);
+	    if (Crtc->ScaleSet)
+		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_SCALE, mode, Crtc->ScaledMode);
+	} else {
+	    Crtc->ModeSet(Crtc, mode);
+	    if (Crtc->ScaleSet)
+		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	}
 	RHDPLLSet(Crtc->PLL, mode->Clock);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc, mode);
