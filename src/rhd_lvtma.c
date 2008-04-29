@@ -1092,7 +1092,7 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     TMDSBVoltageControl(Output, Mode);
 
     /* use IDCLK */
-    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000010);
+    RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000010, 0x00000010);
     /* LVTMA only: use clock selected by next write */
     RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x20000000, 0x20000000);
     /* coherent mode */
