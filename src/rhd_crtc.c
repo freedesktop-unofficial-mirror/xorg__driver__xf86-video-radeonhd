@@ -397,6 +397,8 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	   DisplayModePtr Mode, DisplayModePtr ScaledMode)
 {
     CARD16 RegOff;
+    int overscanTop = 0, overscanBottom = 0, overscanLeft = 0, overscanRight = 0;
+    int tmp;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s viewport: %ix%i\n", __func__, Crtc->Name,
 	     Mode->CrtcHDisplay, Mode->CrtcVDisplay);
@@ -406,38 +408,74 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
     else
 	RegOff = D2_REG_OFFSET;
 
+    if (ScaledMode) {
+	RHDPrintModeline(Mode);
+	RHDPrintModeline(ScaledMode);
+	overscanTop = Mode->CrtcVDisplay - ScaledMode->CrtcVDisplay;
+	overscanLeft = Mode->CrtcHDisplay - ScaledMode->CrtcHDisplay;
+
+	if (!overscanTop && !overscanBottom)
+	    Type = RHD_CRTC_SCALE_TYPE_NONE;
+
+	/* handle down scaling */
+	if (overscanTop < 0) {
+	    Type = RHD_CRTC_SCALE_TYPE_SCALE;
+	    overscanTop = 0;
+	}
+	if (overscanLeft < 0) {
+	    Type = RHD_CRTC_SCALE_TYPE_SCALE;
+	    overscanLeft = 0;
+	}
+    }
+
+    switch (Type) {
+	case RHD_CRTC_SCALE_TYPE_NONE:
+	    break;
+
+	case RHD_CRTC_SCALE_TYPE_CENTER:
+	    tmp = overscanTop;
+	    overscanTop >>= 1;
+	    overscanBottom = tmp - overscanTop;
+	    tmp = overscanLeft;
+	    overscanLeft >>= 1;
+	    overscanRight = tmp - overscanLeft;
+	    break;
+
+	case RHD_CRTC_SCALE_TYPE_SCALE:
+	    overscanLeft = overscanRight = overscanTop = overscanBottom = 0;
+	    break;
+    }
+    /* now add native mode overscan (if any) */
+    overscanTop += Mode->CrtcVTotal - Mode->CrtcVBlankEnd;
+    overscanBottom += Mode->CrtcVBlankStart - Mode->CrtcVDisplay;
+    overscanLeft += Mode->CrtcHTotal - Mode->CrtcHBlankEnd;
+    overscanRight += Mode->CrtcHBlankStart - Mode->CrtcHDisplay;
+
     /* D1Mode registers */
     RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_SIZE,
 		Mode->CrtcVDisplay | (Mode->CrtcHDisplay << 16));
     RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_START, 0);
 
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_LEFT_RIGHT,
-		((Mode->CrtcHTotal - Mode->CrtcHBlankEnd) << 16) |
-		(Mode->CrtcHBlankStart - Mode->CrtcHDisplay));
+		(overscanLeft << 16) | overscanRight);
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_TOP_BOTTOM,
-		((Mode->CrtcVTotal - Mode->CrtcVBlankEnd) << 16) |
-		(Mode->CrtcVBlankStart - Mode->CrtcVDisplay));
+		(overscanTop << 16) | overscanBottom);
 
-    if (!ScaledMode || (Mode == ScaledMode) ||
-	((Mode->CrtcHDisplay == ScaledMode->CrtcHDisplay) &&
-	 (Mode->CrtcVDisplay == ScaledMode->CrtcVDisplay))) {
-	/* No scaling whatsoever */
-	RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 0);
-	RHDRegWrite(Crtc, RegOff + D1SCL_TAP_CONTROL, 0);
-	RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
-    } else {
-	switch (Type) {
-	case RHD_CRTC_SCALE_TYPE_NONE: /* Top left corner */
+    switch (Type) {
+	case RHD_CRTC_SCALE_TYPE_NONE:  /* No scaling whatsoever */
+	    ErrorF("None\n");
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 0);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_TAP_CONTROL, 0);
 	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
 	    break;
 	case RHD_CRTC_SCALE_TYPE_CENTER: /* center of the actual mode */
+	    ErrorF("Center\n");
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 0);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_TAP_CONTROL, 0);
 	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 1);
 	    break;
 	case RHD_CRTC_SCALE_TYPE_SCALE: /* scaled to fullscreen */
+	    ErrorF("Full\n");
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 1);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_HVSCALE, 0x00010001); /* both h/v */
 
@@ -448,8 +486,31 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 
 	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00000101);
 	    break;
-	}
     }
+}
+
+/*
+ *
+ */
+static void
+D1PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
+{
+    RHDFUNC(Crtc);
+
+    RHDRegMask(Crtc, PCLK_CRTC1_CNTL, PLL->Id << 16, 0x00010000);
+    Crtc->PLL = PLL;
+}
+
+/*
+ *
+ */
+static void
+D2PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
+{
+    RHDFUNC(Crtc);
+
+    RHDRegMask(Crtc, PCLK_CRTC2_CNTL, PLL->Id << 16, 0x00010000);
+    Crtc->PLL = PLL;
 }
 
 /*
