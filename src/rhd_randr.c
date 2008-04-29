@@ -365,7 +365,11 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 		pScrn->depth, rhdPtr->FbScanoutStart);
     Crtc->ModeSet(Crtc, Mode);
-    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
+    if (OrigMode->VDisplay != Mode->VDisplay || OrigMode->HDisplay != Mode->HDisplay)
+	Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_CENTER, OrigMode, Mode);
+    else
+	Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
+
     Crtc->FrameSet(Crtc, x, y);
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
@@ -687,34 +691,73 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+    struct rhdOutput  *o;
     struct rhdCrtc    *Crtc   = NULL;
     int                Status;
 
-    /* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
-     * Fixed in xserver git c6c284e6 */
+    ASSERT(rout->Output);
+    o = rout->Output;
+
     xfree(Mode->name);
-    memset(Mode, 0, sizeof(DisplayModeRec));
-    Mode->name       = xstrdup(OrigMode->name ? OrigMode->name : "n/a");
-    Mode->status     = OrigMode->status;
-    Mode->type       = OrigMode->type;
-    Mode->Clock      = OrigMode->Clock;
-    Mode->HDisplay   = OrigMode->HDisplay;
-    Mode->HSyncStart = OrigMode->HSyncStart;
-    Mode->HSyncEnd   = OrigMode->HSyncEnd;
-    Mode->HTotal     = OrigMode->HTotal;
-    Mode->HSkew      = OrigMode->HSkew;
-    Mode->VDisplay   = OrigMode->VDisplay;
-    Mode->VSyncStart = OrigMode->VSyncStart;
-    Mode->VSyncEnd   = OrigMode->VSyncEnd;
-    Mode->VTotal     = OrigMode->VTotal;
-    Mode->VScan      = OrigMode->VScan;
-    Mode->Flags      = OrigMode->Flags;
+    if (o->Connector->Monitor && o->Connector->Monitor->CanScale) {
+	DisplayModePtr m;
+	m = o->Connector->Monitor->Modes;
+	while (m) {
+	    if (m->type & M_T_PREFERRED) {
+		memcpy(Mode, m, sizeof(DisplayModeRec));
+		Mode->prev = Mode->next = NULL;
+		Mode->name = xstrdup(Mode->name);
+		if (rhdPtr->verbosity >= 7) {
+		    RHDDebug(rhdPtr->scrnIndex, "Output[%i]: found native mode: ", o->Id);
+		    RHDPrintModeline(Mode);
+		}
+		break;
+	    }
+	    m = m->next;
+	}
+	if (!m)
+	    return FALSE;
+    } else {
+	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
+	 * Fixed in xserver git c6c284e6 */
+	memset(Mode, 0, sizeof(DisplayModeRec));
+	Mode->name       = xstrdup(OrigMode->name ? OrigMode->name : "n/a");
+	Mode->status     = OrigMode->status;
+	Mode->type       = OrigMode->type;
+	Mode->Clock      = OrigMode->Clock;
+	Mode->HDisplay   = OrigMode->HDisplay;
+	Mode->HSyncStart = OrigMode->HSyncStart;
+	Mode->HSyncEnd   = OrigMode->HSyncEnd;
+	Mode->HTotal     = OrigMode->HTotal;
+	Mode->HSkew      = OrigMode->HSkew;
+	Mode->VDisplay   = OrigMode->VDisplay;
+	Mode->VSyncStart = OrigMode->VSyncStart;
+	Mode->VSyncEnd   = OrigMode->VSyncEnd;
+	Mode->VTotal     = OrigMode->VTotal;
+	Mode->VScan      = OrigMode->VScan;
+	Mode->Flags      = OrigMode->Flags;
+
+	if ((Mode->type & M_T_CRTC_C) == M_T_BUILTIN) {
+	    Mode->CrtcHDisplay = OrigMode->CrtcHDisplay;
+	    Mode->CrtcHBlankStart = OrigMode->CrtcHBlankStart;
+	    Mode->CrtcHSyncStart = OrigMode->CrtcHSyncStart;
+	    Mode->CrtcHBlankEnd = OrigMode->CrtcHBlankEnd;
+	    Mode->CrtcHSyncEnd = OrigMode->CrtcHSyncEnd;
+	    Mode->CrtcHTotal = OrigMode->CrtcHTotal;
+	    Mode->CrtcVDisplay = OrigMode->CrtcVDisplay;
+	    Mode->CrtcVBlankStart = OrigMode->CrtcVBlankStart;
+	    Mode->CrtcVSyncStart = OrigMode->CrtcVSyncStart;
+	    Mode->CrtcVSyncEnd = OrigMode->CrtcVSyncEnd;
+	    Mode->CrtcVBlankEnd = OrigMode->CrtcVBlankEnd;
+	    Mode->CrtcVTotal = OrigMode->CrtcVTotal;
+	}
+    }
+
     /* RHDRRModeFixup will set up the remaining bits */
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
-    ASSERT(rout->Output);
 
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
@@ -940,7 +983,7 @@ rhdRROutputGetModes(xf86OutputPtr output)
     }
 
     /* Get new one */
-    if (! (rout->Connector->Monitor = RHDMonitorInit(rout->Connector)) ) {
+    if (! (rout->Connector->Monitor = RHDRRMonitorInit(rout->Connector)) ) {
 	xf86OutputSetEDID (output, NULL);
 	return NULL;
     }
