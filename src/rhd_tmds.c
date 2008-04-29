@@ -384,8 +384,9 @@ TMDSAPower(struct rhdOutput *Output, int Power)
 
     case RHD_POWER_RESET:
 	RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0, 0x00001F1F);
-	/* if we do a RESET after a SHUTDOWN don't raise the power level */
-	if (Private->PowerState != RHD_POWER_SHUTDOWN)
+	/* if we do a RESET after a SHUTDOWN don't raise the power level,
+	 * and similarly, don't raise from UNKNOWN state. */
+	if (Private->PowerState == RHD_POWER_ON)
 	    Private->PowerState = RHD_POWER_RESET;
 	return;
 
