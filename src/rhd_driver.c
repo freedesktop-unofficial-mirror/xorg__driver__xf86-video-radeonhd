@@ -1437,8 +1437,8 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
 static Bool
 rhdMapFB(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr);
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+    RHDFUNC(rhdPtr);
 
 #ifdef XSERVER_LIBPCIACCESS
 
@@ -1459,8 +1459,8 @@ rhdMapFB(RHDPtr rhdPtr)
 
     rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
     rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
-    if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
-	rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
+    if (rhdPtr->FbMapSize > (unsigned int)pScrn->videoRam * 1024)
+	rhdPtr->FbMapSize = ((unsigned int)pScrn->videoRam * 1024);
 
     rhdPtr->FbBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
