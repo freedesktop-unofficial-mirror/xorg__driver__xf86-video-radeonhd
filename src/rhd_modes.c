@@ -1655,3 +1655,60 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
     return MODE_OK;
 }
 
+/*
+ * RHDSynthModes(): synthesize CVT modes for well known resolutions. For now we assume we want reduced modes only.
+ */
+void
+RHDSynthModes(int scrnIndex, DisplayModePtr Mode)
+{
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    DisplayModePtr Tmp;
+    unsigned int i;
+
+    struct resolution{
+	int x;
+	int y;
+    } resolution_list[] = {
+	{  320,  200 },  /* CGA */
+	{  320,  240 },  /* QVGA */
+	{  640,  480 },  /* VGA */
+	{  720,  480 },  /* NTSC */
+	{  854,  480 },  /* WVGA */
+	{  768,  576 },  /* PAL */
+	{  800,  600 },  /* SVGA */
+	{ 1024,  768 },  /* XGA */
+	{ 1152,  768 },
+	{ 1280,  720 },  /* HD720 */
+	{ 1280,  960 },
+	{ 1280,  854 },
+	{ 1280,  960 },
+	{ 1280, 1024 },  /* SXGA */
+	{ 1440,  960 },
+ 	{ 1400, 1050 },  /* SXGA+ */
+	{ 1680, 1050 },  /* WSXGA+ */
+	{ 1600, 1200 },  /* UXGA */
+	{ 1920, 1080 },  /* HD1080 */
+	{ 1920, 1200 },  /* WUXGA */
+	{ 2048, 1536 },  /* QXGA */
+	{ 2560, 1600 },  /* WQXGA */
+	{ 2560, 2048 }   /* QSXGA */
+    };
+
+    RHDFUNC(pScrn);
+
+    for (i = 0; i < (sizeof(resolution_list) / sizeof(struct resolution)); i++) {
+	Tmp = RHDCVTMode(resolution_list[i].x, resolution_list[i].y, 60.0, TRUE, FALSE);
+	Tmp->status = MODE_OK;
+	rhdModeFillOutCrtcValues(Tmp);
+	xfree(Tmp->name);
+	Tmp->name = xnfalloc(20);
+	snprintf(Tmp->name, 20, "%ix%iScaled",resolution_list[i].x,resolution_list[i].y);
+	Tmp->type = M_T_BUILTIN;
+	if (rhdPtr->verbosity > 6) {
+	    xf86DrvMsg(scrnIndex, X_INFO, "%s: Adding Modeline ",__func__);
+	    RHDPrintModeline(Tmp);
+	}
+	RHDModesAdd(Mode, Tmp);
+    }
+}

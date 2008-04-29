@@ -54,6 +54,7 @@ void RHDConfigMonitorSet(int scrnIndex, Bool UseConfig);
 
 #ifdef _RHD_CONNECTOR_H
 struct rhdMonitor *RHDMonitorInit(struct rhdConnector *Connector);
+struct rhdMonitor *RHDRRMonitorInit(struct rhdConnector *Connector);
 #endif
 
 void RHDMonitorDestroy(struct rhdMonitor *Monitor);
