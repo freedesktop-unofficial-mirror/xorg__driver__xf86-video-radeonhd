@@ -2539,7 +2539,7 @@ rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
 			   "Data table in command table %i extends %i bytes "
 			   "beyond command table size\n",
-			   data->val, -diff);
+			   (unsigned int) data->val, -diff);
 
 		return  ATOM_FAILED;
 	    }

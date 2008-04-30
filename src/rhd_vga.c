@@ -67,7 +67,6 @@ RHDVGAInit(RHDPtr rhdPtr)
 void
 RHDVGASave(RHDPtr rhdPtr)
 {
-    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
     struct rhdVGA *VGA = rhdPtr->VGA;
 
     RHDFUNC(rhdPtr);
@@ -94,12 +93,10 @@ RHDVGASave(RHDPtr rhdPtr)
 
 	VGA->FBSize = 256 * 1024;
 
-	if ((VGA->FBOffset + VGA->FBSize)
-	    > (unsigned) (rhdPtr->FbMapSize)) { /* clamp to the size of the
-						   aperture. Otherwise we
-						   would have to remap here */
-	    VGA->FBSize = (unsigned) (rhdPtr->FbMapSize)
-		    - VGA->FBOffset;
+	if ((VGA->FBOffset + VGA->FBSize) > (unsigned) (rhdPtr->FbMapSize)) {
+	    /* clamp to the size of the aperture. Otherwise we would have to
+	       remap here */
+	    VGA->FBSize = (unsigned) (rhdPtr->FbMapSize) - VGA->FBOffset;
 		RHDDebug(rhdPtr->scrnIndex,
 			 "%s: saving %i bytes of VGA memory\n",__func__,
 			 VGA->FBSize);
