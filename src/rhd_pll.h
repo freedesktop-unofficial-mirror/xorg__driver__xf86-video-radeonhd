@@ -70,6 +70,8 @@ struct rhdPLL {
     CARD32 StoreDCCGCLK;
     CARD8 StoreScalerPostDiv;
     CARD8 StoreSymPostDiv;
+    CARD32 StorePostDivSrc;
+    Bool StoreGlitchReset;
 };
 
 void RHDPLLsInit(RHDPtr rhdPtr);

@@ -901,8 +901,11 @@ RV620PLL1Save(struct rhdPLL *PLL)
     PLL->StoreRefDiv = RHDRegRead(PLL, EXT1_PPLL_REF_DIV);
     PLL->StoreFBDiv = RHDRegRead(PLL, EXT1_PPLL_FB_DIV);
     PLL->StorePostDiv = RHDRegRead(PLL, EXT1_PPLL_POST_DIV);
+    PLL->StorePostDivSrc = RHDRegRead(PLL, EXT1_PPLL_POST_DIV_SRC);
     PLL->StoreControl = RHDRegRead(PLL, EXT1_PPLL_CNTL);
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P1PLL_INT_SS_CNTL);
+
+    PLL->StoreGlitchReset = RHDRegRead(PLL, P1PLL_CNTL) & 0x00002000;
 
     PLL->StoreScalerPostDiv = RHDRegRead(PLL, P1PLL_DISP_CLK_CNTL) & 0x003F;
     PLL->StoreSymPostDiv = RHDRegRead(PLL, EXT1_SYM_PPLL_POST_DIV) & 0x007F;
@@ -928,8 +931,11 @@ RV620PLL2Save(struct rhdPLL *PLL)
     PLL->StoreRefDiv = RHDRegRead(PLL, EXT2_PPLL_REF_DIV);
     PLL->StoreFBDiv = RHDRegRead(PLL, EXT2_PPLL_FB_DIV);
     PLL->StorePostDiv = RHDRegRead(PLL, EXT2_PPLL_POST_DIV);
+    PLL->StorePostDivSrc = RHDRegRead(PLL, EXT2_PPLL_POST_DIV_SRC);
     PLL->StoreControl = RHDRegRead(PLL, EXT2_PPLL_CNTL);
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P2PLL_INT_SS_CNTL);
+
+    PLL->StoreGlitchReset = RHDRegRead(PLL, P2PLL_CNTL) & 0x00002000;
 
     PLL->StoreScalerPostDiv = RHDRegRead(PLL, P2PLL_DISP_CLK_CNTL) & 0x003F;
     PLL->StoreSymPostDiv = RHDRegRead(PLL, EXT2_SYM_PPLL_POST_DIV) & 0x007F;
@@ -944,14 +950,19 @@ RV620PLL2Save(struct rhdPLL *PLL)
 }
 
 /*
- *
+ * Notice how we handle the DCCG ownership here. There is a difference between
+ * currently holding the DCCG and what was held when in the VT. With the
+ * solution here we no longer hardlock, but we do have the danger of keeping
+ * the DCCG in external mode for too long a time, if both PLL restores are
+ * too far apart. This is currently not an issue as VT restoration goes over
+ * the whole device in one go anyway; no partial restoration going on
  */
 static void
 RV620PLL1Restore(struct rhdPLL *PLL)
 {
     RHDFUNC(PLL);
 
-    if (PLL->StoreDCCGCLKOwner)
+    if (RV620DCCGCLKAvailable(PLL))
 	RHDRegMask(PLL, DCCG_DISP_CLK_SRCSEL, 0x03, 0x00000003);
 
     if (PLL->StoreActive) {
@@ -960,6 +971,10 @@ RV620PLL1Restore(struct rhdPLL *PLL)
 			PLL->StoreSymPostDiv, PLL->StoreControl);
 	RHDRegMask(PLL, P1PLL_INT_SS_CNTL,
 		   PLL->StoreSpreadSpectrum, 0x00000001);
+
+	if (PLL->StoreDCCGCLKOwner)
+	    RHDRegWrite(PLL, DCCG_DISP_CLK_SRCSEL, PLL->StoreDCCGCLK);
+
     } else {
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
@@ -967,10 +982,16 @@ RV620PLL1Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT1_PPLL_REF_DIV, PLL->StoreRefDiv);
 	RHDRegWrite(PLL, EXT1_PPLL_FB_DIV, PLL->StoreFBDiv);
 	RHDRegWrite(PLL, EXT1_PPLL_POST_DIV, PLL->StorePostDiv);
+	RHDRegWrite(PLL, EXT1_PPLL_POST_DIV_SRC, PLL->StorePostDivSrc);
 	RHDRegWrite(PLL, EXT1_PPLL_CNTL, PLL->StoreControl);
 	RHDRegMask(PLL, P1PLL_DISP_CLK_CNTL, PLL->StoreScalerPostDiv, 0x003F);
 	RHDRegMask(PLL, EXT1_SYM_PPLL_POST_DIV, PLL->StoreSymPostDiv, 0x007F);
 	RHDRegWrite(PLL, P1PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
+
+	if (PLL->StoreGlitchReset)
+	    RHDRegMask(PLL, P1PLL_CNTL, 0x00002000, 0x00002000);
+	else
+	    RHDRegMask(PLL, P1PLL_CNTL, 0, 0x00002000);
     }
 
     if (PLL->StoreDCCGCLKOwner)
@@ -985,7 +1006,7 @@ RV620PLL2Restore(struct rhdPLL *PLL)
 {
     RHDFUNC(PLL);
 
-    if (PLL->StoreDCCGCLKOwner)
+    if (RV620DCCGCLKAvailable(PLL))
 	RHDRegMask(PLL, DCCG_DISP_CLK_SRCSEL, 0x03, 0x00000003);
 
     if (PLL->StoreActive) {
@@ -1001,10 +1022,16 @@ RV620PLL2Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT2_PPLL_REF_DIV, PLL->StoreRefDiv);
 	RHDRegWrite(PLL, EXT2_PPLL_FB_DIV, PLL->StoreFBDiv);
 	RHDRegWrite(PLL, EXT2_PPLL_POST_DIV, PLL->StorePostDiv);
+	RHDRegWrite(PLL, EXT2_PPLL_POST_DIV_SRC, PLL->StorePostDivSrc);
 	RHDRegWrite(PLL, EXT2_PPLL_CNTL, PLL->StoreControl);
 	RHDRegMask(PLL, P2PLL_DISP_CLK_CNTL, PLL->StoreScalerPostDiv, 0x003F);
 	RHDRegMask(PLL, EXT2_SYM_PPLL_POST_DIV, PLL->StoreSymPostDiv, 0x007F);
 	RHDRegWrite(PLL, P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
+
+	if (PLL->StoreGlitchReset)
+	    RHDRegMask(PLL, P2PLL_CNTL, 0x00002000, 0x00002000);
+	else
+	    RHDRegMask(PLL, P2PLL_CNTL, 0, 0x00002000);
     }
 
     if (PLL->StoreDCCGCLKOwner)
