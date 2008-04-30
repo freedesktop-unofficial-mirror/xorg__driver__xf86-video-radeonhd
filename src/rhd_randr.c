@@ -701,8 +701,9 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
     xfree(Mode->name);
-    if (RHDScalePolicy(o->Connector->Monitor, o->Connector)) {
+    if ( RHDScalePolicy(o->Connector->Monitor, o->Connector) && !(OrigMode->type & M_T_PREFERRED)) {
 	DisplayModePtr m;
+	RHDPrintModeline(OrigMode);
 	m = o->Connector->Monitor->Modes;
 	while (m) {
 	    if (m->type & M_T_PREFERRED) {
@@ -722,6 +723,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	    }
 	    m = m->next;
 	}
+	if (!m)
+	    return FALSE;
      } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
