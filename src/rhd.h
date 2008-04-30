@@ -298,6 +298,7 @@ typedef struct RHDRec {
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
 unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
+Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector);
 CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
 #define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
 void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);

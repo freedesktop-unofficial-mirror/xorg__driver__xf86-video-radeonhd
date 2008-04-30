@@ -697,27 +697,32 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 
     ASSERT(rout->Output);
     o = rout->Output;
+    if (out->crtc)
+	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
     xfree(Mode->name);
-    if (o->Connector->Monitor && o->Connector->Monitor->CanScale) {
+    if (RHDScalePolicy(o->Connector->Monitor, o->Connector)) {
 	DisplayModePtr m;
 	m = o->Connector->Monitor->Modes;
 	while (m) {
 	    if (m->type & M_T_PREFERRED) {
-		memcpy(Mode, m, sizeof(DisplayModeRec));
+		DisplayModePtr tmp = RHDModeCopy(m);
+		if (Crtc)
+		    if (RHDValidateScaledMode(Crtc, tmp)!= MODE_OK) {
+			xfree(tmp);
+			break;
+		    }
+		memcpy(Mode, tmp, sizeof(DisplayModeRec));
+		xfree(tmp);
 		Mode->prev = Mode->next = NULL;
 		Mode->name = xstrdup(Mode->name);
-		if (rhdPtr->verbosity >= 7) {
-		    RHDDebug(rhdPtr->scrnIndex, "Output[%i]: found native mode: ", o->Id);
-		    RHDPrintModeline(Mode);
-		}
+		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Output[%i]: found native mode: ", o->Id);
+		RHDPrintModeline(Mode);
 		break;
 	    }
 	    m = m->next;
 	}
-	if (!m)
-	    return FALSE;
-    } else {
+     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
 	memset(Mode, 0, sizeof(DisplayModeRec));
@@ -759,8 +764,6 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
 
-    if (out->crtc)
-	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
     setupCrtc(rhdPtr, Crtc);
 
     /* Monitor is handled by RandR */

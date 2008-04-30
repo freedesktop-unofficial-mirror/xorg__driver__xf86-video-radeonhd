@@ -71,8 +71,6 @@ RHDMonitorPrint(struct rhdMonitor *Monitor)
 	xf86Msg(X_NONE, "    Allows reduced blanking.\n");
     if (Monitor->UseFixedModes)
 	xf86Msg(X_NONE, "    Uses Fixed Modes.\n");
-    if (Monitor->CanScale)
-	xf86Msg(X_NONE, "    Can Scale.\n");
 
     if (!Monitor->Modes)
 	xf86Msg(X_NONE, "    No modes are provided.\n");
@@ -385,7 +383,6 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 
     /* panel should be driven at native resolution only. */
     Monitor->UseFixedModes = TRUE;
-    Monitor->CanScale = TRUE;
     Monitor->ReducedAllowed = TRUE;
 
     if (EDID)
@@ -435,7 +432,6 @@ rhdMonitorTV(struct rhdConnector *Connector)
 
     /* TV should be driven at native resolution only. */
     Monitor->UseFixedModes = TRUE;
-    Monitor->CanScale = TRUE;
     Monitor->ReducedAllowed = FALSE;
     /*
      *  hack: the TV encoder takes care of that.
@@ -444,35 +440,6 @@ rhdMonitorTV(struct rhdConnector *Connector)
     Mode->Flags &= ~(V_INTERLACE);
 #endif
     return Monitor;
-}
-
-/*
- *
- */
-DisplayModePtr
-RHDGetScaledMonitorMode(struct rhdMonitor *Monitor)
-{
-    RHDPtr rhdPtr = RHDPTRI(Monitor);
-
-    DisplayModePtr m = Monitor->Modes;
-
-    if (!Monitor->CanScale)
-	return NULL;
-    while (m) {
-	if (m->type & M_T_PREFERRED) {
-	    DisplayModePtr Mode = xnfcalloc(1, sizeof(DisplayModeRec));
-	    memcpy(Mode, m, sizeof(DisplayModeRec));
-	    Mode->prev = Mode->next = NULL;
-	    Mode->name = xstrdup(Mode->name);
-	    if (rhdPtr->verbosity >= 7) {
-		RHDDebug(rhdPtr->scrnIndex, "Monitor[%s]: found native mode: ", Monitor->Name);
-		RHDPrintModeline(Mode);
-	    }
-	    return Mode;
-	}
-	m = m->next;
-    }
-    return NULL;
 }
 
 /*
@@ -512,7 +479,7 @@ struct rhdMonitor *
 RHDRRMonitorInit(struct rhdConnector *Connector)
 {
     struct rhdMonitor *m = RHDMonitorInit(Connector);
-    if (m->CanScale)
+    if (RHDScalePolicy(m, Connector))
 	RHDSynthModes(Connector->scrnIndex, m->Modes);
 
     return m;

@@ -748,9 +748,17 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     RHDRandrPreInit(pScrn);
 
+    /*
+     * Set this here as we might need it for the validation of a fixed mode in
+     * rhdModeLayoutSelect(). Later it is used for Virtual selection and mode
+     * pool creation.
+     * For Virtual selection, the scanout area is all the free space we have.
+     */
+    rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
+    rhdPtr->FbScanoutSize = rhdPtr->FbFreeSize;
+
     if (!rhdPtr->randr) {
 	Bool configured;
-
 	/* Pick anything for now */
 	if (!rhdModeLayoutSelect(rhdPtr)) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -813,10 +821,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     /* @@@ need this? */
     pScrn->progClock = TRUE;
-
-    /* For Virtual selection, the scanout area is all the free space we have. */
-    rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
-    rhdPtr->FbScanoutSize = rhdPtr->FbFreeSize;
 
     if (pScrn->display->virtualX && pScrn->display->virtualY)
         if (!RHDGetVirtualFromConfig(pScrn)) {
@@ -1353,6 +1357,21 @@ RHDSaveScreen(ScreenPtr pScreen, int on)
 /*
  *
  */
+Bool
+RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector)
+{
+    if (!Monitor->UseFixedModes)
+	return FALSE;
+
+    if (Connector->Type != RHD_CONNECTOR_PANEL)
+	return FALSE;
+
+    return TRUE;
+}
+
+/*
+ *
+ */
 static Bool
 rhdMapMMIO(RHDPtr rhdPtr)
 {
@@ -1706,8 +1725,21 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		i++;
 
 		Output->Crtc->Active = TRUE;
-		/* We don't share crtcs between outputs. Once we do we might have to handle this here */
-		Output->Crtc->ScaledMode = RHDGetScaledMonitorMode(Monitor);
+
+		if (RHDScalePolicy(Monitor, Connector)) {
+		    DisplayModePtr m = Monitor->Modes;
+		    while (m) {
+			if (m->type & M_T_PREFERRED) {
+			    Output->Crtc->ScaledMode = RHDModeCopy(m);
+			    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+				       "Crtc[%i]: found native mode from Monitor[%s]: ",
+				       Output->Crtc->Id, Monitor->Name);
+			    RHDPrintModeline(Output->Crtc->ScaledMode);
+			    break;
+			}
+		    }
+		    m = m->next;
+		}
 
 		Found = TRUE;
 
@@ -1736,6 +1768,16 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 			       " information.\n", Connector->Name);
 	    }
 	}
+
+    /* Now validate the scaled modes attached to crtcs */
+    for (i = 0; i < 2; i++) {
+	struct rhdCrtc *crtc = rhdPtr->Crtc[i];
+	if (crtc->ScaledMode && RHDValidateScaledMode(crtc, crtc->ScaledMode) != MODE_OK) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Crtc[%i]: scaled mode invalid.\n", crtc->Id);
+	    xfree(crtc->ScaledMode);
+	    crtc->ScaledMode = NULL;
+	}
+    }
 
     return Found;
 }

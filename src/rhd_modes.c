@@ -70,7 +70,7 @@
 #define MODE_OFFSET         0x0F + RHD_MODE_STATUS
 #define MODE_MINHEIGHT      0x10 + RHD_MODE_STATUS
 #define MODE_FIXED          0x11 + RHD_MODE_STATUS
-
+#define MODE_SCALE          0x12 + RHD_MODE_STATUS
 
 /*
  * Don't bother with checking whether X offers this. Just use the internal one
@@ -705,7 +705,7 @@ rhdMonitorFixedValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
  * TODO: review fixed modes when doing different modes on both crtcs.
  */
 static int
-rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode, Bool canScale)
+rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 {
     int i;
 
@@ -737,7 +737,7 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode, Bool canScale)
 	    return MODE_HBLANK_NARROW;
     }
 
-    if (Monitor->UseFixedModes && !canScale && !rhdMonitorFixedValid(Monitor, Mode))
+    if (Monitor->UseFixedModes && !rhdMonitorFixedValid(Monitor, Mode))
 	return MODE_FIXED;
 
     return MODE_OK;
@@ -796,7 +796,7 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 		continue;
 	}
 
-	if (Crtc->PLL->Valid) {
+	if (Crtc->PLL && Crtc->PLL->Valid) { /* RandR may not have PLL filled out. oh well... */
 	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
 	    if (Status != MODE_OK)
 		return Status;
@@ -815,7 +815,7 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 
 		/* Check the monitor attached to this output */
 		if (Output->Connector && Output->Connector->Monitor)
-		    Status = rhdMonitorValid(Output->Connector->Monitor, Mode, FALSE);
+		    Status = rhdMonitorValid(Output->Connector->Monitor, Mode);
 		if (Status != MODE_OK)
                     return Status;
                 if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -836,6 +836,37 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 /*
  *
  */
+int
+RHDValidateScaledMode(struct rhdCrtc *Crtc, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
+    int Status;
+
+    RHDFUNC(Crtc);
+
+    Status = rhdModeSanity(Mode);
+    if (Status != MODE_OK)
+        return Status;
+
+    rhdModeFillOutCrtcValues(Mode);
+
+    Status = rhdModeValidateCrtc(Crtc, Mode);
+    if (Status != MODE_OK)
+	return Status;
+
+    /* Do we want to also validate against a configured monitor? */
+    if (rhdPtr->ConfigMonitor) {
+	Status = rhdMonitorValid(rhdPtr->ConfigMonitor, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+    }
+
+    return MODE_OK;
+}
+
+/*
+ *
+ */
 static int
 rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 {
@@ -843,7 +874,6 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     struct rhdCrtc *Crtc;
     int Status;
     int i;
-    struct rhdOutput *Output, *scaledOutput = NULL;
 
     Status = rhdModeSanity(Mode);
     if (Status != MODE_OK)
@@ -857,25 +887,8 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
         if (!Crtc->Active)
             continue;
 
-	/*
-	 * If a monitor can scale and a mode is not the preferred
-	 * (ie. native resolution) we can scale up to it.
-	 */
-	for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
-	    struct rhdConnector *Connector = Output->Connector;
+	if (!Crtc->ScaledMode) {
 
-	    if (Output->Active && (Output->Crtc == Crtc)) {
-                /* if two outputs share the same crtc we should not scale */
-		if (scaledOutput) { /* beenhere */
-		    scaledOutput = NULL;
-		    break;
-		}
-	    if (Connector->Monitor && Connector->Monitor->CanScale && !(Mode->type & M_T_PREFERRED))
-		scaledOutput = Output;
-	    }
-	}
-
-	if (!scaledOutput) {
 	    Status = rhdModeValidateCrtc(Crtc, Mode);
 	    if (Status != MODE_OK)
 		return Status;
@@ -883,34 +896,19 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 	} else {
 
 	    if (Crtc->ScaleValid) {
-		struct rhdMonitor *Monitor = scaledOutput->Connector->Monitor;
-		if (Monitor && Monitor->Modes) {
-		    DisplayModePtr mmode;
-
-		    for (mmode = Monitor->Modes ;mmode; mmode = mmode->next)  {
-			if (!mmode->type & M_T_PREFERRED)
-			    continue;
-			Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, mmode);
-			if (Status != MODE_OK)
-			    return Status;
-			else
-			    break;
-		    }
-		    if (!mmode)  /* there was no preferred mode to validate against */
-			return MODE_ERROR;
-		}
-		else
-		    return MODE_ERROR;
+		Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, Crtc->ScaledMode);
+		if (Status != MODE_OK)
+		    return Status;
 	    }
 	    else
-		return MODE_ERROR;
+		return MODE_SCALE;
 	}
     }
 
     /* throw them at the configured monitor, so that the inadequate
      * conf file at least has some influence. */
     if (rhdPtr->ConfigMonitor) {
-	Status = rhdMonitorValid(rhdPtr->ConfigMonitor, Mode, scaledOutput ? TRUE : FALSE);
+	Status = rhdMonitorValid(rhdPtr->ConfigMonitor, Mode);
 	if (Status != MODE_OK)
 	    return Status;
     }
@@ -950,6 +948,7 @@ struct {
     { MODE_OFFSET,        "Scanout buffer offset too high in FB."},
     { MODE_MINHEIGHT,     "Height too low."},
     { MODE_FIXED,         "Mode not compatible with fixed mode."},
+    { MODE_SCALE,         "Mode cannot be scaled to fixed mode."},
     { 0, NULL}
 };
 
@@ -1276,7 +1275,7 @@ rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 	    if (Output->Active && (Output->Crtc == Crtc)) {
 		if (Output->Connector && Output->Connector->Monitor
 		    && Output->Connector->Monitor->UseFixedModes
-		    && !Output->Connector->Monitor->CanScale) {
+		    && !Crtc->ScaledMode) {
 		    Modes = Output->Connector->Monitor->Modes;
 		    if (!Silent && Modes)
 			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Fixed"
@@ -1584,7 +1583,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
      * If a monitor can scale and a mode is not the preferred
      * (ie. native resolution) we can scale up to it.
      */
-    if (Connector->Monitor && Connector->Monitor->CanScale && !(Mode->type & M_T_PREFERRED))
+    if (RHDScalePolicy(Connector->Monitor, Connector) && !(Mode->type & M_T_PREFERRED))
 	scaledMode = TRUE;
 
     Status = rhdModeSanity(Mode);
@@ -1648,7 +1647,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
 	    /* Check the monitor attached to this output */
 	    if (Connector->Monitor)
-		Status = rhdMonitorValid(Connector->Monitor, Mode, FALSE);
+		Status = rhdMonitorValid(Connector->Monitor, Mode);
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1669,7 +1668,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
 	/* throw them at the configured monitor */
 	if (Monitor) {
-	    Status = rhdMonitorValid(Monitor, Mode, FALSE);
+	    Status = rhdMonitorValid(Monitor, Mode);
 	    if (Status != MODE_OK)
 		return Status;
 	}

@@ -52,6 +52,7 @@ void RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bo
 int RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		   struct rhdConnector *Connector, struct rhdOutput *Output,
 		   struct rhdMonitor *Monitor);
+int RHDValidateScaledMode(struct rhdCrtc *Crtc, DisplayModePtr Mode);
 void RHDSynthModes(int scrnIndex, DisplayModePtr Mode);
 
 #endif /* _RHD_MODES_H */

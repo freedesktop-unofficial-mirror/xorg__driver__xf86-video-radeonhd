@@ -43,7 +43,6 @@ struct rhdMonitor {
     Bool ReducedAllowed;
 
     Bool UseFixedModes;
-    Bool CanScale;
     DisplayModePtr Modes; /* default: NULL */
 
     xf86MonPtr EDID;
@@ -59,6 +58,5 @@ struct rhdMonitor *RHDRRMonitorInit(struct rhdConnector *Connector);
 
 void RHDMonitorDestroy(struct rhdMonitor *Monitor);
 void RHDMonitorPrint(struct rhdMonitor *Monitor);
-DisplayModePtr RHDGetScaledMonitorMode(struct rhdMonitor *Monitor);
 
 #endif /* _RHD_MONITOR_H */
