@@ -896,7 +896,7 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 	} else {
 
 	    if (Crtc->ScaleValid) {
-		Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, Crtc->ScaledMode);
+		Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledMode);
 		if (Status != MODE_OK)
 		    return Status;
 	    }
@@ -1676,7 +1676,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
     } else {
 	if (Crtc) {
 	    if (Crtc->ScaleValid) {
-		Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, ScaledMode);
+		Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, ScaledMode);
 		if (Status != MODE_OK)
 		    return Status;
 	    }

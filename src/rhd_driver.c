@@ -230,7 +230,8 @@ typedef enum {
     OPTION_NORANDR,
     OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER,
-    OPTION_TV_MODE
+    OPTION_TV_MODE,
+    OPTION_SCALE_TYPE
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -247,6 +248,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -2021,7 +2023,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	    if (Crtc->ScaledMode) {
 		Crtc->ModeSet(Crtc, Crtc->ScaledMode);
 		if (Crtc->ScaleSet)
-		    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, Crtc->ScaledMode);
+		    Crtc->ScaleSet(Crtc, rhdPtr->scaleType, mode, Crtc->ScaledMode);
 	    } else {
 		Crtc->ModeSet(Crtc, mode);
 		if (Crtc->ScaleSet)
@@ -2325,7 +2327,7 @@ static void
 rhdProcessOptions(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    RHDOpt hpd;
+    RHDOpt hpd, type;
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -2350,6 +2352,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->rrOutputOrder, NULL);
     RhdGetOptValString (rhdPtr->Options, OPTION_TV_MODE,
 			&rhdPtr->tvModeName, NULL);
+    RhdGetOptValString (rhdPtr->Options, OPTION_SCALE_TYPE,
+		       &type, "default");
 
     rhdAccelOptionsHandle(pScrn);
 
@@ -2369,6 +2373,22 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 	"!!! Option HPD is set !!!\n"
 	"     This shall only be used to work around broken connector tables.\n"
 	"     Please report your findings to radeonhd@opensuse.org\n");
+    if (type.set) {
+	if (!strcasecmp(type.val.string, "none"))
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_NONE;
+	else if (!strcasecmp(type.val.string, "center"))
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_CENTER;
+	else if (!strcasecmp(type.val.string, "scale"))
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_SCALE;
+	else if (!strcasecmp(type.val.string, "default"))
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_DEFAULT;
+	else {
+	    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_ERROR, 0,
+			   "Unknown scale type: %s\n", type.val.string);
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_DEFAULT;
+	}
+    } else
+	rhdPtr->scaleType = RHD_CRTC_SCALE_TYPE_DEFAULT;
 }
 
 /*
