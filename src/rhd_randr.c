@@ -94,6 +94,7 @@ typedef struct _rhdRandrOutput {
     char                 Name[64];
     struct rhdConnector *Connector;
     struct rhdOutput    *Output;
+    DisplayModePtr	ScaledMode;
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 #define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
@@ -673,7 +674,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
      * be used, so let's better skip crtc based checks... */
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
-			    rout->Output, NULL);
+			    rout->Output, NULL, rout->ScaledMode);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s: %s\n", __func__,
 	     Mode->name, RHDModeStatusToString(Status));
     xfree(Mode->name);
@@ -691,28 +692,26 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 {
     RHDPtr             rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
-    struct rhdOutput  *o;
     struct rhdCrtc    *Crtc   = NULL;
     int                Status;
 
-    ASSERT(rout->Output);
-    o = rout->Output;
+
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
     xfree(Mode->name);
-    if ( RHDScalePolicy(o->Connector->Monitor, o->Connector) && !(OrigMode->type & M_T_PREFERRED)) {
-	DisplayModePtr tmp = RHDModeCopy(o->Connector->Monitor->nativeMode);
+    if (rout->ScaledMode) {
+	DisplayModePtr tmp = RHDModeCopy(rout->ScaledMode);
+	/* validate against CRTC. */
 	if (Crtc)
 	    if (RHDValidateScaledMode(Crtc, tmp)!= MODE_OK) {
 		xfree(tmp);
-		return FALSE;
+		return FALSE; /* failing here doesn't help */
 	    }
 	memcpy(Mode, tmp, sizeof(DisplayModeRec));
 	xfree(tmp);
 	Mode->prev = Mode->next = NULL;
 	Mode->name = xstrdup(Mode->name);
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Output[%i]: found native mode: ", o->Id);
     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
@@ -754,12 +753,13 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
     ASSERT(rout->Connector);
+    ASSERT(rout->Output);
 
     setupCrtc(rhdPtr, Crtc);
 
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
-			    rout->Output, NULL);
+			    rout->Output, NULL, rout->ScaledMode);
     if (Status != MODE_OK) {
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
 		 Mode->name, RHDModeStatusToString(Status));
@@ -1397,6 +1397,31 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 	rhdPtr->randr = NULL;		/* TODO: not cleaning up correctly */
 	return FALSE;
     }
+
+    /* Now find scaled mode and do initial validation (without CRTC) */
+    for (i = 0; i < numCombined; i++) {
+	xf86OutputPtr out = randr->RandrOutput[i];
+	rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
+	struct rhdOutput  *o;
+	ASSERT(rout->Output);
+	o = rout->Output;
+
+	if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
+	    if (o->Connector->Monitor) {
+		rout->ScaledMode = RHDModeCopy(o->Connector->Monitor->nativeMode);
+		xf86DrvMsg(out->scrn->scrnIndex, X_INFO, "Found native mode: ");
+		RHDPrintModeline(rout->ScaledMode);
+		if (RHDRRValidateScaledMode(rout->Output, rout->ScaledMode) != MODE_OK) {
+		    xf86DrvMsg(out->scrn->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
+		    xfree(rout->ScaledMode->name);
+		    xfree(rout->ScaledMode);
+		    rout->ScaledMode = NULL;
+		}
+	    }
+	} else
+	    rout->ScaledMode = NULL;
+    }
+
     return TRUE;
 }
 

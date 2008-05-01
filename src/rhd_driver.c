@@ -746,8 +746,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 
-    RHDRandrPreInit(pScrn);
-
     /*
      * Set this here as we might need it for the validation of a fixed mode in
      * rhdModeLayoutSelect(). Later it is used for Virtual selection and mode
@@ -756,6 +754,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
      */
     rhdPtr->FbScanoutStart = rhdPtr->FbFreeStart;
     rhdPtr->FbScanoutSize = rhdPtr->FbFreeSize;
+
+    RHDRandrPreInit(pScrn);
 
     if (!rhdPtr->randr) {
 	Bool configured;
@@ -1360,7 +1360,7 @@ RHDSaveScreen(ScreenPtr pScreen, int on)
 Bool
 RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector)
 {
-    if (!Monitor->UseFixedModes || !Monitor->nativeMode)
+    if (!Monitor || !Monitor->UseFixedModes || !Monitor->nativeMode)
 	return FALSE;
 
     if (Connector->Type != RHD_CONNECTOR_PANEL)

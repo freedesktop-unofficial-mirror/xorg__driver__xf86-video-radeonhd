@@ -1569,7 +1569,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 int
 RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	       struct rhdConnector *Connector, struct rhdOutput *Output,
-	       struct rhdMonitor *Monitor)
+	       struct rhdMonitor *Monitor, DisplayModePtr ScaledMode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i, Status;
@@ -1676,23 +1676,9 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
     } else {
 	if (Crtc) {
 	    if (Crtc->ScaleValid) {
-		if (Monitor && Monitor->Modes) {
-		    DisplayModePtr mmode;
-
-		    for (mmode = Monitor->Modes ;mmode; mmode = mmode->next)  {
-			if (!mmode->type & M_T_PREFERRED)
-			    continue;
-			Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, mmode);
-			if (Status != MODE_OK)
-			    return Status;
-			else
-			    break;
-		    }
-		    if (!mmode)  /* there was no preferred mode to validate against */
-			return MODE_ERROR;
-		}
-		else
-		    return MODE_ERROR;
+		Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, ScaledMode);
+		if (Status != MODE_OK)
+		    return Status;
 	    }
 	    else
 		return MODE_ERROR;
@@ -1711,7 +1697,64 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 }
 
 /*
- * RHDSynthModes(): synthesize CVT modes for well known resolutions. For now we assume we want reduced modes only.
+ * RHDRRValidateScaledMode(): like RHDValidateScaledMode() - but we cannot validate against a CRTC
+ * as this isn't known when this function is called. So at least validate against the 'output' here.
+ */
+int
+RHDRRValidateScaledMode(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    int Status;
+    int i;
+
+    RHDFUNC(Output);
+
+    Status = rhdModeSanity(Mode);
+    if (Status != MODE_OK)
+        return Status;
+
+    rhdModeFillOutCrtcValues(Mode);
+
+    for (i = 10; i; i--) {
+
+        Mode->CrtcHAdjusted = FALSE;
+        Mode->CrtcVAdjusted = FALSE;
+
+        Status = rhdModeCrtcSanity(Mode);
+        if (Status != MODE_OK)
+            return Status;
+        if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+            continue;
+
+	/* Check the output */
+	Status = Output->ModeValid(Output, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+	if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+	    continue; /* restart. */
+
+	/* Check the monitor attached to this output */
+	if (Output->Connector && Output->Connector->Monitor)
+	    Status = rhdMonitorValid(Output->Connector->Monitor, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+	if (!Mode->CrtcHAdjusted && !Mode->CrtcVAdjusted)
+	    break;
+    }
+
+    /* Do we want to also validate against a configured monitor? */
+    if (rhdPtr->ConfigMonitor) {
+	Status = rhdMonitorValid(rhdPtr->ConfigMonitor, Mode);
+	if (Status != MODE_OK)
+	    return Status;
+    }
+
+    return MODE_OK;
+}
+
+/*
+ * RHDSynthModes(): synthesize CVT modes for well known resolutions.
+ * For now we assume we want reduced modes only.
  */
 void
 RHDSynthModes(int scrnIndex, DisplayModePtr Mode)
