@@ -409,10 +409,8 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	RegOff = D2_REG_OFFSET;
 
     if (ScaledMode) {
-	RHDPrintModeline(Mode);
-	RHDPrintModeline(ScaledMode);
-	overscanTop = Mode->CrtcVDisplay - ScaledMode->CrtcVDisplay;
-	overscanLeft = Mode->CrtcHDisplay - ScaledMode->CrtcHDisplay;
+	overscanTop = ScaledMode->CrtcVDisplay - Mode->CrtcVDisplay;
+	overscanLeft = ScaledMode->CrtcHDisplay - Mode->CrtcHDisplay;
 
 	if (!overscanTop && !overscanBottom)
 	    Type = RHD_CRTC_SCALE_TYPE_NONE;
