@@ -1753,7 +1753,13 @@ RHDSynthModes(int scrnIndex, DisplayModePtr Mode)
     RHDFUNC(pScrn);
 
     for (i = 0; i < (sizeof(resolution_list) / sizeof(struct resolution)); i++) {
-	Tmp = RHDCVTMode(resolution_list[i].x, resolution_list[i].y, 60.0, TRUE, FALSE);
+	/*
+	 *  chances are that the native mode of a display is a CVT mode with 60 Hz.
+	 *  This will make RandR share the CRTC which is undesireable for scaling.
+	 *  This we 'tweak' the frequency to be slightly higher.
+	 *  Don't tell me it's ugly - I know this already.
+	 */
+	Tmp = RHDCVTMode(resolution_list[i].x, resolution_list[i].y, 60.5, TRUE, FALSE);
 	Tmp->status = MODE_OK;
 	rhdModeFillOutCrtcValues(Tmp);
 	xfree(Tmp->name);
