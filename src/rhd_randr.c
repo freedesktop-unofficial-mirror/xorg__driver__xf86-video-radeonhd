@@ -702,30 +702,18 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 
     xfree(Mode->name);
     if ( RHDScalePolicy(o->Connector->Monitor, o->Connector) && !(OrigMode->type & M_T_PREFERRED)) {
-	DisplayModePtr m;
-	RHDPrintModeline(OrigMode);
-	m = o->Connector->Monitor->Modes;
-	while (m) {
-	    if (m->type & M_T_PREFERRED) {
-		DisplayModePtr tmp = RHDModeCopy(m);
-		if (Crtc)
-		    if (RHDValidateScaledMode(Crtc, tmp)!= MODE_OK) {
-			xfree(tmp);
-			break;
-		    }
-		memcpy(Mode, tmp, sizeof(DisplayModeRec));
+	DisplayModePtr tmp = RHDModeCopy(o->Connector->Monitor->nativeMode);
+	if (Crtc)
+	    if (RHDValidateScaledMode(Crtc, tmp)!= MODE_OK) {
 		xfree(tmp);
-		Mode->prev = Mode->next = NULL;
-		Mode->name = xstrdup(Mode->name);
-		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Output[%i]: found native mode: ", o->Id);
-		RHDPrintModeline(Mode);
-		break;
+		return FALSE;
 	    }
-	    m = m->next;
-	}
-	if (!m)
-	    return FALSE;
-     } else {
+	memcpy(Mode, tmp, sizeof(DisplayModeRec));
+	xfree(tmp);
+	Mode->prev = Mode->next = NULL;
+	Mode->name = xstrdup(Mode->name);
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Output[%i]: found native mode: ", o->Id);
+    } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
 	memset(Mode, 0, sizeof(DisplayModeRec));

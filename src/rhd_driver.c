@@ -1360,7 +1360,7 @@ RHDSaveScreen(ScreenPtr pScreen, int on)
 Bool
 RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector)
 {
-    if (!Monitor->UseFixedModes)
+    if (!Monitor->UseFixedModes || !Monitor->nativeMode)
 	return FALSE;
 
     if (Connector->Type != RHD_CONNECTOR_PANEL)
@@ -1727,18 +1727,11 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		Output->Crtc->Active = TRUE;
 
 		if (RHDScalePolicy(Monitor, Connector)) {
-		    DisplayModePtr m = Monitor->Modes;
-		    while (m) {
-			if (m->type & M_T_PREFERRED) {
-			    Output->Crtc->ScaledMode = RHDModeCopy(m);
-			    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-				       "Crtc[%i]: found native mode from Monitor[%s]: ",
-				       Output->Crtc->Id, Monitor->Name);
-			    RHDPrintModeline(Output->Crtc->ScaledMode);
-			    break;
-			}
-		    }
-		    m = m->next;
+		    Output->Crtc->ScaledMode = RHDModeCopy(Monitor->nativeMode);
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+			       "Crtc[%i]: found native mode from Monitor[%s]: ",
+			       Output->Crtc->Id, Monitor->Name);
+		    RHDPrintModeline(Output->Crtc->ScaledMode);
 		}
 
 		Found = TRUE;
