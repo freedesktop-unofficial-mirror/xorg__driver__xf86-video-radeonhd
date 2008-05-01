@@ -2009,7 +2009,7 @@ static void
 rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhdCrtc *Crtc;
+    int i;
 
     RHDFUNC(rhdPtr);
 
@@ -2017,43 +2017,27 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	       mode->name, mode->CrtcHDisplay, mode->CrtcVDisplay,
 	       mode->VRefresh);
 
-    /* Set up D1 and appendages */
-    Crtc = rhdPtr->Crtc[0];
-    if (Crtc->Active) {
-	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, rhdPtr->FbScanoutStart);
-	if (Crtc->ScaledMode) {
-	    Crtc->ModeSet(Crtc, Crtc->ScaledMode);
-	    if (Crtc->ScaleSet)
-		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Crtc->ScaledMode, mode);
-	} else {
-	    Crtc->ModeSet(Crtc, mode);
-	    if (Crtc->ScaleSet)
-		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
-	}
+    /* Set up D1/D2 and appendages */
+    for (i = 0; i < 2; i++) {
+	struct rhdCrtc *Crtc;
 
-	RHDPLLSet(Crtc->PLL, mode->Clock);
-	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc, mode);
-    }
-
-    /* Set up D2 and appendages */
-    Crtc = rhdPtr->Crtc[1];
-    if (Crtc->Active) {
-	Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
-		    pScrn->depth, rhdPtr->FbScanoutStart);
-	if (Crtc->ScaledMode) {
-	    Crtc->ModeSet(Crtc, Crtc->ScaledMode);
-	    if (Crtc->ScaleSet)
-		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_SCALE, mode, Crtc->ScaledMode);
-	} else {
-	    Crtc->ModeSet(Crtc, mode);
-	    if (Crtc->ScaleSet)
-		Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	Crtc = rhdPtr->Crtc[i];
+	if (Crtc->Active) {
+	    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
+			pScrn->depth, rhdPtr->FbScanoutStart);
+	    if (Crtc->ScaledMode) {
+		Crtc->ModeSet(Crtc, Crtc->ScaledMode);
+		if (Crtc->ScaleSet)
+		    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, Crtc->ScaledMode);
+	    } else {
+		Crtc->ModeSet(Crtc, mode);
+		if (Crtc->ScaleSet)
+		    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
+	    }
+	    RHDPLLSet(Crtc->PLL, mode->Clock);
+	    Crtc->LUTSelect(Crtc, Crtc->LUT);
+	    RHDOutputsMode(rhdPtr, Crtc, mode);
 	}
-	RHDPLLSet(Crtc->PLL, mode->Clock);
-	Crtc->LUTSelect(Crtc, Crtc->LUT);
-	RHDOutputsMode(rhdPtr, Crtc, mode);
     }
 
     /* shut down that what we don't use */
