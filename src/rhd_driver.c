@@ -1767,7 +1767,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     /* Now validate the scaled modes attached to crtcs */
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *crtc = rhdPtr->Crtc[i];
-	if (crtc->ScaledMode && RHDValidateScaledMode(crtc, crtc->ScaledMode) != MODE_OK) {
+	if (crtc->ScaledMode && RHDValidateScaledToMode(crtc, crtc->ScaledMode) != MODE_OK) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Crtc[%i]: scaled mode invalid.\n", crtc->Id);
 	    xfree(crtc->ScaledMode);
 	    crtc->ScaledMode = NULL;

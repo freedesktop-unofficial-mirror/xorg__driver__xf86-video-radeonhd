@@ -749,6 +749,54 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
  *
  */
 static int
+rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, DisplayModePtr ScaledMode)
+{
+    ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i, Status;
+
+    for (i = 10; i; i--) {
+
+	Mode->CrtcHAdjusted = FALSE;
+	Mode->CrtcVAdjusted = FALSE;
+
+	Status = rhdModeCrtcSanity(Mode);
+	if (Status != MODE_OK)
+	    return Status;
+	if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+	    continue;
+
+	Status = Crtc->FBValid(Crtc, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
+			       pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
+			       rhdPtr->FbScanoutSize, NULL);
+	if (Status != MODE_OK)
+	    return Status;
+
+	if (Crtc->ScaleValid) {
+	    Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledMode);
+	    if (Status != MODE_OK)
+		return Status;
+	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		continue;
+
+	    break;
+	}
+    }
+    if (!i) {
+	/* Mode has been bouncing around for ages, on adjustments */
+	xf86DrvMsg(Crtc->scrnIndex, X_ERROR,
+		   "%s: Mode \"%s\" (%dx%d:%3.1fMhz) was thrown around"
+		   " for too long.\n", __func__, Mode->name,
+		   Mode->HDisplay, Mode->VDisplay, Mode->Clock/1000.0);
+	return MODE_ERROR;
+    }
+    return MODE_OK;
+}
+
+/*
+ *
+ */
+static int
 rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
@@ -837,7 +885,7 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
  *
  */
 int
-RHDValidateScaledMode(struct rhdCrtc *Crtc, DisplayModePtr Mode)
+RHDValidateScaledToMode(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTRI(Crtc);
     int Status;
@@ -894,14 +942,11 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 		return Status;
 
 	} else {
-
-	    if (Crtc->ScaleValid) {
-		Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledMode);
+	    if (Crtc) {
+		Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, Crtc->ScaledMode);
 		if (Status != MODE_OK)
 		    return Status;
 	    }
-	    else
-		return MODE_SCALE;
 	}
     }
 
@@ -1675,13 +1720,9 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
     } else {
 	if (Crtc) {
-	    if (Crtc->ScaleValid) {
-		Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, ScaledMode);
-		if (Status != MODE_OK)
-		    return Status;
-	    }
-	    else
-		return MODE_ERROR;
+	    Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, ScaledMode);
+	    if (Status != MODE_OK)
+		return Status;
 	}
     }
 
@@ -1701,7 +1742,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
  * as this isn't known when this function is called. So at least validate against the 'output' here.
  */
 int
-RHDRRValidateScaledMode(struct rhdOutput *Output, DisplayModePtr Mode)
+RHDRRValidateScaledToMode(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     int Status;
@@ -1738,8 +1779,18 @@ RHDRRValidateScaledMode(struct rhdOutput *Output, DisplayModePtr Mode)
 	    Status = rhdMonitorValid(Output->Connector->Monitor, Mode);
 	if (Status != MODE_OK)
 	    return Status;
-	if (!Mode->CrtcHAdjusted && !Mode->CrtcVAdjusted)
-	    break;
+	if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+	    continue;
+
+	break;
+    }
+    if (!i) {
+	/* Mode has been bouncing around for ages, on adjustments */
+	xf86DrvMsg(Output->scrnIndex, X_ERROR,
+		   "%s: Mode \"%s\" (%dx%d:%3.1fMhz) was thrown around"
+		   " for too long.\n", __func__, Mode->name,
+		   Mode->HDisplay, Mode->VDisplay, Mode->Clock/1000.0);
+	return MODE_ERROR;
     }
 
     /* Do we want to also validate against a configured monitor? */

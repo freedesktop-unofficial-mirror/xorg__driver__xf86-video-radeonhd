@@ -704,7 +704,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	DisplayModePtr tmp = RHDModeCopy(rout->ScaledMode);
 	/* validate against CRTC. */
 	if (Crtc)
-	    if (RHDValidateScaledMode(Crtc, tmp)!= MODE_OK) {
+	    if (RHDValidateScaledToMode(Crtc, tmp)!= MODE_OK) {
 		xfree(tmp);
 		return FALSE; /* failing here doesn't help */
 	    }
@@ -1411,7 +1411,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		rout->ScaledMode = RHDModeCopy(o->Connector->Monitor->nativeMode);
 		xf86DrvMsg(out->scrn->scrnIndex, X_INFO, "Found native mode: ");
 		RHDPrintModeline(rout->ScaledMode);
-		if (RHDRRValidateScaledMode(rout->Output, rout->ScaledMode) != MODE_OK) {
+		if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledMode) != MODE_OK) {
 		    xf86DrvMsg(out->scrn->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
 		    xfree(rout->ScaledMode->name);
 		    xfree(rout->ScaledMode);
