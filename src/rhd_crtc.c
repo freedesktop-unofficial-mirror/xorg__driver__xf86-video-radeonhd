@@ -265,10 +265,6 @@ DxModeValid(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	Mode->CrtcVAdjusted = TRUE;
     }
 
-    /* D1_MODE_VIEWPORT_WIDTH: 14bits */
-    if (Mode->CrtcHDisplay >= 0x4000)
-	return MODE_BAD_HVALUE;
-
     /* D1CRTC_H_TOTAL - 1 : 13bits */
     if (Mode->CrtcHTotal > 0x2000)
 	return MODE_BAD_HVALUE;
@@ -287,10 +283,6 @@ DxModeValid(struct rhdCrtc *Crtc, DisplayModePtr Mode)
     /* D1CRTC_H_SYNC_A_END: 13bits */
     if (tmp >= 0x2000)
 	return MODE_HSYNC_WIDE;
-
-    /* D1_MODE_VIEWPORT_HEIGHT: 14bits */
-    if (Mode->CrtcVDisplay >= 0x4000)
-	return MODE_BAD_VVALUE;
 
     /* D1CRTC_V_TOTAL - 1 : 13bits */
     if (Mode->CrtcVTotal > 0x2000)
@@ -385,10 +377,14 @@ static ModeStatus
 DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
 	     DisplayModePtr Mode, DisplayModePtr ScaledMode)
 {
+    /* D1_MODE_VIEWPORT_WIDTH: 14bits */
+    if (Mode->CrtcHDisplay >= 0x4000)
+	return MODE_BAD_HVALUE;
 
-    /* Our hardware is nice: scale up/down, it doesn't care.
-     * Same for centering and such - it simply doesn't care.
-     */
+    /* D1_MODE_VIEWPORT_HEIGHT: 14bits */
+    if (Mode->CrtcVDisplay >= 0x4000)
+	return MODE_BAD_VVALUE;
+
     return MODE_OK;
 }
 
