@@ -366,7 +366,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 		pScrn->depth, rhdPtr->FbScanoutStart);
     Crtc->ModeSet(Crtc, Mode);
     if (OrigMode->VDisplay != Mode->VDisplay || OrigMode->HDisplay != Mode->HDisplay)
-	Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_CENTER, OrigMode, Mode);
+	Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_SCALE, OrigMode, Mode);
     else
 	Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
 
