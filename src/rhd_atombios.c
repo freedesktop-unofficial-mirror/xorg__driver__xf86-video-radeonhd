@@ -647,15 +647,37 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
 }
 
 Bool
-rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting)
+rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScaleMode mode)
 {
     ENABLE_SCALER_PARAMETERS scaler;
     AtomBiosArgRec data;
 
     RHDFUNC(handle);
 
-    scaler.ucScaler = scalerID;
-    scaler.ucEnable = setting;
+    switch (scalerID) {
+	case atomScaler1:
+	    scaler.ucScaler = ATOM_SCALER1;
+	    break;
+	case atomScaler2:
+	    scaler.ucScaler = ATOM_SCALER2;
+	    break;
+    }
+
+    switch (mode) {
+	case atomScaleNone:
+	    scaler.ucEnable = ATOM_SCALER_DISABLE;
+	    break;
+	case atomScaleCenter:
+	    scaler.ucEnable = ATOM_SCALER_CENTER;
+	    break;
+	case atomScaleExpand:
+	    scaler.ucEnable = ATOM_SCALER_EXPANSION;
+	    break;
+	case atomScaleMulti:
+	    scaler.ucEnable = ATOM_SCALER_MULTI_EX;
+	    break;
+    }
+
     data.exec.dataSpace = NULL;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableScaler);
     data.exec.pspace = &scaler;

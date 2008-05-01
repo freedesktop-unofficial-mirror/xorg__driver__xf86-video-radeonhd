@@ -42,6 +42,9 @@
 #include "rhd_lut.h"
 #include "rhd_regs.h"
 #include "rhd_modes.h"
+#ifdef ATOM_BIOS
+#include "rhd_atombios.h"
+#endif
 
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
@@ -459,6 +462,34 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_TOP_BOTTOM,
 		(overscanTop << 16) | overscanBottom);
 
+#ifdef ATOM_BIOS
+    {
+	RHDPtr rhdPtr = RHDPTRI(Crtc);
+	enum atomScaler scaler  = 0;
+	enum atomScaleMode mode = 0;
+
+	switch (Crtc->Id) {
+	    case  RHD_CRTC_1:
+		scaler = atomScaler1;
+		break;
+	    case RHD_CRTC_2:
+		scaler = atomScaler2;
+		break;
+	}
+	switch (Type) {
+	    case RHD_CRTC_SCALE_TYPE_NONE:
+		mode = atomScaleNone;
+		break;
+	    case RHD_CRTC_SCALE_TYPE_CENTER:
+		mode = atomScaleCenter;
+		break;
+	    case RHD_CRTC_SCALE_TYPE_SCALE:
+		mode = atomScaleExpand;
+		break;
+	}
+	rhdAtomSetScaler(rhdPtr->atomBIOS, scaler, mode);
+    }
+#else
     switch (Type) {
 	case RHD_CRTC_SCALE_TYPE_NONE:  /* No scaling whatsoever */
 	    ErrorF("None\n");
@@ -485,6 +516,7 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00000101);
 	    break;
     }
+#endif
 }
 
 /*

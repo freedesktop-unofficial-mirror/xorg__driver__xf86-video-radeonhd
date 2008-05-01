@@ -154,13 +154,10 @@ typedef union AtomBiosArg
     enum AtomTVMode		tvMode;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
-extern AtomBiosResult
-RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
-		AtomBiosRequestID id, AtomBiosArgPtr data);
-extern Bool
-rhdAtomSetScaler(atomBiosHandlePtr handle, unsigned char scalerID, int setting);
-extern Bool
-rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
+extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex,
+				      atomBiosHandlePtr handle,
+				      AtomBiosRequestID id, AtomBiosArgPtr data);
+extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
 
 enum atomEncoder {
     atomEncoderDIG1,
@@ -213,8 +210,22 @@ struct atomTransmitterConfig
     Bool coherent;
 };
 
+enum atomScaler {
+    atomScaler1,
+    atomScaler2
+};
+
+enum atomScaleMode {
+    atomScaleNone,
+    atomScaleCenter,
+    atomScaleExpand,
+    atomScaleMulti
+};
+
 Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 				  enum atomTransmitterAction action, struct atomTransmitterConfig *config);
+extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
+			     enum atomScaleMode mode);
 
 # endif
 
