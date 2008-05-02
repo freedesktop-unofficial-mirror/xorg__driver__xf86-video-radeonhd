@@ -2180,12 +2180,13 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
 		    break;
 		case 2:
 		    val = atomDataPtr->IntegratedSystemInfo.IntegratedSystemInfo_v2->ulDDISlot2Config;
+		    break;
 		default:
 		    RHDDebugCont("\n");
 		    return RHD_CONNECTOR_NONE;
 	    }
 	    val >>= 16;
-	    val &= 8;
+	    val &= 0xff;
 	    RHDDebugCont(" ObjectID: %i",val);
 	    if (Limit((int)val, n_rhd_connector_objs, "obj_id")) {
 		RHDDebugCont("\n");
