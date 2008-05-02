@@ -257,7 +257,11 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x95CD, RHD_RV620 ), /* ATI FireMV 2450  */
     RHD_DEVICE_MATCH(  0x95CE, RHD_RV620 ), /* ATI FireMV 2260  */
     RHD_DEVICE_MATCH(  0x95CF, RHD_RV620 ), /* ATI FireMV 2260  */
-    RHD_DEVICE_MATCH(  0x9612, RHD_RS780 ), /* ATI FireMV 2260  */
+    RHD_DEVICE_MATCH(  0x9610, RHD_RS780 ), /* ATI Radeon HD 3200 Graphics */
+    RHD_DEVICE_MATCH(  0x9611, RHD_RS780 ), /* ATI Radeon 3100 Graphics */
+    RHD_DEVICE_MATCH(  0x9612, RHD_RS780 ), /*  ATI Radeon HD 3200 Graphics  */
+    RHD_DEVICE_MATCH(  0x9613, RHD_RS780 ), /* ATI Radeon 3100 Graphics   */
+    RHD_DEVICE_MATCH(  0x9614, RHD_RS780 ), /* ATI Radeon HD 3300 Graphics  */
     LIST_END
 };
 
