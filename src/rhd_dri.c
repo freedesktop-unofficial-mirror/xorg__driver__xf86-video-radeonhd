@@ -1588,7 +1588,7 @@ Bool RADEONDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
 }
 
 /* PreInit */
-struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
+Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info;
@@ -1602,6 +1602,7 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
 
     info = xnfcalloc(1, sizeof(struct rhdDri));
     info->scrnIndex = rhdPtr->scrnIndex;
+    rhdPtr->dri = info;
 
     info->directRenderingInited = FALSE;
 #if 0
@@ -1619,7 +1620,8 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
 		   "Please use a RandR merged framebuffer setup if you "
 		   "want Dual-head with DRI.\n");
 	xfree(info);
-	return NULL;
+	rhdPtr->dri = NULL;
+	return FALSE;
     }
 #if 0
     if (info->IsSecondary) {
@@ -1665,7 +1667,8 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
 
     if (!RADEONDRIGetVersion(pScrn)) {
 	xfree(info);
-	return NULL;
+	rhdPtr->dri = NULL;
+	return FALSE;
     }
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
@@ -1800,7 +1803,8 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Buffers are too big for requested GART space\n");
 	xfree(info);
-	return NULL;
+	rhdPtr->dri = NULL;
+	return FALSE;
     }
 
     info->gartTexSize = info->gartSize - (info->ringSize + info->bufSize);
@@ -1878,6 +1882,7 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
 		   "[dri] RADEONInitVisualConfigs failed "
 		   "(depth %d not supported).  "
 		   "Disabling DRI.\n", info->pixel_code);
+	rhdPtr->dri = NULL;
 	return FALSE;
 
 	/* Only 16 and 32 color depths are supports currently. */
@@ -1928,7 +1933,7 @@ struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn)
     	pScrn->fbOffset    = info->frontOffset;
 #endif
 
-    return info;
+    return TRUE;
 }
 
 
@@ -2325,17 +2330,16 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
     }
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "[dri] Visual configs initialized\n");
 
-#if 0
     /* Tell DRI about new memory map */
-    if (info->newMemoryMap) {
+/// Always true for pKernelDRMVersion->version_minor >= 23
+//    if (info->newMemoryMap) {
         if (RADEONDRISetParam(pScrn, RADEON_SETPARAM_NEW_MEMMAP, 1) < 0) {
 		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 			   "[drm] failed to enable new memory map\n");
 		RADEONDRICloseScreen(pScreen);
 		return FALSE;
 	}
-    }
-#endif
+//    }
 
     return TRUE;
 }
@@ -2422,7 +2426,7 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
 
     pRADEONDRI                    = (RADEONDRIPtr)info->pDRIInfo->devPrivate;
 
-    pRADEONDRI->deviceID          = rhdPtr->ChipSet;
+    pRADEONDRI->deviceID          = rhdPtr->PciDeviceID;
     pRADEONDRI->width             = pScrn->virtualX;
     pRADEONDRI->height            = pScrn->virtualY;
     pRADEONDRI->depth             = pScrn->depth;
@@ -2468,7 +2472,7 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     /* disable vblank at startup */
     RADEONDRISetVBlankInterrupt (pScrn, FALSE);
 
-#if 0
+#if 0 // FIXME
     /* DRI final init might have changed the memory map, we need to adjust
      * our local image to make sure we restore them properly on mode
      * changes or VT switches
@@ -2803,7 +2807,7 @@ static void RADEONDRITransitionSingleToMulti3d(ScreenPtr pScreen)
 static void RADEONDRITransitionMultiToSingle3d(ScreenPtr pScreen)
 {
     /* Let the remaining 3d app start page flipping again */
-    RADEONEnablePageFlip(pScreen);
+//    RADEONEnablePageFlip(pScreen);
 }
 
 static void RADEONDRITransitionTo3d(ScreenPtr pScreen)
@@ -2900,7 +2904,7 @@ static void RADEONDRITransitionTo3d(ScreenPtr pScreen)
 //  info->have3DWindows = 1;
 
 ///    RADEONChangeSurfaces(pScrn);
-    RADEONEnablePageFlip(pScreen);
+//    RADEONEnablePageFlip(pScreen);
     
     RADEONDRISetVBlankInterrupt(pScrn, TRUE);
 
@@ -3043,6 +3047,7 @@ int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
     return ret;
 }
 
+// FIXME , call in EnterVT, RADEONDRIFinishScreenInit
 #if 0
 static void RADEONAdjustMemMapRegisters(ScrnInfoPtr pScrn, RADEONSavePtr save)
 {

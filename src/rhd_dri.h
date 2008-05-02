@@ -130,7 +130,7 @@ typedef struct {
 } RADEONDRIRec, *RADEONDRIPtr;
 
 /* partially from radeon.h */
-extern struct rhdDri *RADEONDRIPreInit(ScrnInfoPtr pScrn);
+extern Bool RADEONDRIPreInit(ScrnInfoPtr pScrn);
 extern Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn);
 extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
 

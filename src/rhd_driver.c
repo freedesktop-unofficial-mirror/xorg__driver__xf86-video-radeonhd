@@ -717,7 +717,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
 
 #ifdef XF86DRI
-    rhdPtr->dri = RADEONDRIPreInit(pScrn);
+    RADEONDRIPreInit(pScrn);
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
