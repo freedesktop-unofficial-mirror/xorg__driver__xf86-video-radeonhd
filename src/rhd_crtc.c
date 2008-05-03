@@ -247,39 +247,39 @@ DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
     Crtc->Offset = Offset;
 }
 
-struct overscan
+struct ScalerOverscan
 {
-    int overscanTop;
-    int overscanBottom;
-    int overscanLeft;
-    int overscanRight;
+    int OverscanTop;
+    int OverscanBottom;
+    int OverscanLeft;
+    int OverscanRight;
     CARD32 Type;
 };
 
-static struct overscan
+static struct ScalerOverscan
 calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, CARD32 Type)
 {
-    struct overscan ov;
+    struct ScalerOverscan Overscan;
     int tmp;
 
-    ov.overscanTop = ov.overscanBottom = ov.overscanLeft = ov.overscanRight = 0;
-    ov.Type = Type;
+    Overscan.OverscanTop = Overscan.OverscanBottom = Overscan.OverscanLeft = Overscan.OverscanRight = 0;
+    Overscan.Type = Type;
 
     if (ScaledToMode) {
-	ov.overscanTop = ScaledToMode->CrtcVDisplay - Mode->CrtcVDisplay;
-	ov.overscanLeft = ScaledToMode->CrtcHDisplay - Mode->CrtcHDisplay;
+	Overscan.OverscanTop = ScaledToMode->CrtcVDisplay - Mode->CrtcVDisplay;
+	Overscan.OverscanLeft = ScaledToMode->CrtcHDisplay - Mode->CrtcHDisplay;
 
-	if (!ov.overscanTop && !ov.overscanLeft)
-	    ov.Type = RHD_CRTC_SCALE_TYPE_NONE;
+	if (!Overscan.OverscanTop && !Overscan.OverscanLeft)
+	    Overscan.Type = RHD_CRTC_SCALE_TYPE_NONE;
 
 	/* handle down scaling */
-	if (ov.overscanTop < 0) {
-	    ov.Type = RHD_CRTC_SCALE_TYPE_SCALE;
-	    ov.overscanTop = 0;
+	if (Overscan.OverscanTop < 0) {
+	    Overscan.Type = RHD_CRTC_SCALE_TYPE_SCALE;
+	    Overscan.OverscanTop = 0;
 	}
-	if (ov.overscanLeft < 0) {
-	    ov.Type = RHD_CRTC_SCALE_TYPE_SCALE;
-	    ov.overscanLeft = 0;
+	if (Overscan.OverscanLeft < 0) {
+	    Overscan.Type = RHD_CRTC_SCALE_TYPE_SCALE;
+	    Overscan.OverscanLeft = 0;
 	}
     }
 
@@ -288,20 +288,20 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, CARD32 Type)
 	    break;
 
 	case RHD_CRTC_SCALE_TYPE_CENTER:
-	    tmp = ov.overscanTop;
-	    ov.overscanTop >>= 1;
-	    ov.overscanBottom = tmp - ov.overscanTop;
-	    tmp = ov.overscanLeft;
-	    ov.overscanLeft >>= 1;
-	    ov.overscanRight = tmp - ov.overscanLeft;
+	    tmp = Overscan.OverscanTop;
+	    Overscan.OverscanTop >>= 1;
+	    Overscan.OverscanBottom = tmp - Overscan.OverscanTop;
+	    tmp = Overscan.OverscanLeft;
+	    Overscan.OverscanLeft >>= 1;
+	    Overscan.OverscanRight = tmp - Overscan.OverscanLeft;
 	    break;
 
 	case RHD_CRTC_SCALE_TYPE_SCALE:
-	    ov.overscanLeft = ov.overscanRight = ov.overscanTop = ov.overscanBottom = 0;
+	    Overscan.OverscanLeft = Overscan.OverscanRight = Overscan.OverscanTop = Overscan.OverscanBottom = 0;
 	    break;
     }
 
-    return ov;
+    return Overscan;
 }
 
 /*
@@ -434,7 +434,7 @@ static ModeStatus
 DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
 	     DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
-    struct overscan ov;
+    struct ScalerOverscan Overscan;
 
     /* D1_MODE_VIEWPORT_WIDTH: 14bits */
     if (Mode->CrtcHDisplay >= 0x4000)
@@ -444,19 +444,19 @@ DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
     if (Mode->CrtcVDisplay >= 0x4000)
 	return MODE_BAD_VVALUE;
 
-    ov = calculateOverscan(Mode, ScaledToMode, Type);
+    Overscan = calculateOverscan(Mode, ScaledToMode, Type);
 
-    if (ov.overscanLeft >= 4096 || ov.overscanRight >= 4096)
+    if (Overscan.OverscanLeft >= 4096 || Overscan.OverscanRight >= 4096)
 	return MODE_HBLANK_WIDE;
 
-    if (ov.overscanTop >= 4096 || ov.overscanBottom >= 4096)
+    if (Overscan.OverscanTop >= 4096 || Overscan.OverscanBottom >= 4096)
 	return MODE_VBLANK_WIDE;
 
     if (Type == RHD_CRTC_SCALE_TYPE_SCALE
 	&& (Mode->Flags & V_INTERLACE))
 	return MODE_NO_INTERLACE;
 
-    /* should we also fail of Type != ov.Type? */
+    /* should we also fail of Type != Overscan.Type? */
 
     return MODE_OK;
 }
@@ -469,7 +469,7 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     CARD16 RegOff;
-    struct overscan ov;
+    struct ScalerOverscan Overscan;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s viewport: %ix%i\n", __func__, Crtc->Name,
 	     Mode->CrtcHDisplay, Mode->CrtcVDisplay);
@@ -479,8 +479,8 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
     else
 	RegOff = D2_REG_OFFSET;
 
-    ov = calculateOverscan(Mode, ScaledToMode, Type);
-    Type = ov.Type;
+    Overscan = calculateOverscan(Mode, ScaledToMode, Type);
+    Type = Overscan.Type;
 
     /* D1Mode registers */
     RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_SIZE,
@@ -488,9 +488,9 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
     RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_START, 0);
 
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_LEFT_RIGHT,
-		(ov.overscanLeft << 16) | ov.overscanRight);
+		(Overscan.OverscanLeft << 16) | Overscan.OverscanRight);
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_TOP_BOTTOM,
-		(ov.overscanTop << 16) | ov.overscanBottom);
+		(Overscan.OverscanTop << 16) | Overscan.OverscanBottom);
 
 #ifdef ATOM_BIOS
     {
