@@ -312,7 +312,7 @@ RHDMonitorEDIDSet(struct rhdMonitor *Monitor, xf86MonPtr EDID)
 		    Monitor->yDpi = (Mode->VDisplay * 25.4) /
 			((float) EDID->det_mon[i].section.d_timings.v_size) + 0.5;
 
-		    Monitor->nativeMode = Mode;
+		    Monitor->NativeMode = Mode;
 		}
 		preferred = FALSE;
 

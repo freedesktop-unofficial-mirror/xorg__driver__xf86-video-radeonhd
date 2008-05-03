@@ -284,8 +284,8 @@ rhdPanelEDIDModesFilter(struct rhdMonitor *Monitor)
     Best->next = NULL;
     Best->prev = NULL;
     Best->type |= M_T_PREFERRED;
-    Monitor->nativeMode = Best;
-    Monitor->Modes = Monitor->nativeMode;
+    Monitor->NativeMode = Best;
+    Monitor->Modes = Monitor->NativeMode;
     Monitor->numHSync = 1;
     Monitor->HSync[0].lo = Best->HSync;
     Monitor->HSync[0].hi = Best->HSync;
@@ -355,7 +355,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
     if (Mode) {
 	Monitor->Name = xstrdup("LVDS Panel");
 	Monitor->Modes = RHDModesAdd(Monitor->Modes, Mode);
-	Monitor->nativeMode = Mode;
+	Monitor->NativeMode = Mode;
 	Monitor->numHSync = 1;
 	Monitor->HSync[0].lo = Mode->HSync;
 	Monitor->HSync[0].hi = Mode->HSync;
@@ -423,7 +423,7 @@ rhdMonitorTV(struct rhdConnector *Connector)
 
     Monitor->Name      = xstrdup("TV");
     Monitor->Modes     = RHDModesAdd(Monitor->Modes, Mode);
-    Monitor->nativeMode= Mode;
+    Monitor->NativeMode= Mode;
     Monitor->numHSync  = 1;
     Monitor->HSync[0].lo = Mode->HSync;
     Monitor->HSync[0].hi = Mode->HSync;
@@ -464,7 +464,7 @@ RHDMonitorInit(struct rhdConnector *Connector)
 	    Monitor = xnfcalloc(sizeof(struct rhdMonitor), 1);
 	    Monitor->scrnIndex = Connector->scrnIndex;
 	    Monitor->EDID      = EDID;
-	    Monitor->nativeMode = NULL;
+	    Monitor->NativeMode = NULL;
 
 	    RHDMonitorEDIDSet(Monitor, EDID);
 	    rhdMonitorPrintEDID(Monitor, EDID);

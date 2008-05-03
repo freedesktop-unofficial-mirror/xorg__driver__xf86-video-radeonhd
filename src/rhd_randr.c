@@ -1408,7 +1408,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 
 	if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
 	    if (o->Connector->Monitor) {
-		rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->nativeMode);
+		rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->NativeMode);
 		xf86DrvMsg(out->scrn->scrnIndex, X_INFO, "Found native mode: ");
 		RHDPrintModeline(rout->ScaledToMode);
 		if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode) != MODE_OK) {
