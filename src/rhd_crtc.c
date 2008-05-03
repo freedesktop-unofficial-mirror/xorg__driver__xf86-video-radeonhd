@@ -257,7 +257,7 @@ struct overscan
 };
 
 static struct overscan
-calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledMode, CARD32 Type)
+calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, CARD32 Type)
 {
     struct overscan ov;
     int tmp;
@@ -265,9 +265,9 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledMode, CARD32 Type)
     ov.overscanTop = ov.overscanBottom = ov.overscanLeft = ov.overscanRight = 0;
     ov.Type = Type;
 
-    if (ScaledMode) {
-	ov.overscanTop = ScaledMode->CrtcVDisplay - Mode->CrtcVDisplay;
-	ov.overscanLeft = ScaledMode->CrtcHDisplay - Mode->CrtcHDisplay;
+    if (ScaledToMode) {
+	ov.overscanTop = ScaledToMode->CrtcVDisplay - Mode->CrtcVDisplay;
+	ov.overscanLeft = ScaledToMode->CrtcHDisplay - Mode->CrtcHDisplay;
 
 	if (!ov.overscanTop && !ov.overscanLeft)
 	    ov.Type = RHD_CRTC_SCALE_TYPE_NONE;
@@ -432,7 +432,7 @@ DxModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
  */
 static ModeStatus
 DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
-	     DisplayModePtr Mode, DisplayModePtr ScaledMode)
+	     DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     struct overscan ov;
 
@@ -444,13 +444,17 @@ DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
     if (Mode->CrtcVDisplay >= 0x4000)
 	return MODE_BAD_VVALUE;
 
-    ov = calculateOverscan(Mode, ScaledMode, Type);
+    ov = calculateOverscan(Mode, ScaledToMode, Type);
 
     if (ov.overscanLeft >= 4096 || ov.overscanRight >= 4096)
 	return MODE_HBLANK_WIDE;
 
     if (ov.overscanTop >= 4096 || ov.overscanBottom >= 4096)
 	return MODE_VBLANK_WIDE;
+
+    if (Type == RHD_CRTC_SCALE_TYPE_SCALE
+	&& (Mode->Flags & V_INTERLACE))
+	return MODE_NO_INTERLACE;
 
     /* should we also fail of Type != ov.Type? */
 
@@ -462,7 +466,7 @@ DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
  */
 static void
 DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
-	   DisplayModePtr Mode, DisplayModePtr ScaledMode)
+	   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     CARD16 RegOff;
     struct overscan ov;
@@ -475,7 +479,7 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
     else
 	RegOff = D2_REG_OFFSET;
 
-    ov = calculateOverscan(Mode, ScaledMode, Type);
+    ov = calculateOverscan(Mode, ScaledToMode, Type);
     Type = ov.Type;
 
     /* D1Mode registers */

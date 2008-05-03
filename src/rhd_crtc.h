@@ -57,7 +57,7 @@ struct rhdCrtc {
     DisplayModePtr CurrentMode;
     DisplayModePtr Modes; /* Validated ones: Cycle through these */
 
-    DisplayModePtr ScaledMode; /* usually a fixed mode from one of the monitors */
+    DisplayModePtr ScaledToMode; /* usually a fixed mode from one of the monitors */
 
     ModeStatus (*FBValid) (struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height,
 			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
@@ -71,8 +71,8 @@ struct rhdCrtc {
 #define RHD_CRTC_SCALE_TYPE_CENTER  1   /* center of the actual mode */
 #define RHD_CRTC_SCALE_TYPE_SCALE   2   /* scaled to fullscreen */
 #define RHD_CRTC_SCALE_TYPE_DEFAULT RHD_CRTC_SCALE_TYPE_SCALE
-    ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledMode);
-    void (*ScaleSet) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledMode);
+    ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
+    void (*ScaleSet) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
 
     void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 

@@ -749,7 +749,7 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
  *
  */
 static int
-rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, DisplayModePtr ScaledMode)
+rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -773,7 +773,7 @@ rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, Display
 	    return Status;
 
 	if (Crtc->ScaleValid) {
-	    Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledMode);
+	    Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledToMode);
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -935,7 +935,7 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
         if (!Crtc->Active)
             continue;
 
-	if (!Crtc->ScaledMode) {
+	if (!Crtc->ScaledToMode) {
 
 	    Status = rhdModeValidateCrtc(Crtc, Mode);
 	    if (Status != MODE_OK)
@@ -943,7 +943,7 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 
 	} else {
 	    if (Crtc) {
-		Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, Crtc->ScaledMode);
+		Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, Crtc->ScaledToMode);
 		if (Status != MODE_OK)
 		    return Status;
 	    }
@@ -1320,7 +1320,7 @@ rhdCreateModesListAndValidate(ScrnInfoPtr pScrn, Bool Silent)
 	    if (Output->Active && (Output->Crtc == Crtc)) {
 		if (Output->Connector && Output->Connector->Monitor
 		    && Output->Connector->Monitor->UseFixedModes
-		    && !Crtc->ScaledMode) {
+		    && !Crtc->ScaledToMode) {
 		    Modes = Output->Connector->Monitor->Modes;
 		    if (!Silent && Modes)
 			xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Validating Fixed"
@@ -1614,7 +1614,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 int
 RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	       struct rhdConnector *Connector, struct rhdOutput *Output,
-	       struct rhdMonitor *Monitor, DisplayModePtr ScaledMode)
+	       struct rhdMonitor *Monitor, DisplayModePtr ScaledToMode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i, Status;
@@ -1720,7 +1720,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
     } else {
 	if (Crtc) {
-	    Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, ScaledMode);
+	    Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, ScaledToMode);
 	    if (Status != MODE_OK)
 		return Status;
 	}
@@ -1738,7 +1738,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 }
 
 /*
- * RHDRRValidateScaledMode(): like RHDValidateScaledMode() - but we cannot validate against a CRTC
+ * RHDRRValidateScaledToMode(): like RHDValidateScaledMode() - but we cannot validate against a CRTC
  * as this isn't known when this function is called. So at least validate against the 'output' here.
  */
 int

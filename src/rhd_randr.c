@@ -94,7 +94,7 @@ typedef struct _rhdRandrOutput {
     char                 Name[64];
     struct rhdConnector *Connector;
     struct rhdOutput    *Output;
-    DisplayModePtr	ScaledMode;
+    DisplayModePtr	ScaledToMode;
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 #define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
@@ -674,7 +674,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
      * be used, so let's better skip crtc based checks... */
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
-			    rout->Output, NULL, rout->ScaledMode);
+			    rout->Output, NULL, rout->ScaledToMode);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s: %s\n", __func__,
 	     Mode->name, RHDModeStatusToString(Status));
     xfree(Mode->name);
@@ -700,8 +700,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
     xfree(Mode->name);
-    if (rout->ScaledMode) {
-	DisplayModePtr tmp = RHDModeCopy(rout->ScaledMode);
+    if (rout->ScaledToMode) {
+	DisplayModePtr tmp = RHDModeCopy(rout->ScaledToMode);
 	/* validate against CRTC. */
 	if (Crtc)
 	    if (RHDValidateScaledToMode(Crtc, tmp)!= MODE_OK) {
@@ -759,7 +759,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
-			    rout->Output, NULL, rout->ScaledMode);
+			    rout->Output, NULL, rout->ScaledToMode);
     if (Status != MODE_OK) {
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
 		 Mode->name, RHDModeStatusToString(Status));
@@ -1408,18 +1408,18 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 
 	if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
 	    if (o->Connector->Monitor) {
-		rout->ScaledMode = RHDModeCopy(o->Connector->Monitor->nativeMode);
+		rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->nativeMode);
 		xf86DrvMsg(out->scrn->scrnIndex, X_INFO, "Found native mode: ");
-		RHDPrintModeline(rout->ScaledMode);
-		if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledMode) != MODE_OK) {
+		RHDPrintModeline(rout->ScaledToMode);
+		if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode) != MODE_OK) {
 		    xf86DrvMsg(out->scrn->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
-		    xfree(rout->ScaledMode->name);
-		    xfree(rout->ScaledMode);
-		    rout->ScaledMode = NULL;
+		    xfree(rout->ScaledToMode->name);
+		    xfree(rout->ScaledToMode);
+		    rout->ScaledToMode = NULL;
 		}
 	    }
 	} else
-	    rout->ScaledMode = NULL;
+	    rout->ScaledToMode = NULL;
     }
 
     return TRUE;

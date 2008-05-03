@@ -1729,11 +1729,11 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		Output->Crtc->Active = TRUE;
 
 		if (RHDScalePolicy(Monitor, Connector)) {
-		    Output->Crtc->ScaledMode = RHDModeCopy(Monitor->nativeMode);
+		    Output->Crtc->ScaledToMode = RHDModeCopy(Monitor->nativeMode);
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			       "Crtc[%i]: found native mode from Monitor[%s]: ",
 			       Output->Crtc->Id, Monitor->Name);
-		    RHDPrintModeline(Output->Crtc->ScaledMode);
+		    RHDPrintModeline(Output->Crtc->ScaledToMode);
 		}
 
 		Found = TRUE;
@@ -1767,10 +1767,10 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     /* Now validate the scaled modes attached to crtcs */
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *crtc = rhdPtr->Crtc[i];
-	if (crtc->ScaledMode && RHDValidateScaledToMode(crtc, crtc->ScaledMode) != MODE_OK) {
+	if (crtc->ScaledToMode && RHDValidateScaledToMode(crtc, crtc->ScaledToMode) != MODE_OK) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Crtc[%i]: scaled mode invalid.\n", crtc->Id);
-	    xfree(crtc->ScaledMode);
-	    crtc->ScaledMode = NULL;
+	    xfree(crtc->ScaledToMode);
+	    crtc->ScaledToMode = NULL;
 	}
     }
 
@@ -2020,10 +2020,10 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	if (Crtc->Active) {
 	    Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
 			pScrn->depth, rhdPtr->FbScanoutStart);
-	    if (Crtc->ScaledMode) {
-		Crtc->ModeSet(Crtc, Crtc->ScaledMode);
+	    if (Crtc->ScaledToMode) {
+		Crtc->ModeSet(Crtc, Crtc->ScaledToMode);
 		if (Crtc->ScaleSet)
-		    Crtc->ScaleSet(Crtc, rhdPtr->scaleType, mode, Crtc->ScaledMode);
+		    Crtc->ScaleSet(Crtc, rhdPtr->scaleType, mode, Crtc->ScaledToMode);
 	    } else {
 		Crtc->ModeSet(Crtc, mode);
 		if (Crtc->ScaleSet)
