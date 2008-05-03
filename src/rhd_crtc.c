@@ -300,11 +300,6 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledMode, CARD32 Type)
 	    ov.overscanLeft = ov.overscanRight = ov.overscanTop = ov.overscanBottom = 0;
 	    break;
     }
-    /* now add native mode overscan (if any) */
-    ov.overscanTop += Mode->CrtcVTotal - Mode->CrtcVBlankEnd;
-    ov.overscanBottom += Mode->CrtcVBlankStart - Mode->CrtcVDisplay;
-    ov.overscanLeft += Mode->CrtcHTotal - Mode->CrtcHBlankEnd;
-    ov.overscanRight += Mode->CrtcHBlankStart - Mode->CrtcHDisplay;
 
     return ov;
 }
