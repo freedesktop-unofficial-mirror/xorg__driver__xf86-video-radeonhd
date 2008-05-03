@@ -256,7 +256,7 @@ struct overscan
     CARD32 Type;
 };
 
-struct overscan
+static struct overscan
 calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledMode, CARD32 Type)
 {
     struct overscan ov;
@@ -536,6 +536,11 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	    break;
 	case RHD_CRTC_SCALE_TYPE_SCALE: /* scaled to fullscreen */
 	    ErrorF("Full\n");
+	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
+
+	    RHDRegWrite(Crtc, RegOff + D1SCL_UPDATE, 0);
+	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0);
+
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 1);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_HVSCALE, 0x00010001); /* both h/v */
 
@@ -544,7 +549,7 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	    RHDRegWrite(Crtc, RegOff + D1SCL_HFILTER, 0x00030100);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_VFILTER, 0x00030100);
 
-	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00000101);
+	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00001010);
 	    break;
     }
 #endif
