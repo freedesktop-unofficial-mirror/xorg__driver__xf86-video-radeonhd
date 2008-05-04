@@ -2380,6 +2380,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_CENTER;
 	else if (!strcasecmp(type.val.string, "scale"))
 	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_SCALE;
+	else if (!strcasecmp(type.val.string, "scale_keep_aspect_ratio"))
+	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO;
 	else if (!strcasecmp(type.val.string, "default"))
 	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_DEFAULT;
 	else {

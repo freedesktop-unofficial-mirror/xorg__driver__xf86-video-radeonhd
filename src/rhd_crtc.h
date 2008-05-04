@@ -67,10 +67,11 @@ struct rhdCrtc {
     ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
 
-#define RHD_CRTC_SCALE_TYPE_NONE    0   /* top left */
-#define RHD_CRTC_SCALE_TYPE_CENTER  1   /* center of the actual mode */
-#define RHD_CRTC_SCALE_TYPE_SCALE   2   /* scaled to fullscreen */
-#define RHD_CRTC_SCALE_TYPE_DEFAULT RHD_CRTC_SCALE_TYPE_SCALE
+#define RHD_CRTC_SCALE_TYPE_NONE                       0   /* top left */
+#define RHD_CRTC_SCALE_TYPE_CENTER                     1   /* center of the actual mode */
+#define RHD_CRTC_SCALE_TYPE_SCALE                      2   /* scaled to fullscreen */
+#define RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO    3   /* scaled to fullscreen */
+#define RHD_CRTC_SCALE_TYPE_DEFAULT RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO
     ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSet) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
 

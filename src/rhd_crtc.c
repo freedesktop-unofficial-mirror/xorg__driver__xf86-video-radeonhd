@@ -299,6 +299,30 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, CARD32 Type)
 	case RHD_CRTC_SCALE_TYPE_SCALE:
 	    Overscan.OverscanLeft = Overscan.OverscanRight = Overscan.OverscanTop = Overscan.OverscanBottom = 0;
 	    break;
+	case RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO:
+	{
+	    int p1, p2, tmp;
+	    Overscan.OverscanLeft = Overscan.OverscanRight = Overscan.OverscanTop = Overscan.OverscanBottom = 0;
+	    p1 = Mode->CrtcVDisplay * ScaledToMode->CrtcHDisplay;
+	    p2 = ScaledToMode->CrtcVDisplay * Mode->CrtcHDisplay;
+	    if (p1 == p2) {
+		Overscan.Type = RHD_CRTC_SCALE_TYPE_SCALE;
+		ErrorF("Foo\n");
+	    } else if (p1 > p2) {
+		tmp = (p2 / Mode->CrtcVDisplay);
+		tmp = ScaledToMode->CrtcHDisplay - tmp;
+		Overscan.OverscanLeft = tmp >> 1;
+		Overscan.OverscanRight = tmp - Overscan.OverscanLeft;
+		ErrorF("HScale %i %i\n", Overscan.OverscanLeft, Overscan.OverscanRight);
+	    } else {
+		tmp = (p1 / Mode->CrtcHDisplay);
+		tmp = ScaledToMode->CrtcVDisplay - tmp;
+		Overscan.OverscanTop = tmp >> 1;
+		Overscan.OverscanBottom = tmp - Overscan.OverscanTop;
+		ErrorF("VScale %i %i\n", Overscan.OverscanTop, Overscan.OverscanBottom);
+	    }
+	    break;
+	}
     }
 
     return Overscan;
@@ -514,10 +538,13 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 		mode = atomScaleCenter;
 		break;
 	    case RHD_CRTC_SCALE_TYPE_SCALE:
+	case RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO: /* scaled to fullscreen */
 		mode = atomScaleExpand;
 		break;
 	}
 	rhdAtomSetScaler(rhdPtr->atomBIOS, scaler, mode);
+	if (Type == RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO)
+	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 1);
     }
 #else
     switch (Type) {
@@ -533,9 +560,13 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	    RHDRegWrite(Crtc, RegOff + D1SCL_TAP_CONTROL, 0);
 	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 1);
 	    break;
+	case RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO: /* scaled to fullscreen */
 	case RHD_CRTC_SCALE_TYPE_SCALE: /* scaled to fullscreen */
 	    ErrorF("Full\n");
-	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
+	    if (Type == RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO)
+		RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 1);
+	    else
+		RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
 
 	    RHDRegWrite(Crtc, RegOff + D1SCL_UPDATE, 0);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0);

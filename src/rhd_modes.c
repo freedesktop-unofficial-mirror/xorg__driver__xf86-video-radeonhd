@@ -1645,6 +1645,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
 	    /* Sanitize */
 	    Status = rhdModeCrtcSanity(Mode);
+	    if (Status != MODE_OK) ErrorF("Foo1\n");
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1655,11 +1656,13 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		Status = Crtc->FBValid(Crtc, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
 				       pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
 				       rhdPtr->FbScanoutSize, NULL);
+		if (Status != MODE_OK) ErrorF("Foo2\n");
 		if (Status != MODE_OK)
 		    return Status;
 
 		/* Check Crtc */
 		Status = Crtc->ModeValid(Crtc, Mode);
+		if (Status != MODE_OK) ErrorF("Foo3\n");
 		if (Status != MODE_OK)
 		    return Status;
 		if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1667,6 +1670,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
 		if (Crtc->ScaleValid) {
 		    Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
+		    if (Status != MODE_OK) ErrorF("Foo3\n");
 		    if (Status != MODE_OK)
 			return Status;
 		    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1676,6 +1680,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		/* Check PLL */
 		if (Crtc->PLL->Valid) {
 		    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
+		    if (Status != MODE_OK) ErrorF("Foo4\n");
 		    if (Status != MODE_OK)
 			return Status;
 		    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1685,6 +1690,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
 	    /* Check Output */
 	    Status = Output->ModeValid(Output, Mode);
+	    if (Status != MODE_OK) ErrorF("Foo5\n");
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1693,6 +1699,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	    /* Check the monitor attached to this output */
 	    if (Connector->Monitor)
 		Status = rhdMonitorValid(Connector->Monitor, Mode);
+	    if (Status != MODE_OK) ErrorF("Foo6\n");
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -1714,6 +1721,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	/* throw them at the configured monitor */
 	if (Monitor) {
 	    Status = rhdMonitorValid(Monitor, Mode);
+	    if (Status != MODE_OK) ErrorF("Foo7\n");
 	    if (Status != MODE_OK)
 		return Status;
 	}
