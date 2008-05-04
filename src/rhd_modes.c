@@ -830,12 +830,6 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
         if (Status != MODE_OK)
             return Status;
 
-        Status = Crtc->ModeValid(Crtc, Mode);
-        if (Status != MODE_OK)
-            return Status;
-        if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
-            continue;
-
 	if (Crtc->ScaleValid) {
 	    Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
 	    if (Status != MODE_OK)
@@ -843,6 +837,12 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
 		continue;
 	}
+
+        Status = Crtc->ModeValid(Crtc, Mode);
+        if (Status != MODE_OK)
+            return Status;
+        if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+            continue;
 
 	if (Crtc->PLL && Crtc->PLL->Valid) { /* RandR may not have PLL filled out. oh well... */
 	    Status = Crtc->PLL->Valid(Crtc->PLL, Mode->Clock);
@@ -1660,14 +1660,6 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		if (Status != MODE_OK)
 		    return Status;
 
-		/* Check Crtc */
-		Status = Crtc->ModeValid(Crtc, Mode);
-		if (Status != MODE_OK) ErrorF("Foo3\n");
-		if (Status != MODE_OK)
-		    return Status;
-		if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
-		    continue;
-
 		if (Crtc->ScaleValid) {
 		    Status = Crtc->ScaleValid(Crtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
 		    if (Status != MODE_OK) ErrorF("Foo3\n");
@@ -1676,6 +1668,14 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 		    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
 			continue;
 		}
+
+		/* Check Crtc */
+		Status = Crtc->ModeValid(Crtc, Mode);
+		if (Status != MODE_OK) ErrorF("Foo3\n");
+		if (Status != MODE_OK)
+		    return Status;
+		if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
+		    continue;
 
 		/* Check PLL */
 		if (Crtc->PLL->Valid) {
