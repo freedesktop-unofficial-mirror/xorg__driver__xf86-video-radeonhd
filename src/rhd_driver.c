@@ -2023,7 +2023,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	    if (Crtc->ScaledToMode) {
 		Crtc->ModeSet(Crtc, Crtc->ScaledToMode);
 		if (Crtc->ScaleSet)
-		    Crtc->ScaleSet(Crtc, rhdPtr->scaleType, mode, Crtc->ScaledToMode);
+		    Crtc->ScaleSet(Crtc, Crtc->ScaleType, mode, Crtc->ScaledToMode);
 	    } else {
 		Crtc->ModeSet(Crtc, mode);
 		if (Crtc->ScaleSet)
@@ -2327,7 +2327,7 @@ static void
 rhdProcessOptions(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    RHDOpt hpd, type;
+    RHDOpt hpd;
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -2353,7 +2353,7 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValString (rhdPtr->Options, OPTION_TV_MODE,
 			&rhdPtr->tvModeName, NULL);
     RhdGetOptValString (rhdPtr->Options, OPTION_SCALE_TYPE,
-		       &type, "default");
+		       &rhdPtr->scaleTypeOpt, "default");
 
     rhdAccelOptionsHandle(pScrn);
 
@@ -2373,24 +2373,6 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 	"!!! Option HPD is set !!!\n"
 	"     This shall only be used to work around broken connector tables.\n"
 	"     Please report your findings to radeonhd@opensuse.org\n");
-    if (type.set) {
-	if (!strcasecmp(type.val.string, "none"))
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_NONE;
-	else if (!strcasecmp(type.val.string, "center"))
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_CENTER;
-	else if (!strcasecmp(type.val.string, "scale"))
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_SCALE;
-	else if (!strcasecmp(type.val.string, "scale_keep_aspect_ratio"))
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO;
-	else if (!strcasecmp(type.val.string, "default"))
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_DEFAULT;
-	else {
-	    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_ERROR, 0,
-			   "Unknown scale type: %s\n", type.val.string);
-	    rhdPtr->AccelMethod = RHD_CRTC_SCALE_TYPE_DEFAULT;
-	}
-    } else
-	rhdPtr->scaleType = RHD_CRTC_SCALE_TYPE_DEFAULT;
 }
 
 /*

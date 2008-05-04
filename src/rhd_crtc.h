@@ -1,7 +1,7 @@
 /*
- * Copyright 2004-2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007       Matthias Hopf <mhopf@novell.com>
- * Copyright 2007       Egbert Eich   <eich@novell.com>
+ * Copyright 2004-2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008 Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008 Egbert Eich   <eich@novell.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,6 +32,16 @@ struct rhdFMTDither {
     int LVDSGreyLevel;
 };
 
+enum rhdCrtcScaleType {
+    RHD_CRTC_SCALE_TYPE_NONE,                     /* top left */
+    RHD_CRTC_SCALE_TYPE_CENTER,                   /* center of the actual mode */
+    RHD_CRTC_SCALE_TYPE_SCALE,                    /* scaled to fullscreen */
+    RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO   /* scaled to fullscreen */
+};
+
+#define RHD_CRTC_SCALE_TYPE_DEFAULT RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO
+
+
 struct rhdCrtc {
     int scrnIndex;
 
@@ -49,7 +59,7 @@ struct rhdCrtc {
     int Height;
     int X, Y; /* Current frame */
     int MinX, MinY, MaxX, MaxY; /* Panning Area: Max != 0 if used */
-
+    enum rhdCrtcScaleType ScaleType;
     struct rhdPLL *PLL; /* Currently attached PLL: move to private */
     struct rhdLUT *LUT; /* Currently attached LUT: move to private */
     struct rhdCursor *Cursor; /* Fixed to the MODE engine */
@@ -67,13 +77,8 @@ struct rhdCrtc {
     ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
 
-#define RHD_CRTC_SCALE_TYPE_NONE                       0   /* top left */
-#define RHD_CRTC_SCALE_TYPE_CENTER                     1   /* center of the actual mode */
-#define RHD_CRTC_SCALE_TYPE_SCALE                      2   /* scaled to fullscreen */
-#define RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO    3   /* scaled to fullscreen */
-#define RHD_CRTC_SCALE_TYPE_DEFAULT RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO
-    ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
-    void (*ScaleSet) (struct rhdCrtc *Crtc, CARD32 Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
+    ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
+    void (*ScaleSet) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
 
     void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 

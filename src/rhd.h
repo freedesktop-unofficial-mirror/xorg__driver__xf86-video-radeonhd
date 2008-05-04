@@ -210,9 +210,9 @@ typedef struct RHDRec {
     RHDOpt		rrUseXF86Edid;
     RHDOpt		rrOutputOrder;
     RHDOpt		tvModeName;
+    RHDOpt		scaleTypeOpt;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
-    CARD32		scaleType;
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbPhysAddress; /* card PCI BAR address of FB */
     unsigned int        FbIntAddress; /* card internal address of FB */

@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -253,11 +253,11 @@ struct ScalerOverscan
     int OverscanBottom;
     int OverscanLeft;
     int OverscanRight;
-    CARD32 Type;
+    enum rhdCrtcScaleType Type;
 };
 
 static struct ScalerOverscan
-calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, CARD32 Type)
+calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, enum rhdCrtcScaleType Type)
 {
     struct ScalerOverscan Overscan;
     int tmp;
@@ -455,7 +455,7 @@ DxModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
  *
  */
 static ModeStatus
-DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
+DxScaleValid(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	     DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     struct ScalerOverscan Overscan;
@@ -489,7 +489,7 @@ DxScaleValid(struct rhdCrtc *Crtc, CARD32 Type,
  *
  */
 static void
-DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
+DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     CARD16 RegOff;
@@ -1112,17 +1112,50 @@ FMTRestore(struct rhdCrtc *Crtc)
 /*
  *
  */
+static enum rhdCrtcScaleType
+rhdInitScaleType(RHDPtr rhdPtr)
+{
+    RHDFUNC(rhdPtr);
+
+    if (rhdPtr->scaleTypeOpt.set) {
+	if (!strcasecmp(rhdPtr->scaleTypeOpt.val.string, "none"))
+	    return RHD_CRTC_SCALE_TYPE_NONE;
+	else if (!strcasecmp(rhdPtr->scaleTypeOpt.val.string, "center"))
+	    return RHD_CRTC_SCALE_TYPE_CENTER;
+	else if (!strcasecmp(rhdPtr->scaleTypeOpt.val.string, "scale"))
+	    return RHD_CRTC_SCALE_TYPE_SCALE;
+	else if (!strcasecmp(rhdPtr->scaleTypeOpt.val.string, "scale_keep_aspect_ratio"))
+	    return RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO;
+	else if (!strcasecmp(rhdPtr->scaleTypeOpt.val.string, "default"))
+	    return RHD_CRTC_SCALE_TYPE_DEFAULT;
+	else {
+	    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_ERROR, 0,
+			   "Unknown scale type: %s\n", rhdPtr->scaleTypeOpt.val.string);
+	    return RHD_CRTC_SCALE_TYPE_DEFAULT;
+	}
+    } else
+	return RHD_CRTC_SCALE_TYPE_DEFAULT;
+}
+
+/*
+ *
+ */
 void
 RHDCrtcsInit(RHDPtr rhdPtr)
 {
     struct rhdCrtc *Crtc;
+    enum rhdCrtcScaleType ScaleType;
 
     RHDFUNC(rhdPtr);
+
+    ScaleType = rhdInitScaleType(rhdPtr);
 
     Crtc = xnfcalloc(sizeof(struct rhdCrtc), 1);
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 1";
     Crtc->Id = RHD_CRTC_1;
+
+    Crtc->ScaleType = ScaleType;
 
     Crtc->FMTStore = NULL;
 
@@ -1153,6 +1186,8 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->scrnIndex = rhdPtr->scrnIndex;
     Crtc->Name = "CRTC 2";
     Crtc->Id = RHD_CRTC_2;
+
+    Crtc->ScaleType = ScaleType;
 
     Crtc->FMTStore = NULL;
 

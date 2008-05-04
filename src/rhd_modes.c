@@ -773,7 +773,7 @@ rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, Display
 	    return Status;
 
 	if (Crtc->ScaleValid) {
-	    Status = Crtc->ScaleValid(Crtc, rhdPtr->scaleType, Mode, Crtc->ScaledToMode);
+	    Status = Crtc->ScaleValid(Crtc, Crtc->ScaleType, Mode, Crtc->ScaledToMode);
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
