@@ -1440,32 +1440,54 @@ rhdMapFB(RHDPtr rhdPtr)
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
     RHDFUNC(rhdPtr);
 
+    rhdPtr->FbPhysAddress = 0;
+    rhdPtr->FbBase = NULL;
+
+    switch (rhdPtr->ChipSet) {
+   	case RHD_RS690:
+	case RHD_RS740:
+	    rhdPtr->FbPhysAddress = RHDReadMC(rhdPtr, RS69_K8_FB_LOCATION);
+	    break;
+	default:
+	    rhdPtr->FbPhysAddress = 0;
+	    break;
+    }
+    if (rhdPtr->FbPhysAddress) {
+	RHDDebug(rhdPtr->scrnIndex, "K8_FB_LOCATION at 0x%8.8x\n",  rhdPtr->FbPhysAddress);
+	rhdPtr->FbMapSize = pScrn->videoRam * 1024;
+	rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
+				       rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
+	RHDDebug(rhdPtr->scrnIndex, "Mapped K8_FB_LOCATION to %p\n", rhdPtr->FbBase);
+    }
+
+    if (!rhdPtr->FbBase) {
 #ifdef XSERVER_LIBPCIACCESS
 
-    rhdPtr->FbPhysAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
-    rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
-    if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
-	rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
+	rhdPtr->FbPhysAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
+	rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+	if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
+	    rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
 
-    if (pci_device_map_range(rhdPtr->PciInfo,
-			     rhdPtr->FbPhysAddress,
-			     rhdPtr->FbMapSize,
-			     PCI_DEV_MAP_FLAG_WRITABLE
- 			     | PCI_DEV_MAP_FLAG_WRITE_COMBINE,
-			     &rhdPtr->FbBase))
-	rhdPtr->FbBase = NULL;
+	if (pci_device_map_range(rhdPtr->PciInfo,
+				 rhdPtr->FbPhysAddress,
+				 rhdPtr->FbMapSize,
+				 PCI_DEV_MAP_FLAG_WRITABLE
+				 | PCI_DEV_MAP_FLAG_WRITE_COMBINE,
+				 &rhdPtr->FbBase))
+	    rhdPtr->FbBase = NULL;
 
 #else
 
-    rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
-    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
-    if (rhdPtr->FbMapSize > (unsigned int)pScrn->videoRam * 1024)
-	rhdPtr->FbMapSize = ((unsigned int)pScrn->videoRam * 1024);
+	rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
+	rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
+	if (rhdPtr->FbMapSize > (unsigned int)pScrn->videoRam * 1024)
+	    rhdPtr->FbMapSize = ((unsigned int)pScrn->videoRam * 1024);
 
-    rhdPtr->FbBase =
-        xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
-		      rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
+	rhdPtr->FbBase =
+	    xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
+			  rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
 #endif
+    }
 
     if (!rhdPtr->FbBase)
         return FALSE;
@@ -1483,13 +1505,21 @@ rhdUnmapFB(RHDPtr rhdPtr)
 
     if (!rhdPtr->FbBase)
 	return;
+    switch (rhdPtr->ChipSet) {
+   	case RHD_RS690:
+	case RHD_RS740:
+	    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
+			    rhdPtr->FbMapSize);
+	    break;
+	default:
 #ifdef XSERVER_LIBPCIACCESS
-    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->FbBase,
-			   rhdPtr->FbMapSize);
+	    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->FbBase,
+				   rhdPtr->FbMapSize);
 #else
-    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
-                    rhdPtr->FbMapSize);
+	    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
+			    rhdPtr->FbMapSize);
 #endif
+    }
     rhdPtr->FbBase = 0;
 }
 
