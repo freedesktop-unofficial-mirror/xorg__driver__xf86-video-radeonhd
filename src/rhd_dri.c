@@ -2191,7 +2191,7 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
 //    pDRIInfo->ddxDriverMajorVersion      = RHD_MAJOR_VERSION;
 //    pDRIInfo->ddxDriverMinorVersion      = RHD_MINOR_VERSION;
 //    pDRIInfo->ddxDriverPatchVersion      = RHD_PATCHLEVEL;
-    pDRIInfo->frameBufferPhysicalAddress = (void *) (rhdPtr->FbPCIAddress + info->frontOffset);
+    pDRIInfo->frameBufferPhysicalAddress = (void *) rhdPtr->FbPCIAddress;
 
     // pDRIInfo->frameBufferSize            = rhdPtr->FbMapSize - info->FbSecureSize;
     pDRIInfo->frameBufferSize            = rhdPtr->FbFreeStart + rhdPtr->FbFreeSize;
