@@ -708,6 +708,7 @@ static void RADEONDRIInitBuffers(WindowPtr pWin, RegionPtr prgn, CARD32 indx)
 static void RADEONDRIMoveBuffers(WindowPtr pParent, DDXPointRec ptOldOrg,
 				 RegionPtr prgnSrc, CARD32 indx)
 {
+#if 0  /// FIXME
 #ifdef USE_XAA
     ScreenPtr      pScreen  = pParent->drawable.pScreen;
     ScrnInfoPtr    pScrn    = xf86Screens[pScreen->myNum];
@@ -870,6 +871,7 @@ static void RADEONDRIMoveBuffers(WindowPtr pParent, DDXPointRec ptOldOrg,
 
     rhdPtr->XAAInfo->NeedToSync = TRUE;
 #endif /* USE_XAA */
+#endif
 }
 
 static void RADEONDRIInitGARTValues(struct rhdDri * info)
@@ -1406,23 +1408,31 @@ static void RADEONDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 }
 
 
-#if 0 // FIXME
 /* Initialize the CP state, and start the CP (if used by the X server) */
 static void RADEONDRICPInit(ScrnInfoPtr pScrn)
 {
-    struct rhdDri *  info = RHDPTR(pScrn)->dri;
+    RHDPtr         rhdPtr = RHDPTR(pScrn);
+    struct rhdDri *info   = rhdPtr->dri;
 
+#if 0
 				/* Turn on bus mastering */
     info->BusCntl &= ~RADEON_BUS_MASTER_DIS;
+    //// FIXME? save&restore, fix in saved state
+#define RADEON_BUS_CNTL                 0x0030
+#       define RADEON_BUS_MASTER_DIS     (1 << 6)
+    RHDRegMask(pScrn, RADEON_BUS_CNTL, 0, RADEON_BUS_MASTER_DIS);
+#endif
 
-				/* Make sure the CP is on for the X server */
-    RADEONCP_START(pScrn, info);
+    /* Start the CP, no matter which acceleration type is used */
+    int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
+    if (_ret)
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: CP start %d\n", __FUNCTION__, _ret);
+/*    info->CPStarted = TRUE; */
 #ifdef USE_XAA
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
 	((struct R5xx2DInfo *)rhdPtr->TwoDInfo)->dst_pitch_offset = info->frontPitchOffset;    // TODO Nuke (back-to-front w/ offsets)
 #endif
 }
-#endif
 
 
 /* Get the DRM version and do some basic useability checks of DRI */
@@ -1597,7 +1607,7 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 
     if (! rhdPtr->useDRI.val.bool) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by default. Use Option DRI to enable.\n");
-	return NULL;
+	return FALSE;
     }
 
     info = xnfcalloc(1, sizeof(struct rhdDri));
@@ -1646,15 +1656,6 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
     }
 #endif
 
-
-#if 0
-    if (!xf86ReturnOptValBool(rhdPtr->Options, OPTION_DRI, TRUE)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		   "Direct rendering forced off\n");
-	xfree(info);
-	return NULL;
-    }
-#endif
 
 #if 0
     if (xf86ReturnOptValBool(rhdPtr->Options, OPTION_NOACCEL, FALSE)) {
@@ -1927,6 +1928,11 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
     }
 #endif
 
+    if (rhdPtr->AccelMethod != RHD_ACCEL_NONE) {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "Disabled 2D acceleration because DRI is enabled (not implemented yet).\n");
+	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+    }
 #if 0
     	if (!RADEONSetupMemXAA_DRI(scrnIndex, pScreen))
 	    return FALSE;
@@ -2187,9 +2193,8 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
 //    pDRIInfo->ddxDriverPatchVersion      = RHD_PATCHLEVEL;
     pDRIInfo->frameBufferPhysicalAddress = (void *) (rhdPtr->FbPCIAddress + info->frontOffset);
 
-    // TODO: is it secure to have this in the middle of the FB?!?
     // pDRIInfo->frameBufferSize            = rhdPtr->FbMapSize - info->FbSecureSize;
-    pDRIInfo->frameBufferSize            = rhdPtr->FbMapSize;
+    pDRIInfo->frameBufferSize            = rhdPtr->FbFreeStart + rhdPtr->FbFreeSize;
     pDRIInfo->frameBufferStride          = (pScrn->displayWidth *
 					    pScrn->bitsPerPixel / 8);
     pDRIInfo->ddxDrawableTableEntry      = RADEON_MAX_DRAWABLES;
@@ -2308,7 +2313,6 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
 	return FALSE;
     }
 
-#if 0
 				/* DRIScreenInit adds the frame buffer
 				   map, but we need it as well */
     {
@@ -2320,7 +2324,6 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
                          &scratch_int, &scratch_int,
                          &scratch_ptr);
     }
-#endif
 
 				/* FIXME: When are these mappings unmapped? */
 
@@ -2369,7 +2372,7 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
 
     if (! info)
 	return FALSE;
-    if (rhdPtr->cardType != RHD_CARD_PCIE /*&&
+    if (rhdPtr->cardType == RHD_CARD_PCIE /*&&
         info->pKernelDRMVersion->version_minor >= 19*/)
     {
       if (RADEONDRISetParam(pScrn, RADEON_SETPARAM_PCIGART_LOCATION, info->pciGartOffset) < 0)
@@ -2418,7 +2421,7 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     RADEONDRIGartHeapInit(info, pScreen);
 
     /* Initialize and start the CP if required */
-///    RADEONDRICPInit(pScrn);
+    RADEONDRICPInit(pScrn);
 
     /* Initialize the SAREA private data structure */
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
@@ -2497,6 +2500,10 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
+    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
+    if (rhdPtr->ChipSet < RHD_R600)
+	R5xx2DInit(pScrn);
+
     return TRUE;
 }
 
@@ -2545,7 +2552,7 @@ void RADEONDRIResume(ScreenPtr pScreen)
 
 ///    RADEONEngineRestore(pScrn);
 
-///    RADEONDRICPInit(pScrn);
+    RADEONDRICPInit(pScrn);
 }
 
 void RADEONDRIStop(ScreenPtr pScreen)
@@ -3026,11 +3033,27 @@ void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
 #if 0
     info->pciGartOffset = (rhdPtr->FbMapSize - info->FbSecureSize);
 #endif
+
+#if 0
     info->pciGartOffset = RHDAllocFb(rhdPtr, info->pciGartSize,
 				     "PCIe GART table");
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "Will use %d kb for PCI GART table at offset 0x%x\n",
 	       info->pciGartSize/1024, (unsigned)info->pciGartOffset);
+#else
+    if (rhdPtr->FbFreeSize < (unsigned) info->pciGartSize) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Was not able to reserve %d kb for PCI GART\n",
+		   info->pciGartSize/1024);
+	return;
+    }
+    /* Allocate at end of FB, so it's not part of the general memory map */
+    info->pciGartOffset = rhdPtr->FbFreeStart + rhdPtr->FbFreeSize - info->pciGartSize;
+    rhdPtr->FbFreeSize -= info->pciGartSize;
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+	       "FB: Allocated GART table at offset 0x%08lX (size = 0x%08X, end of FB)\n",
+	       info->pciGartOffset, info->pciGartSize);
+#endif
 }
 
 int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
