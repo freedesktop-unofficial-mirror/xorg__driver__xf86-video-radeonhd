@@ -2191,7 +2191,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	    RHDDebug(handle->scrnIndex, " * SrcObject: ID: %x name: %s enum: %i\n",
 		     SrcDstTable->usSrcObjectID[j], sname, snum);
 
-	    if (snum < 2)
+	    if (snum <= 2)
 		cp[ncon].Output[nout] = rhd_encoders[sobj_id].ot[snum - 1];
 
 	    if (++nout >= MAX_OUTPUTS_PER_CONNECTOR)
