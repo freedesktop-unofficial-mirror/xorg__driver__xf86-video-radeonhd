@@ -2145,6 +2145,9 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
     if (rhdPtr->ChipSet < RHD_RS690) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
+    } else if (rhdPtr->ChipSet == RHD_RS600) {
+	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr);
+	ret = _RHDRegRead(scrnIndex, RS60_MC_NB_MC_DATA);
     } else {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 data = addr & ~RS69_C_IND_WR_EN;
@@ -2172,6 +2175,9 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
     if (rhdPtr->ChipSet < RHD_RS690) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr | MC_IND_WR_EN);
 	_RHDRegWrite(scrnIndex, MC_IND_DATA, data);
+    } else if (rhdPtr->ChipSet == RHD_RS600) {
+	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr | RS60_NB_MC_IND_WR_EN);
+	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_DATA, data);
     } else {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 tmp = addr & ~RS69_C_IND_WR_EN;

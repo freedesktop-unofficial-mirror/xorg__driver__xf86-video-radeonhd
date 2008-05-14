@@ -33,6 +33,8 @@ enum {
     MC_IND_DATA           =       0x74, /* (RW) */
     CONFIG_CNTL		  =	  0xE0,
     /* RS690 ?? */
+    RS60_MC_NB_MC_INDEX		  =	  0x78,
+    RS60_MC_NB_MC_DATA		  =	  0x7C,
     RS69_MC_INDEX		  =	  0xE8,
     RS69_MC_DATA		  =	  0xEC,
     R5XX_CONFIG_MEMSIZE            = 0x00F8,
@@ -717,26 +719,36 @@ enum RS69_MC_INDEX_BITS {
     RS69_C_IND_WR_EN = (0x1 << 9)
 };
 
+enum RS60_MC_NB_MC_INDEX_BITS {
+    RS60_NB_MC_IND_ADDR = (0x1 << 0),
+    RS60_NB_MC_IND_WR_EN = (0x1 << 8)
+};
+
 enum _rs690MCRegs {
     RS69_K8_FB_LOCATION		=	0x1E,
     RS69_MC_SYSTEM_STATUS 	=	0x90,  /* (RW) */
     RS69_MCCFG_FB_LOCATION		=	0x100,
-    RS69MCCFG_AGP_LOCATION		=	0x101
+    RS69MCCFG_AGP_LOCATION		=	0x101,
 };
 
-enum RS69_MC_SYSTEM_STATUS_BITS {
-        RS69_MC_SYSTEM_IDLE	 = (0x1 << 0),
-	RS69_MC_SEQUENCER_IDLE	 = (0x1 << 1),
-	RS69_MC_ARBITER_IDLE	 = (0x1 << 2),
-	RS69_MC_SELECT_PM	 = (0x1 << 3),
-	RS69_RESERVED4	 = (0xf << 4),
-	RS69_RESERVED8	 = (0xf << 8),
-	RS69_RESERVED12_SYSTEM_STATUS	 = (0xf << 12),
-	RS69_MCA_INIT_EXECUTED	 = (0x1 << 16),
-	RS69_MCA_IDLE	 = (0x1 << 17),
-	RS69_MCA_SEQ_IDLE	 = (0x1 << 18),
-	RS69_MCA_ARB_IDLE	 = (0x1 << 19),
-	RS69_RESERVED20_SYSTEM_STATUS	 = (0xfff << 20)
+enum _rs600MCRegs {
+    RS60_MC_SYSTEM_STATUS	=       0x0,
+    RS60_NB_FB_LOCATION		=	0xa
+};
+
+enum RS6X_MC_SYSTEM_STATUS_BITS {
+        RS6X_MC_SYSTEM_IDLE	 = (0x1 << 0),
+	RS6X_MC_SEQUENCER_IDLE	 = (0x1 << 1),
+	RS6X_MC_ARBITER_IDLE	 = (0x1 << 2),
+	RS6X_MC_SELECT_PM	 = (0x1 << 3),
+	RS6X_RESERVED4	 = (0xf << 4),
+	RS6X_RESERVED8	 = (0xf << 8),
+	RS6X_RESERVED12_SYSTEM_STATUS	 = (0xf << 12),
+	RS6X_MCA_INIT_EXECUTED	 = (0x1 << 16),
+	RS6X_MCA_IDLE	 = (0x1 << 17),
+	RS6X_MCA_SEQ_IDLE	 = (0x1 << 18),
+	RS6X_MCA_ARB_IDLE	 = (0x1 << 19),
+	RS6X_RESERVED20_SYSTEM_STATUS	 = (0xfff << 20)
 };
 
 enum R5XX_MC_STATUS_BITS {
