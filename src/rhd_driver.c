@@ -1059,6 +1059,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     xf86DPMSInit(pScreen, (DPMSSetProcPtr)RHDDisplayPowerManagementSet,0);
 
+    pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
+
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = RHDCloseScreen;
