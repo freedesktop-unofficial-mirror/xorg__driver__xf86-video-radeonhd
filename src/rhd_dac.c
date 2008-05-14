@@ -208,61 +208,71 @@ static inline void
 DACSet(struct rhdOutput *Output, CARD16 offset)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
-    CARD32 source;
-    CARD32 mode;
-    CARD32 tv;
-    CARD32 powerdown;
-    CARD32 white_fine;
+    CARD8 Standard, Adjust;
+    Bool TV;
 
-    switch (rhdPtr->tvMode) {
+    switch (Output->SensedType) {
+    case RHD_SENSED_TV_SVIDEO:
+    case RHD_SENSED_TV_COMPOSITE:
+	/* might want to selectively enable lines based on type */
+	TV = TRUE;
+
+	switch (rhdPtr->tvMode) {
 	case RHD_TV_NTSC:
 	case RHD_TV_NTSCJ:
-	    mode = 0x1;
+	    Standard = 1; /* NTSC */
 	    break;
 	case RHD_TV_PAL:
 	case RHD_TV_PALN:
 	case RHD_TV_PALCN:
 	case RHD_TV_PAL60:
 	default:
-	    mode = 0x0;
+	    Standard = 0; /* PAL */
 	    break;
+	}
+
+	Adjust = 0x25;
+	break;
+    case RHD_SENSED_TV_COMPONENT:
+	TV = TRUE;
+	Standard = 3; /* HDTV */
+
+	if (!offset) /* DACA */
+	    Adjust = 0x20;
+	else /* DACB */
+	    Adjust = 0x26;
+
+	break;
+    case RHD_SENSED_VGA:
+    default:
+	TV = FALSE;
+	Standard = 2; /* VGA */
+
+	if (!offset) /* DACA */
+	    Adjust = 0x20;
+	else /* DACB */
+	    Adjust = 0x26;
+
+	break;
     }
 
-    white_fine = (offset > 0) ? 0x2000 : 0x2600;
+    RHDRegMask(Output, offset + DACA_CONTROL1, Standard, 0x000000FF);
+    /* white level fine adjust */
+    RHDRegMask(Output, offset + DACA_CONTROL1, Adjust << 8, 0x0000FF00);
 
-    switch (Output->SensedType) {
-	case RHD_SENSED_TV_SVIDEO:
-	    tv = 0x100;
-	    source = 0x2; /* tv encoder */
-	    powerdown = 0 /* 0x100 */;
-	    white_fine = 0x2500;
-	    break;
-	case RHD_SENSED_TV_COMPOSITE:
-	    tv = 0x100;
-	    source = 0x2; /* tv encoder */
-	    powerdown = 0 /* 0x1010000 */;
-	    white_fine = 0x2500;
-	    break;
-	case RHD_SENSED_TV_COMPONENT:
-	    mode = 3; /* HDTV */
-	    tv = 0x100; /* tv on?? */
-	    source = 0x2; /* tv encoder  ?? */
-	    powerdown = 0x0;
-	    break;
-	case RHD_SENSED_VGA:
-	default:
-	    mode = 2;
-	    tv = 0;
-	    source = Output->Crtc->Id;
-	    powerdown = 0;
-	    break;
+    if (TV) {
+	/* tv enable */ /* ??? is this bit even available on DACA ??? */
+	RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x0000FF00);
+	/* select tv encoder */
+	RHDRegMask(Output, offset + DACA_SOURCE_SELECT, 0x00000002, 0x00000003);
+    } else {
+	RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x0000FF00);
+	/* select a crtc */
+	RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc->Id & 0x01, 0x00000003);
     }
-    RHDRegMask(Output,  offset + DACB_CONTROL1, white_fine , 0xff00);
-    RHDRegMask(Output, offset + DACA_CONTROL1, mode, 0xff); /* no fine control yet */
-    RHDRegMask(Output,  offset + DACA_CONTROL2, tv, 0xff00); /* tv enable/disable */
-    RHDRegMask(Output,  offset + DACA_SOURCE_SELECT, source, 0x00000003);
-    RHDRegMask(Output,  offset + DACA_FORCE_OUTPUT_CNTL, 0x0701, 0x0701);
-    RHDRegMask(Output,  offset + DACA_FORCE_DATA, 0, 0x0000ffff);
+
+    RHDRegMask(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0x00000701, 0x00000701);
+    RHDRegMask(Output, offset + DACA_FORCE_DATA, 0, 0x0000FFFF);
 }
 
 /*
@@ -300,27 +310,26 @@ DACPower(struct rhdOutput *Output, CARD16 offset, int Power)
 
 
     switch (Power) {
-
-	case RHD_POWER_ON:
+    case RHD_POWER_ON:
 	switch (Output->SensedType) {
-	    case RHD_SENSED_TV_SVIDEO:
-		powerdown = 0 /* 0x100 */;
-		break;
-	    case RHD_SENSED_TV_COMPOSITE:
-		powerdown = 0 /* 0x1010000 */;
-		break;
-	    case RHD_SENSED_TV_COMPONENT:
-		powerdown = 0x0;
-		break;
-	    case RHD_SENSED_VGA:
-	    default:
-		powerdown = 0;
-		break;
+	case RHD_SENSED_TV_SVIDEO:
+	    powerdown = 0 /* 0x100 */;
+	    break;
+	case RHD_SENSED_TV_COMPOSITE:
+	    powerdown = 0 /* 0x1010000 */;
+	    break;
+	case RHD_SENSED_TV_COMPONENT:
+	    powerdown = 0;
+	    break;
+	case RHD_SENSED_VGA:
+	default:
+	    powerdown = 0;
+	    break;
 	}
  	RHDRegWrite(Output, offset + DACA_ENABLE, 1);
 	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0);
 	usleep (14);
-	RHDRegMask(Output,  offset + DACA_POWERDOWN, powerdown, 0xffffff00);
+	RHDRegMask(Output,  offset + DACA_POWERDOWN, powerdown, 0xFFFFFF00);
 	usleep(2);
 	RHDRegWrite(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0);
 	RHDRegMask(Output,  offset + DACA_SYNC_SELECT, 0, 0x00000101);
@@ -330,8 +339,8 @@ DACPower(struct rhdOutput *Output, CARD16 offset, int Power)
 	return;
     case RHD_POWER_SHUTDOWN:
     default:
-	RHDRegMask(Output, offset + DACA_FORCE_DATA, 0x0, 0xffff);
-	RHDRegMask(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0x701, 0x701);
+	RHDRegMask(Output, offset + DACA_FORCE_DATA, 0, 0x0000FFFF);
+	RHDRegMask(Output, offset + DACA_FORCE_OUTPUT_CNTL, 0x0000701, 0x0000701);
 	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0x01010100);
 	RHDRegWrite(Output, offset + DACA_POWERDOWN, 0x01010101);
 	RHDRegWrite(Output, offset + DACA_ENABLE, 0);
