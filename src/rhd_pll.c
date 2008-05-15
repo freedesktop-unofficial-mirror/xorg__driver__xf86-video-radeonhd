@@ -37,6 +37,7 @@
 #endif
 
 #include "rhd.h"
+#include "rhd_crtc.h"
 #include "rhd_pll.h"
 #include "rhd_regs.h"
 #include "rhd_atombios.h"
@@ -387,6 +388,12 @@ R500PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     RHDRegMask(PLL, P1PLL_INT_SS_CNTL, 0, 0x00000001);
 
     R500PLL1SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
+
+    if (rhdPtr->Crtc[0]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+
+    if (rhdPtr->Crtc[1]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
 }
 
 /*
@@ -426,6 +433,12 @@ R500PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     RHDRegMask(PLL, P2PLL_INT_SS_CNTL, 0, 0x00000001);
 
     R500PLL2SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
+
+    if (rhdPtr->Crtc[0]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+
+    if (rhdPtr->Crtc[1]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
 }
 
 /*
@@ -442,6 +455,8 @@ R500PLL1Save(struct rhdPLL *PLL)
     PLL->StorePostDiv = RHDRegRead(PLL, EXT1_PPLL_POST_DIV);
     PLL->StoreControl = RHDRegRead(PLL, EXT1_PPLL_CNTL);
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P1PLL_INT_SS_CNTL);
+    PLL->StoreCrtc1Owner = !(RHDRegRead(PLL, PCLK_CRTC1_CNTL) & 0x00010000);
+    PLL->StoreCrtc2Owner = !(RHDRegRead(PLL, PCLK_CRTC2_CNTL) & 0x00010000);
 
     PLL->Stored = TRUE;
 }
@@ -460,6 +475,8 @@ R500PLL2Save(struct rhdPLL *PLL)
     PLL->StorePostDiv = RHDRegRead(PLL, EXT2_PPLL_POST_DIV);
     PLL->StoreControl = RHDRegRead(PLL, EXT2_PPLL_CNTL);
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P2PLL_INT_SS_CNTL);
+    PLL->StoreCrtc1Owner = RHDRegRead(PLL, PCLK_CRTC1_CNTL) & 0x00010000;
+    PLL->StoreCrtc2Owner = RHDRegRead(PLL, PCLK_CRTC2_CNTL) & 0x00010000;
 
     PLL->Stored = TRUE;
 }
@@ -493,6 +510,11 @@ R500PLL1Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT1_PPLL_CNTL, PLL->StoreControl);
 	RHDRegWrite(PLL, P1PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
     }
+
+    if (PLL->StoreCrtc1Owner)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+    if (PLL->StoreCrtc2Owner)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
 }
 
 /*
@@ -524,6 +546,11 @@ R500PLL2Restore(struct rhdPLL *PLL)
 	RHDRegWrite(PLL, EXT2_PPLL_CNTL, PLL->StoreControl);
 	RHDRegWrite(PLL, P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
     }
+
+    if (PLL->StoreCrtc1Owner)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+    if (PLL->StoreCrtc2Owner)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
 }
 
 /*
@@ -718,6 +745,7 @@ RV620PLL1SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
 		CARD8 ScalerDiv, CARD8 SymPostDiv, CARD32 Control)
 {
     RHDFUNC(PLL);
+
     /* switch to external */
     RHDRegWrite(PLL, EXT1_PPLL_POST_DIV_SRC, 0);
     RHDRegMask(PLL, P1PLL_DISP_CLK_CNTL, 0x00000200, 0x00000300);
@@ -766,6 +794,8 @@ static void
 RV620PLL2SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
 		CARD8 ScalerDiv, CARD8 SymPostDiv, CARD32 Control)
 {
+    RHDFUNC(PLL);
+
     /* switch to external */
     RHDRegWrite(PLL, EXT2_PPLL_POST_DIV_SRC, 0);
     RHDRegMask(PLL, P2PLL_DISP_CLK_CNTL, 0x00000200, 0x00000300);
@@ -814,6 +844,7 @@ static void
 RV620PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
 	     CARD16 FeedbackDivider, CARD8 PostDivider)
 {
+    RHDPtr rhdPtr = RHDPTRI(PLL);
     Bool HasDccg = RV620DCCGCLKAvailable(PLL);
     CARD32 RefDiv, FBDiv, PostDiv, Control;
     CARD8 ScalerDiv, SymPostDiv;
@@ -844,6 +875,12 @@ RV620PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     RV620PLL1SetLow(PLL, RefDiv, FBDiv, PostDiv, ScalerDiv, SymPostDiv,
 		    Control);
 
+    if (rhdPtr->Crtc[0]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+
+    if (rhdPtr->Crtc[1]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+
     if (HasDccg)
 	RV620DCCGCLKSet(PLL, RV620_DCCGCLK_GRAB);
 }
@@ -855,6 +892,7 @@ static void
 RV620PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
 	     CARD16 FeedbackDivider, CARD8 PostDivider)
 {
+    RHDPtr rhdPtr = RHDPTRI(PLL);
     Bool HasDccg = RV620DCCGCLKAvailable(PLL);
     CARD32 RefDiv, FBDiv, PostDiv, Control;
     CARD8 ScalerDiv, SymPostDiv;
@@ -885,6 +923,12 @@ RV620PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     RV620PLL2SetLow(PLL, RefDiv, FBDiv, PostDiv, ScalerDiv, SymPostDiv,
 		    Control);
 
+    if (rhdPtr->Crtc[0]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+
+    if (rhdPtr->Crtc[1]->PLL == PLL)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+
     if (HasDccg)
 	RV620DCCGCLKSet(PLL, RV620_DCCGCLK_GRAB);
 }
@@ -909,6 +953,9 @@ RV620PLL1Save(struct rhdPLL *PLL)
 
     PLL->StoreScalerPostDiv = RHDRegRead(PLL, P1PLL_DISP_CLK_CNTL) & 0x003F;
     PLL->StoreSymPostDiv = RHDRegRead(PLL, EXT1_SYM_PPLL_POST_DIV) & 0x007F;
+
+    PLL->StoreCrtc1Owner = !(RHDRegRead(PLL, PCLK_CRTC1_CNTL) & 0x00010000);
+    PLL->StoreCrtc2Owner = !(RHDRegRead(PLL, PCLK_CRTC2_CNTL) & 0x00010000);
 
     PLL->StoreDCCGCLKOwner = RV620DCCGCLKAvailable(PLL);
     if (PLL->StoreDCCGCLKOwner)
@@ -939,6 +986,9 @@ RV620PLL2Save(struct rhdPLL *PLL)
 
     PLL->StoreScalerPostDiv = RHDRegRead(PLL, P2PLL_DISP_CLK_CNTL) & 0x003F;
     PLL->StoreSymPostDiv = RHDRegRead(PLL, EXT2_SYM_PPLL_POST_DIV) & 0x007F;
+
+    PLL->StoreCrtc1Owner = RHDRegRead(PLL, PCLK_CRTC1_CNTL) & 0x00010000;
+    PLL->StoreCrtc2Owner = RHDRegRead(PLL, PCLK_CRTC2_CNTL) & 0x00010000;
 
     PLL->StoreDCCGCLKOwner = RV620DCCGCLKAvailable(PLL);
     if (PLL->StoreDCCGCLKOwner)
@@ -994,6 +1044,11 @@ RV620PLL1Restore(struct rhdPLL *PLL)
 	    RHDRegMask(PLL, P1PLL_CNTL, 0, 0x00002000);
     }
 
+    if (PLL->StoreCrtc1Owner)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+    if (PLL->StoreCrtc2Owner)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+
     if (PLL->StoreDCCGCLKOwner)
 	RHDRegWrite(PLL, DCCG_DISP_CLK_SRCSEL, PLL->StoreDCCGCLK);
 }
@@ -1033,6 +1088,11 @@ RV620PLL2Restore(struct rhdPLL *PLL)
 	else
 	    RHDRegMask(PLL, P2PLL_CNTL, 0, 0x00002000);
     }
+
+    if (PLL->StoreCrtc1Owner)
+	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+    if (PLL->StoreCrtc2Owner)
+	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
 
     if (PLL->StoreDCCGCLKOwner)
 	RHDRegWrite(PLL, DCCG_DISP_CLK_SRCSEL, PLL->StoreDCCGCLK);

@@ -97,7 +97,6 @@ struct rhdCrtcStore {
 
     CARD32 CrtcBlackColor;
     CARD32 CrtcBlankControl;
-    CARD32 CrtcPCLKControl;
 };
 
 struct rhdFMTStore {
@@ -452,29 +451,6 @@ DxScaleSet(struct rhdCrtc *Crtc, CARD32 Type,
 	}
     }
 }
-/*
- *
- */
-static void
-D1PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
-{
-    RHDFUNC(Crtc);
-
-    RHDRegMask(Crtc, PCLK_CRTC1_CNTL, PLL->Id << 16, 0x00010000);
-    Crtc->PLL = PLL;
-}
-
-/*
- *
- */
-static void
-D2PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
-{
-    RHDFUNC(Crtc);
-
-    RHDRegMask(Crtc, PCLK_CRTC2_CNTL, PLL->Id << 16, 0x00010000);
-    Crtc->PLL = PLL;
-}
 
 /*
  *
@@ -765,11 +741,6 @@ DxSave(struct rhdCrtc *Crtc)
 	     Crtc->Id,Store->CrtcCountControl);
     Store->CrtcInterlaceControl = RHDRegRead(Crtc, RegOff + D1CRTC_INTERLACE_CONTROL);
 
-    if (Crtc->Id == RHD_CRTC_1)
-	Store->CrtcPCLKControl = RHDRegRead(Crtc, PCLK_CRTC1_CNTL);
-    else
-	Store->CrtcPCLKControl = RHDRegRead(Crtc, PCLK_CRTC2_CNTL);
-
     Crtc->Store = Store;
 }
 
@@ -866,11 +837,6 @@ DxRestore(struct rhdCrtc *Crtc)
 
     RHDRegWrite(Crtc, RegOff + D1CRTC_COUNT_CONTROL, Store->CrtcCountControl);
     RHDRegWrite(Crtc, RegOff + D1CRTC_INTERLACE_CONTROL, Store->CrtcInterlaceControl);
-
-    if (Crtc->Id == RHD_CRTC_1)
-	RHDRegWrite(Crtc, PCLK_CRTC1_CNTL, Store->CrtcPCLKControl);
-    else
-	RHDRegWrite(Crtc, PCLK_CRTC2_CNTL, Store->CrtcPCLKControl);
 
     /* When VGA is enabled, it imposes its timing on us, so our CRTC SYNC
      * timing can be set to 0. This doesn't always restore properly...
@@ -1009,7 +975,6 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->ModeSet = DxModeSet;
     Crtc->ScaleValid = DxScaleValid;
     Crtc->ScaleSet = DxScaleSet;
-    Crtc->PLLSelect = D1PLLSelect;
     Crtc->LUTSelect = D1LUTSelect;
     Crtc->FrameSet = D1ViewPortStart;
 
@@ -1040,7 +1005,6 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->ModeSet = DxModeSet;
     Crtc->ScaleValid = DxScaleValid;
     Crtc->ScaleSet = DxScaleSet;
-    Crtc->PLLSelect = D2PLLSelect;
     Crtc->LUTSelect = D2LUTSelect;
     Crtc->FrameSet = D2ViewPortStart;
 

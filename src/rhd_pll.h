@@ -58,7 +58,10 @@ struct rhdPLL {
 
     /* For save/restore: Move to a Private */
     Bool Stored;
+
     Bool StoreActive;
+    Bool StoreCrtc1Owner;
+    Bool StoreCrtc2Owner;
     CARD32 StoreRefDiv;
     CARD32 StoreFBDiv;
     CARD32 StorePostDiv;

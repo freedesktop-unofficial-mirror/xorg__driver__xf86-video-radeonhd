@@ -50,8 +50,8 @@ struct rhdCrtc {
     int X, Y; /* Current frame */
     int MinX, MinY, MaxX, MaxY; /* Panning Area: Max != 0 if used */
 
-    struct rhdPLL *PLL; /* Currently attached PLL */
-    struct rhdLUT *LUT; /* Currently attached LUT */
+    struct rhdPLL *PLL; /* Currently attached PLL: move to private */
+    struct rhdLUT *LUT; /* Currently attached LUT: move to private */
     struct rhdCursor *Cursor; /* Fixed to the MODE engine */
 
     DisplayModePtr CurrentMode;
@@ -75,7 +75,8 @@ struct rhdCrtc {
 
     void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 
-    void (*PLLSelect) (struct rhdCrtc *Crtc, struct rhdPLL *PLL);
+    /* callback for pll setting lives here */
+    /* callback for lut setting lives here */
     void (*LUTSelect) (struct rhdCrtc *Crtc, struct rhdLUT *LUT);
 
     void (*Power) (struct rhdCrtc *Crtc, int Power);
@@ -85,12 +86,11 @@ struct rhdCrtc {
     void (*Save) (struct rhdCrtc *Crtc);
     void (*Restore) (struct rhdCrtc *Crtc);
 
+    /* move to private */
     struct rhdFMTStore *FMTStore;
     void (*FMTModeSet)(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither);
     void (*FMTSave)(struct rhdCrtc *Crtc);
     void (*FMTRestore)(struct rhdCrtc *Crtc);
-
-    /* Gamma, scaling */
 };
 
 void RHDCrtcsInit(RHDPtr rhdPtr);

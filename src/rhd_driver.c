@@ -1980,7 +1980,6 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	if (Crtc->ScaleSet)
 	    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
-	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc, mode);
     }
@@ -1994,7 +1993,6 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	if (Crtc->ScaleSet)
 	    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
 	RHDPLLSet(Crtc->PLL, mode->Clock);
-	Crtc->PLLSelect(Crtc, Crtc->PLL);
 	Crtc->LUTSelect(Crtc, Crtc->LUT);
 	RHDOutputsMode(rhdPtr, Crtc, mode);
     }

@@ -364,7 +364,6 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     Crtc->FrameSet(Crtc, x, y);
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
-    Crtc->PLLSelect(Crtc, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
 }
 static void
