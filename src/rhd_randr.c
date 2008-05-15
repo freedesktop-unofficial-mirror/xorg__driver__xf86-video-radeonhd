@@ -697,24 +697,23 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     DisplayModePtr     DisplayedMode;
     Bool               Scaled = FALSE;
 
-    if (out->crtc)
-	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+    ASSERT(out->crtc);
+    Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
     xfree(Mode->name);
     if (rout->ScaledToMode) {
 	DisplayModePtr tmp = RHDModeCopy(rout->ScaledToMode);
 	/* validate against CRTC. */
-	if (Crtc)
-	    if (RHDValidateScaledToMode(Crtc, tmp)!= MODE_OK) {
-		xfree(tmp);
-		return FALSE; /* failing here doesn't help */
-	    }
+	if (RHDValidateScaledToMode(Crtc, tmp)!= MODE_OK) {
+	    xfree(tmp);
+	    return FALSE; /* failing here doesn't help */
+	}
 	memcpy(Mode, tmp, sizeof(DisplayModeRec));
 	xfree(tmp);
 	Mode->prev = Mode->next = NULL;
 	Mode->name = xstrdup(Mode->name);
 	DisplayedMode = OrigMode;
-	if (Crtc) Crtc->ScaledToMode = Mode;
+	Crtc->ScaledToMode = Mode;
 	Scaled = TRUE;
     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
