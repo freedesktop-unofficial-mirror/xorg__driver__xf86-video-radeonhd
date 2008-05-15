@@ -112,10 +112,8 @@ struct rhdDri {
     RADEONConfigPrivPtr pVisualConfigsPriv;
     Bool             (*DRICloseScreen)(int, ScreenPtr);	// FIXME use driver global closescreen
 
-    drm_handle_t         fbHandle;
-    drm_handle_t         registerHandle;
-
-    drm_handle_t         pciMemHandle;
+    drm_handle_t      registerHandle;
+    drm_handle_t      pciMemHandle;
 
     Bool              depthMoves;       /* Enable depth moves -- slow! */ //TODO
     Bool              allowPageFlip;    /* Enable 3d page flipping */	//TODO
@@ -1300,10 +1298,6 @@ static int RADEONDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.depth_offset        = info->depthOffset;
     drmInfo.depth_pitch         = info->depthPitch * drmInfo.depth_bpp / 8;
 
-#if 1
-    drmInfo.fb_offset           = info->fbHandle;
-    drmInfo.mmio_offset         = info->registerHandle;
-#endif
     drmInfo.ring_offset         = info->ringHandle;
     drmInfo.ring_rptr_offset    = info->ringReadPtrHandle;
     drmInfo.buffers_offset      = info->bufHandle;
@@ -2311,18 +2305,6 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
     if (!RADEONDRIMapInit(rhdPtr, pScreen)) {
 	RADEONDRICloseScreen(pScreen);
 	return FALSE;
-    }
-
-				/* DRIScreenInit adds the frame buffer
-				   map, but we need it as well */
-    {
-	void *scratch_ptr;
-        int scratch_int;
-
-	DRIGetDeviceInfo(pScreen, &info->fbHandle,
-                         &scratch_int, &scratch_int,
-                         &scratch_int, &scratch_int,
-                         &scratch_ptr);
     }
 
 				/* FIXME: When are these mappings unmapped? */
