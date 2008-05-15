@@ -185,6 +185,7 @@ struct rhdDri {
 static size_t radeon_drm_page_size;
 static char *dri_driver_name = "radeon";
 static char *r300_driver_name = "r300";
+static char *r600_driver_name = "r600";
 
 #define RADEON_DRIAPI_VERSION_MAJOR 4
 #define RADEON_DRIAPI_VERSION_MAJOR_TILED 5
@@ -898,7 +899,12 @@ static int RADEONDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drm_radeon_init_t  drmInfo;
 
     memset(&drmInfo, 0, sizeof(drm_radeon_init_t));
-    drmInfo.func             = RADEON_INIT_R300_CP;
+#ifdef RADEON_INIT_R600_CP
+    if (rhdPtr->ChipSet >= RHD_R600)
+	drmInfo.func             = RADEON_INIT_R600_CP;
+    else
+#endif
+	drmInfo.func             = RADEON_INIT_R300_CP;
 
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
     drmInfo.is_pci              = (rhdPtr->cardType != RHD_CARD_AGP);
@@ -1221,9 +1227,8 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 	return FALSE;
     }
 
-#if 0
     if (rhdPtr->ChipSet >= RHD_R600) {
-	if (xf86ReturnOptValBool(rhdPtr->Options, OPTION_DRI, FALSE)) {
+	if (rhdPtr->useDRI.set && rhdPtr->useDRI.val.bool) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		       "Direct rendering for R600 an up forced on - "
 		       "This is NOT officially supported at the hardware level "
@@ -1232,10 +1237,10 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		       "Direct rendering not officially supported on R600 and up\n");
 	    xfree(info);
-	    return NULL;
+	    rhdPtr->dri = NULL;
+	    return FALSE;
 	}
     }
-#endif
 
     if (!RADEONDRIGetVersion(pScrn)) {
 	xfree(info);
@@ -1574,7 +1579,10 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
     info->pDRIInfo                       = pDRIInfo;
     pDRIInfo->drmDriverName              = dri_driver_name;
 
-    pDRIInfo->clientDriverName        = r300_driver_name;
+    if (rhdPtr->ChipSet >= RHD_R600)
+       pDRIInfo->clientDriverName        = r600_driver_name;
+    else
+       pDRIInfo->clientDriverName        = r300_driver_name;
 
     if (xf86LoaderCheckSymbol("DRICreatePCIBusID")) {
 	pDRIInfo->busIdString = DRICreatePCIBusID(rhdPtr->PciInfo);
