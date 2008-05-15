@@ -214,8 +214,7 @@ static void RADEONDRIClipNotify(ScreenPtr pScreen, WindowPtr *ppWin, int num);
 /* Initialize the visual configs that are supported by the hardware.
  * These are combined with the visual configs that the indirect
  * rendering core supports, and the intersection is exported to the
- * client.
- */
+ * client. */
 static Bool RADEONInitVisualConfigs(ScreenPtr pScreen)
 {
     ScrnInfoPtr          pScrn             = xf86Screens[pScreen->myNum];
@@ -233,91 +232,6 @@ static Bool RADEONInitVisualConfigs(ScreenPtr pScreen)
     switch (info->pixel_code) {
 
     case 16:
-	numConfigs = 1;
-	if (RADEON_USE_ACCUM)   numConfigs *= 2;
-	if (RADEON_USE_STENCIL) numConfigs *= 2;
-	if (RADEON_USE_DB)      numConfigs *= 2;
-
-	if (!(pConfigs
-	      = (__GLXvisualConfig *)xcalloc(sizeof(__GLXvisualConfig),
-					     numConfigs))) {
-	    return FALSE;
-	}
-	if (!(pRADEONConfigs
-	      = (RADEONConfigPrivPtr)xcalloc(sizeof(RADEONConfigPrivRec),
-					     numConfigs))) {
-	    xfree(pConfigs);
-	    return FALSE;
-	}
-	if (!(pRADEONConfigPtrs
-	      = (RADEONConfigPrivPtr *)xcalloc(sizeof(RADEONConfigPrivPtr),
-					       numConfigs))) {
-	    xfree(pConfigs);
-	    xfree(pRADEONConfigs);
-	    return FALSE;
-	}
-
-	i = 0;
-	for (db = RADEON_USE_DB; db >= 0; db--) {
-	  for (accum = 0; accum <= RADEON_USE_ACCUM; accum++) {
-	    for (stencil = 0; stencil <= RADEON_USE_STENCIL; stencil++) {
-		pRADEONConfigPtrs[i] = &pRADEONConfigs[i];
-
-		pConfigs[i].vid                = (VisualID)(-1);
-		pConfigs[i].class              = -1;
-		pConfigs[i].rgba               = TRUE;
-		pConfigs[i].redSize            = 5;
-		pConfigs[i].greenSize          = 6;
-		pConfigs[i].blueSize           = 5;
-		pConfigs[i].alphaSize          = 0;
-		pConfigs[i].redMask            = 0x0000F800;
-		pConfigs[i].greenMask          = 0x000007E0;
-		pConfigs[i].blueMask           = 0x0000001F;
-		pConfigs[i].alphaMask          = 0x00000000;
-		if (accum) { /* Simulated in software */
-		    pConfigs[i].accumRedSize   = 16;
-		    pConfigs[i].accumGreenSize = 16;
-		    pConfigs[i].accumBlueSize  = 16;
-		    pConfigs[i].accumAlphaSize = 0;
-		} else {
-		    pConfigs[i].accumRedSize   = 0;
-		    pConfigs[i].accumGreenSize = 0;
-		    pConfigs[i].accumBlueSize  = 0;
-		    pConfigs[i].accumAlphaSize = 0;
-		}
-		if (db)
-		    pConfigs[i].doubleBuffer   = TRUE;
-		else
-		    pConfigs[i].doubleBuffer   = FALSE;
-		pConfigs[i].stereo             = FALSE;
-		pConfigs[i].bufferSize         = 16;
-		pConfigs[i].depthSize          = info->depthBits;
-		if (pConfigs[i].depthSize == 24 ? (RADEON_USE_STENCIL - stencil)
-						: stencil) {
-		    pConfigs[i].stencilSize    = 8;
-		} else {
-		    pConfigs[i].stencilSize    = 0;
-		}
-		pConfigs[i].auxBuffers         = 0;
-		pConfigs[i].level              = 0;
-		if (accum ||
-		    (pConfigs[i].stencilSize && pConfigs[i].depthSize == 16)) {
-		   pConfigs[i].visualRating    = GLX_SLOW_CONFIG;
-		} else {
-		   pConfigs[i].visualRating    = GLX_NONE;
-		}
-		pConfigs[i].transparentPixel   = GLX_NONE;
-		pConfigs[i].transparentRed     = 0;
-		pConfigs[i].transparentGreen   = 0;
-		pConfigs[i].transparentBlue    = 0;
-		pConfigs[i].transparentAlpha   = 0;
-		pConfigs[i].transparentIndex   = 0;
-		i++;
-	    }
-	  }
-	}
-	break;
-
     case 32:
 	numConfigs = 1;
 	if (RADEON_USE_ACCUM)   numConfigs *= 2;
@@ -352,52 +266,38 @@ static Bool RADEONInitVisualConfigs(ScreenPtr pScreen)
 		pConfigs[i].vid                = (VisualID)(-1);
 		pConfigs[i].class              = -1;
 		pConfigs[i].rgba               = TRUE;
-		pConfigs[i].redSize            = 8;
-		pConfigs[i].greenSize          = 8;
-		pConfigs[i].blueSize           = 8;
-		pConfigs[i].alphaSize          = 8;
-		pConfigs[i].redMask            = 0x00FF0000;
-		pConfigs[i].greenMask          = 0x0000FF00;
-		pConfigs[i].blueMask           = 0x000000FF;
-		pConfigs[i].alphaMask          = 0xFF000000;
+		if (info->pixel_code ==32) {
+		    pConfigs[i].redSize            = 8;
+		    pConfigs[i].greenSize          = 8;
+		    pConfigs[i].blueSize           = 8;
+		    pConfigs[i].alphaSize          = 8;
+		    pConfigs[i].redMask            = 0x00FF0000;
+		    pConfigs[i].greenMask          = 0x0000FF00;
+		    pConfigs[i].blueMask           = 0x000000FF;
+		    pConfigs[i].alphaMask          = 0xFF000000;
+		} else {
+		    pConfigs[i].redSize            = 5;
+		    pConfigs[i].greenSize          = 6;
+		    pConfigs[i].blueSize           = 5;
+		    pConfigs[i].redMask            = 0x0000F800;
+		    pConfigs[i].greenMask          = 0x000007E0;
+		    pConfigs[i].blueMask           = 0x0000001F;
+		}
 		if (accum) { /* Simulated in software */
 		    pConfigs[i].accumRedSize   = 16;
 		    pConfigs[i].accumGreenSize = 16;
 		    pConfigs[i].accumBlueSize  = 16;
-		    pConfigs[i].accumAlphaSize = 16;
-		} else {
-		    pConfigs[i].accumRedSize   = 0;
-		    pConfigs[i].accumGreenSize = 0;
-		    pConfigs[i].accumBlueSize  = 0;
-		    pConfigs[i].accumAlphaSize = 0;
+		    if (info->pixel_code == 32)
+			pConfigs[i].accumAlphaSize = 16;
 		}
-		if (db)
-		    pConfigs[i].doubleBuffer   = TRUE;
-		else
-		    pConfigs[i].doubleBuffer   = FALSE;
-		pConfigs[i].stereo             = FALSE;
-		pConfigs[i].bufferSize         = 32;
+		pConfigs[i].doubleBuffer       = db;
+		pConfigs[i].bufferSize         = info->pixel_code;
 		pConfigs[i].depthSize          = info->depthBits;
-		if (pConfigs[i].depthSize == 24 ? (RADEON_USE_STENCIL - stencil)
-						: stencil) {
+		if (stencil)
 		    pConfigs[i].stencilSize    = 8;
-		} else {
-		    pConfigs[i].stencilSize    = 0;
-		}
-		pConfigs[i].auxBuffers         = 0;
-		pConfigs[i].level              = 0;
 		if (accum ||
-		    (pConfigs[i].stencilSize && pConfigs[i].depthSize == 16)) {
+		    (pConfigs[i].stencilSize && pConfigs[i].depthSize != 24))
 		   pConfigs[i].visualRating    = GLX_SLOW_CONFIG;
-		} else {
-		   pConfigs[i].visualRating    = GLX_NONE;
-		}
-		pConfigs[i].transparentPixel   = GLX_NONE;
-		pConfigs[i].transparentRed     = 0;
-		pConfigs[i].transparentGreen   = 0;
-		pConfigs[i].transparentBlue    = 0;
-		pConfigs[i].transparentAlpha   = 0;
-		pConfigs[i].transparentIndex   = 0;
 		i++;
 	    }
 	  }
