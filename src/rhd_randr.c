@@ -674,7 +674,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
      * be used, so let's better skip crtc based checks... */
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
-			    rout->Output, NULL, rout->ScaledToMode);
+			    rout->Output, NULL, rout->ScaledToMode ? TRUE : FALSE);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s: %s\n", __func__,
 	     Mode->name, RHDModeStatusToString(Status));
     xfree(Mode->name);
@@ -695,6 +695,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     struct rhdCrtc    *Crtc   = NULL;
     int                Status;
     DisplayModePtr     DisplayedMode;
+    Bool               Scaled = FALSE;
 
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
@@ -714,6 +715,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	Mode->name = xstrdup(Mode->name);
 	DisplayedMode = OrigMode;
 	if (Crtc) Crtc->ScaledToMode = Mode;
+	Scaled = TRUE;
     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
@@ -762,7 +764,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, DisplayedMode, Crtc, rout->Connector,
-			    rout->Output, NULL, rout->ScaledToMode);
+			    rout->Output, NULL, Scaled);
     if (Status != MODE_OK) {
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
 		 Mode->name, RHDModeStatusToString(Status));
@@ -960,6 +962,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 static struct rhdMonitor *
 RHDRRMonitorInit(struct rhdConnector *Connector)
 {
+    RHDFUNC(Connector);
     struct rhdMonitor *m = RHDMonitorInit(Connector);
     if (RHDScalePolicy(m, Connector))
 	RHDSynthModes(Connector->scrnIndex, m->Modes);
@@ -974,6 +977,7 @@ rhdRROutputGetModes(xf86OutputPtr output)
     RHDPtr            rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
     xf86MonPtr	      edid_mon = NULL;
+    struct rhdOutput  *o;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
     /* TODO: per-output options ForceReduced & UseXF86Edid */
@@ -998,6 +1002,24 @@ rhdRROutputGetModes(xf86OutputPtr output)
 	xf86OutputSetEDID (output, NULL);
 	return NULL;
     }
+
+    ASSERT(rout->Output);
+    o = rout->Output;
+
+    if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
+	if (o->Connector->Monitor) {
+	    rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->NativeMode);
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Found native mode: ");
+	    RHDPrintModeline(rout->ScaledToMode);
+	    if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode) != MODE_OK) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
+		xfree(rout->ScaledToMode->name);
+		xfree(rout->ScaledToMode);
+		rout->ScaledToMode = NULL;
+	    }
+	}
+    } else
+	rout->ScaledToMode = NULL;
 
     /* If digitally attached, enable reduced blanking */
     if (rout->Output->Id == RHD_OUTPUT_TMDSA ||
@@ -1399,30 +1421,6 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		   "RandR: xf86RandR12PreInit failed. Disabled.\n");
 	rhdPtr->randr = NULL;		/* TODO: not cleaning up correctly */
 	return FALSE;
-    }
-
-    /* Now find scaled mode and do initial validation (without CRTC) */
-    for (i = 0; i < numCombined; i++) {
-	xf86OutputPtr out = randr->RandrOutput[i];
-	rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
-	struct rhdOutput  *o;
-	ASSERT(rout->Output);
-	o = rout->Output;
-
-	if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
-	    if (o->Connector->Monitor) {
-		rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->NativeMode);
-		xf86DrvMsg(out->scrn->scrnIndex, X_INFO, "Found native mode: ");
-		RHDPrintModeline(rout->ScaledToMode);
-		if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode) != MODE_OK) {
-		    xf86DrvMsg(out->scrn->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
-		    xfree(rout->ScaledToMode->name);
-		    xfree(rout->ScaledToMode);
-		    rout->ScaledToMode = NULL;
-		}
-	    }
-	} else
-	    rout->ScaledToMode = NULL;
     }
 
     return TRUE;

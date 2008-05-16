@@ -749,7 +749,7 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
  *
  */
 static int
-rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, DisplayModePtr ScaledToMode)
+rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     ScrnInfoPtr pScrn = xf86Screens[Crtc->scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -773,7 +773,7 @@ rhdModeValidateCrtcScaledFrom(struct rhdCrtc *Crtc, DisplayModePtr Mode, Display
 	    return Status;
 
 	if (Crtc->ScaleValid) {
-	    Status = Crtc->ScaleValid(Crtc, Crtc->ScaleType, Mode, ScaledToMode);
+	    Status = Crtc->ScaleValid(Crtc, Crtc->ScaleType, Mode, Crtc->ScaledToMode);
 	    if (Status != MODE_OK)
 		return Status;
 	    if (Mode->CrtcHAdjusted || Mode->CrtcVAdjusted)
@@ -942,7 +942,7 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
 
 	} else {
 	    if (Crtc) {
-		Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, Crtc->ScaledToMode);
+		Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode);
 		if (Status != MODE_OK)
 		    return Status;
 	    }
@@ -1613,22 +1613,14 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 int
 RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	       struct rhdConnector *Connector, struct rhdOutput *Output,
-	       struct rhdMonitor *Monitor, DisplayModePtr ScaledToMode)
+	       struct rhdMonitor *Monitor, Bool ScaledMode)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     int i, Status;
-    Bool scaledMode = FALSE;
 
     ASSERT(Connector);
     ASSERT(Output);
     RHDFUNC(Output);
-
-    /*
-     * If a monitor can scale and a mode is not the preferred
-     * (ie. native resolution) we can scale up to it.
-     */
-    if (RHDScalePolicy(Connector->Monitor, Connector) && !(Mode->type & M_T_PREFERRED))
-	scaledMode = TRUE;
 
     Status = rhdModeSanity(Mode);
     if (Status != MODE_OK)
@@ -1636,7 +1628,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 
     rhdModeFillOutCrtcValues(Mode);
 
-    if (!scaledMode) {
+    if (!ScaledMode) {
 	/* We don't want to loop around this forever */
 	for (i = 0; i < RHD_MODE_VALIDATION_LOOPS; i++) {
 	    Mode->CrtcHAdjusted = FALSE;
@@ -1713,14 +1705,13 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
 	/* throw them at the configured monitor */
 	if (Monitor) {
 	    Status = rhdMonitorValid(Monitor, Mode);
-	    if (Status != MODE_OK) ErrorF("Foo7\n");
 	    if (Status != MODE_OK)
 		return Status;
 	}
 
     } else {
 	if (Crtc) {
-	    Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode, ScaledToMode);
+	    Status = rhdModeValidateCrtcScaledFrom(Crtc, Mode);
 	    if (Status != MODE_OK)
 		return Status;
 	}
