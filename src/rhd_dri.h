@@ -124,12 +124,9 @@ extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
 
 extern Bool RADEONDRICloseScreen(ScreenPtr pScreen);
 extern Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen);
-extern int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn);
 extern void RADEONDRIEnterVT(ScreenPtr pScreen);
 extern void RADEONDRILeaveVT(ScreenPtr pScreen);
 extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
-extern int RADEONDRISetParam(ScrnInfoPtr pScrn,
-			     unsigned int param, int64_t value);
 
 /*
  * TODO: From other sources, potentially to be put somewhere else

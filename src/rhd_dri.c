@@ -109,7 +109,6 @@ struct rhdDri {
     RegionRec         driRegion;
 #endif
 
-    int               pciAperSize;
     drmSize           gartSize;
     drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
     unsigned long     gartOffset;
@@ -122,7 +121,6 @@ struct rhdDri {
     int               ringSize;         /* Size of ring (in MB) */
     drmAddress        ring;             /* Map */
     int               ringSizeLog2QW;
-    int               CPusecTimeout;    /* CP timeout in usecs */
 
     // TODO: what is r/o ring space for (1 page)
     unsigned long     ringReadOffset;   /* Offset into GART space */
@@ -195,7 +193,10 @@ static char *r600_driver_name = "r600";
 #define RADEON_IDLE_RETRY      16 /* Fall out of idle loops after this count */
 
 
-void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn);
+static void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn);
+static int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn);
+static int RADEONDRISetParam(ScrnInfoPtr pScrn,
+			     unsigned int param, int64_t value);
 
 static void RADEONDRITransitionTo2d(ScreenPtr pScreen);
 static void RADEONDRITransitionTo3d(ScreenPtr pScreen);
@@ -441,13 +442,7 @@ static void RADEONDRIInitBuffers(WindowPtr pWin, RegionPtr prgn, CARD32 indx)
     */
 }
 
-/* Copy the back and depth buffers when the X server moves a window.
- *
- * This routine is a modified form of XAADoBitBlt with the calls to
- * ScreenToScreenBitBlt built in. My routine has the prgnSrc as source
- * instead of destination. My origin is upside down so the ydir cases
- * are reversed.
- */
+/* Copy the back and depth buffers when the X server moves a window */
 static void RADEONDRIMoveBuffers(WindowPtr pParent, DDXPointRec ptOldOrg,
 				 RegionPtr prgnSrc, CARD32 indx)
 {
@@ -812,7 +807,7 @@ static int RADEONDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.cp_mode             = RADEON_DEFAULT_CP_BM_MODE;
     drmInfo.gart_size           = info->gartSize*1024*1024;
     drmInfo.ring_size           = info->ringSize*1024*1024;
-    drmInfo.usec_timeout        = info->CPusecTimeout;
+    drmInfo.usec_timeout        = RADEON_DEFAULT_CP_TIMEOUT;
 
     drmInfo.fb_bpp              = info->pixel_code;
     drmInfo.depth_bpp           = (info->depthBits - 8) * 2;
@@ -947,7 +942,7 @@ static void RADEONDRICPStart(ScrnInfoPtr pScrn)
 
 
 /* Get the DRM version and do some basic useability checks of DRI */
-Bool RADEONDRIGetVersion(ScrnInfoPtr pScrn)
+static Bool RADEONDRIGetVersion(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info   = rhdPtr->dri;
@@ -1157,8 +1152,6 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
     info->gartSize      = RADEON_DEFAULT_GART_SIZE;
     info->ringSize      = RADEON_DEFAULT_RING_SIZE;
     info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
-    info->pciAperSize   = RADEON_DEFAULT_PCI_APER_SIZE;
-    info->CPusecTimeout = RADEON_DEFAULT_CP_TIMEOUT;
 
 #if 0
     if ((xf86GetOptValInteger(rhdPtr->Options,
@@ -1184,68 +1177,7 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
     }
 #endif
 
-#if 0
-    if (xf86GetOptValInteger(rhdPtr->Options,
-			     OPTION_RING_SIZE, &(info->ringSize))) {
-	if (info->ringSize < 1 || info->ringSize >= (int)info->gartSize) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Illegal ring buffer size: %d MB\n",
-		       info->ringSize);
-	    xfree(info);
-	    return NULL;
-	}
-    }
-#endif
-
-#if 0
-    if (xf86GetOptValInteger(rhdPtr->Options,
-			     OPTION_PCIAPER_SIZE, &(info->pciAperSize))) {
-	switch(info->pciAperSize) {
-	case 32:
-	case 64:
-	case 128:
-	case 256:
-	    break;
-	default:
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Illegal pci aper size: %d MB\n",
-		       info->pciAperSize);
-	    xfree(info);
-	    return NULL;
-	}
-    }
-#endif
-
-
-#if 0
-    if (xf86GetOptValInteger(rhdPtr->Options,
-			     OPTION_BUFFER_SIZE, &(info->bufSize))) {
-	if (info->bufSize < 1 || info->bufSize >= (int)info->gartSize) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Illegal vertex/indirect buffers size: %d MB\n",
-		       info->bufSize);
-	    xfree(info);
-	    return NULL;
-	}
-	if (info->bufSize > 2) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Illegal vertex/indirect buffers size: %d MB\n",
-		       info->bufSize);
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Clamping vertex/indirect buffers size to 2 MB\n");
-	    info->bufSize = 2;
-	}
-    }
-#endif
-
     info->gartTexSize = info->gartSize - (info->ringSize + info->bufSize);
-
-#if 0
-    if (xf86GetOptValInteger(rhdPtr->Options, OPTION_USEC_TIMEOUT,
-			     &(info->CPusecTimeout))) {
-	/* This option checked by the RADEON DRM kernel module */
-    }
-#endif
 
     info->allowPageFlip = 0;
     reason = "";
@@ -1296,22 +1228,6 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 
     /* Currently 32bpp pixel buffer implies 32bpp depth. Same for 16bpp */
     info->depthBits = pScrn->depth;
-#if 0
-
-    from = xf86GetOptValInteger(info->Options, OPTION_DEPTH_BITS,
-				&info->depthBits)
-	? X_CONFIG : X_DEFAULT;
-
-    if (info->depthBits != 16 && info->depthBits != 24) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "Value for Option \"DepthBits\" must be 16 or 24\n");
-	info->depthBits = pScrn->depth;
-	from = X_DEFAULT;
-    }
-
-    xf86DrvMsg(pScrn->scrnIndex, from,
-	       "Using %d bit depth buffer\n", info->depthBits);
-#endif
 
     if (rhdPtr->AccelMethod != RHD_ACCEL_NONE) {
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
@@ -2141,21 +2057,20 @@ RADEONDRIClipNotify(ScreenPtr pScreen, WindowPtr *ppWin, int num)
 }
 #endif
 
-int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
+static int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
 {
-    struct rhdDri *  info   = RHDPTR(pScrn)->dri;
     int page_size  = getpagesize();
     int ret_size;
     int num_pages;
 
-    num_pages = (info->pciAperSize * 1024 * 1024) / page_size;
+    num_pages = (RADEON_DEFAULT_PCI_APER_SIZE * 1024 * 1024) / page_size;
 
     ret_size = num_pages * sizeof(unsigned int);
 
     return ret_size;
 }
 
-void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
+static void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info   = RHDPTR(pScrn)->dri;
@@ -2180,7 +2095,7 @@ void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
     info->pciGartBackup = xalloc(info->pciGartSize);
 }
 
-int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
+static int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
 {
     drm_radeon_setparam_t  radeonsetparam;
     struct rhdDri *  info   = RHDPTR(pScrn)->dri;
