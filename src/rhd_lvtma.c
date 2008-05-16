@@ -1295,7 +1295,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Private = Private;
 
 	Private->RunsDualLink = FALSE;
-	Private->Coherent = TRUE;
+	Private->Coherent = FALSE;
     }
 
     return Output;

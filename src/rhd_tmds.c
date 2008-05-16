@@ -168,7 +168,7 @@ static struct R5xxTMDSAMacro {
     { 0x724B, 0x00A00513 }, /* R580  */
     { 0x7280, 0x00C0041F }, /* RV570 */
     { 0x7288, 0x00C0041F }, /* RV570 */
-    { 0x9400, 0x00910519 }, /* R600: */
+    { 0x9400, 0x00910419 }, /* R600: */
     { 0, 0} /* End marker */
 };
 
@@ -515,7 +515,7 @@ RHDTMDSAInit(RHDPtr rhdPtr)
 
     Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
     Private->RunsDualLink = FALSE;
-    Private->Coherent = TRUE;
+    Private->Coherent = FALSE;
     Private->PowerState = RHD_POWER_UNKNOWN;
 
     Output->Private = Private;
