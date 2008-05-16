@@ -133,6 +133,10 @@ rhdMonitorFromConfig(int scrnIndex, MonPtr Config)
         Monitor->ReducedAllowed = TRUE;
 #endif
 
+    /* allow user to override settings globally */
+    if (RHDPTRI(Monitor)->forceReduced.set)
+	Monitor->ReducedAllowed = RHDPTRI(Monitor)->forceReduced.val.bool;
+
 #ifdef MONREC_HAS_BANDWIDTH
     if (Config->maxPixClock)
         Monitor->Bandwidth = Config->maxPixClock;
@@ -175,6 +179,10 @@ rhdMonitorFromDefault(int scrnIndex, MonPtr Config)
     if (Config)
 	for (Mode = Config->Modes; Mode; Mode = Mode->next)
 	    Monitor->Modes = RHDModesAdd(Monitor->Modes, RHDModeCopy(Mode));
+
+    /* allow user to override settings globally */
+    if (RHDPTRI(Monitor)->forceReduced.set)
+	Monitor->ReducedAllowed = RHDPTRI(Monitor)->forceReduced.val.bool;
 
     return Monitor;
 }
