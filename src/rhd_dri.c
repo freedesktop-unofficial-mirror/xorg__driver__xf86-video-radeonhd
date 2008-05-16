@@ -1704,7 +1704,7 @@ static void RADEONDRIStop(ScreenPtr pScreen)
 	if (ret == 0) {
 	    RHDDebug(pScrn->scrnIndex, "DRMStop #%d succeeded\n", i+1);
 	    return;
-	} else if (ret != -EBUSY) {
+	} else if (ret != -16 /* -EBUSY, unwrapped */) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "DRMStop #%d failed: %d\n", i, ret);
 	    return;
 	}
