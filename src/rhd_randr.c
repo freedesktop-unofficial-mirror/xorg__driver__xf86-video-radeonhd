@@ -355,6 +355,11 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 
     RHDDebug(rhdPtr->scrnIndex, "%s: %s : %s at %d/%d\n", __func__,
 	     Crtc->Name, Mode->name, x, y);
+    if (rhdPtr->verbosity >= 3) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "On Crtc %i Setting %3.1f Hz Mode: ",
+		   Crtc->Id, Mode->VRefresh);
+	RHDPrintModeline(Mode);
+    }
 
     /* Set up mode */
     Crtc->FBSet(Crtc, pScrn->displayWidth, pScrn->virtualX, pScrn->virtualY,
