@@ -694,7 +694,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     rhdRandrOutputPtr  rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc    *Crtc   = NULL;
     int                Status;
-
+    DisplayModePtr     DisplayedMode;
 
     if (out->crtc)
 	Crtc = (struct rhdCrtc *) out->crtc->driver_private;
@@ -712,6 +712,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	xfree(tmp);
 	Mode->prev = Mode->next = NULL;
 	Mode->name = xstrdup(Mode->name);
+	DisplayedMode = OrigMode;
+	if (Crtc) Crtc->ScaledToMode = Mode;
     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
@@ -746,6 +748,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	    Mode->CrtcVBlankEnd = OrigMode->CrtcVBlankEnd;
 	    Mode->CrtcVTotal = OrigMode->CrtcVTotal;
 	}
+	DisplayedMode = Mode;
     }
 
     /* RHDRRModeFixup will set up the remaining bits */
@@ -758,7 +761,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     setupCrtc(rhdPtr, Crtc);
 
     /* Monitor is handled by RandR */
-    Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
+    Status = RHDRRModeFixup(out->scrn, DisplayedMode, Crtc, rout->Connector,
 			    rout->Output, NULL, rout->ScaledToMode);
     if (Status != MODE_OK) {
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
