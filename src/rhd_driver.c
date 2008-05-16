@@ -910,10 +910,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
 #ifdef XF86DRI
     if (rhdPtr->dri)
-	if (! RADEONDRIAllocateBuffers(pScrn)) {
-	// FIXME: cleanup
-	rhdPtr->dri = NULL;
-	}
+	RADEONDRIAllocateBuffers(pScrn);
 #endif
 
     RHDDebug(pScrn->scrnIndex, "Free FB offset 0x%08X (size = 0x%08X)\n",
@@ -973,10 +970,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
      * call back. */
     if (rhdPtr->dri)
-	if (! RADEONDRIScreenInit(pScreen)) {
-	    // FIXME: cleanup
-	    rhdPtr->dri = NULL;
-	}
+	RADEONDRIScreenInit(pScreen);
 #endif
 
     /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
@@ -1020,10 +1014,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef XF86DRI
     if (rhdPtr->dri)
-	if (! RADEONDRIFinishScreenInit(pScreen)) {
-	    // FIXME: cleanup
-	    rhdPtr->dri = NULL;
-	}
+	RADEONDRIFinishScreenInit(pScreen);
 #endif
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
@@ -1114,6 +1105,9 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	struct rhdCrtc *Crtc;
 	int i;
 
+	if (rhdPtr->dri)
+	    RADEONDRICloseScreen(pScreen);
+
 	/* stop scanout */
 	for (i = 0; i < 2; i++) {
 	    Crtc = rhdPtr->Crtc[i];
@@ -1185,6 +1179,9 @@ RHDEnterVT(int scrnIndex, int flags)
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DSetup(pScrn);
 
+    if (rhdPtr->dri)
+	RADEONDRIEnterVT(pScrn->pScreen);
+
     return TRUE;
 }
 
@@ -1198,6 +1195,9 @@ RHDLeaveVT(int scrnIndex, int flags)
     int i;
 
     RHDFUNC(rhdPtr);
+
+    if (rhdPtr->dri)
+	RADEONDRILeaveVT(pScrn->pScreen);
 
     /* stop scanout */
     for (i = 0; i < 2; i++) {

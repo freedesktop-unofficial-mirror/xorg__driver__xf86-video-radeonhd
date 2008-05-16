@@ -61,32 +61,20 @@ typedef struct {
 } RADEONConfigPrivRec, *RADEONConfigPrivPtr;
 
 typedef struct {
-#ifdef PER_CONTEXT_SAREA
-    drm_context_t ctx_id;
-    drm_handle_t sarea_handle;
-#else
     /* Nothing here yet */
     int dummy;
-#endif
 } RADEONDRIContextRec, *RADEONDRIContextPtr;
 
 /* DRI Driver defaults */
 #define RADEON_DEFAULT_CP_PIO_MODE    RADEON_CSQ_PRIPIO_INDPIO
 #define RADEON_DEFAULT_CP_BM_MODE     RADEON_CSQ_PRIBM_INDBM
-#define RADEON_DEFAULT_GART_SIZE      8 /* MB (must be 2^n and > 4MB) */
-#define RADEON_DEFAULT_RING_SIZE      1 /* MB (must be page aligned) */
-#define RADEON_DEFAULT_BUFFER_SIZE    2 /* MB (must be page aligned) */
-#define RADEON_DEFAULT_GART_TEX_SIZE  1 /* MB (must be page aligned) */
+#define RADEON_DEFAULT_GART_SIZE      16 /* MB (must be 2^n and > 4MB) */
+#define RADEON_DEFAULT_RING_SIZE      2  /* MB (must be page aligned) */
+#define RADEON_DEFAULT_BUFFER_SIZE    2  /* MB (must be page aligned) */
 
 #define RADEON_DEFAULT_CP_TIMEOUT     10000  /* usecs */
 
-#define RADEON_DEFAULT_PCI_APER_SIZE 32 /* in MB */
-
-#define RADEON_CARD_TYPE_RADEON       1
-
-#define RADEONCP_USE_RING_BUFFER(m)					\
-    (((m) == RADEON_CSQ_PRIBM_INDDIS) ||				\
-     ((m) == RADEON_CSQ_PRIBM_INDBM))
+#define RADEON_DEFAULT_PCI_APER_SIZE  32 /* in MB */
 
 typedef struct {
     /* DRI screen private data */
@@ -110,15 +98,15 @@ typedef struct {
     int           log2TexGran;
 
     /* MMIO register data */
-    drm_handle_t     registerHandle;
+    drm_handle_t  registerHandle;
     drmSize       registerSize;
 
     /* CP in-memory status information */
-    drm_handle_t     statusHandle;
+    drm_handle_t  statusHandle;
     drmSize       statusSize;
 
     /* CP GART Texture data */
-    drm_handle_t     gartTexHandle;
+    drm_handle_t  gartTexHandle;
     drmSize       gartTexMapSize;
     int           log2GARTTexGran;
     int           gartTexOffset;
@@ -134,18 +122,14 @@ extern Bool RADEONDRIPreInit(ScrnInfoPtr pScrn);
 extern Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn);
 extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
 
-//extern void RADEONDRIAllocatePCIGARTTable(ScreenPtr pScreen);
-extern void RADEONDRICloseScreen(ScreenPtr pScreen);
+extern Bool RADEONDRICloseScreen(ScreenPtr pScreen);
 extern Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen);
 extern int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn);
-extern void RADEONDRIResume(ScreenPtr pScreen);
+extern void RADEONDRIEnterVT(ScreenPtr pScreen);
+extern void RADEONDRILeaveVT(ScreenPtr pScreen);
 extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
 extern int RADEONDRISetParam(ScrnInfoPtr pScrn,
 			     unsigned int param, int64_t value);
-extern Bool RADEONDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on);
-extern void RADEONDRIStop(ScreenPtr pScreen);
-
-extern Bool RADEONDRIGetVersion(ScrnInfoPtr pScrn);
 
 /*
  * TODO: From other sources, potentially to be put somewhere else
