@@ -148,20 +148,9 @@ DACASense(struct rhdOutput *Output, enum rhdConnectorType Type)
 	return  (DACSense(Output, REG_DACA_OFFSET, FALSE) == 0x7)
 	    ? RHD_SENSED_VGA
 	    : RHD_SENSED_NONE;
-    case RHD_CONNECTOR_TV:
-	switch (DACSense(Output, REG_DACA_OFFSET, TRUE) & 0x7) {
-	    case 0x7:
-		return RHD_SENSED_TV_COMPONENT;
-	    case 0x6:
-		return RHD_SENSED_TV_SVIDEO;
-	    case 0x1:
-		return RHD_SENSED_TV_COMPOSITE;
-	    default:
-		return RHD_SENSED_NONE;
-	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
-		   "%s: connector type %d is not supported.\n",
+		   "%s: connector type %d is not supported on DACA.\n",
 		   __func__, Type);
 	return RHD_SENSED_NONE;
     }
@@ -195,7 +184,7 @@ DACBSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
-		   "%s: connector type %d is not supported.\n",
+		   "%s: connector type %d is not supported on DACB.\n",
 		   __func__, Type);
 	return RHD_SENSED_NONE;
     }
