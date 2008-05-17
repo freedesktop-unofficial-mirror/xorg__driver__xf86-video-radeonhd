@@ -578,57 +578,54 @@ static inline void
 DACSetRV620(struct rhdOutput *Output, CARD16 offset)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
-    CARD32 source;
-    CARD32 mode;
-    CARD32 tv;
-    CARD32 white_fine;
+    CARD32 Source;
+    CARD32 Mode;
+    CARD32 TV;
+    CARD32 WhiteFine;
 
-    switch (rhdPtr->tvMode) {
-	case RHD_TV_NTSC:
-	case RHD_TV_NTSCJ:
-	    white_fine = 0x2000;
-	    mode = 0x1;
-	    break;
-	case RHD_TV_PAL:
-	case RHD_TV_PALN:
-	case RHD_TV_PALCN:
-	case RHD_TV_PAL60:
-	default:
-	    white_fine = 0x2600;
-	    mode = 0x0;
-	    break;
-    }
 
     switch (Output->SensedType) {
 	case RHD_SENSED_TV_SVIDEO:
-	    tv = 0x100;
-	    source = 0x2; /* tv encoder */
-	    break;
 	case RHD_SENSED_TV_COMPOSITE:
-	    tv = 0x100;
-	    source = 0x2; /* tv encoder */
+	    TV = 0x1;
+	    Source = 0x2; /* tv encoder */
+	    switch (rhdPtr->tvMode) {
+		case RHD_TV_NTSC:
+		case RHD_TV_NTSCJ:
+		    WhiteFine = 0x20;
+		    Mode = 1;
+		    break;
+		case RHD_TV_PAL:
+		case RHD_TV_PALN:
+		case RHD_TV_PALCN:
+		case RHD_TV_PAL60:
+		default:
+		    WhiteFine = 0x26;
+		    Mode = 0;
+		    break;
+	    }
 	    break;
 	case RHD_SENSED_TV_COMPONENT:
-	    white_fine = 0x2500;
-	    mode = 3; /* HDTV */
-	    tv = 0x100; /* tv on?? */
-	    source = 0x2; /* tv encoder  ?? */
+	    WhiteFine = 0x25;
+	    Mode = 3; /* HDTV */
+	    TV = 0x1; /* tv on?? */
+	    Source = 0x2; /* tv encoder  ?? */
 	    break;
 	case RHD_SENSED_VGA:
 	default:
-	    white_fine = 0x2500;
-	    mode = 2;
-	    tv = 0;
-	    source = Output->Crtc->Id;
+	    WhiteFine = 0x25;
+	    Mode = 2;
+	    TV = 0;
+	    Source = Output->Crtc->Id;
 	    break;
     }
-    RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, mode); /* no fine control yet */
-    RHDRegMask(Output,  offset + RV620_DACA_SOURCE_SELECT, source, 0x00000003);
-    RHDRegMask(Output,  offset + RV620_DACA_CONTROL2, tv, 0x0100); /* tv enable/disable */
+    RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, Mode); /* no fine control yet */
+    RHDRegMask(Output,  offset + RV620_DACA_SOURCE_SELECT, Source, 0x00000003);
+    RHDRegMask(Output,  offset + RV620_DACA_CONTROL2, TV << 8, 0x0100); /* tv enable/disable */
     /* use fine control from white_fine control register */
     RHDRegMask(Output, offset + RV620_DACA_AUTO_CALIB_CONTROL, 0x0, 0x4);
     RHDRegMask(Output, offset + RV620_DACA_BGADJ_SRC, 0x0, 0x30);
-    RHDRegMask(Output, offset + RV620_DACA_MACRO_CNTL, 0x210000 | white_fine, 0xffff00);
+    RHDRegMask(Output, offset + RV620_DACA_MACRO_CNTL, 0x210000 | WhiteFine << 8, 0xffff00);
 }
 
 /*
@@ -671,7 +668,7 @@ DACPowerRV620(struct rhdOutput *Output, CARD16 offset, int Power)
 		    powerdown = 0 /* 0x1010000 */;
 		    break;
 		case RHD_SENSED_TV_COMPONENT:
-		    powerdown = 0x0;
+		    powerdown = 0;
 		    break;
 		case RHD_SENSED_VGA:
 		default:
