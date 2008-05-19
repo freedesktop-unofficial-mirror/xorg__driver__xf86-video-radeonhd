@@ -274,8 +274,9 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     RHDFUNC(Output);
 
     /* set coherent / not coherent mode; whatever that is */
-    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
-	       Private->Coherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
+    if (Output->Connector->Type != RHD_CONNECTOR_PANEL)
+	RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
+		   Private->Coherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
 
     Private->Mode = Mode;
 #ifdef ATOM_BIOS
@@ -1366,6 +1367,8 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Private = xnfcalloc(sizeof(struct DIGPrivate), 1);
     Output->Private = Private;
 
+    Private->Coherent = FALSE;
+
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
 #ifdef ATOM_BIOS
@@ -1429,6 +1432,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+		atc->coherent = Private->Coherent;
 		atc->encoder = atomEncoderDIG2;
 		atc->link = atomTransLinkB;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1476,7 +1480,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		Private->Transmitter.Property = LVDSTransmitterPropertyControl;
 	    else
 		Private->Transmitter.Property = TMDSTransmitterPropertyControl;
-	    Private->Coherent = TRUE;
 	    break;
 
 	default:
