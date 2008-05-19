@@ -268,7 +268,7 @@ static Bool RADEONInitVisualConfigs(ScreenPtr pScreen)
 		pConfigs[i].vid                = (VisualID)(-1);
 		pConfigs[i].class              = -1;
 		pConfigs[i].rgba               = TRUE;
-		if (info->pixel_code ==32) {
+		if (info->pixel_code == 32) {
 		    pConfigs[i].redSize            = 8;
 		    pConfigs[i].greenSize          = 8;
 		    pConfigs[i].blueSize           = 8;
@@ -299,7 +299,10 @@ static Bool RADEONInitVisualConfigs(ScreenPtr pScreen)
 		    pConfigs[i].stencilSize    = 8;
 		if (accum ||
 		    (pConfigs[i].stencilSize && pConfigs[i].depthSize != 24))
-		   pConfigs[i].visualRating    = GLX_SLOW_CONFIG;
+		    pConfigs[i].visualRating   = GLX_SLOW_CONFIG;
+		else
+		    pConfigs[i].visualRating   = GLX_NONE;
+		pConfigs[i].transparentPixel   = GLX_NONE;
 		i++;
 	    }
 	  }
