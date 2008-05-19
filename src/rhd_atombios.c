@@ -986,7 +986,7 @@ rhdAtomTmdsInfoQuery(atomBiosHandlePtr handle,
 	    }
 	}
     }
-    
+
     if (i > ATOM_MAX_MISC_INFO)
 	return ATOM_FAILED;
 
@@ -2440,6 +2440,17 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 		    }
 		}
 	    }
+	}
+	/* Some connector table mark a VGA as DVI-X. This heuristic fixes it */
+	if (cp[ncon].Type == RHD_CONNECTOR_DVI) {
+	    if ( ((cp[ncon].Output[0] == RHD_OUTPUT_NONE
+		  && (cp[ncon].Output[1] == RHD_OUTPUT_DACA
+		      || cp[ncon].Output[1] == RHD_OUTPUT_DACB))
+		 || (cp[ncon].Output[1] == RHD_OUTPUT_NONE
+		     && (cp[ncon].Output[0] == RHD_OUTPUT_DACA
+			 || cp[ncon].Output[0] == RHD_OUTPUT_DACB)))
+		 && cp[ncon].HPD == RHD_HPD_NONE)
+		cp[ncon].Type = RHD_CONNECTOR_VGA;
 	}
 
 	if ((++ncon) == RHD_CONNECTORS_MAX)
