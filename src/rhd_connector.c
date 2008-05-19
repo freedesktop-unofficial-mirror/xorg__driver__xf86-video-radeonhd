@@ -140,8 +140,9 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 		      struct rhdCsState **state)
 {
     char *str = NULL;
-    char *typec;
+    char *TypeName;
     char *str1, *str2;
+    int cnt;
 
     ASSERT(state != NULL);
 
@@ -154,18 +155,27 @@ rhdConnectorSynthName(struct rhdConnectorInfo *ConnectorInfo,
 	    return NULL;
 	case RHD_CONNECTOR_DVI:
 	case RHD_CONNECTOR_DVI_SINGLE:
-	    if (ConnectorInfo->Output[0] && ConnectorInfo->Output[1])
-		typec = "I";
-	    else if (ConnectorInfo->Output[0] == RHD_OUTPUT_DACA
+	    if (ConnectorInfo->Output[0] && ConnectorInfo->Output[1]) {
+		TypeName = "DVI-I";
+		cnt = ++(*state)->dvi_cnt;
+	    } else if (ConnectorInfo->Output[0] == RHD_OUTPUT_DACA
 		     || ConnectorInfo->Output[0] == RHD_OUTPUT_DACB
 		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACA
 		     || ConnectorInfo->Output[1] == RHD_OUTPUT_DACB
-		)
-		typec = "A";
-	    else
-		typec = "D";
+		) {
+		if (ConnectorInfo->HPD == RHD_HPD_NONE) {
+		    TypeName = "VGA";
+		    cnt = ++(*state)->vga_cnt;
+		} else {
+		    TypeName = "DVI-A";
+		    cnt = ++(*state)->dvi_cnt;
+		}
+	    } else {
+		TypeName = "DVI-D";
+		cnt = ++(*state)->dvi_cnt;
+	    }
 	    str = xalloc(12);
-	    snprintf(str, 11, "DVI-%s %i",typec, ++(*state)->dvi_cnt);
+	    snprintf(str, 11, "%s %i",TypeName, cnt);
 	    return str;
 
 	case RHD_CONNECTOR_VGA:
