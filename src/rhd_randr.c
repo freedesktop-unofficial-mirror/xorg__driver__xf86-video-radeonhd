@@ -926,12 +926,9 @@ rhdRROutputGetModes(xf86OutputPtr output)
     }
 
     /* Nuke old monitor */
-    if (rout->Connector->Monitor) {
-	/* Modes and EDID are already freed by RandR (OutputSetEDID+return) */
-	rout->Connector->Monitor->Modes = NULL;
-	rout->Connector->Monitor->EDID = NULL;
+    if (rout->Connector->Monitor)
 	RHDMonitorDestroy(rout->Connector->Monitor);
-    }
+
     /* Get new one */
     if (! (rout->Connector->Monitor = RHDMonitorInit(rout->Connector)) ) {
 	xf86OutputSetEDID (output, NULL);
@@ -970,7 +967,7 @@ rhdRROutputGetModes(xf86OutputPtr output)
 	}
     }
 
-    return rout->Connector->Monitor->Modes;
+    return xf86DuplicateModes(output->scrn, rout->Connector->Monitor->Modes);
 }
 
 /* An output's property has changed. */
@@ -1324,7 +1321,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "RandR: No valid modes. Disabled.\n");
+		   "RandR: No valid modes. Disabling RandR support.\n");
 	rhdPtr->randr = NULL;		/* TODO: not cleaning up correctly */
 	return FALSE;
     }
