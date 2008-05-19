@@ -905,8 +905,8 @@ struct {
     { 0, NULL}
 };
 
-static const char *
-rhdModeStatusToString(int Status)
+const char *
+RHDModeStatusToString(int Status)
 {
     if ((Status & 0xFFF00) == RHD_MODE_STATUS) {
         int i;
@@ -1174,7 +1174,7 @@ rhdModeCreateFromName(ScrnInfoPtr pScrn, char *name, Bool Silent)
     if (!Silent)
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
 		   "(%dx%d):\n\t %s\n", name, HDisplay, VDisplay,
-		   rhdModeStatusToString(Status));
+		   RHDModeStatusToString(Status));
     return NULL;
 }
 
@@ -1198,7 +1198,7 @@ rhdModesListValidateAndCopy(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Silent
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Rejected mode \"%s\" "
 			   "(%dx%d:%3.1fMhz): %s\n", Mode->name,
 			   Mode->HDisplay, Mode->VDisplay,
-			   Mode->Clock / 1000.0, rhdModeStatusToString(Status));
+			   Mode->Clock / 1000.0, RHDModeStatusToString(Status));
 	    xfree(Mode->name);
 	    xfree(Mode);
 	}
@@ -1466,7 +1466,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "%s rejected mode \"%s\" "
 			   "(%dx%d): %s\n", Crtc1->Name, Mode->name,
 			   Mode->HDisplay, Mode->VDisplay,
-			   rhdModeStatusToString(ret));
+			   RHDModeStatusToString(ret));
 		goto rejected;
 	    }
 
@@ -1477,7 +1477,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "%s rejected mode \"%s\" "
 			   "(%dx%d): %s\n", Crtc2->Name, Mode->name,
 			   Mode->HDisplay, Mode->VDisplay,
-			   rhdModeStatusToString(ret));
+			   RHDModeStatusToString(ret));
 		goto rejected;
 	    }
 

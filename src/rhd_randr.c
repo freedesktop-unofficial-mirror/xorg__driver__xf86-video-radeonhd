@@ -665,8 +665,8 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     /* Monitor is handled by RandR */
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
 			    rout->Output, NULL);
-    RHDDebug(rhdPtr->scrnIndex, "%s: %s -> Status %d\n", __func__,
-	     Mode->name, Status);
+    RHDDebug(rhdPtr->scrnIndex, "%s: %s: %s\n", __func__,
+	     Mode->name, RHDModeStatusToString(Status));
     xfree(Mode->name);
     xfree(Mode);
     return Status;
@@ -719,8 +719,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     Status = RHDRRModeFixup(out->scrn, Mode, Crtc, rout->Connector,
 			    rout->Output, NULL);
     if (Status != MODE_OK) {
-	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %d\n", __func__,
-		 Mode->name, Status);
+	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
+		 Mode->name, RHDModeStatusToString(Status));
 	return FALSE;
     }
     return TRUE;

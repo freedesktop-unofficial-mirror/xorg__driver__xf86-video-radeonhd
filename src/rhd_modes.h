@@ -40,6 +40,7 @@ DisplayModePtr RHDCVTMode(int HDisplay, int VDisplay, float VRefresh,
 			  Bool Reduced, Bool Interlaced);
 void RHDPrintModeline(DisplayModePtr mode);
 DisplayModePtr RHDModesAdd(DisplayModePtr Modes, DisplayModePtr Additions);
+const char *RHDModeStatusToString(int Status);
 
 DisplayModePtr RHDModesPoolCreate(ScrnInfoPtr pScrn, Bool Silent);
 void RHDModesAttach(ScrnInfoPtr pScrn, DisplayModePtr Modes);
