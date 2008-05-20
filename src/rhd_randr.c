@@ -926,8 +926,11 @@ rhdRROutputGetModes(xf86OutputPtr output)
     }
 
     /* Nuke old monitor */
-    if (rout->Connector->Monitor)
+    if (rout->Connector->Monitor) {
+	/* EDID is already freed by RandR (OutputSetEDID+return) */
+	rout->Connector->Monitor->EDID = NULL;
 	RHDMonitorDestroy(rout->Connector->Monitor);
+    }
 
     /* Get new one */
     if (! (rout->Connector->Monitor = RHDMonitorInit(rout->Connector)) ) {
