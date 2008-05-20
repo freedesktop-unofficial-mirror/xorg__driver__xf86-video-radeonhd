@@ -1227,8 +1227,9 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 			.LVDS_Info->ucLVDS_Misc & 0x02;
 		    break;
 		case     ATOM_LVDS_GREYLVL:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x0C;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & ATOM_PANEL_MISC_GREY_LEVEL)
+			>> ATOM_PANEL_MISC_GREY_LEVEL_SHIFT ;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;

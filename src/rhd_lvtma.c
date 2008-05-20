@@ -651,7 +651,7 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_LVDS_GREYLVL, &data) == ATOM_SUCCESS) {
 	    Private->GreyLevel = data.val;
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "AtomBIOS returned %i Grey Levels\n",
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "AtomBIOS returned %i Grey Levels\n",
 		       Private->GreyLevel);
 	}
     }
