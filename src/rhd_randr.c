@@ -896,9 +896,11 @@ rhdRROutputDetect(xf86OutputPtr output)
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
 	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0)) {
+		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",rout->Output->Name);
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
 	    }  else
+		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned disconnected\n",rout->Output->Name);
 		return XF86OutputStatusDisconnected;
 	}
 	rout->Output->Connector = rout->Connector; /* @@@ */
