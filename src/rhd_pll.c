@@ -352,6 +352,54 @@ R500PLL2SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
 }
 
 /*
+ * The CRTC ownership of each PLL is multiplexed on the PLL blocks, and the
+ * ownership can only be switched when the currently referenced PLL is active.
+ * This makes handling a slight bit more complex.
+ */
+static void
+R500PLLCRTCGrab(struct rhdPLL *PLL, Bool Crtc2)
+{
+    CARD32 Stored;
+    Bool PLL2IsCurrent;
+
+    if (!Crtc2) {
+	PLL2IsCurrent = RHDRegRead(PLL, PCLK_CRTC1_CNTL) & 0x00010000;
+
+	if (PLL->Id == PLL_ID_PLL1)
+	    RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+	else
+	    RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+    } else {
+	PLL2IsCurrent = RHDRegRead(PLL, PCLK_CRTC2_CNTL) & 0x00010000;
+
+	if (PLL->Id == PLL_ID_PLL1)
+	    RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+	else
+	    RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+    }
+
+    /* if the current pll is not active, then poke it just enough to flip
+     * owners */
+    if (!PLL2IsCurrent) {
+	Stored = RHDRegRead(PLL, P1PLL_CNTL);
+
+	if (Stored & 0x03) {
+	    RHDRegMask(PLL, P1PLL_CNTL, 0, 0x03);
+	    usleep(10);
+	    RHDRegMask(PLL, P1PLL_CNTL, Stored, 0x03);
+	}
+    } else {
+	Stored = RHDRegRead(PLL, P2PLL_CNTL);
+
+	if (Stored & 0x03) {
+	    RHDRegMask(PLL, P2PLL_CNTL, 0, 0x03);
+	    usleep(10);
+	    RHDRegMask(PLL, P2PLL_CNTL, Stored, 0x03);
+	}
+    }
+}
+
+/*
  *
  */
 static void
@@ -390,10 +438,9 @@ R500PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     R500PLL1SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
 
     if (rhdPtr->Crtc[0]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
-
+	R500PLLCRTCGrab(PLL, FALSE);
     if (rhdPtr->Crtc[1]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 }
 
 /*
@@ -435,10 +482,9 @@ R500PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
     R500PLL2SetLow(PLL, RefDiv, FBDiv, PostDiv, Control);
 
     if (rhdPtr->Crtc[0]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
-
+	R500PLLCRTCGrab(PLL, FALSE);
     if (rhdPtr->Crtc[1]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 }
 
 /*
@@ -512,9 +558,9 @@ R500PLL1Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreCrtc1Owner)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, FALSE);
     if (PLL->StoreCrtc2Owner)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 }
 
 /*
@@ -548,9 +594,9 @@ R500PLL2Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreCrtc1Owner)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, FALSE);
     if (PLL->StoreCrtc2Owner)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 }
 
 /*
@@ -876,10 +922,9 @@ RV620PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
 		    Control);
 
     if (rhdPtr->Crtc[0]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
-
+	R500PLLCRTCGrab(PLL, FALSE);
     if (rhdPtr->Crtc[1]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 
     if (HasDccg)
 	RV620DCCGCLKSet(PLL, RV620_DCCGCLK_GRAB);
@@ -924,10 +969,9 @@ RV620PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
 		    Control);
 
     if (rhdPtr->Crtc[0]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
-
+	R500PLLCRTCGrab(PLL, FALSE);
     if (rhdPtr->Crtc[1]->PLL == PLL)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 
     if (HasDccg)
 	RV620DCCGCLKSet(PLL, RV620_DCCGCLK_GRAB);
@@ -1045,9 +1089,9 @@ RV620PLL1Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreCrtc1Owner)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, FALSE);
     if (PLL->StoreCrtc2Owner)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 
     if (PLL->StoreDCCGCLKOwner)
 	RHDRegWrite(PLL, DCCG_DISP_CLK_SRCSEL, PLL->StoreDCCGCLK);
@@ -1090,9 +1134,9 @@ RV620PLL2Restore(struct rhdPLL *PLL)
     }
 
     if (PLL->StoreCrtc1Owner)
-	RHDRegMask(PLL, PCLK_CRTC1_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, FALSE);
     if (PLL->StoreCrtc2Owner)
-	RHDRegMask(PLL, PCLK_CRTC2_CNTL, 0x00010000, 0x00010000);
+	R500PLLCRTCGrab(PLL, TRUE);
 
     if (PLL->StoreDCCGCLKOwner)
 	RHDRegWrite(PLL, DCCG_DISP_CLK_SRCSEL, PLL->StoreDCCGCLK);
