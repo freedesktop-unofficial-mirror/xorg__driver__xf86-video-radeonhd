@@ -360,6 +360,10 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "On Crtc %i Setting %3.1f Hz Mode: ",
 		   Crtc->Id, Mode->VRefresh);
 	RHDPrintModeline(Mode);
+	if (OrigMode->VDisplay != Mode->VDisplay || OrigMode->HDisplay != Mode->HDisplay) {
+	    xf86DrvMsg(-1, X_NONE, "Scaled from: ");
+	    RHDPrintModeline(OrigMode);
+	}
     }
 
     /* Set up mode */
