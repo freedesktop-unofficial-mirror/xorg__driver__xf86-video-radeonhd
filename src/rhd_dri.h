@@ -1,7 +1,8 @@
 /*
- * Copyright 2000 ATI Technologies Inc., Markham, Ontario,
- *                VA Linux Systems Inc., Fremont, California.
- *
+ * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007  Egbert Eich   <eich@novell.com>
+ * Copyright 2007  Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -24,13 +25,6 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- */
-
-/*
- * Authors:
- *   Kevin E. Martin <martin@xfree86.org>
- *   Rickard E. Faith <faith@valinux.com>
- *
  */
 
 #ifndef _RHD_DRI_
@@ -56,7 +50,7 @@ extern void RADEONDRIEnterVT(ScreenPtr pScreen);
 extern void RADEONDRILeaveVT(ScreenPtr pScreen);
 extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
 
-/* to be put into rhd_regs.h? Check for official names */
+/* FIXME: to be put into rhd_regs.h? Check for official names */
 #define RADEON_CP_CSQ_CNTL                  0x0740
 #       define RADEON_CSQ_CNT_PRIMARY_MASK     (0xff << 0)
 #       define RADEON_CSQ_PRIDIS_INDDIS        (0    << 28)

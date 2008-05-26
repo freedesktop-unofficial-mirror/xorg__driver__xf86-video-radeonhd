@@ -1,7 +1,10 @@
 /*
- * Copyright 2000 ATI Technologies Inc., Markham, Ontario,
- *                VA Linux Systems Inc., Fremont, California.
- *
+ * Copyright 2000  ATI Technologies Inc., Markham, Ontario,
+ * Copyright 2000  VA Linux Systems Inc., Fremont, California.
+ * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007  Egbert Eich   <eich@novell.com>
+ * Copyright 2007  Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -26,17 +29,21 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 /*
- * Authors:
+ * Based on radeon_dri.c
+ * Original authors:
  *   Kevin E. Martin <martin@xfree86.org>
  *   Rickard E. Faith <faith@valinux.com>
  *   Gareth Hughes <gareth@valinux.com>
- *
+ * Additional main authors:
+ *   Dave Airlie <airlied@linux.ie>
+ *   Michel Dänzer <michel@tungstengraphics.com>
+ *   Benjamin Herrenschmidt <benh@kernel.crashing.org>
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
