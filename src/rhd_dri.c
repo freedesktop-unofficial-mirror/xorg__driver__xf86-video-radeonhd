@@ -66,6 +66,7 @@
 /* Driver data structures */
 #include "rhd.h"
 #include "rhd_regs.h"
+#include "rhd_mc.h"
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
 
@@ -1403,7 +1404,7 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
     				RADEON_VERSION_MAJOR_TILED : */ RADEON_DRIAPI_VERSION_MAJOR;
     pDRIInfo->ddxDriverMinorVersion      = RADEON_DRIAPI_VERSION_MINOR;
     pDRIInfo->ddxDriverPatchVersion      = RADEON_DRIAPI_VERSION_PATCH;
-    pDRIInfo->frameBufferPhysicalAddress = (void *) rhdPtr->FbPCIAddress;
+    pDRIInfo->frameBufferPhysicalAddress = (void *) (size_t) rhdPtr->FbPCIAddress;
 
     pDRIInfo->frameBufferSize            = rhdPtr->FbFreeStart + rhdPtr->FbFreeSize;
     pDRIInfo->frameBufferStride          = (pScrn->displayWidth *
@@ -1608,13 +1609,18 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     /* disable vblank at startup */
     RADEONDRISetVBlankInterrupt (pScrn, FALSE);
 
-#if 0 // FIXME
     /* DRI final init might have changed the memory map, we need to adjust
      * our local image to make sure we restore them properly on mode
-     * changes or VT switches
-     */
-    RADEONAdjustMemMapRegisters(pScrn, info->ModeReg);
-#endif
+     * changes or VT switches */
+    RHDSaveMC(rhdPtr);
+    /* TODO: first RHDMCInit has to be updated to only allocate if necessary /
+     * change FbIntAddress detection to a different function. This also should
+     * show up in EnterVT, regardless of DRI */
+    //RHDMCInit(rhdPtr);
+    /* TODO: If RADEON_PARAM_GART_BASE is ever to be saved/restored, it has
+     * to be updated here. Same on EnterVT. */
+    /* TODO: call drm's DRM_RADEON_GETPARAM in the EXA case, for accelerated
+     * DownloadFromScreen hook. Same on EnterVT. */
 
 #if 0   /// display buffer watermark calculation (legacy_crtc.c)
     if ((info->DispPriority == 1) && (info->cardType==CARD_AGP)) {
@@ -2093,8 +2099,8 @@ static void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
     info->pciGartOffset = rhdPtr->FbFreeStart + rhdPtr->FbFreeSize - info->pciGartSize;
     rhdPtr->FbFreeSize -= info->pciGartSize;
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-	       "FB: Allocated GART table at offset 0x%08lX (size = 0x%08X, end of FB)\n",
-	       info->pciGartOffset, info->pciGartSize);
+	       "FB: Allocated GART table at offset 0x%08X (size = 0x%08X, end of FB)\n",
+	       (unsigned int) info->pciGartOffset, info->pciGartSize);
     info->pciGartBackup = xalloc(info->pciGartSize);
 }
 
@@ -2112,46 +2118,9 @@ static int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t valu
     return ret;
 }
 
-// FIXME , call in EnterVT, RADEONDRIFinishScreenInit
 #if 0
 static void RADEONAdjustMemMapRegisters(ScrnInfoPtr pScrn, RADEONSavePtr save)
 {
-    RADEONInfoPtr  info   = RADEONPTR(pScrn);
-    CARD32 fb, agp, agp_hi;
-    int changed = 0;
-
-    if (info->IsSecondary)
-      return;
-
-    radeon_read_mc_fb_agp_location(pScrn, LOC_FB | LOC_AGP, &fb, &agp, &agp_hi);
-
-    if (fb != save->mc_fb_location || agp != save->mc_agp_location ||
-	agp_hi != save->mc_agp_location_hi)
-	changed = 1;
-
-    if (changed) {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "DRI init changed memory map, adjusting ...\n");
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "  MC_FB_LOCATION  was: 0x%08lx is: 0x%08lx\n",
-		   (long unsigned int)save->mc_fb_location, (long unsigned int)fb);
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "  MC_AGP_LOCATION was: 0x%08lx is: 0x%08lx\n",
-		   (long unsigned int)save->mc_agp_location, (long unsigned int)agp);
-	save->mc_fb_location = fb;
-	save->mc_agp_location = agp;
-	save->mc_agp_location_hi = agp_hi;
-	if (info->ChipFamily >= CHIP_FAMILY_R600)
-	    info->fbLocation = (save->mc_fb_location & 0xffff) << 24;
-	else
-	    info->fbLocation = (save->mc_fb_location & 0xffff) << 16;
-
-	if (!IS_AVIVO_VARIANT) {
-	    save->display_base_addr = info->fbLocation;
-	    save->display2_base_addr = info->fbLocation;
-	    save->ov0_base_addr = info->fbLocation;
-	}
-
 	// TODO Nuke (back-to-front w/ offsets)
 	((struct R5xx2DInfo *)rhdPtr->TwoDInfo)->dst_pitch_offset =
 	    (((pScrn->displayWidth * info->CurrentLayout.pixel_bytes / 64)
@@ -2159,29 +2128,5 @@ static void RADEONAdjustMemMapRegisters(ScrnInfoPtr pScrn, RADEONSavePtr save)
 
 	RADEONRestoreMemMapRegisters(pScrn, save);
     }
-
-#if 0
-#ifdef USE_EXA
-    if (info->accelDFS)
-    {
-	drmRadeonGetParam gp;
-	int gart_base;
-
-	memset(&gp, 0, sizeof(gp));
-	gp.param = RADEON_PARAM_GART_BASE;
-	gp.value = &gart_base;
-
-	if (drmCommandWriteRead(info->drmFD, DRM_RADEON_GETPARAM, &gp,
-				sizeof(gp)) < 0) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Failed to determine GART area MC location, not using "
-		       "accelerated DownloadFromScreen hook!\n");
-	    info->accelDFS = FALSE;
-	} else {
-	    info->gartLocation = gart_base;
-	}
-    }
-#endif /* USE_EXA */
-#endif
 }
 #endif
