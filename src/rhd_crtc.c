@@ -589,30 +589,6 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
  *
  */
 static void
-D1PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
-{
-    RHDFUNC(Crtc);
-
-    RHDRegMask(Crtc, PCLK_CRTC1_CNTL, PLL->Id << 16, 0x00010000);
-    Crtc->PLL = PLL;
-}
-
-/*
- *
- */
-static void
-D2PLLSelect(struct rhdCrtc *Crtc, struct rhdPLL *PLL)
-{
-    RHDFUNC(Crtc);
-
-    RHDRegMask(Crtc, PCLK_CRTC2_CNTL, PLL->Id << 16, 0x00010000);
-    Crtc->PLL = PLL;
-}
-
-/*
- *
- */
-static void
 D1LUTSelect(struct rhdCrtc *Crtc, struct rhdLUT *LUT)
 {
     RHDFUNC(Crtc);
