@@ -1161,6 +1161,9 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
+    /* DRM might have changed the memory map */
+    RHDMCReadIntAddress(rhdPtr);
+
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
 
@@ -1528,7 +1531,7 @@ rhdMapFB(RHDPtr rhdPtr)
     if (!rhdPtr->FbBase) {
 
 	rhdPtr->FbPhysAddress = rhdPtr->FbPCIAddress;
-	if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
+	if (rhdPtr->FbMapSize > (unsigned) pScrn->videoRam * 1024)
 	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 
 #ifdef XSERVER_LIBPCIACCESS

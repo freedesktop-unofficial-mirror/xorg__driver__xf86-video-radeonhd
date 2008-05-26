@@ -142,7 +142,6 @@ struct rhdDri {
     int               irq;
 
     int               have3Dwindows;
-//    Bool              allowPageFlip;    /* Enable 3d page flipping */
 
     drmSize           gartSize;
     drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
@@ -1494,11 +1493,9 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     /* DRI final init might have changed the memory map, we need to adjust
      * our local image to make sure we restore them properly on mode
      * changes or VT switches */
+    RHDMCReadIntAddress(rhdPtr);
     RHDSaveMC(rhdPtr);
-    /* TODO: first RHDMCInit has to be updated to only allocate if necessary /
-     * change FbIntAddress detection to a different function. This also should
-     * show up in EnterVT, regardless of DRI */
-    //RHDMCInit(rhdPtr);
+
     /* TODO: If RADEON_PARAM_GART_BASE is ever to be saved/restored, it has
      * to be updated here. Same on EnterVT. */
     /* TODO: call drm's DRM_RADEON_GETPARAM in the EXA case, for accelerated

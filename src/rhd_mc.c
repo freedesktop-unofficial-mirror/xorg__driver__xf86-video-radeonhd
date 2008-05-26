@@ -488,6 +488,34 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
     return FALSE;
 }
 
+/* drm might change the graphics card's internal view of the memory map */
+void
+RHDMCReadIntAddress(RHDPtr rhdPtr)
+{
+    unsigned int addr;
+
+    /* These devices have an internal address reference, which some other
+     * address registers in there also use. This can be different from the
+     * address in the BAR */
+    if (rhdPtr->ChipSet < RHD_R600)
+	addr = RHDRegRead(rhdPtr, HDP_FB_LOCATION) << 16;
+    else
+	addr = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
+
+    if (rhdPtr->FbIntAddress != 0 && rhdPtr->FbIntAddress != addr)
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Card internal address has "
+		   "been changed by drm from 0x%08X to 0x%08X. "
+		   "This is untested!\n",
+		   rhdPtr->FbIntAddress, addr);
+    rhdPtr->FbIntAddress = addr;
+
+    if (rhdPtr->FbIntAddress != rhdPtr->FbPhysAddress)
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
+		   "0x%08X while card Internal Address is 0x%08X\n",
+		   (unsigned int) rhdPtr->FbPhysAddress,
+		   rhdPtr->FbIntAddress);
+}
+
 /*
  *
  */
@@ -498,22 +526,7 @@ RHDMCInit(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    /*
-     *These devices have an internal address reference, which some other
-     * address registers in there also use. This can be different from the
-     * address in the BAR
-     */
-    if (rhdPtr->ChipSet < RHD_R600)
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, HDP_FB_LOCATION)
-			       << 16;
-    else
-	rhdPtr->FbIntAddress = RHDRegRead(rhdPtr, R6XX_CONFIG_FB_BASE);
-
-    if (rhdPtr->FbIntAddress != rhdPtr->FbPhysAddress)
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "PCI FB Address (BAR) is at "
-		       "0x%08X while card Internal Address is 0x%08X\n",
-		       (unsigned int) rhdPtr->FbPhysAddress,
-		       rhdPtr->FbIntAddress);
+    RHDMCReadIntAddress(rhdPtr);
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
 	       rhdPtr->FbBase, rhdPtr->FbMapSize);
 
