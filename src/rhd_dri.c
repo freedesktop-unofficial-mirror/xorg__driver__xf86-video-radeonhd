@@ -78,9 +78,10 @@
 struct rhdDri {
     int               scrnIndex;
 
-    /* FIXME: Save&Restore is still a TODO
-     * Need to save/restore/update on drm init:
-     * GEN_INT_CNTL (interrupts), AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION */
+    /* FIXME: Some Save&Restore is still a TODO
+     * Need to save/restore/update GEN_INT_CNTL (interrupts) on drm init.
+     * AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION are (partially) handled
+     * in _mc.c */
 
     /* TODO: color tiling
      * discuss: should front buffer ever be tiled?
@@ -104,11 +105,7 @@ struct rhdDri {
     int               irq;
 
     int               have3Dwindows;
-    Bool              allowPageFlip;    /* Enable 3d page flipping */	//TODO
-#ifdef DAMAGE
-    DamagePtr         pDamage;
-    RegionRec         driRegion;
-#endif
+//    Bool              allowPageFlip;    /* Enable 3d page flipping */
 
     drmSize           gartSize;
     drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
@@ -147,9 +144,6 @@ struct rhdDri {
     int               log2GARTTexGran;
 
     /* DRI screen private data */
-    int               backX;	// TODO Nuke (back-to-front w/ offsets)
-    int               backY;	// TODO Nuke (back-to-front w/ offsets)
-
     int               frontOffset;
     int               frontPitch;
     int               backOffset;
@@ -164,11 +158,6 @@ struct rhdDri {
     int               pciGartSize;
     CARD32            pciGartOffset;
     void             *pciGartBackup;
-#ifdef USE_XAA
-    CARD32            frontPitchOffset;	// TODO Nuke (back-to-front w/ offsets)
-    CARD32            backPitchOffset;	// TODO Nuke (back-to-front w/ offsets)
-    CARD32            depthPitchOffset;	// TODO Nuke (back-to-front w/ offsets)
-#endif
 
     // FIXME: probably belongs to 2D accel
 #if 0
@@ -203,15 +192,6 @@ static void RADEONDRITransitionTo2d(ScreenPtr pScreen);
 static void RADEONDRITransitionTo3d(ScreenPtr pScreen);
 static void RADEONDRITransitionMultiToSingle3d(ScreenPtr pScreen);
 static void RADEONDRITransitionSingleToMulti3d(ScreenPtr pScreen);
-
-#ifdef DAMAGE
-static void RADEONDRIRefreshArea(ScrnInfoPtr pScrn, RegionPtr pReg);
-
-#if (DRIINFO_MAJOR_VERSION > 5 ||		\
-     (DRIINFO_MAJOR_VERSION == 5 && DRIINFO_MINOR_VERSION >= 1))
-static void RADEONDRIClipNotify(ScreenPtr pScreen, WindowPtr *ppWin, int num);
-#endif
-#endif
 
 
 /* Initialize the visual configs that are supported by the hardware.
@@ -344,8 +324,7 @@ static void RADEONDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
  * not necessary for the Radeon since the client detects when it's
  * context is not currently loaded and then load's it itself.  Since the
  * registers to start and stop the CP are privileged, only the X server
- * can start/stop the engine.
- */
+ * can start/stop the engine. */
 static void RADEONEnterServer(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
@@ -363,25 +342,6 @@ static void RADEONEnterServer(ScreenPtr pScreen)
 	info->needCacheFlush = TRUE; /*(info->ChipFamily >= CHIP_FAMILY_R300)*/
     }
 #endif
-
-#ifdef DAMAGE
-    if (!info->pDamage && info->allowPageFlip) {
-	PixmapPtr pPix  = pScreen->GetScreenPixmap(pScreen);
-	info->pDamage = DamageCreate(NULL, NULL, DamageReportNone, TRUE,
-				     pScreen, pPix);
-
-	if (info->pDamage == NULL) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "No screen damage record, page flipping disabled\n");
-	    info->allowPageFlip = 0;
-	} else {
-	    DamageRegister(&pPix->drawable, info->pDamage);
-
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "Damage tracking initialized for page flipping\n");
-	}
-    }
-#endif
 }
 
 /* Called when the X server goes to sleep to allow the X server's
@@ -389,29 +349,14 @@ static void RADEONEnterServer(ScreenPtr pScreen)
  * is not necessary for the Radeon since the client detects when it's
  * context is not currently loaded and then load's it itself.  Since the
  * registers to start and stop the CP are privileged, only the X server
- * can start/stop the engine.
- */
+ * can start/stop the engine. */
 static void RADEONLeaveServer(ScreenPtr pScreen)
 {
-//    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-//    struct rhdDri *  info  = RHDPTR(pScrn)->dri;
 //    RING_LOCALS;
-
-#ifdef DAMAGE
-    if (info->pDamage) {
-	RegionPtr pDamageReg = DamageRegion(info->pDamage);
-	int nrects = pDamageReg ? REGION_NUM_RECTS(pDamageReg) : 0;
-
-	if (nrects) {
-	    RADEONDRIRefreshArea(pScrn, pDamageReg);
-	}
-    }
-#endif
 
     // TODO: -> cp module
     /* The CP is always running, but if we've generated any CP commands
-     * we must flush them to the kernel module now.
-     */
+     * we must flush them to the kernel module now. */
 //    RADEONCP_RELEASE(pScrn, info);
 
 }
@@ -419,8 +364,7 @@ static void RADEONLeaveServer(ScreenPtr pScreen)
 /* Contexts can be swapped by the X server if necessary.  This callback
  * is currently only used to perform any functions necessary when
  * entering or leaving the X server, and in the future might not be
- * necessary.
- */
+ * necessary. */
 static void RADEONDRISwapContext(ScreenPtr pScreen, DRISyncType syncType,
 				 DRIContextType oldContextType,
 				 void *oldContext,
@@ -544,8 +488,7 @@ static void RADEONSetAgpBase(struct rhdDri * info)
 }
 
 /* Initialize the AGP state.  Request memory for use in AGP space, and
- * initialize the Radeon registers to point to that memory.
- */
+ * initialize the Radeon registers to point to that memory. */
 static Bool RADEONDRIAgpInit(struct rhdDri * info, ScreenPtr pScreen)
 {
     int            ret;
@@ -662,8 +605,7 @@ static Bool RADEONDRIAgpInit(struct rhdDri * info, ScreenPtr pScreen)
 }
 
 /* Initialize the PCI GART state.  Request memory for use in PCI space,
- * and initialize the Radeon registers to point to that memory.
- */
+ * and initialize the Radeon registers to point to that memory. */
 static Bool RADEONDRIPciInit(struct rhdDri * info, ScreenPtr pScreen)
 {
     int  ret;
@@ -772,8 +714,7 @@ static Bool RADEONDRIPciInit(struct rhdDri * info, ScreenPtr pScreen)
 }
 
 /* Add a map for the MMIO registers that will be accessed by any
- * DRI-based clients.
- */
+ * DRI-based clients. */
 static Bool RADEONDRIMapInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 {
     struct rhdDri *info = rhdPtr->dri;
@@ -835,8 +776,7 @@ static int RADEONDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     // FIXME: this is to be moved to rhd_cp
     /* DRM_RADEON_CP_INIT does an engine reset, which resets some engine
      * registers back to their default values, so we need to restore
-     * those engine register here.
-     */
+     * those engine register here. */
 //    RADEONEngineRestore(pScrn);
 
     return TRUE;
@@ -863,8 +803,7 @@ static void RADEONDRIGartHeapInit(struct rhdDri * info, ScreenPtr pScreen)
 }
 
 /* Add a map for the vertex buffers that will be accessed by any
- * DRI-based clients.
- */
+ * DRI-based clients. */
 static Bool RADEONDRIBufInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 {
     struct rhdDri *info = rhdPtr->dri;
@@ -938,10 +877,6 @@ static void RADEONDRICPStart(ScrnInfoPtr pScrn)
     int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
     if (_ret)
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: CP start %d\n", __FUNCTION__, _ret);
-#ifdef USE_XAA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
-	((struct R5xx2DInfo *)rhdPtr->TwoDInfo)->dst_pitch_offset = info->frontPitchOffset;    // TODO Nuke (back-to-front w/ offsets)
-#endif
 }
 
 
@@ -955,8 +890,7 @@ static Bool RADEONDRIGetVersion(ScrnInfoPtr pScrn)
     char           *busId;
 
     /* Check that the GLX, DRI, and DRM modules have been loaded by testing
-     * for known symbols in each module.
-     */
+     * for known symbols in each module. */
     if (!xf86LoaderCheckSymbol("GlxSetVisualConfigs")) return FALSE;
     if (!xf86LoaderCheckSymbol("drmAvailable"))        return FALSE;
     if (!xf86LoaderCheckSymbol("DRIQueryVersion")) {
@@ -1070,7 +1004,7 @@ static Bool RADEONDRIGetVersion(ScrnInfoPtr pScrn)
 
 static Bool RADEONDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
 {
-#ifdef RADEON_SETPARAM_VBLANK_CRTC	// FIXME no needed with right drm vers
+#ifdef RADEON_SETPARAM_VBLANK_CRTC
     struct rhdDri *  info    = RHDPTR(pScrn)->dri;
     int value = 0;
 
@@ -1099,8 +1033,6 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info;
-    MessageType    from;
-    char          *reason;
 
     if (! rhdPtr->useDRI.val.bool) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by default. Use Option DRI to enable.\n");
@@ -1182,31 +1114,6 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 #endif
 
     info->gartTexSize = info->gartSize - (info->ringSize + info->bufSize);
-
-    info->allowPageFlip = 0;
-    reason = "";
-
-#ifdef DAMAGE
-    from = X_DEFAULT;
-#if 0
-	from = xf86GetOptValBool(rhdPtr->Options, OPTION_PAGE_FLIP,
-				 &info->allowPageFlip) ? X_CONFIG : X_DEFAULT;
-	if (IS_AVIVO_VARIANT) {
-	    info->allowPageFlip = 0;
-	    reason = " on r5xx and newer chips.\n";
-	} else {
-	    reason = "";
-	}
-    }
-#endif
-#else
-    from = X_DEFAULT;
-    reason = " because Damage layer not available at build time";
-#endif
-
-    xf86DrvMsg(pScrn->scrnIndex, from, "Page Flipping %sabled%s\n",
-	       info->allowPageFlip ? "en" : "dis", reason);
-
     radeon_drm_page_size = getpagesize();
 
     info->pixel_code     = (pScrn->bitsPerPixel != 16
@@ -1214,12 +1121,7 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 			    : pScrn->depth);
 
     /* Only 16 and 32 color depths are supports currently. */
-    switch (info->pixel_code) {
-    case 16:
-    case 32:
-	break;
-
-    default:
+    if (info->pixel_code != 16 && info->pixel_code != 32) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "[dri] RADEONInitVisualConfigs failed "
 		   "(depth %d not supported).  "
@@ -1227,10 +1129,10 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 	xfree(info);
 	rhdPtr->dri = NULL;
 	return FALSE;
-
     }
 
-    /* Currently 32bpp pixel buffer implies 32bpp depth. Same for 16bpp */
+    /* Currently 32bpp pixel buffer implies 32bpp depth(+stencil).
+     * Same for 16bpp. */
     info->depthBits = pScrn->depth;
 
     if (rhdPtr->AccelMethod != RHD_ACCEL_NONE) {
@@ -1252,7 +1154,6 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
     struct rhdDri *info    = rhdPtr->dri;
     int            bytesPerPixel      = pScrn->bitsPerPixel / 8;
     int            depthBytesPerPixel = (info->depthBits == 24 ? 32 : info->depthBits) / 8;
-    int            bytesPerLine       = pScrn->displayWidth * bytesPerPixel;
     int            size, depth_size;
     unsigned int   old_freeoffset, old_freesize;
 
@@ -1276,17 +1177,9 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
     info->backPitch   = pScrn->displayWidth;
     info->backOffset  = RHDAllocFb(rhdPtr, size, "DRI Back Buffer");
 
-    /* FIXME: Uh-oh. This assumes that the back buffer is immedeately
-     * allocated after the front buffer. Otherwise backY/X will be too high */
-    info->backY = (info->backOffset - info->frontOffset)
-		  / bytesPerLine;
-    info->backX = (info->backOffset - info->frontOffset
-		   - (info->backY * bytesPerLine)) / bytesPerPixel;
-
     /* Due to tiling, the Z buffer pitch must be a multiple of 32 pixels,
      * which is always the case if color tiling is used due to color pitch
-     * but not necessarily otherwise, and its height a multiple of 16 lines.
-     */
+     * but not necessarily otherwise, and its height a multiple of 16 lines. */
     info->depthPitch  = ALIGN(pScrn->displayWidth,32);
     depth_size = ALIGN(pScrn->virtualY, 16) * info->depthPitch
                  * depthBytesPerPixel;
@@ -1308,8 +1201,7 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
 	    l = RADEON_LOG_TEX_GRANULARITY;
 	/* Round the texture size up to the nearest whole number of
 	 * texture regions.  Again, be greedy about this, don't
-	 * round down.
-	 */
+	 * round down. */
 	info->log2TexGran = l;
 	info->textureSize = (info->textureSize >> l) << l;
     } else {
@@ -1318,22 +1210,6 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
     if (info->textureSize < 512 * 1024)
 	/* Minimum texture size is for 2 256x256x32bpp textures */
 	info->textureSize = 0;
-
-#if 0	// TODO Nuke (back-to-front w/ offsets)
-    /* RADEON_BUFFER_ALIGN is not sufficient for backbuffer!
-       At least for pageflip + color tiling, need to make sure it's 16 scanlines aligned,
-       otherwise the copy-from-front-to-back will fail (width_bytes * 16 will also guarantee
-       it's still 4kb aligned for tiled case). Need to round up offset (might get into cursor
-       area otherwise).
-       This might cause some space at the end of the video memory to be unused, since it
-       can't be used (?) due to that log_tex_granularity thing???
-       Could use different copyscreentoscreen function for the pageflip copies
-       (which would use different src and dst offsets) to avoid this. */
-    if (info->allowColorTiling /* && !info->noBackBuffer*/) {
-	info->textureSize = info->FbMapSize - ((info->FbMapSize - info->textureSize +
-			  width_bytes * 16 - 1) / (width_bytes * 16)) * (width_bytes * 16);
-    }
-#endif
 
     if (info->textureSize > 0) {
 	info->textureOffset = RHDAllocFb(rhdPtr, info->textureSize,
@@ -1350,17 +1226,6 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "Using %d MB for GART textures\n", info->gartTexSize);
 
-#ifdef USE_XAA	// TODO Nuke (back-to-front w/ offsets)
-    info->frontPitchOffset = (((info->frontPitch * bytesPerPixel / 64) << 22) |
-			      ((info->frontOffset+rhdPtr->FbIntAddress) >> 10));
-
-    info->backPitchOffset = (((info->backPitch * bytesPerPixel / 64) << 22) |
-			     ((info->backOffset+rhdPtr->FbIntAddress) >> 10));
-
-    info->depthPitchOffset = (((info->depthPitch * depthBytesPerPixel / 64) << 22) |
-			      ((info->depthOffset+rhdPtr->FbIntAddress) >> 10));
-#endif
-
     return TRUE;
 }
 
@@ -1368,8 +1233,7 @@ Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn)
 /* Initialize the screen-specific data structures for the DRI and the
  * Radeon.  This is the main entry point to the device-specific
  * initialization code.  It calls device-independent DRI functions to
- * create the DRI data structures and initialize the DRI state.
- */
+ * create the DRI data structures and initialize the DRI state. */
 Bool RADEONDRIScreenInit(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn   = xf86Screens[pScreen->myNum];
@@ -1443,30 +1307,9 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
     pDRIInfo->TransitionTo3d = RADEONDRITransitionTo3d;
     pDRIInfo->TransitionSingleToMulti3D = RADEONDRITransitionSingleToMulti3d;
     pDRIInfo->TransitionMultiToSingle3D = RADEONDRITransitionMultiToSingle3d;
-#if defined(DAMAGE) && (DRIINFO_MAJOR_VERSION > 5 ||	\
-			(DRIINFO_MAJOR_VERSION == 5 &&	\
-			 DRIINFO_MINOR_VERSION >= 1))
-    pDRIInfo->ClipNotify     = RADEONDRIClipNotify;
-#endif
 
     pDRIInfo->createDummyCtx     = TRUE;
     pDRIInfo->createDummyCtxPriv = FALSE;
-
-#ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-#if DRIINFO_MAJOR_VERSION == 5 && DRIINFO_MINOR_VERSION >= 3
-       int major, minor, patch;
-
-       DRIQueryVersion(&major, &minor, &patch);
-
-//       if (minor >= 3)
-#endif
-#if DRIINFO_MAJOR_VERSION > 5 || \
-    (DRIINFO_MAJOR_VERSION == 5 && DRIINFO_MINOR_VERSION >= 3)
-//	  pDRIInfo->texOffsetStart = RADEONTexOffsetStart;
-#endif
-    }
-#endif
 
     if (!DRIScreenInit(pScreen, pDRIInfo, &info->drmFD)) {
 	xf86DrvMsg(pScreen->myNum, X_ERROR,
@@ -1534,7 +1377,7 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "[drm] failed set pci gart location\n");
 
-#ifdef RADEON_SETPARAM_PCIGART_TABLE_SIZE	// FIXME no needed with right drm vers
+#ifdef RADEON_SETPARAM_PCIGART_TABLE_SIZE
 	if (RADEONDRISetParam(pScrn, RADEON_SETPARAM_PCIGART_TABLE_SIZE, info->pciGartSize) < 0)
 	  xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		     "[drm] failed set pci gart table size\n");
@@ -1622,12 +1465,10 @@ Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen)
     /* TODO: call drm's DRM_RADEON_GETPARAM in the EXA case, for accelerated
      * DownloadFromScreen hook. Same on EnterVT. */
 
-#if 0   /// display buffer watermark calculation (legacy_crtc.c)
-    if ((info->DispPriority == 1) && (info->cardType==CARD_AGP)) {
-	/* we need to re-calculate bandwidth because of AGPMode difference. */
-	RADEONInitDispBandwidth(pScrn);
-    }
-#endif
+    /* TODO: display buffer watermark calculation
+     * (radeon: legacy_crtc.c/InitDispBandwidth)
+     * Don't know the registers for r5xx & r6xx yet.
+     * Probably should be in _driver.c anyway. */
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering enabled\n");
 
 #if 0
@@ -1772,9 +1613,6 @@ Bool RADEONDRICloseScreen(ScreenPtr pScreen)
 		    "RADEONDRICloseScreen\n");
 
      RADEONDRIStop (pScreen);
-#ifdef DAMAGE
-     REGION_UNINIT(pScreen, &info->driRegion);
-#endif
 
      if (info->irq) {
 	RADEONDRISetVBlankInterrupt (pScrn, FALSE);
@@ -1855,135 +1693,6 @@ Bool RADEONDRICloseScreen(ScreenPtr pScreen)
 }
 
 
-// FIXME this doesn't work yet, probably doesn't even compile
-#ifdef DAMAGE
-
-/* Page flipping for single 3D applications */
-
-/* Use the damage layer to maintain a list of dirty rectangles.
- * These are blitted to the back buffer to keep both buffers clean
- * during page-flipping when the 3d application isn't fullscreen.
- *
- * An alternative to this would be to organize for all on-screen drawing
- * operations to be duplicated for the two buffers.  That might be
- * faster, but seems like a lot more work...
- */
-
-static void RADEONDRIRefreshArea(ScrnInfoPtr pScrn, RegionPtr pReg)
-{
-    struct rhdDri *       info       = RHDPTR(pScrn)->dri;
-    int                 i, num;
-    ScreenPtr           pScreen    = pScrn->pScreen;
-    drm_radeon_sarea_t *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
-#ifdef USE_EXA
-    PixmapPtr           pPix = pScreen->GetScreenPixmap(pScreen);
-#endif
-    RegionRec region;
-    BoxPtr pbox;
-
-    if (!info->CPStarted)
-	return;
-
-    /* Don't want to do this when no 3d is active and pages are
-     * right-way-round
-     */
-/*    if (!pSAREAPriv->pfAllowPageFlip && pSAREAPriv->pfCurrentPage == 0) Called pfState in radeon_drm?!? */
-    if (!pSAREAPriv->pfState && pSAREAPriv->pfCurrentPage == 0)
-	return;
-
-    REGION_NULL(pScreen, &region);
-    REGION_SUBTRACT(pScreen, &region, pReg, &info->driRegion);
-
-    num = REGION_NUM_RECTS(&region);
-
-    if (!num) {
-	goto out;
-    }
-
-    pbox = REGION_RECTS(&region);
-
-    /* pretty much a hack. */
-
-#ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	CARD32 src_pitch_offset, dst_pitch_offset, datatype;
-
-	RADEONGetPixmapOffsetPitch(pPix, &src_pitch_offset);
-	dst_pitch_offset = src_pitch_offset + (info->backOffset >> 10);
-	RADEONGetDatatypeBpp(pScrn->bitsPerPixel, &datatype);
-	info->xdir = info->ydir = 1;
-
-	RADEONDoPrepareCopyCP(pScrn, src_pitch_offset, dst_pitch_offset, datatype,
-			      GXcopy, ~0);
-    }
-#endif
-
-#ifdef USE_XAA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	/* Make sure accel has been properly inited */
-	if (info->accel == NULL || info->accel->SetupForScreenToScreenCopy == NULL)
-	    goto out;
-///	if (info->tilingEnabled)
-///	    rhdPtr->TwoDInfo->dst_pitch_offset |= RADEON_DST_TILE_MACRO;
-	(*info->accel->SetupForScreenToScreenCopy)(pScrn,
-						   1, 1, GXcopy,
-						   (CARD32)(-1), -1);
-    }
-#endif
-
-    for (i = 0 ; i < num ; i++, pbox++) {
-	int xa = max(pbox->x1, 0), xb = min(pbox->x2, pScrn->virtualX-1);
-	int ya = max(pbox->y1, 0), yb = min(pbox->y2, pScrn->virtualY-1);
-
-	if (xa <= xb && ya <= yb) {
-#ifdef USE_EXA
-	    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-		RADEONCopyCP(pPix, xa, ya, xa, ya, xb - xa + 1, yb - ya + 1);
-	    }
-#endif
-
-#ifdef USE_XAA
-	    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-		(*info->accel->SubsequentScreenToScreenCopy)(pScrn, xa, ya,
-							     xa + info->backX,
-							     ya + info->backY,
-							     xb - xa + 1,
-							     yb - ya + 1);
-	    }
-#endif
-	}
-    }
-
-#ifdef USE_XAA
-///    rhdPtr->TwoDInfo->dst_pitch_offset &= ~RADEON_DST_TILE_MACRO;
-#endif
-
-out:
-    REGION_NULL(pScreen, &region);
-    DamageEmpty(info->pDamage);
-}
-
-#endif /* DAMAGE */
-
-static void RADEONEnablePageFlip(ScreenPtr pScreen)
-{
-#ifdef DAMAGE
-    ScrnInfoPtr         pScrn      = xf86Screens[pScreen->myNum];
-    struct rhdDri *       info       = RHDPTR(pScrn)->dri;
-
-    if (info->allowPageFlip) {
-	drm_radeon_sarea_t * pSAREAPriv = DRIGetSAREAPrivate(pScreen);
-	BoxRec box = { .x1 = 0, .y1 = 0, .x2 = pScrn->virtualX - 1,
-		       .y2 = pScrn->virtualY - 1 };
-	RegionPtr pReg = REGION_CREATE(pScreen, &box, 1);
-
-	pSAREAPriv->pfState = 1;
-	RADEONDRIRefreshArea(pScrn, pReg);
-	REGION_DESTROY(pScreen, pReg);
-    }
-#endif
-}
-
 static void RADEONDisablePageFlip(ScreenPtr pScreen)
 {
     drm_radeon_sarea_t *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
@@ -1998,7 +1707,7 @@ static void RADEONDRITransitionSingleToMulti3d(ScreenPtr pScreen)
 static void RADEONDRITransitionMultiToSingle3d(ScreenPtr pScreen)
 {
     /* Let the remaining 3d app start page flipping again */
-    RADEONEnablePageFlip(pScreen);
+//    RADEONEnablePageFlip(pScreen);
 }
 
 static void RADEONDRITransitionTo3d(ScreenPtr pScreen)
@@ -2008,7 +1717,7 @@ static void RADEONDRITransitionTo3d(ScreenPtr pScreen)
 
     info->have3Dwindows = TRUE;
 //    RADEONChangeSurfaces(pScrn);	// FIXME needed for tiling
-    RADEONEnablePageFlip(pScreen);
+//    RADEONEnablePageFlip(pScreen);
 
     RADEONDRISetVBlankInterrupt(pScrn, TRUE);
 }
@@ -2033,38 +1742,10 @@ static void RADEONDRITransitionTo2d(ScreenPtr pScreen)
 		   "[dri] RADEONDRITransitionTo2d: "
 		   "kernel failed to unflip buffers.\n");
     }
-
 //    RADEONChangeSurfaces(pScrn);
 
     RADEONDRISetVBlankInterrupt(pScrn, FALSE);
 }
-
-#if defined(DAMAGE) && (DRIINFO_MAJOR_VERSION > 5 ||	\
-			(DRIINFO_MAJOR_VERSION == 5 &&	\
-			 DRIINFO_MINOR_VERSION >= 1))
-static void
-RADEONDRIClipNotify(ScreenPtr pScreen, WindowPtr *ppWin, int num)
-{
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    struct rhdDri * info = RHDPTR(pScrn)->dri;
-
-    REGION_UNINIT(pScreen, &info->driRegion);
-    REGION_NULL(pScreen, &info->driRegion);
-
-    if (num > 0) {
-	int i;
-
-	for (i = 0; i < num; i++) {
-	    WindowPtr pWin = ppWin[i];
-
-	    if (pWin) {
-		REGION_UNION(pScreen, &info->driRegion, &pWin->clipList,
-			     &info->driRegion);
-	    }
-	}
-    }
-}
-#endif
 
 static int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
 {
@@ -2118,15 +1799,3 @@ static int RADEONDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t valu
     return ret;
 }
 
-#if 0
-static void RADEONAdjustMemMapRegisters(ScrnInfoPtr pScrn, RADEONSavePtr save)
-{
-	// TODO Nuke (back-to-front w/ offsets)
-	((struct R5xx2DInfo *)rhdPtr->TwoDInfo)->dst_pitch_offset =
-	    (((pScrn->displayWidth * info->CurrentLayout.pixel_bytes / 64)
-	      << 22) | ((info->fbLocation + pScrn->fbOffset) >> 10));
-
-	RADEONRestoreMemMapRegisters(pScrn, save);
-    }
-}
-#endif
