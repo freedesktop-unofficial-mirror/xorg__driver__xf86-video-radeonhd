@@ -33,22 +33,15 @@
 #include "GL/glxint.h"
 #include "xf86drm.h"
 
-/* FIXME: probably to be put somewhere else */
-typedef enum {
-	CARD_PCI,
-	CARD_AGP,
-	CARD_PCIE
-} RADEONCardType;
+extern Bool RHDDRIPreInit(ScrnInfoPtr pScrn);
+extern Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn);
+extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 
-extern Bool RADEONDRIPreInit(ScrnInfoPtr pScrn);
-extern Bool RADEONDRIAllocateBuffers(ScrnInfoPtr pScrn);
-extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
-
-extern Bool RADEONDRICloseScreen(ScreenPtr pScreen);
-extern Bool RADEONDRIFinishScreenInit(ScreenPtr pScreen);
-extern void RADEONDRIEnterVT(ScreenPtr pScreen);
-extern void RADEONDRILeaveVT(ScreenPtr pScreen);
-extern Bool RADEONDRIScreenInit(ScreenPtr pScreen);
+extern Bool RHDDRICloseScreen(ScreenPtr pScreen);
+extern Bool RHDDRIFinishScreenInit(ScreenPtr pScreen);
+extern void RHDDRIEnterVT(ScreenPtr pScreen);
+extern void RHDDRILeaveVT(ScreenPtr pScreen);
+extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 
 /* FIXME: to be put into rhd_regs.h? Check for official names */
 #define RADEON_CP_CSQ_CNTL                  0x0740

@@ -717,7 +717,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 #endif
 
 #ifdef XF86DRI
-    RADEONDRIPreInit(pScrn);
+    RHDDRIPreInit(pScrn);
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
@@ -910,7 +910,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
 #ifdef XF86DRI
     if (rhdPtr->dri)
-	RADEONDRIAllocateBuffers(pScrn);
+	RHDDRIAllocateBuffers(pScrn);
 #endif
 
     RHDDebug(pScrn->scrnIndex, "Free FB offset 0x%08X (size = 0x%08X)\n",
@@ -970,7 +970,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
      * call back. */
     if (rhdPtr->dri)
-	RADEONDRIScreenInit(pScreen);
+	RHDDRIScreenInit(pScreen);
 #endif
 
     /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
@@ -1014,7 +1014,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef XF86DRI
     if (rhdPtr->dri)
-	RADEONDRIFinishScreenInit(pScreen);
+	RHDDRIFinishScreenInit(pScreen);
 #endif
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
@@ -1106,7 +1106,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	int i;
 
 	if (rhdPtr->dri)
-	    RADEONDRICloseScreen(pScreen);
+	    RHDDRICloseScreen(pScreen);
 
 	/* stop scanout */
 	for (i = 0; i < 2; i++) {
@@ -1183,7 +1183,7 @@ RHDEnterVT(int scrnIndex, int flags)
 	R5xx2DSetup(pScrn);
 
     if (rhdPtr->dri)
-	RADEONDRIEnterVT(pScrn->pScreen);
+	RHDDRIEnterVT(pScrn->pScreen);
 
     return TRUE;
 }
@@ -1200,7 +1200,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     RHDFUNC(rhdPtr);
 
     if (rhdPtr->dri)
-	RADEONDRILeaveVT(pScrn->pScreen);
+	RHDDRILeaveVT(pScrn->pScreen);
 
     /* stop scanout */
     for (i = 0; i < 2; i++) {
