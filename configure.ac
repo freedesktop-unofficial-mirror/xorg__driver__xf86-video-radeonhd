@@ -37,6 +37,12 @@ AC_ARG_ENABLE(exa,
               [EXA="$enableval"],
               [EXA=yes])
 
+AC_ARG_ENABLE(dri,
+              AC_HELP_STRING([--disable-dri],
+	                     [Disable DRI support [[default enabled]]]),
+              [DRI="$enableval"],
+              [DRI=yes])
+
 # Extensions checks.
 m4_pattern_forbid([XORG_DRIVER_CHECK_EXT])dnl
 XORG_DRIVER_CHECK_EXT(RANDR, randrproto)
@@ -105,6 +111,23 @@ fi
 
 AM_CONDITIONAL(USE_EXA, test "x$USE_EXA" = xyes)
 
+# Handle DRI
+CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
+CFLAGS="$SAVED_CFLAGS $XORG_CFLAGS"
+
+# basic dri check.
+USE_DRI=no
+if test "x$DRI" = xyes; then
+	USE_DRI="yes"
+	AC_CHECK_DECL(XF86DRI,, [USE_DRI=no], [#include <xorg-server.h>])
+	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto],, [USE_DRI=no])
+fi
+AC_MSG_CHECKING([whether to enable DRI support])
+AC_MSG_RESULT($USE_DRI)
+test "x$USE_DRI" = xyes && AC_DEFINE(USE_DRI, 1, [Build support for DRI])
+AM_CONDITIONAL(USE_DRI, test "x$USE_DRI" = xyes)
+
+# check for xf86_ansic.h
 CFLAGS="$SAVED_CFLAGS"
 CPPFLAGS="$SAVED_CPPFLAGS"
 
@@ -252,6 +275,7 @@ esac
 AC_SUBST([PCIUTILS_CFLAGS])
 AC_SUBST([PCIUTILS_LIBS])
 AC_SUBST([XORG_CFLAGS])
+AC_SUBST([DRI_CFLAGS])
 AC_SUBST([WARN_CFLAGS])
 AC_SUBST([PEDANTIC_CFLAGS])
 AC_SUBST([ATOMBIOS_CFLAGS])

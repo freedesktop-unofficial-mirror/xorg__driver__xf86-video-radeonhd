@@ -4,7 +4,7 @@ include $(top_srcdir)/RadeonHD.am
 
 EXTRA_DIST = Imakefile
 
-AM_CFLAGS = @XORG_CFLAGS@ @WARN_CFLAGS@
+AM_CFLAGS = @XORG_CFLAGS@ @DRI_CFLAGS@ @WARN_CFLAGS@
 radeonhd_drv_la_LTLIBRARIES = radeonhd_drv.la
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
 radeonhd_drv_la_CFLAGS = $(AM_CFLAGS) @PEDANTIC_CFLAGS@
@@ -61,6 +61,10 @@ nodist_radeonhd_drv_la_SOURCES = \
 
 if USE_EXA
 radeonhd_drv_la_SOURCES += r5xx_exa.c
+endif
+
+if USE_DRI
+#radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h
 endif
 
 if ATOM_BIOS
