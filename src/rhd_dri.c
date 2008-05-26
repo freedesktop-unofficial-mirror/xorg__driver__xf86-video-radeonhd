@@ -1254,12 +1254,7 @@ static Bool RADEONDRIMapInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     struct rhdDri *info = rhdPtr->dri;
 				/* Map registers */
     if (drmAddMap(info->drmFD,
-#ifdef XSERVER_LIBPCIACCESS
-		  rhdPtr->PciInfo->regions[RHD_MMIO_BAR].base_addr,
-#else
-		  rhdPtr->PciInfo->memBase[RHD_MMIO_BAR],
-#endif
-		  rhdPtr->MMIOMapSize,
+		  rhdPtr->MMIOPCIAddress, rhdPtr->MMIOMapSize,
 		  DRM_REGISTERS, DRM_READ_ONLY, &info->registerHandle) < 0) {
 	return FALSE;
     }
@@ -2176,16 +2171,17 @@ Bool RADEONDRIScreenInit(ScreenPtr pScreen)
 		PCI_DEV(rhdPtr->PciInfo),
 		PCI_FUNC(rhdPtr->PciInfo));
     }
-#if 0
+#if 1
     pDRIInfo->ddxDriverMajorVersion      = /* TODO info->allowColorTiling ?
     				RADEON_VERSION_MAJOR_TILED : */ RADEON_VERSION_MAJOR;
     pDRIInfo->ddxDriverMinorVersion      = RADEON_VERSION_MINOR;
     pDRIInfo->ddxDriverPatchVersion      = RADEON_VERSION_PATCH;
 #endif
-    pDRIInfo->ddxDriverMajorVersion      = RHD_MAJOR_VERSION;
-    pDRIInfo->ddxDriverMinorVersion      = RHD_MINOR_VERSION;
-    pDRIInfo->ddxDriverPatchVersion      = RHD_PATCHLEVEL;
-    pDRIInfo->frameBufferPhysicalAddress = (void *)(rhdPtr->FbIntAddress + info->frontOffset);
+//    pDRIInfo->ddxDriverMajorVersion      = RHD_MAJOR_VERSION;
+//    pDRIInfo->ddxDriverMinorVersion      = RHD_MINOR_VERSION;
+//    pDRIInfo->ddxDriverPatchVersion      = RHD_PATCHLEVEL;
+    pDRIInfo->frameBufferPhysicalAddress = (void *) (rhdPtr->FbPCIAddress + info->frontOffset);
+
     // TODO: is it secure to have this in the middle of the FB?!?
     // pDRIInfo->frameBufferSize            = rhdPtr->FbMapSize - info->FbSecureSize;
     pDRIInfo->frameBufferSize            = rhdPtr->FbMapSize;

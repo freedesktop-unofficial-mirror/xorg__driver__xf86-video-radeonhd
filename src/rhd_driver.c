@@ -1414,10 +1414,9 @@ rhdMapMMIO(RHDPtr rhdPtr)
 #ifdef XSERVER_LIBPCIACCESS
 
     rhdPtr->MMIOMapSize = rhdPtr->PciInfo->regions[RHD_MMIO_BAR].size;
-
+    rhdPtr->MMIOPCIAddress = rhdPtr->PciInfo->regions[RHD_MMIO_BAR].base_addr;
     if (pci_device_map_range(rhdPtr->PciInfo,
-			     rhdPtr->PciInfo->regions[RHD_MMIO_BAR].base_addr,
-			     rhdPtr->MMIOMapSize,
+			     rhdPtr->MMIOPCIAddress, rhdPtr->MMIOMapSize,
 			     PCI_DEV_MAP_FLAG_WRITABLE,
 			     &rhdPtr->MMIOBase))
 	rhdPtr->MMIOBase = NULL;
@@ -1425,10 +1424,10 @@ rhdMapMMIO(RHDPtr rhdPtr)
 #else
 
     rhdPtr->MMIOMapSize = 1 << rhdPtr->PciInfo->size[RHD_MMIO_BAR];
+    rhdPtr->MMIOPCIAddress = rhdPtr->PciInfo->memBase[RHD_MMIO_BAR];
     rhdPtr->MMIOBase =
         xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_MMIO, rhdPtr->PciTag,
-		      rhdPtr->PciInfo->memBase[RHD_MMIO_BAR],
-		      rhdPtr->MMIOMapSize);
+		      rhdPtr->MMIOPCIAddress, rhdPtr->MMIOMapSize);
 #endif
     if (!rhdPtr->MMIOBase)
         return FALSE;
@@ -1498,6 +1497,14 @@ rhdMapFB(RHDPtr rhdPtr)
     rhdPtr->FbPhysAddress = 0;
     rhdPtr->FbBase = NULL;
 
+#ifdef XSERVER_LIBPCIACCESS
+    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr;
+    rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+#else
+    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
+    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
+#endif
+
     switch (rhdPtr->ChipSet) {
    	case RHD_RS690:
 	case RHD_RS740:
@@ -1519,13 +1526,12 @@ rhdMapFB(RHDPtr rhdPtr)
     }
 
     if (!rhdPtr->FbBase) {
-#ifdef XSERVER_LIBPCIACCESS
 
-	rhdPtr->FbPhysAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr; /* @@@ */
-	rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+	rhdPtr->FbPhysAddress = rhdPtr->FbPCIAddress;
 	if (rhdPtr->FbMapSize > pScrn->videoRam * 1024)
-	    rhdPtr->FbMapSize = (pScrn->videoRam * 1024);
+	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 
+#ifdef XSERVER_LIBPCIACCESS
 	if (pci_device_map_range(rhdPtr->PciInfo,
 				 rhdPtr->FbPhysAddress,
 				 rhdPtr->FbMapSize,
@@ -1533,14 +1539,7 @@ rhdMapFB(RHDPtr rhdPtr)
 				 | PCI_DEV_MAP_FLAG_WRITE_COMBINE,
 				 &rhdPtr->FbBase))
 	    rhdPtr->FbBase = NULL;
-
 #else
-
-	rhdPtr->FbPhysAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
-	rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
-	if (rhdPtr->FbMapSize > (unsigned int)pScrn->videoRam * 1024)
-	    rhdPtr->FbMapSize = ((unsigned int)pScrn->videoRam * 1024);
-
 	rhdPtr->FbBase =
 	    xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER, rhdPtr->PciTag,
 			  rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
@@ -2624,9 +2623,9 @@ unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name)
     chunk = rhdPtr->FbFreeStart;
     rhdPtr->FbFreeStart += size;
     rhdPtr->FbFreeSize  -= size;
-    RHDDebug(rhdPtr->scrnIndex,
-	     "FB: Allocated %s at offset 0x%08X (size = 0x%08X)\n",
-	     name, chunk, size);
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+	       "FB: Allocated %s at offset 0x%08X (size = 0x%08X)\n",
+	       name, chunk, size);
     return chunk;
 }
 

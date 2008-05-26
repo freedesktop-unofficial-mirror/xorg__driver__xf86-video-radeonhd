@@ -242,6 +242,7 @@ typedef struct RHDRec {
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbPhysAddress; /* card PCI BAR address of FB */
     unsigned int        FbIntAddress; /* card internal address of FB */
+    unsigned int        FbPCIAddress; /* physical address of FB */
 
     /* Some simplistic memory handling */
 #define ALIGN(x,align)	(((x)+(align)-1)&~((align)-1))
@@ -260,7 +261,8 @@ typedef struct RHDRec {
     unsigned int        FbOffscreenSize;
 
     unsigned int        MMIOMapSize;
-    pointer             MMIOBase; /* map base if mmio */
+    pointer             MMIOBase; /* map base of mmio */
+    unsigned int        MMIOPCIAddress; /* physical address of mmio */
 
     struct _xf86CursorInfoRec  *CursorInfo;
     struct rhd_Cursor_Bits     *CursorBits; /* ARGB if NULL */
