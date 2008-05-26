@@ -112,6 +112,7 @@
 #include "rhd_card.h"
 #include "rhd_randr.h"
 #include "r5xx_accel.h"
+#include "rhd_dri.h"
 
 /* ??? */
 #include "servermd.h"
@@ -231,6 +232,7 @@ typedef enum {
     OPTION_NORANDR,
     OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER,
+    OPTION_DRI,
     OPTION_TV_MODE,
     OPTION_SCALE_TYPE
 } RHDOpts;
@@ -248,6 +250,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_DRI,                  "DRI",                  OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
@@ -448,7 +451,6 @@ static Bool
 RHDPreInit(ScrnInfoPtr pScrn, int flags)
 {
     RHDPtr rhdPtr;
-    EntityInfoPtr pEnt = NULL;
     Bool ret = FALSE;
     RHDI2CDataArg i2cArg;
     DisplayModePtr Modes;		/* Non-RandR-case only */
@@ -489,32 +491,29 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
     /* @@@ move to Probe? */
-    if (!(pEnt = xf86GetEntityInfo(pScrn->entityList[0]))) {
+    if (!(rhdPtr->pEnt = xf86GetEntityInfo(pScrn->entityList[0]))) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Unable to get entity info\n");
 	goto error0;
     }
 
-    if (pEnt->resources) {
-        xfree(pEnt);
+    if (rhdPtr->pEnt->resources) {
+        xfree(rhdPtr->pEnt);
 	goto error0;
     }
 
-    pScrn->videoRam = pEnt->device->videoRam;
-    rhdPtr->entityIndex = pEnt->index;
+    pScrn->videoRam = rhdPtr->pEnt->device->videoRam;
+    rhdPtr->entityIndex = rhdPtr->pEnt->index;
 
 #ifndef XSERVER_LIBPCIACCESS
-    rhdPtr->ChipSet = pEnt->chipset;
+    rhdPtr->ChipSet = rhdPtr->pEnt->chipset;
 
-    rhdPtr->PciInfo = xf86GetPciInfoForEntity(pEnt->index);
+    rhdPtr->PciInfo = xf86GetPciInfoForEntity(rhdPtr->pEnt->index);
     rhdPtr->PciTag = pciTag(rhdPtr->PciInfo->bus,
                             rhdPtr->PciInfo->device,
                             rhdPtr->PciInfo->func);
 /* #else:  RHDPciProbe() did this for us already */
 #endif
-
-    xfree(pEnt);
-
     if (RHDIsIGP(rhdPtr->ChipSet))
 	rhdGetIGPNorthBridgeInfo(rhdPtr);
 
@@ -595,6 +594,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to map MMIO.\n");
 	goto error0;
     }
+
+    rhdPtr->cardType = rhdGetCardType(rhdPtr);
 
 #ifdef ATOM_BIOS
     {
@@ -713,6 +714,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
 			GET_REF_CLOCK, &atomBiosArg);
     }
+#endif
+
+#ifdef XF86DRI
+    rhdPtr->dri = RADEONDRIPreInit(pScrn);
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
@@ -857,8 +862,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 					"ScanoutBuffer");
     ASSERT(rhdPtr->FbScanoutStart != (unsigned)-1);
 
-    rhdPtr->cardType = rhdGetCardType(rhdPtr);
-
     if (!rhdPtr->randr)
 	xf86PrintModes(pScrn);
     else
@@ -904,6 +907,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     if ((rhdPtr->AccelMethod == RHD_ACCEL_XAA) ||
 	(rhdPtr->AccelMethod == RHD_ACCEL_EXA))
 	rhdFbOffscreenGrab(pScrn);
+
+#ifdef XF86DRI
+    if (rhdPtr->dri)
+	if (! RADEONDRIAllocateBuffers(pScrn)) {
+	// FIXME: cleanup
+	rhdPtr->dri = NULL;
+	}
+#endif
 
     RHDDebug(pScrn->scrnIndex, "Free FB offset 0x%08X (size = 0x%08X)\n",
 	     rhdPtr->FbFreeStart, rhdPtr->FbFreeSize);
@@ -957,6 +968,17 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (!miSetPixmapDepths())
 	return FALSE;
 
+#ifdef XF86DRI
+    /* Setup DRI after visuals have been established, but before fbScreenInit is
+     * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
+     * call back. */
+    if (rhdPtr->dri)
+	if (! RADEONDRIScreenInit(pScreen)) {
+	    // FIXME: cleanup
+	    rhdPtr->dri = NULL;
+	}
+#endif
+
     /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowScreenInit(pScreen)) {
@@ -995,6 +1017,14 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
     xf86SetBlackWhitePixels(pScreen);
+
+#ifdef XF86DRI
+    if (rhdPtr->dri)
+	if (! RADEONDRIFinishScreenInit(pScreen)) {
+	    // FIXME: cleanup
+	    rhdPtr->dri = NULL;
+	}
+#endif
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))
@@ -2369,6 +2399,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
 			&rhdPtr->rrOutputOrder, NULL);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_DRI,
+			&rhdPtr->useDRI, FALSE);
     RhdGetOptValString (rhdPtr->Options, OPTION_TV_MODE,
 			&rhdPtr->tvModeName, NULL);
     RhdGetOptValString (rhdPtr->Options, OPTION_SCALE_TYPE,

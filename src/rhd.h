@@ -223,6 +223,7 @@ typedef struct RHDRec {
     unsigned int	PciDeviceID;
     enum rhdCardType	cardType;
     int			entityIndex;
+    EntityInfoPtr       pEnt;
     struct rhdCard      *Card;
     OptionInfoPtr       Options;
     enum AccelMethod    AccelMethod;
@@ -233,6 +234,7 @@ typedef struct RHDRec {
     RHDOpt		noRandr;
     RHDOpt		rrUseXF86Edid;
     RHDOpt		rrOutputOrder;
+    RHDOpt		useDRI;
     RHDOpt		tvModeName;
     RHDOpt		scaleTypeOpt;
     enum RHD_HPD_USAGE	hpdUsage;

@@ -287,15 +287,16 @@ rhdRRCrtcDpms(xf86CrtcPtr crtc, int mode)
     RHDDebugRandrState(rhdPtr, "POST-CrtcDpms");
 }
 
-/* Lock CRTC prior to mode setting, mostly for DRI.
- * Returns whether unlock is needed */
+/* Lock CRTC prior to mode setting. Returns whether unlock is needed */
 static Bool
 rhdRRCrtcLock(xf86CrtcPtr crtc)
 {
+    /* Looks like we don't have to lock for mode setting. Only as long as
+     * buffers are fixed, of course */
     return FALSE;
 }
 
-/* Unlock CRTC after mode setting, mostly for DRI */
+/* Unlock CRTC after mode setting */
 static void
 rhdRRCrtcUnlock (xf86CrtcPtr crtc)
 { }
