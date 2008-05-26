@@ -961,8 +961,9 @@ rhdRROutputDetect(xf86OutputPtr output)
 static struct rhdMonitor *
 RHDRRMonitorInit(struct rhdConnector *Connector)
 {
-    RHDFUNC(Connector);
     struct rhdMonitor *m = RHDMonitorInit(Connector);
+
+    RHDFUNC(Connector);
     if (RHDScalePolicy(m, Connector))
 	RHDSynthModes(Connector->scrnIndex, m->Modes);
 
