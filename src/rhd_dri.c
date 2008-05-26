@@ -69,12 +69,42 @@
 #include "rhd_mc.h"
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
+#include "radeon_dri.h"
 
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
 # include "xf86Crtc.h"
 #endif
 
-/* data only needed by dri */
+
+/* DRI Driver defaults */
+#define RHD_DEFAULT_GART_SIZE      16 /* MB (must be 2^n and > 4MB) */
+#define RHD_DEFAULT_RING_SIZE      2  /* MB (must be page aligned) */
+#define RHD_DEFAULT_BUFFER_SIZE    2  /* MB (must be page aligned) */
+#define RHD_DEFAULT_CP_TIMEOUT     10000  /* usecs */
+#define RHD_DEFAULT_PCI_APER_SIZE  32 /* in MB */
+
+#define RADEON_MAX_DRAWABLES 256
+
+#define RADEON_DRIAPI_VERSION_MAJOR 4
+#define RADEON_DRIAPI_VERSION_MAJOR_TILED 5
+#define RADEON_DRIAPI_VERSION_MINOR 3
+#define RADEON_DRIAPI_VERSION_PATCH 0
+
+#define RADEON_IDLE_RETRY      16	/* Fall out of idle loops after this count */
+
+
+typedef struct {
+    /* Nothing here yet */
+    int dummy;
+} RADEONConfigPrivRec, *RADEONConfigPrivPtr;
+
+typedef struct {
+    /* Nothing here yet */
+    int dummy;
+} RADEONDRIContextRec, *RADEONDRIContextPtr;
+
+
+/* driver data only needed by dri */
 struct rhdDri {
     int               scrnIndex;
 
@@ -171,28 +201,34 @@ struct rhdDri {
 
 
 static size_t radeon_drm_page_size;
-static char *dri_driver_name = "radeon";
-static char *r300_driver_name = "r300";
-static char *r600_driver_name = "r600";
+static char  *dri_driver_name  = "radeon";
+static char  *r300_driver_name = "r300";
+static char  *r600_driver_name = "r600";
 
-#define RADEON_DRIAPI_VERSION_MAJOR 4
-#define RADEON_DRIAPI_VERSION_MAJOR_TILED 5
-#define RADEON_DRIAPI_VERSION_MINOR 3
-#define RADEON_DRIAPI_VERSION_PATCH 0
 
-#define RADEON_IDLE_RETRY      16 /* Fall out of idle loops after this count */
+extern void GlxSetVisualConfigs(int nconfigs, __GLXvisualConfig *configs,
+				void **configprivs);
 
 
 static void RADEONDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn);
-static int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn);
-static int RADEONDRISetParam(ScrnInfoPtr pScrn,
-			     unsigned int param, int64_t value);
-
+static int  RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn);
+static int  RADEONDRISetParam(ScrnInfoPtr pScrn,
+			      unsigned int param, int64_t value);
 static void RADEONDRITransitionTo2d(ScreenPtr pScreen);
 static void RADEONDRITransitionTo3d(ScreenPtr pScreen);
 static void RADEONDRITransitionMultiToSingle3d(ScreenPtr pScreen);
 static void RADEONDRITransitionSingleToMulti3d(ScreenPtr pScreen);
 
+
+/* Compute log base 2 of val */
+static __inline__ int RADEONMinBits(int val)
+{
+    int  bits;
+
+    if (!val) return 1;
+    for (bits = 0; val; val >>= 1, ++bits);
+    return bits;
+}
 
 /* Initialize the visual configs that are supported by the hardware.
  * These are combined with the visual configs that the indirect
@@ -327,15 +363,11 @@ static void RADEONDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
  * can start/stop the engine. */
 static void RADEONEnterServer(ScreenPtr pScreen)
 {
-    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    struct rhdDri *  info  = RHDPTR(pScrn)->dri;
-//    drm_radeon_sarea_t * pSAREAPriv;
-
-
+#if 0
+    drm_radeon_sarea_t * pSAREAPriv;
     RADEON_MARK_SYNC(info, pScrn);
 
 // TODO: we'll probably need something like XInited3D or needCacheFlush in the cp module
-#if 0
     pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
 	info->XInited3D = FALSE;
@@ -749,10 +781,10 @@ static int RADEONDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
     drmInfo.is_pci              = (rhdPtr->cardType != RHD_CARD_AGP);
-    drmInfo.cp_mode             = RADEON_DEFAULT_CP_BM_MODE;
+    drmInfo.cp_mode             = RADEON_CSQ_PRIBM_INDBM;
     drmInfo.gart_size           = info->gartSize*1024*1024;
     drmInfo.ring_size           = info->ringSize*1024*1024;
-    drmInfo.usec_timeout        = RADEON_DEFAULT_CP_TIMEOUT;
+    drmInfo.usec_timeout        = RHD_DEFAULT_CP_TIMEOUT;
 
     drmInfo.fb_bpp              = info->pixel_code;
     drmInfo.depth_bpp           = (info->depthBits - 8) * 2;
@@ -1085,9 +1117,9 @@ Bool RADEONDRIPreInit(ScrnInfoPtr pScrn)
 	       info->pKernelDRMVersion->version_minor,
 	       info->pKernelDRMVersion->version_patchlevel);
 
-    info->gartSize      = RADEON_DEFAULT_GART_SIZE;
-    info->ringSize      = RADEON_DEFAULT_RING_SIZE;
-    info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
+    info->gartSize      = RHD_DEFAULT_GART_SIZE;
+    info->ringSize      = RHD_DEFAULT_RING_SIZE;
+    info->bufSize       = RHD_DEFAULT_BUFFER_SIZE;
 
 #if 0
     if ((xf86GetOptValInteger(rhdPtr->Options,
@@ -1753,7 +1785,7 @@ static int RADEONDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
     int ret_size;
     int num_pages;
 
-    num_pages = (RADEON_DEFAULT_PCI_APER_SIZE * 1024 * 1024) / page_size;
+    num_pages = (RHD_DEFAULT_PCI_APER_SIZE * 1024 * 1024) / page_size;
 
     ret_size = num_pages * sizeof(unsigned int);
 
