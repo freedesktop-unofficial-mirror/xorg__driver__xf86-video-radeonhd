@@ -779,6 +779,24 @@ enum _rs600MCRegs {
     RS60_NB_FB_LOCATION		=	0xa
 };
 
+enum _rs780NBRegs {
+    RS78_NB_MC_IND_INDEX	= 0x70,
+    RS78_NB_MC_IND_DATA         = 0x74
+};
+
+enum RS78_NB_IND_INDEX_BITS {
+    RS78_RS78_NB_MC_IND_INDEX = (0xffff << 0),
+    RS78_MC_IND_SEQ_RBS_0     = (0x1 << 16),
+    RS78_MC_IND_SEQ_RBS_1     = (0x1 << 17),
+    RS78_MC_IND_SEQ_RBS_2     = (0x1 << 18),
+    RS78_MC_IND_SEQ_RBS_3     = (0x1 << 19),
+    RS78_MC_IND_AIC_RBS       = (0x1 << 20),
+    RS78_MC_IND_CITF_ARB0     = (0x1 << 21),
+    RS78_MC_IND_CITF_ARB1     = (0x1 << 22),
+    RS78_MC_IND_WR_EN         = (0x1 << 23),
+    RS78_MC_IND_RD_INV        = (0x1 << 24)
+};
+
 enum _rs780MCRegs {
     RS78_MC_SYSTEM_STATUS	=	0x0,
     RS78_MC_FB_LOCATION		=	0x10,

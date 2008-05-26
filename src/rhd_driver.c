@@ -2183,13 +2183,13 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     CARD32 ret;
 
-    if (rhdPtr->ChipSet < RHD_RS690) {
+    if (rhdPtr->ChipSet < RHD_RS690 || rhdPtr->ChipSet == RHD_RS780) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
 	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, RS60_MC_NB_MC_DATA);
-    } else {
+    } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 data = addr & ~RS69_C_IND_WR_EN;
 	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), RS69_MC_INDEX, 4, NULL);
@@ -2197,6 +2197,15 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 #else
 	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr & ~RS69_C_IND_WR_EN);
 	ret = pciReadLong(rhdPtr->NBPciTag, RS69_MC_DATA);
+#endif
+    } else {
+#ifdef XSERVER_LIBPCIACCESS
+	CARD32 data = addr & ~RS69_C_IND_WR_EN;
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), RS78_NB_MC_IND_INDEX, 4, NULL);
+	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, RS78_NB_MC_IND_DATA, 4, NULL);
+#else
+	pciWriteLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_INDEX, addr & ~RS69_C_IND_WR_EN);
+	ret = pciReadLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_DATA);
 #endif
     }
 
@@ -2219,7 +2228,7 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
     } else if (rhdPtr->ChipSet == RHD_RS600) {
 	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr | RS60_NB_MC_IND_WR_EN);
 	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_DATA, data);
-    } else {
+    } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 tmp = addr & ~RS69_C_IND_WR_EN;
 	pci_device_cfg_write(rhdPtr->NBPciInfo, &tmp, RS69_MC_INDEX, 4, NULL);
@@ -2227,6 +2236,16 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 #else
 	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr | RS69_C_IND_WR_EN);
 	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_DATA, data);
+#endif
+
+    } else  {
+#ifdef XSERVER_LIBPCIACCESS
+	CARD32 tmp = addr & ~RS69_C_IND_WR_EN;
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &tmp, RS78_NB_MC_IND_INDEX, 4, NULL);
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &data, RS78_NB_MC_IND_DATA, 4, NULL);
+#else
+	pciWriteLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_INDEX, addr | RS69_C_IND_WR_EN);
+	pciWriteLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_DATA, data);
 #endif
 
     }

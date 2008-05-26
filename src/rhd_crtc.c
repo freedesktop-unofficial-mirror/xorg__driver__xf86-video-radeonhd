@@ -307,7 +307,6 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, enum rhdCrtc
 	    p2 = ScaledToMode->CrtcVDisplay * Mode->CrtcHDisplay;
 	    if (p1 == p2) {
 		Overscan.Type = RHD_CRTC_SCALE_TYPE_SCALE;
-		ErrorF("Foo\n");
 	    } else if (p1 > p2) {
 		tmp = (p2 / Mode->CrtcVDisplay);
 		tmp = ScaledToMode->CrtcHDisplay - tmp;
