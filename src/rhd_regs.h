@@ -781,7 +781,8 @@ enum _rs600MCRegs {
 
 enum _rs780MCRegs {
     RS78_MC_SYSTEM_STATUS	=	0x0,
-    RS78_MC_FB_LOCATION		=	0x10
+    RS78_MC_FB_LOCATION		=	0x10,
+    RS78_K8_FB_LOCATION		=	0x11
 };
 
 enum RS6X_MC_SYSTEM_STATUS_BITS {

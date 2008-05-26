@@ -1471,6 +1471,9 @@ rhdMapFB(RHDPtr rhdPtr)
 	case RHD_RS740:
 	    rhdPtr->FbPhysAddress = RHDReadMC(rhdPtr, RS69_K8_FB_LOCATION);
 	    break;
+	case RHD_RS780:
+	    rhdPtr->FbPhysAddress = RHDReadMC(rhdPtr, RS78_K8_FB_LOCATION);
+	    break;
 	default:
 	    rhdPtr->FbPhysAddress = 0;
 	    break;
