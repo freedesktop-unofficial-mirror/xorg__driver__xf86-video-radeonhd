@@ -544,8 +544,10 @@ R500PLL1Restore(struct rhdPLL *PLL)
     if (PLL->StoreActive) {
 	R500PLL1SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		       PLL->StorePostDiv, PLL->StoreControl);
-	RHDRegMask(PLL, P1PLL_INT_SS_CNTL,
-		   PLL->StoreSpreadSpectrum, 0x00000001);
+
+	if (RHDPTRI(PLL)->ChipSet != RHD_M54)
+	    RHDRegMask(PLL, P1PLL_INT_SS_CNTL,
+		       PLL->StoreSpreadSpectrum, 0x00000001);
     } else {
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
@@ -580,8 +582,10 @@ R500PLL2Restore(struct rhdPLL *PLL)
     if (PLL->StoreActive) {
 	R500PLL2SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		       PLL->StorePostDiv, PLL->StoreControl);
-	RHDRegMask(PLL, P2PLL_INT_SS_CNTL,
-		   PLL->StoreSpreadSpectrum, 0x00000001);
+
+	if (RHDPTRI(PLL)->ChipSet != RHD_M54)
+	    RHDRegMask(PLL, P2PLL_INT_SS_CNTL,
+		       PLL->StoreSpreadSpectrum, 0x00000001);
     } else {
 	PLL->Power(PLL, RHD_POWER_SHUTDOWN);
 
