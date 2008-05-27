@@ -120,17 +120,17 @@ struct rhdDri {
      * AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION are (partially) handled
      * in _mc.c */
 
+#if 0
     /* TODO: color tiling
      * discuss: should front buffer ever be tiled?
      * should xv surfaces ever be tiled?
      * should anything else ever *not* be tiled?) */
-//   Bool              allowColorTiling;
-//   Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
+    Bool              allowColorTiling;
+    Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
+#endif
 
     int               pixel_code;
 
-    drmVersionPtr     pLibDRMVersion;
-    drmVersionPtr     pKernelDRMVersion;
     DRIInfoPtr        pDRIInfo;
     int               drmFD;
     int               numVisualConfigs;
@@ -918,64 +918,46 @@ static void RHDDRICPStart(ScrnInfoPtr pScrn)
 }
 
 
-/* Get the DRM version and do some basic useability checks of DRI */
-static Bool RHDDRIGetVersion(ScrnInfoPtr pScrn)
+/*
+ * Get the DRM version and do some basic useability checks of DRI
+ */
+static Bool
+RHDDRIVersionCheck(RHDPtr rhdPtr)
 {
-    RHDPtr         rhdPtr = RHDPTR(pScrn);
-    struct rhdDri *info   = rhdPtr->dri;
+    drmVersionPtr  DrmVersion = NULL;
     int            major, minor, patch, fd;
-    int		   req_minor, req_patch;
     char           *busId;
 
     /* Check that the GLX, DRI, and DRM modules have been loaded by testing
      * for known symbols in each module. */
-    if (!xf86LoaderCheckSymbol("GlxSetVisualConfigs")) return FALSE;
-    if (!xf86LoaderCheckSymbol("drmAvailable"))        return FALSE;
+    if (!xf86LoaderCheckSymbol("GlxSetVisualConfigs")) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: symbol GlxSetVisualConfigs not available.\n", __func__);
+	return FALSE;
+    }
+
+    if (!xf86LoaderCheckSymbol("drmAvailable")) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: symbol drmAvailable not available.\n", __func__);
+	return FALSE;
+    }
+
     if (!xf86LoaderCheckSymbol("DRIQueryVersion")) {
-      xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		 "[dri] RHDDRIGetVersion failed (libdri.a too old)\n"
-		 "[dri] Disabling DRI.\n");
-      return FALSE;
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: symbol DRIQueryVersion not available."
+		   "(libdri.a is too old)\n", __func__);
+	return FALSE;
     }
 
     /* Check the DRI version */
     DRIQueryVersion(&major, &minor, &patch);
-    if (major != DRIINFO_MAJOR_VERSION || minor < 0) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed because of a version "
-		   "mismatch.\n"
-		   "[dri] libdri version is %d.%d.%d but version %d.%d.x is "
-		   "needed.\n"
-		   "[dri] Disabling DRI.\n",
-		   major, minor, patch,
-                   DRIINFO_MAJOR_VERSION, 0);
-	return FALSE;
-    }
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+	       "Found libdri %d.%d.%d.\n", major, minor, patch);
 
-    /* Check the lib version */
-    if (xf86LoaderCheckSymbol("drmGetLibVersion"))
-	info->pLibDRMVersion = drmGetLibVersion(info->drmFD);
-    if (info->pLibDRMVersion == NULL) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed because libDRM is really "
-		   "way to old to even get a version number out of it.\n"
-		   "[dri] Disabling DRI.\n");
-	return FALSE;
-    }
-    if (info->pLibDRMVersion->version_major != 1 ||
-	info->pLibDRMVersion->version_minor < 2) {
-	/* incompatible drm library version */
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed because of a "
-		   "version mismatch.\n"
-		   "[dri] libdrm.a module version is %d.%d.%d but "
-		   "version 1.2.x is needed.\n"
-		   "[dri] Disabling DRI.\n",
-		   info->pLibDRMVersion->version_major,
-		   info->pLibDRMVersion->version_minor,
-		   info->pLibDRMVersion->version_patchlevel);
-	drmFreeVersion(info->pLibDRMVersion);
-	info->pLibDRMVersion = NULL;
+    if (major != DRIINFO_MAJOR_VERSION) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: Version Mismatch: libdri >= %d.0.0 is needed.\n",
+		   __func__, DRIINFO_MAJOR_VERSION);
 	return FALSE;
     }
 
@@ -984,59 +966,69 @@ static Bool RHDDRIGetVersion(ScrnInfoPtr pScrn)
 	busId = DRICreatePCIBusID(rhdPtr->PciInfo);
     } else {
 	busId = xalloc(64);
-	sprintf(busId,
-		"PCI:%d:%d:%d",
-		PCI_BUS(rhdPtr->PciInfo),
-		PCI_DEV(rhdPtr->PciInfo),
-		PCI_FUNC(rhdPtr->PciInfo));
+	sprintf(busId, "PCI:%d:%d:%d", PCI_BUS(rhdPtr->PciInfo),
+		PCI_DEV(rhdPtr->PciInfo), PCI_FUNC(rhdPtr->PciInfo));
     }
 
     /* Low level DRM open */
     fd = drmOpen(dri_driver_name, busId);
     xfree(busId);
     if (fd < 0) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed to open the DRM\n"
-		   "[dri] Disabling DRI.\n");
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: drmOpen(\"%s\", \"%s\") failed.\n",
+		   __func__, dri_driver_name, busId);
 	return FALSE;
     }
+
+    /* Check the lib version */
+    if (xf86LoaderCheckSymbol("drmGetLibVersion"))
+	DrmVersion = drmGetLibVersion(fd);
+    if (DrmVersion == NULL) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: drmGetLibVersion failed.\n", __func__);
+	drmClose(fd);
+	return FALSE;
+    }
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Found libdrm %d.%d.%d.\n",
+	       DrmVersion->version_major, DrmVersion->version_minor,
+	       DrmVersion->version_patchlevel);
+
+    if ((DrmVersion->version_major != 1) ||
+	((DrmVersion->version_major == 1) && (DrmVersion->version_minor < 2))) {
+	/* incompatible drm library version */
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Version Mismatch: "
+		   "libdrm >= 1.2.0 is needed.\n", __func__);
+	drmFreeVersion(DrmVersion);
+	drmClose(fd);
+	return FALSE;
+    }
+    drmFreeVersion(DrmVersion);
+    DrmVersion = NULL;
 
     /* Get DRM version & close DRM */
-    info->pKernelDRMVersion = drmGetVersion(fd);
+    DrmVersion = drmGetVersion(fd);
     drmClose(fd);
-    if (info->pKernelDRMVersion == NULL) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed to get the DRM version\n"
-		   "[dri] Disabling DRI.\n");
+    if (DrmVersion == NULL) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: drmGetVersion failed.\n",
+		   __func__);
 	return FALSE;
     }
 
-    /* Now check if we qualify */
-    /* At the moment requirements are trivially 1.28.0, but that might change */
-    req_minor = 28;
-    req_patch = 0;
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Found radeon drm %d.%d.%d.\n",
+	       DrmVersion->version_major, DrmVersion->version_minor,
+	       DrmVersion->version_patchlevel);
 
-    if (info->pKernelDRMVersion->version_major != 1 ||
-	info->pKernelDRMVersion->version_minor < req_minor ||
-	(info->pKernelDRMVersion->version_minor == req_minor &&
-	 info->pKernelDRMVersion->version_patchlevel < req_patch)) {
-        /* Incompatible drm version */
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "[dri] RHDDRIGetVersion failed because of a version "
-		   "mismatch.\n"
-		   "[dri] radeon.o kernel module version is %d.%d.%d "
-		   "but version 1.%d.%d or newer is needed.\n"
-		   "[dri] Disabling DRI.\n",
-		   info->pKernelDRMVersion->version_major,
-		   info->pKernelDRMVersion->version_minor,
-		   info->pKernelDRMVersion->version_patchlevel,
-		   req_minor,
-		   req_patch);
-	drmFreeVersion(info->pKernelDRMVersion);
-	info->pKernelDRMVersion = NULL;
+    /* Incompatible drm version */
+    if ((DrmVersion->version_major < 1) ||
+	((DrmVersion->version_major == 1) && (DrmVersion->version_minor < 28))) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Version Mismatch: "
+		   "radeon drm >= 1.28.0 is needed.\n", __func__);
+	drmFreeVersion(DrmVersion);
 	return FALSE;
     }
 
+    drmFreeVersion(DrmVersion);
     return TRUE;
 }
 
@@ -1072,8 +1064,9 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info;
 
-    if (! rhdPtr->useDRI.val.bool) {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by default. Use Option DRI to enable.\n");
+    if (!rhdPtr->useDRI.val.bool) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by"
+		   " default. Use Option \"DRI\" to enable.\n");
 	return FALSE;
     }
 
@@ -1100,28 +1093,15 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 	}
     }
 
-    info = xnfcalloc(1, sizeof(struct rhdDri));
-    info->scrnIndex = rhdPtr->scrnIndex;
-    rhdPtr->dri = info;
-
-    info->pLibDRMVersion = NULL;
-    info->pKernelDRMVersion = NULL;
-
-    if (!RHDDRIGetVersion(pScrn)) {
-	xfree(info);
-	rhdPtr->dri = NULL;
+    if (!RHDDRIVersionCheck(rhdPtr)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "%s: Version check failed. Disabling DRI.\n", __func__);
 	return FALSE;
     }
 
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-	       "[dri] Found DRI library version %d.%d.%d and kernel"
-	       " module version %d.%d.%d\n",
-	       info->pLibDRMVersion->version_major,
-	       info->pLibDRMVersion->version_minor,
-	       info->pLibDRMVersion->version_patchlevel,
-	       info->pKernelDRMVersion->version_major,
-	       info->pKernelDRMVersion->version_minor,
-	       info->pKernelDRMVersion->version_patchlevel);
+    info = xnfcalloc(1, sizeof(struct rhdDri));
+    info->scrnIndex = rhdPtr->scrnIndex;
+    rhdPtr->dri = info;
 
     info->gartSize      = RHD_DEFAULT_GART_SIZE;
     info->ringSize      = RHD_DEFAULT_RING_SIZE;
@@ -1227,7 +1207,11 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
 		   "DRI: Failed allocating buffers, disabling\n");
 	rhdPtr->FbFreeStart = old_freeoffset;
 	rhdPtr->FbFreeSize  = old_freesize;
-	return RHDDRICloseScreen(pScrn->pScreen);
+
+	/* return RHDDRICloseScreen(pScrn->pScreen); */
+	xfree(info);
+	rhdPtr->dri = NULL;
+	return FALSE;
     }
 
     RHDDRIAllocatePCIGARTTable(pScrn);
@@ -1567,15 +1551,14 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
     DRIUnlock(pScrn->pScreen);
 }
 
-static void RHDDRIStop(ScreenPtr pScreen)
+static void
+RHDDRMStop(struct rhdDri *info)
 {
-    ScrnInfoPtr          pScrn = xf86Screens[pScreen->myNum];
-    struct rhdDri       *info  = RHDPTR(pScrn)->dri;
     drm_radeon_cp_stop_t drmStop;
     int                  i, ret;
 //    RING_LOCALS;
 
-    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, LOG_DEBUG, "RHDDRIStop\n");
+    RHDFUNC(info);
 
     /* If we've generated any CP commands, we must flush them to the
      * kernel module now. */
@@ -1588,21 +1571,21 @@ static void RHDDRIStop(ScreenPtr pScreen)
 	ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
 			      sizeof(drm_radeon_cp_stop_t));
 	if (ret == 0) {
-	    RHDDebug(pScrn->scrnIndex, "DRMStop #%d succeeded\n", i+1);
+	    RHDDebug(info->scrnIndex, "DRMStop #%d succeeded\n", i+1);
 	    return;
 	} else if (ret != -16 /* -EBUSY, unwrapped */) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "DRMStop #%d failed: %d\n", i, ret);
+	    xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop #%d failed: %d\n", i, ret);
 	    return;
 	}
 	drmStop.flush = 0;
     }
 
-    RHDDebug(pScrn->scrnIndex, "DRMStop idle failed\n");
+    RHDDebug(info->scrnIndex, "DRMStop idle failed\n");
     drmStop.idle = 0;
     ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
 			  sizeof(drm_radeon_cp_stop_t));
     if (ret)
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "DRMStop failed: %d\n", ret);
+	xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop failed: %d\n", ret);
 }
 
 /* Stop all before vt switch / suspend */
@@ -1616,7 +1599,7 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
     DRILock(pScrn->pScreen, 0);
-    RHDDRIStop(pScreen);
+    RHDDRMStop(info);
 
     /* Backup the PCIE GART TABLE from fb memory */
     if (info->pciGartBackup)
@@ -1645,12 +1628,11 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
     struct rhdDri *info   = rhdPtr->dri;
     drm_radeon_init_t drmInfo;
 
-     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, LOG_DEBUG,
-		    "RHDDRICloseScreen\n");
+    RHDFUNC(pScrn);
 
-     RHDDRIStop (pScreen);
+    RHDDRMStop(info);
 
-     if (info->irq) {
+    if (info->irq) {
 	RHDDRISetVBlankInterrupt (pScrn, FALSE);
 	drmCtlUninstHandler(info->drmFD);
 	info->irq = 0;
