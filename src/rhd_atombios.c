@@ -324,6 +324,7 @@ typedef struct _atomBiosHandle {
     CARD32 fbBase;
     unsigned int BIOSImageSize;
     unsigned char *codeTable;
+    enum atomDevice ConnectorOutputDeviceList[RHD_CONNECTORS_MAX][MAX_OUTPUTS_PER_CONNECTOR];
 } atomBiosHandleRec;
 
 enum {
@@ -796,6 +797,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	    Transmitter.usPixelClock = config->pixelClock / 10;
 	    break;
 
+	case atomHDMI_2Link:
 	case atomDVI_2Link:
 	case atomLVDS_DUAL:
 	    Transmitter.usPixelClock = config->pixelClock / 20;
@@ -1410,6 +1412,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 		    dig->ucEncoderMode = ATOM_ENCODER_MODE_LVDS;
 		    break;
 		case atomHDMI:
+		case atomHDMI_2Link:
 		    dig->ucEncoderMode = ATOM_ENCODER_MODE_HDMI;
 		    break;
 		case atomSDVO:
@@ -2039,6 +2042,7 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_LVDS;
 		    break;
 		case atomHDMI:
+		case atomHDMI_2Link:
 		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_HDMI;
 		    break;
 		case atomSDVO:
@@ -2085,6 +2089,38 @@ rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle)
 
 
 # endif  /* ATOM_BIOS_PARSER */
+
+enum rhdSensedOutput
+rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    CARD32 BIOS_0;
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	BIOS_0 = RHDRegRead(Output, 0x10);
+    else
+	BIOS_0 = RHDRegRead(Output, 0x1724);
+
+    switch (DAC) {
+	case atomDACA:
+	    break;
+	case atomDACB:
+	    BIOS_0 >>= 8;
+	    break;
+	case atomDACExt:
+	    return RHD_SENSED_NONE;
+    }
+    if (BIOS_0 & ATOM_S0_CRT1_MASK)
+	return RHD_SENSED_VGA;
+    else if (BIOS_0 & ATOM_S0_TV1_COMPOSITE_A)
+	return RHD_SENSED_TV_COMPOSITE;
+    else if (BIOS_0 & ATOM_S0_TV1_SVIDEO_A)
+	return RHD_SENSED_TV_SVIDEO;
+    else if (BIOS_0 & ATOM_S0_CV_MASK_A)
+	return RHD_SENSED_TV_COMPONENT;
+    else return RHD_SENSED_NONE;
+}
+
 
 static AtomBiosResult
 rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
@@ -3212,17 +3248,18 @@ static const struct _rhd_devices
 {
     char *name;
     rhdOutputType ot[2];
+    enum atomDevice atomDevID;
 } rhd_devices[] = { /* { RHD_CHIP_EXTERNAL, RHD_CHIP_IGP } */
-    {" CRT1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
-    {" LCD1", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA } },
-    {" TV1",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
-    {" DFP1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE } },
-    {" CRT2", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
-    {" LCD2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE } },
-    {" TV2",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
-    {" DFP2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_DVO } },
-    {" CV",   { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
-    {" DFP3", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA } }
+    {" CRT1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }, atomCRT1 },
+    {" LCD1", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA }, atomLCD1 },
+    {" TV1",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }, atomTV1 },
+    {" DFP1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE }, atomDFP1 },
+    {" CRT2", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }, atomCRT2 },
+    {" LCD2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE }, atomLCD2 },
+    {" TV2",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }, atomTV2 },
+    {" DFP2", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_DVO }, atomDFP2 },
+    {" CV",   { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }, atomCV },
+    {" DFP3", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA }, atomDFP3 }
 };
 static const int n_rhd_devices = sizeof(rhd_devices) / sizeof(struct _rhd_devices);
 
@@ -3377,7 +3414,7 @@ rhdAtomHPDFromRecord(atomBiosHandlePtr handle,
  */
 static char *
 rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
-			    ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record)
+			    ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record, int *num, enum atomDevice **devList)
 {
     int i, j, k;
     char *devices;
@@ -3391,6 +3428,10 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 
     devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
 
+    *num = Record->ucNumberOfDevice;
+    *devList = (enum atomDevice *)xcalloc(Record->ucNumberOfDevice,
+					  sizeof(enum atomDevice));
+    
     for (i = 0; i < Record->ucNumberOfDevice; i++) {
 	k = 0;
 	j = Record->asDeviceTag[i].usDeviceID;
@@ -3399,8 +3440,10 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 
 	while (!(j & 0x1)) { j >>= 1; k++; };
 
-	if (!Limit(k,n_rhd_devices,"usDeviceID"))
+	if (!Limit(k,n_rhd_devices,"usDeviceID")) {
 	    strcat(devices, rhd_devices[k].name);
+	    (*devList)[i] = rhd_devices[k].atomDevID;
+	}
     }
 
     RHDDebug(handle->scrnIndex,"   Devices:%s\n",devices);
@@ -3529,7 +3572,8 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	CARD8 obj_type, obj_id, num;
 	char *name;
 	int nout = 0;
-
+	int nout_dev;
+	
 	rhdAtomInterpretObjectID(handle, con_obj->asObjects[i].usObjectID,
 			     &obj_type, &obj_id, &num, &name);
 
@@ -3556,6 +3600,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
+	nout_dev = nout;
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
 	    CARD8 stype, sobj_id, snum;
 	    char *sname;
@@ -3581,6 +3626,8 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 
 	while (Record->ucRecordType > 0
 	       && Record->ucRecordType <= ATOM_MAX_OBJECT_RECORD_NUMBER ) {
+	    int cnt;
+	    enum atomDevice *atomDevices;
 	    char *taglist;
 
 	    if ((record_base += Record->ucRecordSize)
@@ -3610,10 +3657,15 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 
 		case ATOM_CONNECTOR_DEVICE_TAG_RECORD_TYPE:
 		    taglist = rhdAtomDeviceTagsFromRecord(handle,
-							  (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
+							  (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record,
+			                                  &cnt, &atomDevices);
 		    if (taglist) {
+			int i = 0;
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
 			xfree(taglist);
+			while ((nout_dev < MAX_OUTPUTS_PER_CONNECTOR) && (i < cnt))
+			    handle->ConnectorOutputDeviceList[ncon][nout_dev++] = atomDevices[i++];
+			xfree(atomDevices);
 		    }
 		    break;
 
@@ -3781,6 +3833,8 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	cp[ncon].Name = xstrdup(devices[n].name);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
+	handle->ConnectorOutputDeviceList[ncon][0] = rhd_devices[n].atomDevID;
+	
 	if (devices[n].dual) {
 	    if (devices[n].ddc == RHD_DDC_NONE)
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
@@ -3805,6 +3859,8 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 				|| devices[n].ot == RHD_OUTPUT_TMDSA))) {
 
 			cp[ncon].Output[1] = devices[i].ot;
+
+			handle->ConnectorOutputDeviceList[ncon][1] = rhd_devices[i].atomDevID;
 
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;

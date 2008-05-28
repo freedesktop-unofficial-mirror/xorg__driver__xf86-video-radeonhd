@@ -172,6 +172,7 @@ enum atomEncoderMode {
     atomDP_8Lane,
     atomLVDS,
     atomLVDS_DUAL,
+    atomHDMI_2Link,
     atomHDMI,
     atomSDVO,
     atomTVComposite,
@@ -457,6 +458,7 @@ extern struct atomCodeTableVersion rhdAtomSetPixelClockVersion(atomBiosHandlePtr
 extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 				    struct atomCrtcSourceConfig *config);
 extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle);
+extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
