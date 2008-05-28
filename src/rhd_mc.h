@@ -27,7 +27,6 @@
 
 void RHDMCInit(RHDPtr rhdPtr);
 void RHDMCDestroy(RHDPtr rhdPtr);
-void RHDMCReadIntAddress(RHDPtr rhdPtr);
 void RHDSaveMC(RHDPtr rhdPtr);
 void RHDRestoreMC(RHDPtr rhdPtr);
 void RHDMCSetup(RHDPtr rhdPtr);

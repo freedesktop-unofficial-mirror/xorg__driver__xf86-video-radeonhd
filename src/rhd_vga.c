@@ -104,7 +104,7 @@ RHDVGASave(RHDPtr rhdPtr)
 
 	VGA->FB = xcalloc(VGA->FBSize, 1);
 	if (VGA->FB) {
-	    RHDDebug(rhdPtr->scrnIndex,"%s: memcpy(0x%p, 0x%p, 0x%x)\n",
+	    RHDDebug(rhdPtr->scrnIndex,"%s: memcpy(%p, %p, 0x%x)\n",
 		     __func__,VGA->FB, ((CARD8 *) rhdPtr->FbBase)
 		     + VGA->FBOffset, VGA->FBSize);
 	    memcpy(VGA->FB, ((CARD8 *) rhdPtr->FbBase) + VGA->FBOffset,

@@ -73,7 +73,6 @@
 /* Driver data structures */
 #include "rhd.h"
 #include "rhd_regs.h"
-#include "rhd_mc.h"
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
 #include "radeon_dri.h"
@@ -1473,12 +1472,6 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 
     /* disable vblank at startup */
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
-
-    /* DRI final init might have changed the memory map, we need to adjust
-     * our local image to make sure we restore them properly on mode
-     * changes or VT switches */
-    RHDMCReadIntAddress(rhdPtr);
-    RHDSaveMC(rhdPtr);
 
     /* TODO: If RADEON_PARAM_GART_BASE is ever to be saved/restored, it has
      * to be updated here. Same on EnterVT. */

@@ -1161,9 +1161,6 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    /* DRM might have changed the memory map */
-    RHDMCReadIntAddress(rhdPtr);
-
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
 
@@ -1497,17 +1494,17 @@ rhdMapFB(RHDPtr rhdPtr)
     ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
     RHDFUNC(rhdPtr);
 
-    rhdPtr->FbPhysAddress = 0;
     rhdPtr->FbBase = NULL;
 
 #ifdef XSERVER_LIBPCIACCESS
-    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr;
-    rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+	rhdPtr->FbPCIAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr;
+	rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
 #else
-    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
-    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
+	rhdPtr->FbPCIAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
+	rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
 #endif
 
+    /* some IGPs are special cases */
     switch (rhdPtr->ChipSet) {
    	case RHD_RS690:
 	case RHD_RS740:
@@ -1521,16 +1518,15 @@ rhdMapFB(RHDPtr rhdPtr)
 	    break;
     }
     if (rhdPtr->FbPhysAddress) {
-	RHDDebug(rhdPtr->scrnIndex, "K8_FB_LOCATION at 0x%8.8x\n",  rhdPtr->FbPhysAddress);
 	rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 	rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
 				       rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
-	RHDDebug(rhdPtr->scrnIndex, "Mapped K8_FB_LOCATION to %p\n", rhdPtr->FbBase);
     }
 
+    /* go through the BAR */
     if (!rhdPtr->FbBase) {
-
 	rhdPtr->FbPhysAddress = rhdPtr->FbPCIAddress;
+
 	if (rhdPtr->FbMapSize > (unsigned) pScrn->videoRam * 1024)
 	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 
@@ -1549,9 +1545,14 @@ rhdMapFB(RHDPtr rhdPtr)
 #endif
     }
 
+    RHDDebug(rhdPtr->scrnIndex, "Physical FB Address: 0x%08X (PCI BAR: 0x%08X)\n",
+	     rhdPtr->FbPhysAddress, rhdPtr->FbPCIAddress);
+
     if (!rhdPtr->FbBase)
         return FALSE;
 
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
+	       rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
 }
 
