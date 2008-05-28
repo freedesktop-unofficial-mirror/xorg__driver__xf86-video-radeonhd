@@ -675,8 +675,11 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     return FALSE;
 }
 
+/*
+ *
+ */
 Bool
-rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScaleMode mode)
+rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScalerMode mode)
 {
     ENABLE_SCALER_PARAMETERS scaler;
     AtomBiosArgRec data;
@@ -793,9 +796,14 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	case atomDP:
 	case atomDP_8Lane:
 	case atomSDVO:
-	default:
 	    /* we don't know what to do here yet */
 	    return FALSE;
+ 	case atomTVComposite:
+ 	case atomTVSVideo:
+ 	case atomTVComponent:
+ 	case atomCRT:
+	    return FALSE;
+
     }
 
     if (config->coherent)
@@ -901,10 +909,10 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutp
     } ps;
 
     switch (action) {
-	case atomEnable:
+	case atomOutputEnable:
 	    ps.op.ucAction = ATOM_ENABLE;
 	    break;
-	case atomDisable:
+	case atomOutputDisable:
 	    ps.op.ucAction = ATOM_DISABLE;
 	    break;
 	default: /* handle below */
@@ -915,31 +923,31 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutp
     switch (id) {
 	case atomDVOOutput:
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
-	    name = "";
+	    name = "DVOOutputControl";
 	    break;
 	case atomLCDOutput:
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND,  LCD1OutputControl);
-	    name = "";
+	    name = "LCD1OutputControl";
 	    switch (action) {
-		case atomEnable:
-		case atomDisable:
+		case atomOutputEnable:
+		case atomOutputDisable:
 		    break;
-		case atomLcdOn:
+		case atomOutputLcdOn:
 		    ps.op.ucAction = ATOM_LCD_BLON;
 		    break;
-		case atomLcdOff:
+		case atomOutputLcdOff:
 		    ps.op.ucAction = ATOM_LCD_BLOFF;
 		    break;
-		case atomLcdBrightnessControl:
+		case atomOutputLcdBrightnessControl:
 		    ps.op.ucAction = ATOM_LCD_BL_BRIGHTNESS_CONTROL;
 		    break;
-		case atomLcdSelftestStart:
+		case atomOutputLcdSelftestStart:
 		    ps.op.ucAction = ATOM_LCD_SELFTEST_START;
 		    break;
-		case atomLcdSelftestStop:
+		case atomOutputLcdSelftestStop:
 		    ps.op.ucAction = ATOM_LCD_SELFTEST_STOP;
 		    break;
-		case atomEncoderInit:
+		case atomOutputEncoderInit:
 		    ps.op.ucAction = ATOM_ENCODER_INIT;
 		    break;
 		default:
@@ -957,6 +965,31 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutp
 	case atomLVTMAOutput:
 	    name = "LVTMAOutputControl";
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND, LVTMAOutputControl);
+	    switch (action) {
+		case atomOutputEnable:
+		case atomOutputDisable:
+		    break;
+		case atomOutputLcdOn:
+		    ps.op.ucAction = ATOM_LCD_BLON;
+		    break;
+		case atomOutputLcdOff:
+		    ps.op.ucAction = ATOM_LCD_BLOFF;
+		    break;
+		case atomOutputLcdBrightnessControl:
+		    ps.op.ucAction = ATOM_LCD_BL_BRIGHTNESS_CONTROL;
+		    break;
+		case atomOutputLcdSelftestStart:
+		    ps.op.ucAction = ATOM_LCD_SELFTEST_START;
+		    break;
+		case atomOutputLcdSelftestStop:
+		    ps.op.ucAction = ATOM_LCD_SELFTEST_STOP;
+		    break;
+		case atomOutputEncoderInit:
+		    ps.op.ucAction = ATOM_ENCODER_INIT;
+		    break;
+		default:
+		    return FALSE;
+	    }
 	    break;
 	case atomTMDSAOutput:
 	    name = "TMDSAOutputControl";
@@ -988,28 +1021,61 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutp
 }
 
 Bool
-AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomOutput id)
+AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice id, enum atomDAC dac)
 {
     AtomBiosArgRec data;
+    union
+    {
+	DAC_LOAD_DETECTION_PARAMETERS ld;
+	DAC_LOAD_DETECTION_PS_ALLOCATION lda;
+    } ps;
+
     data.exec.dataSpace = NULL;
     data.exec.pspace = &ps;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC_LoadDetection);
 
     switch (id) {
-	case atomDAC1Output:
-	case atomDAC2Output:
+	case atomCRT1:
+	    ps.ld.usDeviceID = ATOM_DEVICE_CRT1_SUPPORT;
 	    break;
-	default:
+	case atomCRT2:
+	    ps.ld.usDeviceID = ATOM_DEVICE_CRT2_SUPPORT;
+	    break;
+	case atomTV1:
+	    ps.ld.usDeviceID = ATOM_DEVICE_TV1_SUPPORT;
+	    break;
+	case atomTV2:
+	    ps.ld.usDeviceID = ATOM_DEVICE_TV2_SUPPORT;
+	    break;
+	case atomCV:
+	    ps.ld.usDeviceID = ATOM_DEVICE_CV_SUPPORT;
+	    break;
+	case atomLCD1:
+	case atomDFP1:
+	case atomLCD2:
+	case atomDFP2:
+	case atomDFP3:
 	    return FALSE;
     }
+    switch (dac) {
+	case atomDACA:
+	    ps.ld.ucDacType = ATOM_DAC_A;
+	    break;
+	case atomDACB:
+	    ps.ld.ucDacType = ATOM_DAC_B;
+	    break;
+	case atomDACExt:
+	    ps.ld.ucDacType = ATOM_EXT_DAC;
+	    break;
+    }
 
-    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling DAC_LoadDetection\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
-	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "DAC_LoadDetection Successful\n");
 	return TRUE;
     }
-    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "DAC_LoadDetection Failed\n");
     return FALSE;
 }
 
@@ -1018,7 +1084,7 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomOutput id)
  */
 Bool
 rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
-			     enum atomTransmitterAction action, struct atomEncoderConfig *config)
+			     enum atomEncoderAction action, struct atomEncoderConfig *config)
 {
     AtomBiosArgRec data;
     char *name = NULL;
@@ -1192,7 +1258,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 				break;
 			    case TEMPORAL_DITHER_4:
 				lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_LEVEL_4;
-			    case TEMPRAL_DITHER_2:
+			    case TEMPORAL_DITHER_2:
 				lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_DITHER_EN;
 				break;
 			}
@@ -1273,7 +1339,10 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 		case atomSDVO:
 		    dig->ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
 		    break;
-		default:
+		case atomTVComposite:
+		case atomTVSVideo:
+		case atomTVComponent:
+		case atomCRT:
 		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s called with invalid DIG encoder mode %i\n",
 			       __func__,config->u.dig.encoderMode);
 		    return FALSE;
@@ -1302,19 +1371,19 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 		    DVO_ENCODER_CONTROL_PARAMETERS *dvo = &ps.dvo;
 		    dvo->usEncoderID = config->u.dvo.encoderID;
 		    switch (config->u.dvo.deviceType) {
-			case atomLCD:
+			case atomDvoLCD:
 			    dvo->ucDeviceType = ATOM_DEVICE_LCD1_INDEX;
 			    break;
-			case atomCRT:
+			case atomDvoCRT:
 			    dvo->ucDeviceType = ATOM_DEVICE_CRT1_INDEX;
 			    break;
-			case atomDFP:
+			case atomDvoDFP:
 			    dvo->ucDeviceType = ATOM_DEVICE_DFP1_INDEX;
 			    break;
-			case atomTV:
+			case atomDvoTV:
 			    dvo->ucDeviceType = ATOM_DEVICE_TV1_INDEX;
 			    break;
-			case atomCV:
+			case atomDvoCV:
 			    dvo->ucDeviceType = ATOM_DEVICE_CV_INDEX;
 			    break;
 		    }
@@ -1376,6 +1445,456 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 	return TRUE;
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
+		  enum atomCrtcAction action)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	ENABLE_CRTC_PARAMETERS crtc;
+	ENABLE_CRTC_PS_ALLOCATION crtc_a;
+    } ps;
+
+    switch (id) {
+	case atomCrtc1:
+	    ps.crtc.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.crtc.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+
+    switch (action) {
+	case atomCrtcEnable:
+	    ps.crtc.ucEnable = ATOM_ENABLE;
+	    break;
+	case atomCrtcDisable:
+	    ps.crtc.ucEnable = ATOM_DISABLE;
+	    break;
+    }
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableCRTC);
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableCRTC\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTC Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTC Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc id,
+		  enum atomCrtcAction action)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	ENABLE_CRTC_PARAMETERS crtc;
+	ENABLE_CRTC_PS_ALLOCATION crtc_a;
+    } ps;
+
+    switch (id) {
+	case atomCrtc1:
+	    ps.crtc.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.crtc.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+
+    switch (action) {
+	case atomCrtcEnable:
+	    ps.crtc.ucEnable = ATOM_ENABLE;
+	    break;
+	case atomCrtcDisable:
+	    ps.crtc.ucEnable = ATOM_DISABLE;
+	    break;
+    }
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableCRTCMemReq);
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableCRTCMemReq\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTCMemReq Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTCMemReq Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, DisplayModePtr mode, int depth)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	SET_CRTC_TIMING_PARAMETERS  crtc;
+/* 	SET_CRTC_TIMING_PS_ALLOCATION crtc_a; */
+    } ps;
+    ATOM_MODE_MISC_INFO_ACCESS* msc = &(ps.crtc.susModeMiscInfo);
+
+    ps.crtc.usH_Total = mode->CrtcHTotal;
+    ps.crtc.usH_Disp = mode->CrtcHDisplay;
+    ps.crtc.usH_SyncStart = mode->CrtcHSyncStart;
+    ps.crtc.usH_SyncWidth = mode->CrtcHSyncEnd - mode->CrtcHSyncStart;
+    ps.crtc.usV_Total = mode->CrtcVTotal;
+    ps.crtc.usV_Disp = mode->CrtcVDisplay;
+    ps.crtc.usV_SyncStart = mode->CrtcVSyncStart;
+    ps.crtc.usV_SyncWidth = mode->CrtcVSyncEnd - mode->CrtcVSyncStart;
+    ps.crtc.ucOverscanRight = mode->CrtcHBlankStart - mode->CrtcHDisplay;
+    ps.crtc.ucOverscanLeft = mode->CrtcVTotal - mode->CrtcVBlankEnd;
+    ps.crtc.ucOverscanBottom = mode->CrtcVBlankStart - mode->CrtcVDisplay;
+    ps.crtc.ucOverscanTop = mode->CrtcVTotal - mode->CrtcVBlankEnd;
+    switch (id) {
+	case atomCrtc1:
+	    ps.crtc.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.crtc.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+
+    msc->sbfAccess.HorizontalCutOff = 0;
+    msc->sbfAccess.HSyncPolarity = (mode->Flags & V_NHSYNC) ? 1 : 0;
+    msc->sbfAccess.VSyncPolarity = (mode->Flags & V_NVSYNC) ? 1 : 0;
+    msc->sbfAccess.VerticalCutOff = 0;
+    msc->sbfAccess.H_ReplicationBy2 = 0;
+    msc->sbfAccess.V_ReplicationBy2 = (mode->Flags & V_DBLSCAN) ? 1 : 0;
+    msc->sbfAccess.CompositeSync =  (mode->Flags & V_CSYNC);
+    msc->sbfAccess.Interlace = (mode->Flags & V_INTERLACE) ? 1 : 0;
+    msc->sbfAccess.DoubleClock = (mode->Flags & V_DBLCLK) ? 1 : 0;
+    msc->sbfAccess.RGB888 = (depth == 24) ? 1 : 0;
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, SetCRTC_Timing);
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetCRTC_Timing\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_Timing Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_Timing Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPixelClockConfig config)
+{
+    AtomBiosArgRec data;
+    CARD8 version;
+    union {
+	PIXEL_CLOCK_PARAMETERS  pclk;
+	PIXEL_CLOCK_PARAMETERS_V2  pclk_v2;
+	PIXEL_CLOCK_PARAMETERS_V3  pclk_v3;
+	SET_PIXEL_CLOCK_PS_ALLOCATION pclk_a;
+    } ps;
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, SetPixelClock);
+
+    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+	return FALSE;
+    switch  (version) {
+	case 1:
+	    ps.pclk.usPixelClock = config.PixelClock / 10;
+	    ps.pclk.usRefDiv = config.refDiv;
+	    ps.pclk.usFbDiv = config.fbDiv;
+	    ps.pclk.ucPostDiv = config.postDiv;
+	    ps.pclk.ucFracFbDiv = config.fracFbDiv;
+	    ps.pclk.ucRefDivSrc = 0; /* @@@ */
+	    switch (id) {
+		case atomPclk1:
+		    ps.pclk.ucPpll = ATOM_PPLL1;
+		    break;
+		case atomPclk2:
+		    ps.pclk.ucPpll = ATOM_PPLL2;
+		    break;
+	    }
+	    ps.pclk.ucRefDivSrc = 0;
+	    switch (config.Crtc) {
+		case atomCrtc1:
+		    ps.pclk.ucCRTC = ATOM_CRTC1;
+		    break;
+		case atomCrtc2:
+		    ps.pclk.ucCRTC = ATOM_CRTC2;
+		    break;
+	    }
+	    break;
+	case 2:
+	    ps.pclk_v2.usPixelClock = config.PixelClock / 10;
+	    ps.pclk_v2.usRefDiv = config.refDiv;
+	    ps.pclk_v2.usFbDiv = config.fbDiv;
+	    ps.pclk_v2.ucPostDiv = config.postDiv;
+	    ps.pclk_v2.ucFracFbDiv = config.fracFbDiv;
+	    switch (id) {
+		case atomPclk1:
+		    ps.pclk_v2.ucPpll = ATOM_PPLL1;
+		    break;
+		case atomPclk2:
+		    ps.pclk_v2.ucPpll = ATOM_PPLL2;
+		    break;
+	    }
+	    ps.pclk_v2.ucRefDivSrc = 0; /* @@@ */
+	    switch (config.Crtc) {
+		case atomCrtc1:
+		    ps.pclk_v2.ucCRTC = ATOM_CRTC1;
+		    break;
+		case atomCrtc2:
+		    ps.pclk_v2.ucCRTC = ATOM_CRTC2;
+		    break;
+	    }
+	    ps.pclk_v2.ucMiscInfo = (config.u.v2.force ? 1 : 0)
+		| (config.u.v2.deviceIndex << MISC_DEVICE_INDEX_SHIFT);
+	    break;
+	case 3:
+	    ps.pclk_v3.usPixelClock = config.PixelClock / 10;
+	    ps.pclk_v3.usRefDiv = config.refDiv;
+	    ps.pclk_v3.usFbDiv = config.fbDiv;
+	    ps.pclk_v3.ucPostDiv = config.postDiv;
+	    ps.pclk_v3.ucFracFbDiv = config.fracFbDiv;
+	    switch (id) {
+		case atomPclk1:
+		    ps.pclk_v3.ucPpll = ATOM_PPLL1;
+		    break;
+		case atomPclk2:
+		    ps.pclk_v3.ucPpll = ATOM_PPLL2;
+		    break;
+	    }
+	    switch (config.u.v3.Output) {
+		case atomOutputKldskpLvtma:
+		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA;
+		    break;
+		case atomOutputUniphyA:
+		case atomOutputUniphyB:
+		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_UNIPHY;
+		    break;
+		case atomOutputDacA:
+		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DAC1;
+		    break;
+		case atomOutputDacB:
+		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DAC2;
+		    break;
+		case atomOutputDvo:
+		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DVO1;
+		    break;
+		case atomOutputTmdsa:
+		case atomOutputLvtma:
+		case atomOutputNone:
+		    return FALSE;
+	    }
+	    switch (config.u.v3.EncoderMode) {
+		case atomDVI_1Link:
+		case atomDVI_2Link:
+		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DVI;
+		    break;
+		case atomDP:
+		case atomDP_8Lane:
+		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DP;
+		    break;
+		case atomLVDS:
+		case atomLVDS_DUAL:
+		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_LVDS;
+		    break;
+		case atomHDMI:
+		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_HDMI;
+		    break;
+		case atomSDVO:
+		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    ps.pclk_v3.ucMiscInfo = (config.u.v3.force ? 0x1 : 0x0)
+		| (config.u.v3.use_ppll ? 0x0 : 0x1) | (config.Crtc == atomCrtc2 ? 0x1 << 2 : 0);
+	default:
+	    return FALSE;
+    }
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetPixelClock\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetPixelClock Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetPixelClock Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+Bool
+rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
+			struct atomCrtcSourceConfig *config)
+{
+    AtomBiosArgRec data;
+    CARD8 version;
+
+    union
+    {
+	SELECT_CRTC_SOURCE_PARAMETERS crtc;
+	SELECT_CRTC_SOURCE_PS_ALLOCATION crtc_a;
+	SELECT_CRTC_SOURCE_PARAMETERS_V2 crtc2;
+/* 	SELECT_CRTC_SOURCE_PS_ALLOCATION_V2 crtc2_a; */
+    } ps;
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, SelectCRTC_Source);
+
+    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+	return FALSE;
+    switch  (version) {
+	case 1:
+	    switch (id) {
+		case atomCrtc1:
+		    ps.crtc.ucCRTC = ATOM_CRTC1;
+		    break;
+		case atomCrtc2:
+		    ps.crtc.ucCRTC = ATOM_CRTC2;
+		    break;
+	    }
+	    switch (config->u.devId) {
+		case atomCRT1:
+		    ps.crtc.ucDevice = ATOM_DEVICE_CRT1_INDEX;
+		    break;
+		case atomLCD1:
+		    ps.crtc.ucDevice = ATOM_DEVICE_LCD1_INDEX;
+		    break;
+		case atomTV1:
+		    ps.crtc.ucDevice = ATOM_DEVICE_TV1_INDEX;
+		    break;
+		case atomDFP1:
+		    ps.crtc.ucDevice = ATOM_DEVICE_DFP1_INDEX;
+		    break;
+		case atomCRT2:
+		    ps.crtc.ucDevice = ATOM_DEVICE_CRT2_INDEX;
+		    break;
+		case atomLCD2:
+		    ps.crtc.ucDevice = ATOM_DEVICE_LCD2_INDEX;
+		    break;
+		case atomTV2:
+		    ps.crtc.ucDevice = ATOM_DEVICE_TV2_INDEX;
+		    break;
+		case atomDFP2:
+		    ps.crtc.ucDevice = ATOM_DEVICE_DFP2_INDEX;
+		    break;
+		case atomCV:
+		    ps.crtc.ucDevice = ATOM_DEVICE_CV_INDEX;
+		    break;
+		case atomDFP3:
+		    ps.crtc.ucDevice = ATOM_DEVICE_DFP3_INDEX;
+		    break;
+	    }
+	    break;
+	case 2:
+	    switch (id) {
+		case atomCrtc1:
+		    ps.crtc2.ucCRTC = ATOM_CRTC1;
+		    break;
+		case atomCrtc2:
+		    ps.crtc2.ucCRTC = ATOM_CRTC2;
+		    break;
+	    }
+	    switch (config->u.crtc2.encoder) {
+		case atomEncoderDACA:
+		    ps.crtc2.ucEncoderID = ASIC_INT_DAC1_ENCODER_ID;
+		    break;
+		case atomEncoderDACB:
+		    ps.crtc2.ucEncoderID = ASIC_INT_DAC2_ENCODER_ID;
+		    break;
+		case atomEncoderTV:
+		    ps.crtc2.ucEncoderID = ASIC_INT_TV_ENCODER_ID;
+		    break;
+		case atomEncoderDVO:
+		    ps.crtc2.ucEncoderID = ASIC_INT_DVO_ENCODER_ID;
+		    break;
+		case atomEncoderDIG1:
+		    ps.crtc2.ucEncoderID = ASIC_INT_DIG1_ENCODER_ID;
+		    break;
+		case atomEncoderDIG2:
+		    ps.crtc2.ucEncoderID = ASIC_INT_DIG2_ENCODER_ID;
+		    break;
+		case atomEncoderExternal:
+		    ps.crtc2.ucEncoderID = ASIC_EXT_DIG_ENCODER_ID;
+		    break;
+		case atomEncoderTMDS1:
+		case atomEncoderTMDS2:
+		case atomEncoderLVDS:
+		    return FALSE;
+	    }
+	    switch (config->u.crtc2.mode) {
+		case atomDVI_1Link:
+		case atomDVI_2Link:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DVI;
+		    break;
+		case atomDP:
+		case atomDP_8Lane:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DP;
+		    break;
+		case atomLVDS:
+		case atomLVDS_DUAL:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_LVDS;
+		    break;
+		case atomHDMI:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_HDMI;
+		    break;
+		case atomSDVO:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_SDVO;
+		    break;
+		case atomTVComposite:
+		case atomTVSVideo:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_TV;
+		    break;
+		case atomTVComponent:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CV;
+		    break;
+		case atomCRT:
+		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CRT;
+		    break;
+	    }
+	    break;
+    }
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SelectCRTCSource\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SelectCRTCSource Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SelectCRTCSource Failed\n");
     return FALSE;
 }
 
@@ -1788,24 +2307,24 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 			.LVDS_Info->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
 		case     ATOM_LVDS_TEMPORAL_DITHER:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x40;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & 0x40) != 0;
 		    break;
 		case     ATOM_LVDS_SPATIAL_DITHER:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x20;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & 0x20) != 0;
 		    break;
 		case     ATOM_LVDS_FPDI:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x10;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & 0x10) != 0;
 		    break;
 		case     ATOM_LVDS_DUALLINK:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x01;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & 0x01) != 0;
 		    break;
 		case     ATOM_LVDS_24BIT:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info->ucLVDS_Misc & 0x02;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info->ucLVDS_Misc & 0x02) != 0;
 		    break;
 		case     ATOM_LVDS_GREYLVL:
 		    *val = (atomDataPtr->LVDS_Info
@@ -1835,28 +2354,28 @@ rhdAtomLvdsInfoQuery(atomBiosHandlePtr handle,
 			.LVDS_Info_v12->ucPowerSequenceDEtoBLOnin10Ms * 10;
 		    break;
 		case     ATOM_LVDS_FPDI:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc * 0x10;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc * 0x10) != 0;
 		    break;
 		case     ATOM_LVDS_SPATIAL_DITHER:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc & 0x20;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc & 0x20) != 0;
 		    break;
 		case     ATOM_LVDS_TEMPORAL_DITHER:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc & 0x40;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc & 0x40) != 0;
 		    break;
 		case     ATOM_LVDS_DUALLINK:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc & 0x01;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc & 0x01) != 0;
 		    break;
 		case     ATOM_LVDS_24BIT:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc & 0x02;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc & 0x02) != 0;
 		    break;
 		case     ATOM_LVDS_GREYLVL:
-		    *val = atomDataPtr->LVDS_Info
-			.LVDS_Info_v12->ucLVDS_Misc & 0x0C;
+		    *val = (atomDataPtr->LVDS_Info
+			    .LVDS_Info_v12->ucLVDS_Misc & 0x0C) >> 2;
 		    break;
 		default:
 		    return ATOM_NOT_IMPLEMENTED;
@@ -2503,7 +3022,7 @@ static const struct _rhd_encoders
     { "HDMI_SI1930", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "HDMI_INTERNAL", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "INTERNAL_KLDSCP_TMDS1", { RHD_OUTPUT_TMDSA, RHD_OUTPUT_NONE }},
-    { "INTERNAL_KLSCP_DVO1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
+    { "INTERNAL_KLDSCP_DVO1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "INTERNAL_KLDSCP_DAC1", { RHD_OUTPUT_DACA, RHD_OUTPUT_NONE }},
     { "INTERNAL_KLDSCP_DAC2", { RHD_OUTPUT_DACB, RHD_OUTPUT_NONE }},
     { "SI178", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
