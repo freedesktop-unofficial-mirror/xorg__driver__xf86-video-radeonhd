@@ -34,6 +34,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_randr.c \
 	rhd_dig.c \
 	rhd_ddia.c \
+	rhd_atomout.c \
 	rhd_atombios.h \
 	rhd.h \
 	rhd_i2c.h \
