@@ -387,8 +387,8 @@ struct atomEncoderConfig
 
 struct atomCodeTableVersion
 {
-    CARD16 cref;
-    CARD16 fref;
+    CARD8 cref;
+    CARD8 fref;
 };
 
 struct atomPixelClockConfig {
@@ -417,18 +417,46 @@ enum atomPxclk {
     atomPclk2
 };
 
-Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
-				  enum atomTransmitterAction action,
-				  struct atomTransmitterConfig *config);
 extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
+extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
+
+#if 0
+extern Bool rhdAtomASICInit(atomBiosHandlePtr handle);
+extern struct atomCodeTableVersion rhdAtomASICInitVersion(atomBiosHandlePtr handle);
+#endif
 extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
 		 enum atomScalerMode mode);
-extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
+extern struct atomCodeTableVersion rhdAtomSetScalerVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
+					 enum atomTransmitterAction action,
+					 struct atomTransmitterConfig *config);
+extern struct atomCodeTableVersion rhdAtomDigTransmitterControlVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id,
+				 enum atomOutputAction action);
+extern struct atomCodeTableVersion rhdAtomOutputControlVersion(atomBiosHandlePtr handle,
+							       enum atomOutput id);
+extern Bool AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice id, enum atomDAC dac);
+extern struct atomCodeTableVersion AtomDACLoadDetectionVersion(atomBiosHandlePtr handle, enum atomDevice id);
+extern Bool rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
+				  enum atomEncoderAction action, struct atomEncoderConfig *config);
+struct atomCodeTableVersion rhdAtomEncoderControlVersion(atomBiosHandlePtr handle,
+							 enum atomEncoder id);
 extern Bool rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
-				    enum atomCrtcAction action);
+			      enum atomCrtcAction action);
+extern struct atomCodeTableVersion rhdAtomEnableCrtcVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc id,
 				    enum atomCrtcAction action);
+extern struct atomCodeTableVersion rhdAtomEnableCrtcMemReqVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, DisplayModePtr mode,
+				  int depth);
+extern struct atomCodeTableVersion rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id,
+				 struct atomPixelClockConfig config);
+extern struct atomCodeTableVersion rhdAtomSetPixelClockVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
+				    struct atomCrtcSourceConfig *config);
+extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle);
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
