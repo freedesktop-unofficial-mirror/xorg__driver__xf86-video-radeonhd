@@ -678,6 +678,18 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
 /*
  *
  */
+struct atomCodeTableVersion
+rhdAtomASICInitVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, ASIC_Init);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScalerMode mode)
 {
@@ -723,6 +735,21 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
     return FALSE;
 }
 
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomSetScalerVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, EnableScaler);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
 {
@@ -896,6 +923,18 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 /*
  *
  */
+struct atomCodeTableVersion
+rhdAtomDigTransmitterControlVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutputAction action)
 {
@@ -1020,6 +1059,51 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput id, enum atomOutp
     return FALSE;
 }
 
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomOutputControlVersion(atomBiosHandlePtr handle, enum atomOutput id)
+{
+    struct atomCodeTableVersion version = {0 , 0};
+    int index;
+
+    switch (id) {
+	case atomDVOOutput:
+	    index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
+	    break;
+	case atomLCDOutput:
+	    index = GetIndexIntoMasterTable(COMMAND,  LCD1OutputControl);
+	    break;
+	case atomCVOutput:
+	    index = GetIndexIntoMasterTable(COMMAND, CV1OutputControl);
+	    break;
+	case atomTVOutput:
+	    index = GetIndexIntoMasterTable(COMMAND, TV1OutputControl);
+	    break;
+	case atomLVTMAOutput:
+	    index = GetIndexIntoMasterTable(COMMAND, LVTMAOutputControl);
+	    break;
+	case atomTMDSAOutput:
+	    index = GetIndexIntoMasterTable(COMMAND, TMDSAOutputControl);
+	    break;
+	case atomDAC1Output:
+	    index = GetIndexIntoMasterTable(COMMAND, DAC1OutputControl);
+	    break;
+	case atomDAC2Output:
+	    index = GetIndexIntoMasterTable(COMMAND, DAC2OutputControl);
+	    break;
+	default:
+	    return version;
+    }
+
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice id, enum atomDAC dac)
 {
@@ -1077,6 +1161,18 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice id, enum atomDAC 
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "DAC_LoadDetection Failed\n");
     return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+AtomDACLoadDetectionVersion(atomBiosHandlePtr handle, enum atomDevice id)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, DAC_LoadDetection);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
 }
 
 /*
@@ -1451,6 +1547,52 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 /*
  *
  */
+struct atomCodeTableVersion
+rhdAtomEncoderControlVersion(atomBiosHandlePtr handle, enum atomEncoder id)
+{
+    struct atomCodeTableVersion version = { 0, 0 };
+    int index;
+
+    switch (id) {
+	case atomEncoderDACA:
+	    index = GetIndexIntoMasterTable(COMMAND, DAC1EncoderControl);
+	    break;
+	case atomEncoderDACB:
+	    index = GetIndexIntoMasterTable(COMMAND, DAC2EncoderControl);
+	    break;
+	case atomEncoderTV:
+	    index = GetIndexIntoMasterTable(COMMAND, TVEncoderControl);
+	    break;
+	case atomEncoderTMDS1:
+	case atomEncoderTMDS2:
+	    index = GetIndexIntoMasterTable(COMMAND, TMDSAEncoderControl);
+	    break;
+	case atomEncoderLVDS:
+	    index = GetIndexIntoMasterTable(COMMAND, LVDSEncoderControl);
+	    break;
+	case atomEncoderDIG1:
+	    index = GetIndexIntoMasterTable(COMMAND, DIG1EncoderControl);
+	    break;
+	case atomEncoderDIG2:
+	    index = GetIndexIntoMasterTable(COMMAND, DIG2EncoderControl);
+	    break;
+	case atomEncoderExternal:
+	    index = GetIndexIntoMasterTable(COMMAND, ExternalEncoderControl);
+	    break;
+	case atomEncoderDVO:
+	    index = GetIndexIntoMasterTable(COMMAND, DVOEncoderControl);
+	    break;
+	default:
+	    return version;
+    }
+
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
 		  enum atomCrtcAction action)
@@ -1498,6 +1640,18 @@ rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
 /*
  *
  */
+struct atomCodeTableVersion
+rhdAtomEnableCrtcVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND,  EnableCRTC);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc id,
 		  enum atomCrtcAction action)
@@ -1540,6 +1694,19 @@ rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc id,
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTCMemReq Failed\n");
     return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomEnableCrtcMemReqVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, EnableCRTCMemReq);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+
 }
 
 /*
@@ -1601,6 +1768,19 @@ rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, DisplayModePtr
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_Timing Failed\n");
     return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, SetCRTC_Timing);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+
 }
 
 /*
@@ -1754,6 +1934,19 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 /*
  *
  */
+struct atomCodeTableVersion
+rhdAtomSetPixelClockVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, SetPixelClock);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+
+}
+
+/*
+ *
+ */
 Bool
 rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 			struct atomCrtcSourceConfig *config)
@@ -1897,6 +2090,19 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
     xf86DrvMsg(handle->scrnIndex, X_INFO, "SelectCRTCSource Failed\n");
     return FALSE;
 }
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, SelectCRTC_Source);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+    return version;
+}
+
 
 # endif  /* ATOM_BIOS_PARSER */
 
@@ -3000,7 +3206,7 @@ static const int n_rhd_connector_objs = sizeof (rhd_connector_objs) / sizeof(str
 static const struct _rhd_encoders
 {
     char *name;
-    rhdOutputType ot[2];  /* { RHD_CHIP_EXTERNAL, RHD_CHIP_IGP } */
+    rhdOutputType ot[2];
 } rhd_encoders[] = {
     { "NONE", {RHD_OUTPUT_NONE, RHD_OUTPUT_NONE }},
     { "INTERNAL_LVDS", { RHD_OUTPUT_LVDS, RHD_OUTPUT_NONE }},
@@ -3065,7 +3271,7 @@ static const struct _rhd_devices
 {
     char *name;
     rhdOutputType ot[2];
-} rhd_devices[] = {
+} rhd_devices[] = { /* { RHD_CHIP_EXTERNAL, RHD_CHIP_IGP } */
     {" CRT1", { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
     {" LCD1", { RHD_OUTPUT_LVTMA, RHD_OUTPUT_LVTMA } },
     {" TV1",  { RHD_OUTPUT_NONE, RHD_OUTPUT_NONE } },
@@ -3765,7 +3971,7 @@ rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
 			   "Data table in command table %li extends %i bytes "
 			   "beyond command table size\n",
-			   (unsigned int) data->val, -diff);
+			   (unsigned long) data->val, -diff);
 
 		return  ATOM_FAILED;
 	    }
