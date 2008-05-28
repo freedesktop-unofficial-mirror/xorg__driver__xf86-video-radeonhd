@@ -414,6 +414,17 @@ rhdAtomGetTableRevisionAndSize(ATOM_COMMON_TABLE_HEADER *hdr,
 }
 
 static Bool
+rhdAtomGetCommandTableRevisionSize(atomBiosHandlePtr handle, int index,
+				   CARD8 *contentRev, CARD8 *formatRev, unsigned short *size)
+{
+    unsigned short offset = ((unsigned short *)(handle->codeTable))[index];
+    ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *hdr = (ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *)(handle->BIOSBase + offset);
+    ATOM_COMMON_TABLE_HEADER hdr1 = hdr->CommonHeader;
+
+    return rhdAtomGetTableRevisionAndSize(&hdr1, contentRev, formatRev, size);
+}
+
+static Bool
 rhdAtomAnalyzeMasterDataTable(unsigned char *base,
 			      ATOM_MASTER_DATA_TABLE *table,
 			      atomDataTablesPtr data)
@@ -778,9 +789,9 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	case atomTransmitterPCIEPHY:
 	    switch (config->link) {
 		case atomTransLinkA:
+		case atomTransLinkAB:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA;
 		    break;
-
 		case atomTransLinkB:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB;
 		    break;
@@ -793,6 +804,11 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 		case atomEncoderDIG2:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_DIG2_ENCODER;
 		    break;
+		default:
+		    xf86DrvMsg(handle->scrnIndex, X_ERROR,
+			       "%s called with invalid encoder %x for DIG transmitter\n",
+			       __func__, config->encoder);
+		    return FALSE;
 	    }
 	    if (id == atomTransmitterPCIEPHY) {
 		switch (config->lanes) {
@@ -849,7 +865,370 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     return FALSE;
 }
 
-# endif
+Bool
+rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
+			     enum atomTransmitterAction action, struct atomEncoderConfig *config)
+{
+    AtomBiosArgRec data;
+    char *name = NULL;
+    CARD8 version;
+
+    union
+    {
+	DAC_ENCODER_CONTROL_PARAMETERS dac;
+	DAC_ENCODER_CONTROL_PS_ALLOCATION dac_a;
+	TV_ENCODER_CONTROL_PARAMETERS tv;
+	TV_ENCODER_CONTROL_PS_ALLOCATION tv_a;
+	LVDS_ENCODER_CONTROL_PARAMETERS lvds;
+	LVDS_ENCODER_CONTROL_PS_ALLOCATION lvds_a;
+	DIG_ENCODER_CONTROL_PARAMETERS dig;
+	DIG_ENCODER_CONTROL_PS_ALLOCATION dig_a;
+	EXTERNAL_ENCODER_CONTROL_PARAMETER ext;
+	EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION ext_a;
+	DVO_ENCODER_CONTROL_PARAMETERS dvo;
+	DVO_ENCODER_CONTROL_PS_ALLOCATION dvo_a;
+	DVO_ENCODER_CONTROL_PARAMETERS_V3 dvo_v3;
+	DVO_ENCODER_CONTROL_PS_ALLOCATION_V3 dvo_v3_a;
+	LVDS_ENCODER_CONTROL_PARAMETERS_V2 lvdsv2;
+	LVDS_ENCODER_CONTROL_PS_ALLOCATION_V2 lvds2_a;
+	USHORT usPixelClock;
+    } ps;
+
+    ps.usPixelClock = config->pixelClock / 10;
+
+    switch (id) {
+	case atomEncoderDACA:
+	case atomEncoderDACB:
+	    if (id == atomEncoderDACA) {
+		name = "DACAEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC1EncoderControl);
+	    } else {
+		name = "DACAEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC2EncoderControl);
+	    }
+	    {
+		DAC_ENCODER_CONTROL_PARAMETERS *dac = &ps.dac;
+		switch (config->u.dac.Standard) {
+		    case atomDAC_VGA:
+			dac->ucDacStandard = ATOM_DAC1_PS2;
+			break;
+		    case atomDAC_CV:
+			dac->ucDacStandard = ATOM_DAC1_CV;
+			break;
+		    case atomDAC_NTSC:
+			dac->ucDacStandard = ATOM_DAC1_NTSC;
+			break;
+		    case atomDAC_PAL:
+			dac->ucDacStandard = ATOM_DAC1_PAL;
+			break;
+		}
+		switch (config->action) {
+		    case atomEncoderOn:
+			dac->ucAction = ATOM_ENABLE;
+			break;
+		    case atomEncoderOff:
+			dac->ucAction = ATOM_DISABLE;
+			break;
+		    default:
+			return FALSE;
+		}
+	    }
+	    break;
+	case atomEncoderTV:
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, TVEncoderControl);
+	    name = "TVAEncoderControl";
+	    {
+		TV_ENCODER_CONTROL_PARAMETERS *tv = &ps.tv;
+		switch (config->u.tv.Standard) {
+		    case ATOM_TVMODE_NTSC:
+			tv->ucTvStandard = ATOM_TV_NTSC;
+			break;
+		    case ATOM_TVMODE_NTSCJ:
+			tv->ucTvStandard = ATOM_TV_NTSCJ;
+			break;
+		    case ATOM_TVMODE_PAL:
+			tv->ucTvStandard = ATOM_TV_PAL;
+			break;
+		    case ATOM_TVMODE_PALM:
+			tv->ucTvStandard = ATOM_TV_PALM;
+			break;
+		    case ATOM_TVMODE_PALCN:
+			tv->ucTvStandard = ATOM_TV_PALCN;
+			break;
+		    case ATOM_TVMODE_PALN:
+			tv->ucTvStandard = ATOM_TV_PALN;
+			break;
+		    case ATOM_TVMODE_PAL60:
+			tv->ucTvStandard = ATOM_TV_PAL60;
+			break;
+		    case ATOM_TVMODE_SECAM:
+			tv->ucTvStandard = ATOM_TV_SECAM;
+			break;
+		    case ATOM_TVMODE_CV:
+			tv->ucTvStandard = ATOM_TV_CV;
+			break;
+		}
+		switch (config->action) {
+		    case atomEncoderOn:
+			tv->ucAction = ATOM_ENABLE;
+			break;
+		    case atomEncoderOff:
+			tv->ucAction = ATOM_DISABLE;
+			break;
+		    default:
+			return FALSE;
+		}
+	    }
+	    break;
+	case atomEncoderTMDS1:
+	case atomEncoderTMDS2:
+	case atomEncoderLVDS:
+	    if (atomEncoderLVDS) {
+		name = "LVDSEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, LVDSEncoderControl);
+	    } else {
+		name = "TMDSAEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, TMDSAEncoderControl);
+	    }
+	    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+		return FALSE;
+	    switch  (version) {
+		case 1:
+		{
+		    LVDS_ENCODER_CONTROL_PARAMETERS *lvds = &ps.lvds;
+		    lvds->ucMisc = 0;
+		    if (config->u.lvds.dual)
+			lvds->ucMisc |= 0x1;
+		    if (config->u.lvds.is24bit)
+			lvds->ucMisc |= 0x1 << 1;
+
+		    switch (config->action) {
+			case atomEncoderOn:
+			    lvds->ucAction = ATOM_ENABLE;
+			    break;
+			case atomEncoderOff:
+			    lvds->ucAction = ATOM_DISABLE;
+			    break;
+			default:
+			    return FALSE;
+		    }
+		    break;
+		}
+		case 2:
+		{
+		    LVDS_ENCODER_CONTROL_PARAMETERS_V2 *lvds = &ps.lvdsv2;
+		    lvds->ucMisc = 0;
+		    if (config->u.lvds2.dual)
+			lvds->ucMisc |= PANEL_ENCODER_MISC_DUAL;
+		    if (config->u.lvds2.coherent)
+			lvds->ucMisc |= PANEL_ENCODER_MISC_COHERENT;
+		    if (config->u.lvds2.linkB)
+			lvds->ucMisc |= PANEL_ENCODER_MISC_TMDS_LINKB;
+		    if (config->u.lvds2.hdmi)
+			lvds->ucMisc |= PANEL_ENCODER_MISC_HDMI_TYPE;
+		    lvds->ucTruncate = 0;
+		    lvds->ucSpatial = 0;
+		    lvds->ucTemporal = 0;
+		    lvds->ucFRC = 0;
+		    if (id == atomEncoderLVDS) {
+			if (config->u.lvds2.is24bit) {
+			    lvds->ucTruncate |= PANEL_ENCODER_TRUNCATE_DEPTH;
+			    lvds->ucSpatial |= PANEL_ENCODER_SPATIAL_DITHER_DEPTH;
+			    lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_DITHER_DEPTH;
+			}
+			switch (config->u.lvds2.temporalGrey) {
+			    case TEMPORAL_DITHER_0:
+				break;
+			    case TEMPORAL_DITHER_4:
+				lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_LEVEL_4;
+			    case TEMPRAL_DITHER_2:
+				lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_DITHER_EN;
+				break;
+			}
+			switch (config->u.lvds2.spatialDither)
+			    lvds->ucSpatial |= PANEL_ENCODER_SPATIAL_DITHER_EN;
+			switch (config->action) {
+			    case atomEncoderOn:
+				lvds->ucAction = ATOM_ENABLE;
+				break;
+			    case atomEncoderOff:
+				lvds->ucAction = ATOM_DISABLE;
+				break;
+			    default:
+				return FALSE;
+			}
+		    }
+		    break;
+		}
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case atomEncoderDIG1:
+	case atomEncoderDIG2:
+	case atomEncoderExternal:
+	{
+	    DIG_ENCODER_CONTROL_PARAMETERS *dig = &ps.dig;
+	    if (id == atomEncoderDIG1) {
+		name = "DIG1EncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, DIG1EncoderControl);
+	    } else if (id == atomEncoderDIG2) {
+		name = "DIG2EncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, DIG2EncoderControl);
+	    } else {
+		name = "ExternalEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, ExternalEncoderControl);
+	    }
+
+	    dig->ucConfig = 0;
+	    switch (config->u.dig.link) {
+		case atomTransLinkA:
+		case atomTransLinkAB:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKA;
+		    break;
+		case atomTransLinkB:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB;
+		    break;
+	    }
+	    if (id != atomEncoderExternal) {
+		switch (config->u.dig.transmitter) {
+		    case atomTransmitterUNIPHY:
+		    case atomTransmitterPCIEPHY:
+		    case atomTransmitterDIG1:
+			dig->ucConfig |= ATOM_ENCODER_CONFIG_UNIPHY;
+			break;
+		    case atomTransmitterLVTMA:
+		    case atomTransmitterDIG2:
+			dig->ucConfig |= ATOM_ENCODER_CONFIG_LVTMA;
+			break;
+		}
+	    }
+	    switch (config->u.dig.encoderMode) {
+		case atomDVI_1Link:
+		case atomDVI_2Link:
+		    dig->ucEncoderMode = ATOM_ENCODER_MODE_DVI;
+		    break;
+		case atomDP:
+		case atomDP_8Lane:
+		    dig->ucEncoderMode = ATOM_ENCODER_MODE_DP;
+		    break;
+		case atomLVDS:
+		case atomLVDS_DUAL:
+		    dig->ucEncoderMode = ATOM_ENCODER_MODE_LVDS;
+		    break;
+		case atomHDMI:
+		    dig->ucEncoderMode = ATOM_ENCODER_MODE_HDMI;
+		    break;
+		case atomSDVO:
+		    dig->ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
+		    break;
+		default:
+		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s called with invalid DIG encoder mode %i\n",
+			       __func__,config->u.dig.encoderMode);
+		    return FALSE;
+		    break;
+	    }
+	    switch (config->action) {
+		case atomEncoderOn:
+		    dig->ucAction = ATOM_ENABLE;
+		    break;
+		case atomEncoderOff:
+		    dig->ucAction = ATOM_DISABLE;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case atomEncoderDVO:
+	    name = "DVOEncoderControl";
+	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DVOEncoderControl);
+	    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+		return FALSE;
+	    switch  (version) {
+		case 1:
+		case 2:
+		{
+		    DVO_ENCODER_CONTROL_PARAMETERS *dvo = &ps.dvo;
+		    dvo->usEncoderID = config->u.dvo.encoderID;
+		    switch (config->u.dvo.deviceType) {
+			case atomLCD:
+			    dvo->ucDeviceType = ATOM_DEVICE_LCD1_INDEX;
+			    break;
+			case atomCRT:
+			    dvo->ucDeviceType = ATOM_DEVICE_CRT1_INDEX;
+			    break;
+			case atomDFP:
+			    dvo->ucDeviceType = ATOM_DEVICE_DFP1_INDEX;
+			    break;
+			case atomTV:
+			    dvo->ucDeviceType = ATOM_DEVICE_TV1_INDEX;
+			    break;
+			case atomCV:
+			    dvo->ucDeviceType = ATOM_DEVICE_CV_INDEX;
+			    break;
+		    }
+		    switch (config->action) {
+			case atomEncoderOn:
+			    dvo->ucAction = ATOM_ENABLE;
+			    break;
+			case atomEncoderOff:
+			    dvo->ucAction = ATOM_DISABLE;
+			    break;
+			default:
+			    return FALSE;
+		    }
+		    break;
+		}
+		case 3:
+		{
+		    DVO_ENCODER_CONTROL_PARAMETERS_V3 *dvo = &ps.dvo_v3;
+		    dvo->ucDVOConfig = 0;
+		    if (config->u.dvo3.rate == ATOM_DVO_RATE_SDR)
+			dvo->ucDVOConfig |= DVO_ENCODER_CONFIG_SDR_SPEED;
+		    else
+			dvo->ucDVOConfig |= DVO_ENCODER_CONFIG_DDR_SPEED;
+		    switch (config->u.dvo3.output) {
+			case ATOM_DVO_OUTPUT_LOW12BIT:
+			    dvo->ucDVOConfig = DVO_ENCODER_CONFIG_LOW12BIT;
+			    break;
+			case ATOM_DVO_OUTPUT_HIGH12BIT:
+			    dvo->ucDVOConfig =DVO_ENCODER_CONFIG_UPPER12BIT;
+			    break;
+			case ATOM_DVO_OUTPUT_24BIT:
+			    dvo->ucDVOConfig =DVO_ENCODER_CONFIG_24BIT;
+			    break;
+		    }
+		    switch (config->action) {
+			case atomEncoderOn:
+			    dvo->ucAction = ATOM_ENABLE;
+			    break;
+			case atomEncoderOff:
+			    dvo->ucAction = ATOM_DISABLE;
+			    break;
+			default:
+			    return FALSE;
+		    }
+		    break;
+		}
+	    }
+	    break;
+	}
+    }
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
+    return FALSE;
+}
+
+# endif  /* ATOM_BIOS_PARSER */
 
 static AtomBiosResult
 rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
@@ -2672,7 +3051,7 @@ rhdAtomGetDataInCodeTable(atomBiosHandlePtr handle,
 
 	    if (diff < 0) {
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
-			   "Data table in command table %i extends %i bytes "
+			   "Data table in command table %li extends %i bytes "
 			   "beyond command table size\n",
 			   (unsigned int) data->val, -diff);
 

@@ -103,14 +103,15 @@ typedef struct AtomFb {
 } AtomFbRec, *AtomFbPtr;
 
 typedef enum AtomTVMode {
-    ATOM_TV_NTSC = 1 << 0,
-    ATOM_TV_NTSCJ = 1 << 1,
-    ATOM_TV_PAL = 1 << 2,
-    ATOM_TV_PALM = 1 << 3,
-    ATOM_TV_PALCN = 1 << 4,
-    ATOM_TV_PALN = 1 << 5,
-    ATOM_TV_PAL60 = 1 << 6,
-    ATOM_TV_SECAM = 1 << 7
+    ATOM_TVMODE_NTSC = 1 << 0,
+    ATOM_TVMODE_NTSCJ = 1 << 1,
+    ATOM_TVMODE_PAL = 1 << 2,
+    ATOM_TVMODE_PALM = 1 << 3,
+    ATOM_TVMODE_PALCN = 1 << 4,
+    ATOM_TVMODE_PALN = 1 << 5,
+    ATOM_TVMODE_PAL60 = 1 << 6,
+    ATOM_TVMODE_SECAM = 1 << 7,
+    ATOM_TVMODE_CV = 1 << 8
 } AtomTVMode;
 
 enum atomPCIELanes {
@@ -159,11 +160,6 @@ extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex,
 				      AtomBiosRequestID id, AtomBiosArgPtr data);
 extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
 
-enum atomEncoder {
-    atomEncoderDIG1,
-    atomEncoderDIG2
-};
-
 enum atomEncoderMode {
     atomDVI_1Link,
     atomDVI_2Link,
@@ -187,6 +183,19 @@ enum atomTransmitter {
     atomTransmitterDIG2
 };
 
+enum atomEncoder {
+    atomEncoderDACA,
+    atomEncoderDACB,
+    atomEncoderTV,
+    atomEncoderTMDS1,
+    atomEncoderTMDS2,
+    atomEncoderLVDS,
+    atomEncoderDVO,
+    atomEncoderDIG1,
+    atomEncoderDIG2,
+    atomEncoderExternal
+};
+
 enum atomTransmitterAction {
     atomTransDisable,
     atomTransEnable,
@@ -197,7 +206,34 @@ enum atomTransmitterAction {
 
 enum atomTransmitterLink {
     atomTransLinkA,
-    atomTransLinkB
+    atomTransLinkB,
+    atomTransLinkAB
+};
+
+enum atomDVODeviceType {
+    atomLCD,
+    atomCRT,
+    atomDFP,
+    atomTV,
+    atomCV
+};
+
+enum atomDACStandard {
+    atomDAC_VGA,
+    atomDAC_CV,
+    atomDAC_NTSC,
+    atomDAC_PAL
+};
+
+enum atomDVORate {
+    ATOM_DVO_RATE_SDR,
+    ATOM_DVO_RATE_DDR
+};
+
+enum atomDVOOutput {
+    ATOM_DVO_OUTPUT_LOW12BIT,
+    ATOM_DVO_OUTPUT_HIGH12BIT,
+    ATOM_DVO_OUTPUT_24BIT
 };
 
 struct atomTransmitterConfig
@@ -215,11 +251,62 @@ enum atomScaler {
     atomScaler2
 };
 
+enum atomEncoderAction {
+    atomEncoderOn,
+    atomEncoderOff
+};
+
 enum atomScaleMode {
     atomScaleNone,
     atomScaleCenter,
     atomScaleExpand,
     atomScaleMulti
+};
+
+enum atomTemporalGreyLevels {
+    TEMPORAL_DITHER_0,
+    TEMPORAL_DITHER_4,
+    TEMPRAL_DITHER_2
+};
+
+struct atomEncoderConfig
+{
+    int pixelClock;
+    enum atomEncoderAction action;
+    union {
+	struct {
+	    enum atomDACStandard Standard;
+	} dac;
+	struct {
+	    enum AtomTVMode Standard;
+	} tv;
+	struct {
+	    Bool dual;
+	    Bool is24bit;
+	} lvds;
+	struct {
+	    Bool dual;
+	    Bool is24bit;
+	    Bool coherent;
+	    Bool linkB;
+	    Bool hdmi;
+	    Bool spatialDither;
+	    enum atomTemporalGreyLevels temporalGrey;
+	} lvds2;
+	struct {
+	    enum atomTransmitterLink link;
+	    enum atomTransmitter transmitter;
+	    enum atomEncoderMode encoderMode;
+	} dig;
+	struct {
+	    enum atomDVODeviceType deviceType;
+	    int encoderID;
+	} dvo;
+	struct{
+	    enum atomDVORate rate;
+	    enum atomDVOOutput output;
+	} dvo3;
+    } u;
 };
 
 Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
