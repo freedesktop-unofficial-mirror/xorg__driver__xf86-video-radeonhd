@@ -155,10 +155,15 @@ typedef union AtomBiosArg
     enum AtomTVMode		tvMode;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
-extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex,
-				      atomBiosHandlePtr handle,
-				      AtomBiosRequestID id, AtomBiosArgPtr data);
-extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
+enum atomCrtc {
+    atomCrtc1,
+    atomCrtc2
+};
+
+enum atomCrtcAction {
+    atomCrtcEnable,
+    atomCrtcDisable
+};
 
 enum atomEncoderMode {
     atomDVI_1Link,
@@ -172,7 +177,7 @@ enum atomEncoderMode {
     atomTVComposite,
     atomTVSVideo,
     atomTVComponent,
-    atomCRTC
+    atomCRT
 };
 
 enum atomTransmitter {
@@ -207,15 +212,46 @@ enum atomOutput {
     atomDAC2Output
 };
 
+enum atomDevice {
+    atomCRT1,
+    atomLCD1,
+    atomTV1,
+    atomDFP1,
+    atomCRT2,
+    atomLCD2,
+    atomTV2,
+    atomDFP2,
+    atomCV,
+    atomDFP3
+};
+
+enum atomDAC {
+    atomDACA,
+    atomDACB,
+    atomDACExt
+};
+
+enum atomScaler {
+    atomScaler1,
+    atomScaler2
+};
+
+enum atomScalerMode {
+    atomScalerDisable,
+    atomScalerCenter,
+    atomScalerExpand,
+    atomScalerMulttabExpand
+};
+
 enum atomOutputAction {
-    atomEnable,
-    atomDisable,
-    atomLcdOn,
-    atomLcdOff,
-    atomLcdBrightnessControl,
-    atomLcdSelftestStart,
-    atomLcdSelftestStop,
-    atomEncoderInit
+    atomOutputEnable,
+    atomOutputDisable,
+    atomOutputLcdOn,
+    atomOutputLcdOff,
+    atomOutputLcdBrightnessControl,
+    atomOutputLcdSelftestStart,
+    atomOutputLcdSelftestStop,
+    atomOutputEncoderInit
 };
 
 enum atomTransmitterAction {
@@ -233,11 +269,11 @@ enum atomTransmitterLink {
 };
 
 enum atomDVODeviceType {
-    atomLCD,
-    atomCRT,
-    atomDFP,
-    atomTV,
-    atomCV
+    atomDvoLCD,
+    atomDvoCRT,
+    atomDvoDFP,
+    atomDvoTV,
+    atomDvoCV
 };
 
 enum atomDACStandard {
@@ -268,9 +304,15 @@ struct atomTransmitterConfig
     Bool coherent;
 };
 
-enum atomScaler {
-    atomScaler1,
-    atomScaler2
+struct atomCrtcSourceConfig
+{
+    union {
+	enum atomDevice devId;
+	struct {
+	    enum atomEncoder encoder;
+	    enum atomEncoderMode mode;
+	} crtc2;
+    } u;
 };
 
 enum atomEncoderAction {
@@ -285,10 +327,22 @@ enum atomScaleMode {
     atomScaleMulti
 };
 
+enum atomOutputType {
+    atomOutputNone,
+    atomOutputDacA,
+    atomOutputDacB,
+    atomOutputTmdsa,
+    atomOutputLvtma,
+    atomOutputDvo,
+    atomOutputKldskpLvtma,
+    atomOutputUniphyA,
+    atomOutputUniphyB
+};
+
 enum atomTemporalGreyLevels {
     TEMPORAL_DITHER_0,
     TEMPORAL_DITHER_4,
-    TEMPRAL_DITHER_2
+    TEMPORAL_DITHER_2
 };
 
 struct atomEncoderConfig
@@ -331,11 +385,54 @@ struct atomEncoderConfig
     } u;
 };
 
-Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
-				  enum atomTransmitterAction action, struct atomTransmitterConfig *config);
-extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
-			     enum atomScaleMode mode);
+struct atomCodeTableVersion
+{
+    CARD16 cref;
+    CARD16 fref;
+};
 
+struct atomPixelClockConfig {
+    int PixelClock;
+    int refDiv;
+    int fbDiv;
+    int postDiv;
+    int fracFbDiv;
+    enum atomCrtc Crtc;
+    union  {
+	struct {
+	    Bool force;
+	    int deviceIndex;
+	} v2;
+	struct {
+	    Bool force;
+	    enum atomOutputType Output;
+	    enum atomEncoderMode EncoderMode;
+	    Bool use_ppll;
+	} v3;
+    } u;
+};
+
+enum atomPxclk {
+    atomPclk1,
+    atomPclk2
+};
+
+Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
+				  enum atomTransmitterAction action,
+				  struct atomTransmitterConfig *config);
+extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
+		AtomBiosRequestID id, AtomBiosArgPtr data);
+extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
+		 enum atomScalerMode mode);
+extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
+extern Bool rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
+				    enum atomCrtcAction action);
+extern Bool rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc id,
+				    enum atomCrtcAction action);
+
+#if 0
+Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
+#endif
 # endif
 
 #endif /*  RHD_ATOMBIOS_H_ */
