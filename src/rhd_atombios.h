@@ -125,6 +125,7 @@ enum atomPCIELanes {
 };
 
 enum atomDevice {
+    atomNone,
     atomCRT1,
     atomLCD1,
     atomTV1,

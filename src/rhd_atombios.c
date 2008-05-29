@@ -2089,37 +2089,6 @@ rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle)
 
 # endif  /* ATOM_BIOS_PARSER */
 
-enum rhdSensedOutput
-rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC)
-{
-    RHDPtr rhdPtr = RHDPTRI(Output);
-    CARD32 BIOS_0;
-
-    if (rhdPtr->ChipSet < RHD_R600)
-	BIOS_0 = RHDRegRead(Output, 0x10);
-    else
-	BIOS_0 = RHDRegRead(Output, 0x1724);
-
-    switch (DAC) {
-	case atomDACA:
-	    break;
-	case atomDACB:
-	    BIOS_0 >>= 8;
-	    break;
-	case atomDACExt:
-	    return RHD_SENSED_NONE;
-    }
-    if (BIOS_0 & ATOM_S0_CRT1_MASK)
-	return RHD_SENSED_VGA;
-    else if (BIOS_0 & ATOM_S0_TV1_COMPOSITE_A)
-	return RHD_SENSED_TV_COMPOSITE;
-    else if (BIOS_0 & ATOM_S0_TV1_SVIDEO_A)
-	return RHD_SENSED_TV_SVIDEO;
-    else if (BIOS_0 & ATOM_S0_CV_MASK_A)
-	return RHD_SENSED_TV_COMPONENT;
-    else return RHD_SENSED_NONE;
-}
-
 
 static AtomBiosResult
 rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
