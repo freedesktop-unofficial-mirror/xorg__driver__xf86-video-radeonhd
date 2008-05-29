@@ -153,6 +153,19 @@ enum atomPCIELanes {
     atomPCIELane12_15
 };
 
+enum atomDevice {
+    atomCRT1,
+    atomLCD1,
+    atomTV1,
+    atomDFP1,
+    atomCRT2,
+    atomLCD2,
+    atomTV2,
+    atomDFP2,
+    atomCV,
+    atomDFP3
+};
+
 typedef struct AtomGoldenSettings
 {
     unsigned char *BIOSPtr;
@@ -164,7 +177,10 @@ typedef struct AtomGoldenSettings
 typedef union AtomBiosArg
 {
     CARD32 val;
-    struct rhdConnectorInfo	*connectorInfo;
+    struct {
+	struct rhdConnectorInfo	*connectorInfo;
+	enum atomDevice	        *atomDeviceInfo;
+    } ConnectorData;
     enum RHD_CHIPSETS		chipset;
     struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
@@ -240,19 +256,6 @@ enum atomOutput {
     atomTMDSAOutput,
     atomDAC1Output,
     atomDAC2Output
-};
-
-enum atomDevice {
-    atomCRT1,
-    atomLCD1,
-    atomTV1,
-    atomDFP1,
-    atomCRT2,
-    atomLCD2,
-    atomTV2,
-    atomDFP2,
-    atomCV,
-    atomDFP3
 };
 
 enum atomDAC {
@@ -488,7 +491,6 @@ extern struct atomCodeTableVersion rhdAtomSetPixelClockVersion(atomBiosHandlePtr
 extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 				    struct atomCrtcSourceConfig *config);
 extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle);
-extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
