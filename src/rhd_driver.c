@@ -112,7 +112,10 @@
 #include "rhd_card.h"
 #include "rhd_randr.h"
 #include "r5xx_accel.h"
+
+#ifdef USE_DRI
 #include "rhd_dri.h"
+#endif
 
 /* ??? */
 #include "servermd.h"
@@ -716,8 +719,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 #endif
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     RHDDRIPreInit(pScrn);
+#else
+    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+	       "DRI support has been disabled at compile time\n");
 #endif
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
@@ -908,7 +914,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	(rhdPtr->AccelMethod == RHD_ACCEL_EXA))
 	rhdFbOffscreenGrab(pScrn);
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIAllocateBuffers(pScrn);
 #endif
@@ -965,7 +971,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (!miSetPixmapDepths())
 	return FALSE;
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     /* Setup DRI after visuals have been established, but before fbScreenInit is
      * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
      * call back. */
@@ -1012,7 +1018,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     fbPictureInit(pScreen, 0, 0);
     xf86SetBlackWhitePixels(pScreen);
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIFinishScreenInit(pScreen);
 #endif
@@ -1105,8 +1111,10 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	struct rhdCrtc *Crtc;
 	int i;
 
+#ifdef USE_DRI
 	if (rhdPtr->dri)
 	    RHDDRICloseScreen(pScreen);
+#endif
 
 	/* stop scanout */
 	for (i = 0; i < 2; i++) {
@@ -1179,8 +1187,10 @@ RHDEnterVT(int scrnIndex, int flags)
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DSetup(pScrn);
 
+#ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIEnterVT(pScrn->pScreen);
+#endif
 
     return TRUE;
 }
@@ -1196,8 +1206,10 @@ RHDLeaveVT(int scrnIndex, int flags)
 
     RHDFUNC(rhdPtr);
 
+#ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRILeaveVT(pScrn->pScreen);
+#endif
 
     /* stop scanout */
     for (i = 0; i < 2; i++) {

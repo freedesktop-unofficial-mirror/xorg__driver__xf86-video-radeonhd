@@ -311,3 +311,8 @@ AC_OUTPUT([
 	src/Makefile
 	utils/conntest/Makefile
 ])
+if test "x$USE_DRI" != xyes ; then
+  echo ""
+  echo "NOTE: DRI support is disabled"
+  echo ""
+fi
