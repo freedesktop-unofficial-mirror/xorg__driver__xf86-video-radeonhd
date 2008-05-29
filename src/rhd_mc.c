@@ -53,7 +53,7 @@ struct rhdMC {
 /*
  * Save MC_VM state.
  */
-void
+static void
 r5xxSaveMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -70,7 +70,7 @@ r5xxSaveMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs600SaveMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -84,7 +84,7 @@ rs600SaveMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs690SaveMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -98,7 +98,7 @@ rs690SaveMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 r6xxSaveMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -112,7 +112,7 @@ r6xxSaveMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs780SaveMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -127,24 +127,7 @@ rs780SaveMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
-RHDSaveMC(RHDPtr rhdPtr)
-{
-    struct rhdMC *MC = rhdPtr->MC;
-    RHDFUNC(rhdPtr);
-
-    if (!MC)
-	return;
-
-    MC->SaveMC(rhdPtr);
-
-    MC->Stored = TRUE;
-}
-
-/*
- *
- */
-void
+static void
 r5xxRestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -163,7 +146,7 @@ r5xxRestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs600RestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -177,7 +160,7 @@ rs600RestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs690RestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -191,7 +174,7 @@ rs690RestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 r6xxRestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -205,7 +188,7 @@ r6xxRestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs780RestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -218,33 +201,13 @@ rs780RestoreMC(RHDPtr rhdPtr)
 }
 
 /*
- * Restore MC VM state.
- */
-void
-RHDRestoreMC(RHDPtr rhdPtr)
-{
-    struct rhdMC *MC = rhdPtr->MC;
-    RHDFUNC(rhdPtr);
-
-    if (!MC)
-	return;
-
-    if (!MC->Stored) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: trying to restore uninitialized values.\n",__func__);
-	return;
-    }
-    MC->RestoreMC(rhdPtr);
-}
-
-/*
  * Setup the MC
  */
 
 /*
  *
  */
-void
+static void
 r5xxSetupMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -276,7 +239,7 @@ r5xxSetupMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs600SetupMC(RHDPtr rhdPtr)
 {
     CARD32 fb_location, fb_location_tmp;
@@ -300,7 +263,7 @@ rs600SetupMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs690SetupMC(RHDPtr rhdPtr)
 {
     CARD32 fb_location, fb_location_tmp;
@@ -324,7 +287,7 @@ rs690SetupMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 r6xxSetupMC(RHDPtr rhdPtr)
 {
     CARD32 fb_location, fb_location_tmp, hdp_fbbase_tmp;
@@ -352,7 +315,7 @@ r6xxSetupMC(RHDPtr rhdPtr)
 /*
  *
  */
-void
+static void
 rs780SetupMC(RHDPtr rhdPtr)
 {
     CARD32 fb_location, fb_location_tmp, hdp_fbbase_tmp;
@@ -393,7 +356,7 @@ RHDMCSetup(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 rv515MCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -407,7 +370,7 @@ rv515MCIdle(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 r5xxMCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -420,7 +383,7 @@ r5xxMCIdle(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 rs600MCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -433,7 +396,7 @@ rs600MCIdle(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 rs690MCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -446,7 +409,7 @@ rs690MCIdle(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 r6xxMCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -459,7 +422,7 @@ r6xxMCIdle(RHDPtr rhdPtr)
 /*
  *
  */
-Bool
+static Bool
 rs780MCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
@@ -486,6 +449,43 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
     RHDDebug(rhdPtr->scrnIndex, "%s: MC not idle\n",__func__);
 
     return FALSE;
+}
+
+/*
+ *
+ */
+void
+RHDSaveMC(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    RHDFUNC(rhdPtr);
+
+    if (!MC)
+	return;
+
+    MC->SaveMC(rhdPtr);
+
+    MC->Stored = TRUE;
+}
+
+/*
+ * Restore MC VM state.
+ */
+void
+RHDRestoreMC(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    RHDFUNC(rhdPtr);
+
+    if (!MC)
+	return;
+
+    if (!MC->Stored) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: trying to restore uninitialized values.\n",__func__);
+	return;
+    }
+    MC->RestoreMC(rhdPtr);
 }
 
 /*
