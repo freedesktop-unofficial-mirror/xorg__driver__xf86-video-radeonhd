@@ -45,14 +45,6 @@
 #include "config.h"
 #endif
 
-#if HAVE_XF86_ANSIC_H
-# include "xf86_ansic.h"
-#else
-# include <string.h>
-# include <stdio.h>
-# include <unistd.h>
-#endif
-
 /* X and server generic header files */
 #include "xf86.h"
 #include "xaa.h"
@@ -69,6 +61,14 @@
 #include "GL/glxint.h"
 #include "GL/glxtokens.h"
 #include "sarea.h"
+
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <string.h>
+# include <stdio.h>
+# include <unistd.h>
+#endif
 
 /* Driver data structures */
 #include "rhd.h"
