@@ -37,6 +37,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_dig.c \
 	rhd_ddia.c \
 	rhd_atomout.c \
+	rhd_biosscratch.c \
 	rhd_atombios.h \
 	rhd.h \
 	rhd_i2c.h \
@@ -72,7 +73,8 @@ EXTRA_DIST += \
 	r5xx_regs.h \
 	r5xx_accel.c \
 	r5xx_exa.c \
-	r5xx_xaa.c
+	r5xx_xaa.c \
+	rhd_biosscratch.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h

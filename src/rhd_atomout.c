@@ -43,6 +43,7 @@
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 #include "rhd_atombios.h"
+#include "rhd_biosscratch.h"
 
 struct rhdAtomOutputPrivate {
     Bool Stored;
@@ -61,7 +62,7 @@ struct rhdAtomOutputPrivate {
 
     Bool   RunDualLink;
     int    pixelClock;
-    
+
     CARD16 PowerDigToDE;
     CARD16 PowerDEToBL;
     CARD16 OffDelay;
@@ -112,7 +113,7 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int pixelClock)
     RHDFUNC(Output);
 
     EncoderConfig->pixelClock = TransmitterConfig->pixelClock = pixelClock;
-    
+
     switch (Output->Id) {
 	case RHD_OUTPUT_NONE:
 	case RHD_OUTPUT_DVO:
@@ -255,7 +256,7 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     Private->pixelClock = Mode->SynthClock;
     rhdSetEncoderTransmitterConfig(Output, Private->pixelClock);
-    
+
     switch ( Private->CrtcSourceVersion.cref){
 	case 1:
 	    CrtcSourceConfig.u.devId = Private->AtomDevice;
