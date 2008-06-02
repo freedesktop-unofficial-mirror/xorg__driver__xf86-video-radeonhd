@@ -218,6 +218,8 @@ DDIAPower(struct rhdOutput *Output, int Power)
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
 
+    RHDAtomUpdateBIOSScratchForOutput(Output);
+
     switch (Power) {
 	case RHD_POWER_ON:
 	    RHDRegMask(Output, RS69_DDIA_PATH_CONTROL, RS69_DDIA_PIXVLD_RESET,

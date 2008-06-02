@@ -101,6 +101,8 @@ static AtomBiosResult rhdAtomFirmwareInfoQuery(atomBiosHandlePtr handle,
 						   AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 					   AtomBiosRequestID unused, AtomBiosArgPtr data);
+static AtomBiosResult rhdAtomGetAtomOutputPrivate(atomBiosHandlePtr handle,
+					   AtomBiosRequestID unused, AtomBiosArgPtr data);
 static AtomBiosResult
 rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 			 AtomBiosRequestID func, AtomBiosArgPtr data);
@@ -250,6 +252,8 @@ struct atomBIOSRequests {
      "CapabilityFlag",				MSG_FORMAT_HEX},
     {ATOM_GET_PCIE_LANES, rhdAtomIntegratedSystemInfoQuery,
      "PCI Lanes",				MSG_FORMAT_NONE},
+    {ATOM_GET_ATOM_OUTPUT_PRIVATE, rhdAtomGetAtomOutputPrivate,
+     "PCI Lanes",				MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -333,6 +337,10 @@ typedef struct _atomDataTables
     ATOM_VOLTAGE_OBJECT_INFO            *VoltageObjectInfo;
     ATOM_POWER_SOURCE_INFO              *PowerSourceInfo;
 } atomDataTables, *atomDataTablesPtr;
+
+struct atomConnectorInfoPrivate {
+    enum atomDevice Device[MAX_OUTPUTS_PER_CONNECTOR];
+};
 
 typedef struct _atomBiosHandle {
     int scrnIndex;
@@ -1140,6 +1148,7 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice id, enum atomDAC 
 	case atomLCD2:
 	case atomDFP2:
 	case atomDFP3:
+	case atomNone:
 	    return FALSE;
     }
     switch (dac) {
@@ -2009,6 +2018,8 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 		case atomDFP3:
 		    ps.crtc.ucDevice = ATOM_DEVICE_DFP3_INDEX;
 		    break;
+		case atomNone:
+		    return FALSE;
 	    }
 	    break;
 	case 2:
@@ -3536,15 +3547,14 @@ rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int 
  */
 static AtomBiosResult
 rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
-				     rhdConnectorInfoPtr *ptr,
-				     enum atomDevice **ConnectorOutputDeviceList)
+				     rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
     ATOM_CONNECTOR_OBJECT_TABLE *con_obj;
     rhdConnectorInfoPtr cp;
-    enum atomDevice *adp;
     unsigned long object_header_end;
+    struct atomConnectorInfoPrivate *acp;
     int ncon = 0;
     int i,j;
     unsigned short object_header_size;
@@ -3599,12 +3609,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	((char *)&atomDataPtr->Object_Header->sHeader +
 	 atomDataPtr->Object_Header->usConnectorObjectTableOffset);
 
-    if (!(adp = (enum atomDevice *)xcalloc(RHD_CONNECTORS_MAX * MAX_OUTPUTS_PER_CONNECTOR,
-					   sizeof (enum atomDevice)))) {
-	    xfree(cp);
-	    return ATOM_FAILED;
-    }
-
     for (i = 0; i < con_obj->ucNumberOfObjects; i++) {
 	ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT *SrcDstTable;
 	ATOM_COMMON_RECORD_HEADER *Record;
@@ -3637,6 +3641,12 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 		       "beyond Object_Header table\n",__func__,i);
 	    continue;
 	}
+	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(RHD_CONNECTORS_MAX,
+							   sizeof(struct atomConnectorInfoPrivate)))) {
+	    xfree(cp);
+	    return ATOM_FAILED;
+	}
+	cp[ncon].Private = acp;
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
@@ -3704,7 +3714,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
 			xfree(taglist);
 			while ((nout_dev < MAX_OUTPUTS_PER_CONNECTOR) && (i < cnt))
-			    adp[ncon * RHD_CONNECTORS_MAX + nout_dev++] = atomDevices[i++];
+			    acp->Device[nout_dev++] = atomDevices[i++];
 			xfree(atomDevices);
 		    }
 		    break;
@@ -3722,7 +3732,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	    break;
     }
     *ptr = cp;
-    *ConnectorOutputDeviceList = adp;
 
     RhdPrintConnectorInfo(handle->scrnIndex, cp);
 
@@ -3735,13 +3744,11 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 static AtomBiosResult
 rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 					 Bool igp,
-					 rhdConnectorInfoPtr *ptr,
-                                         enum atomDevice **ConnectorOutputDeviceList)
+					 rhdConnectorInfoPtr *ptr)
 {
     atomDataTablesPtr atomDataPtr;
     CARD8 crev, frev;
     rhdConnectorInfoPtr cp;
-    enum atomDevice *adp;
     struct {
 	rhdOutputType ot;
 	rhdConnectorType con;
@@ -3751,14 +3758,13 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	char *name;
 	char *outputName;
     } devices[ATOM_MAX_SUPPORTED_DEVICE];
+    struct atomConnectorInfoPrivate *acp;
     int ncon = 0;
     int n;
 
     RHDFUNC(handle);
 
     atomDataPtr = handle->atomDataPtr;
-
-    *ConnectorOutputDeviceList = NULL;
 
     if (!rhdAtomGetTableRevisionAndSize(
 	    &(atomDataPtr->SupportedDevicesInfo.SupportedDevicesInfo->sHeader),
@@ -3767,7 +3773,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
     }
 
     if (!(cp = (rhdConnectorInfoPtr)xcalloc(RHD_CONNECTORS_MAX,
-					 sizeof(struct rhdConnectorInfo))))
+					    sizeof(struct rhdConnectorInfo))))
 	return ATOM_FAILED;
 
     for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
@@ -3862,12 +3868,6 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	}
     }
 
-    if (!(adp = (enum atomDevice *)xcalloc(RHD_CONNECTORS_MAX * MAX_OUTPUTS_PER_CONNECTOR,
-					   sizeof (enum atomDevice)))) {
-	    xfree(cp);
-	    return ATOM_FAILED;
-    }
-
     /* sort devices for connectors */
     for (n = 0; n < ATOM_MAX_SUPPORTED_DEVICE; n++) {
 	int i;
@@ -3876,7 +3876,12 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    continue;
 	if (devices[n].con == RHD_CONNECTOR_NONE)
 	    continue;
-
+	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(RHD_CONNECTORS_MAX,
+							   sizeof(struct atomConnectorInfoPrivate)))) {
+	    xfree(cp);
+	    return ATOM_FAILED;
+	}
+	cp[ncon].Private = acp;
 	cp[ncon].DDC = devices[n].ddc;
 	cp[ncon].HPD = devices[n].hpd;
 	cp[ncon].Output[0] = devices[n].ot;
@@ -3885,7 +3890,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	cp[ncon].Name = xstrdup(devices[n].name);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
-	adp[RHD_CONNECTORS_MAX * ncon] = rhd_devices[n].atomDevID;
+	acp->Device[0] = rhd_devices[n].atomDevID;
 
 	if (devices[n].dual) {
 	    if (devices[n].ddc == RHD_DDC_NONE)
@@ -3912,7 +3917,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 
 			cp[ncon].Output[1] = devices[i].ot;
 
-			adp[RHD_CONNECTORS_MAX * ncon + 1] = rhd_devices[i].atomDevID;
+			acp->Device[1] = rhd_devices[i].atomDevID;
 
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;
@@ -3940,7 +3945,6 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    break;
     }
     *ptr = cp;
-    *ConnectorOutputDeviceList = adp;
 
     RhdPrintConnectorInfo(handle->scrnIndex, cp);
 
@@ -3955,19 +3959,41 @@ rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 		     AtomBiosRequestID unused, AtomBiosArgPtr data)
 {
     int chipset = data->chipset;
-    data->ConnectorData.connectorInfo = NULL;
-    data->ConnectorData.atomDeviceInfo = NULL;
 
-    if (rhdAtomConnectorInfoFromObjectHeader(handle,&data->ConnectorData.connectorInfo,
-	                                     &data->ConnectorData.atomDeviceInfo)
+    if (rhdAtomConnectorInfoFromObjectHeader(handle,&data->ConnectorInfo)
 	== ATOM_SUCCESS)
 	return ATOM_SUCCESS;
     else {
 	Bool igp = RHDIsIGP(chipset);
 	return rhdAtomConnectorInfoFromSupportedDevices(handle, igp,
-							&data->ConnectorData.connectorInfo,
-	                                                &data->ConnectorData.atomDeviceInfo);
+							&data->ConnectorInfo);
     }
+}
+
+static AtomBiosResult
+rhdAtomGetAtomOutputPrivate(atomBiosHandlePtr handle,
+					   AtomBiosRequestID unused, AtomBiosArgPtr data)
+{
+    struct rhdOutput *Output = data->AtomOutputPrivate.Output;
+    int i;
+
+    if (!data->ConnectorInfo->Private)
+	return ATOM_FAILED;
+
+    for (i = 0; i < MAX_OUTPUTS_PER_CONNECTOR; i++)
+	if (data->ConnectorInfo->Output[i] == Output->Id)
+	    break;
+
+    if (i == MAX_OUTPUTS_PER_CONNECTOR)
+	return ATOM_FAILED;
+
+    if ((Output->OutputDriverPrivate
+	 = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate))))
+	return ATOM_FAILED;
+
+    Output->OutputDriverPrivate->Device = data->ConnectorInfo->Private->Device[i];
+
+    return ATOM_SUCCESS;
 }
 
 struct atomCodeDataTableHeader

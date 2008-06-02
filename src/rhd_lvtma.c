@@ -481,6 +481,8 @@ LVDSPower(struct rhdOutput *Output, int Power)
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
 
+    RHDAtomUpdateBIOSScratchForOutput(Output);
+
     switch (Power) {
     case RHD_POWER_ON:
 	LVDSEnable(Output);
@@ -1125,6 +1127,8 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
+
+    RHDAtomUpdateBIOSScratchForOutput(Output);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
 

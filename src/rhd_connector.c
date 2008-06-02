@@ -234,7 +234,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 				 ATOMBIOS_GET_CONNECTORS, &data);
 	if (result == ATOM_SUCCESS) {
-	    ConnectorInfo = data.ConnectorData.connectorInfo;
+	    ConnectorInfo = data.ConnectorInfo;
 	    InfoAllocated = TRUE;
 	} else
 #endif
@@ -331,6 +331,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    break;
 
 	    if (!Output) {
+#if 0
 		switch (ConnectorInfo[i].Output[k]) {
 		case RHD_OUTPUT_DACA:
 		    Output = RHDDACAInit(rhdPtr);
@@ -365,6 +366,8 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			       ConnectorInfo[i].Output[k]);
 		    break;
 		}
+#endif
+		RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Output[k], ConnectorInfo[i].Type);
 	    }
 
 	    if (Output) {
@@ -376,6 +379,20 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			Connector->Output[l] = Output;
 			break;
 		    }
+#ifdef ATOM_BIOS
+		{
+		    AtomBiosArgRec data;
+		    AtomBiosResult result;
+
+		    data.AtomOutputPrivate.ConnectorInfo = &ConnectorInfo[i];
+		    data.AtomOutputPrivate.Output = Output;
+		    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				 ATOM_GET_ATOM_OUTPUT_PRIVATE, &data);
+		    if (result != ATOM_SUCCESS)
+			xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+				   "No AtomBIOS output information found.\n");
+		}
+#endif
 	    }
 	}
 
@@ -390,6 +407,8 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
 	    if (ConnectorInfo[i].Type != RHD_CONNECTOR_NONE)
 		xfree(ConnectorInfo[i].Name);
+	if (ConnectorInfo->Private)
+	    xfree(ConnectorInfo->Private);
 	xfree(ConnectorInfo);
     }
 

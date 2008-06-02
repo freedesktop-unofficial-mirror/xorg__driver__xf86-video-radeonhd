@@ -151,7 +151,7 @@ rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
 {
     CARD32 BIOS_3;
     CARD32 Addr;
-    CARD32 Mask;
+    CARD32 Mask = 0;
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x1C;
@@ -207,7 +207,7 @@ rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc
 {
     CARD32 BIOS_3;
     CARD32 Addr;
-    CARD32 Mask;
+    CARD32 Mask = 0;
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x1C;
