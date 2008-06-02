@@ -58,8 +58,6 @@ struct rhdAtomOutputPrivate {
 
     enum atomOutput ControlId;
 
-    enum atomDevice AtomDevice;
-
     Bool   RunDualLink;
     int    pixelClock;
 
@@ -82,7 +80,6 @@ struct rhdAtomOutputPrivate {
 static enum rhdSensedOutput
 rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 {
-    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
     RHDPtr rhdPtr = RHDPTRI(Output);
     enum atomDAC DAC;
 
@@ -97,7 +94,7 @@ rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 	    return FALSE;
     }
 
-    if (! AtomDACLoadDetection(rhdPtr->atomBIOS, Private->AtomDevice, DAC))
+    if (! AtomDACLoadDetection(rhdPtr->atomBIOS, Output->OutputDriverPrivate->Device, DAC))
 	return RHD_SENSED_NONE;
     return rhdAtomBIOSScratchDACSenseResults(Output, DAC);
 }
@@ -259,7 +256,7 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     switch ( Private->CrtcSourceVersion.cref){
 	case 1:
-	    CrtcSourceConfig.u.devId = Private->AtomDevice;
+	    CrtcSourceConfig.u.devId = Output->OutputDriverPrivate->Device;
 	    break;
 	case 2:
 	    CrtcSourceConfig.u.crtc2.encoder = Private->EncoderId;
@@ -285,6 +282,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
 
+    RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdSetEncoderTransmitterConfig(Output, Private->pixelClock);
 
     switch (Power) {
@@ -349,7 +347,7 @@ rhdAtomOutputSave(struct rhdOutput *Output)
 static void
 rhdAtomOutputRestore(struct rhdOutput *Output)
 {
-    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+/*     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private; */
 }
 
 /*
@@ -480,8 +478,8 @@ TMDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
  *
  */
 struct rhdOutput *
-RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType Connector, rhdOutputType OutputType,
-		  rhdConnectorType ConnectorType, enum atomDevice AtomDevice)
+RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
+		  rhdOutputType OutputType)
 {
     struct rhdOutput *Output;
     struct rhdAtomOutputPrivate *Private;
@@ -500,7 +498,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType Connector, rhdOutputType Outpu
     Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
     Output->Private = Private;
     EncoderConfig = &Private->EncoderConfig;
-    Private->AtomDevice = AtomDevice; /* @@@ */
 
     switch (OutputType) {
         case RHD_OUTPUT_NONE:
@@ -548,8 +545,8 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType Connector, rhdOutputType Outpu
 		    EncoderConfig->u.lvds2.linkB = 0; /* @@@ */
 		    EncoderConfig->u.lvds2.hdmi = FALSE;
 #if 0
-		    if (Output->Connector->Type == RHD_CONNECTOR_HDMI_B
-			|| Output->Connector->Type == RHD_CONNECTOR_HDMI_A)
+		    if (ConnectorType == RHD_CONNECTOR_HDMI_B
+			|| ConnectorType == RHD_CONNECTOR_HDMI_A)
 			EncoderConfig->u.lvds2.hdmi = TRUE;
 #endif
 		    switch (Private->GreyLevel) {
@@ -703,4 +700,21 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType Connector, rhdOutputType Outpu
     Private->CrtcSourceVersion = rhdAtomSelectCrtcSourceVersion(rhdPtr->atomBIOS);
 
     return Output;
+}
+
+/*
+ * This function is public as it is used from within other outputs, too.
+ */
+void
+RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
+    if (!Output->OutputDriverPrivate)
+	return;
+
+    if (Output->Crtc)
+	rhdAtomBIOSScratchSetCrtcState(rhdPtr, Output->OutputDriverPrivate->Device, Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
+    rhdAtomBIOSScratchUpdateOnState(rhdPtr, Output->OutputDriverPrivate->Device, Output->Active);
+    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr,  Output->OutputDriverPrivate->Device, Output->Connector != NULL);
 }

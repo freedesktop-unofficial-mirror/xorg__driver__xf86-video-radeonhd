@@ -89,7 +89,8 @@ struct rhdOutput {
     void (*Destroy) (struct rhdOutput *Output);
     Bool (*Property) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
-
+    /* Driver Private data */
+    rhdOutputDriverPrivate *OutputDriverPrivate;
     /* Output Private data */
     void *Private;
 };
@@ -110,4 +111,8 @@ struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType);
 struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType);
+struct rhdOutput *RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType, rhdOutputType OutputType);
+
+void RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
+
 #endif /* _RHD_OUTPUT_H */

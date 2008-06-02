@@ -82,6 +82,7 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_PCIENB_CFG_REG7,
     ATOM_GET_CAPABILITY_FLAG,
     ATOM_GET_PCIE_LANES,
+    ATOM_GET_ATOM_OUTPUT_PRIVATE,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -146,13 +147,14 @@ typedef struct AtomGoldenSettings
 
 } AtomGoldenSettings;
 
+struct {
+    enum atomDevice DeviceID;
+} atomOutputInfo;
+
 typedef union AtomBiosArg
 {
     CARD32 val;
-    struct {
-	struct rhdConnectorInfo	*connectorInfo;
-	enum atomDevice	        *atomDeviceInfo;
-    } ConnectorData;
+    struct rhdConnectorInfo	*ConnectorInfo;
     enum RHD_CHIPSETS		chipset;
     struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
@@ -160,11 +162,14 @@ typedef union AtomBiosArg
 	unsigned char *loc;
 	unsigned short size;
     } CommandDataTable;
-    struct
-    {
+    struct {
 	enum atomPCIELanes	Chassis;
 	enum atomPCIELanes	Docking;
     } pcieLanes;
+    struct {
+	struct rhdConnectorInfo *ConnectorInfo;
+	struct rhdOutput        *Output;
+    } AtomOutputPrivate;
     atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;
@@ -420,6 +425,10 @@ struct atomPixelClockConfig {
 enum atomPxclk {
     atomPclk1,
     atomPclk2
+};
+
+struct atomOutputPrivate {
+    enum atomDevice Device;
 };
 
 extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,

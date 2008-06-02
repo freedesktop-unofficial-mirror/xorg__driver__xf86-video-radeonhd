@@ -768,6 +768,8 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
 
+    RHDAtomUpdateBIOSScratchForOutput(Output);
+
     if (Private->RunDualLink)
 	atc->mode = atomDVI_2Link;
     else

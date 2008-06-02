@@ -26,12 +26,10 @@
 #ifndef RHD_BIOSSCRATCH_H_
 # define RHD_BIOSSCRATCH_H_
 
-enum rhdSensedOutput
-rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
-void
-rhdAtomBIOSScratchSetAttachedState(enum atomDevice dev, Bool attached);
-void
-rhdAtomBIOSScratchSetCrtcState(enum atomDevice dev, enum atomCrtc Crtc);
+extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
+extern void rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool attached);
+extern void rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on);
+extern void rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc Crtc);
 
 
 #endif

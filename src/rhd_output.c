@@ -170,6 +170,8 @@ RHDOutputsDestroy(RHDPtr rhdPtr)
 	if (Output->Destroy)
 	    Output->Destroy(Output);
 
+	if (Output->OutputDriverPrivate)
+	    xfree(Output->OutputDriverPrivate);
 	xfree(Output);
 
 	Output = Next;
