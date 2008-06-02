@@ -971,13 +971,14 @@ RHDDRIVersionCheck(RHDPtr rhdPtr)
 
     /* Low level DRM open */
     fd = drmOpen(dri_driver_name, busId);
-    xfree(busId);
     if (fd < 0) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		   "%s: drmOpen(\"%s\", \"%s\") failed.\n",
 		   __func__, dri_driver_name, busId);
+	xfree(busId);
 	return FALSE;
     }
+    xfree(busId);
 
     /* Check the lib version */
     if (xf86LoaderCheckSymbol("drmGetLibVersion"))
