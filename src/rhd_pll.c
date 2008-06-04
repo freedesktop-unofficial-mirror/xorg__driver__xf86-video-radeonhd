@@ -403,7 +403,7 @@ R500PLLCRTCGrab(struct rhdPLL *PLL, Bool Crtc2)
  *
  */
 static void
-R500PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
+R500PLL1Set(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	    CARD16 FeedbackDivider, CARD8 PostDivider)
 {
     RHDPtr rhdPtr = RHDPTRI(PLL);
@@ -447,7 +447,7 @@ R500PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
  *
  */
 static void
-R500PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
+R500PLL2Set(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	    CARD16 FeedbackDivider, CARD8 PostDivider)
 {
     RHDPtr rhdPtr = RHDPTRI(PLL);
@@ -892,7 +892,7 @@ RV620PLL2SetLow(struct rhdPLL *PLL, CARD32 RefDiv, CARD32 FBDiv, CARD32 PostDiv,
  *
  */
 static void
-RV620PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
+RV620PLL1Set(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	     CARD16 FeedbackDivider, CARD8 PostDivider)
 {
     RHDPtr rhdPtr = RHDPTRI(PLL);
@@ -939,7 +939,7 @@ RV620PLL1Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
  *
  */
 static void
-RV620PLL2Set(struct rhdPLL *PLL, CARD16 ReferenceDivider,
+RV620PLL2Set(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	     CARD16 FeedbackDivider, CARD8 PostDivider)
 {
     RHDPtr rhdPtr = RHDPTRI(PLL);
@@ -1213,6 +1213,48 @@ getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
  *
  */
 void
+RHDSetupLimits(RHDPtr rhdPtr, CARD32 *RefClock,
+	       CARD32 *IntMin, CARD32 *IntMax,
+	       CARD32 *PixMin, CARD32 *PixMax)
+{
+    /* Retrieve the internal PLL frequency limits*/
+    *RefClock = RHD_PLL_REFERENCE_DEFAULT;
+    if (rhdPtr->ChipSet < RHD_RV620)
+	*IntMin = RHD_R500_PLL_INTERNAL_MIN_DEFAULT;
+    else
+	*IntMin = RHD_RV620_PLL_INTERNAL_MIN_DEFAULT;
+
+    *IntMax = RHD_PLL_INTERNAL_MAX_DEFAULT;
+
+    /* keep the defaults */
+    *PixMin = RHD_PLL_MIN_DEFAULT;
+    *PixMax = RHD_PLL_MAX_DEFAULT;
+
+#ifdef ATOM_BIOS
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, "minimum PLL output",
+			     IntMin,  PLL_MIN);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
+			     IntMax, PLL_MAX);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLK, "Pixel Clock",
+			     PixMax, PLL_MAX);
+    getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
+			     RefClock, PLL_NONE);
+    if (*IntMax == 0) {
+	if (rhdPtr->ChipSet < RHD_RV620)
+	    *IntMax = RHD_R500_PLL_INTERNAL_MIN_DEFAULT;
+	else
+	    *IntMax = RHD_RV620_PLL_INTERNAL_MIN_DEFAULT;
+
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS reports maximum VCO freq 0. "
+		   "Using %lu instead\n",(unsigned long)*IntMax);
+    }
+#endif
+}
+
+/*
+ *
+ */
+void
 RHDPLLsInit(RHDPtr rhdPtr)
 {
     struct rhdPLL *PLL;
@@ -1220,38 +1262,8 @@ RHDPLLsInit(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    /* Retrieve the internal PLL frequency limits*/
-    RefClock = RHD_PLL_REFERENCE_DEFAULT;
-    if (rhdPtr->ChipSet < RHD_RV620)
-	IntMin = RHD_R500_PLL_INTERNAL_MIN_DEFAULT;
-    else
-	IntMin = RHD_RV620_PLL_INTERNAL_MIN_DEFAULT;
+    RHDSetupLimits(rhdPtr, &RefClock, &IntMin, &IntMax, &PixMin, &PixMax);
 
-    IntMax = RHD_PLL_INTERNAL_MAX_DEFAULT;
-
-    /* keep the defaults */
-    PixMin = RHD_PLL_MIN_DEFAULT;
-    PixMax = RHD_PLL_MAX_DEFAULT;
-
-#ifdef ATOM_BIOS
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, "minimum PLL output",
-			     &IntMin,  PLL_MIN);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
-			     &IntMax, PLL_MAX);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLK, "Pixel Clock",
-			     &PixMax, PLL_MAX);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
-			     &RefClock, PLL_NONE);
-    if (IntMax == 0) {
-	if (rhdPtr->ChipSet < RHD_RV620)
-	    IntMax = RHD_R500_PLL_INTERNAL_MIN_DEFAULT;
-	else
-	    IntMax = RHD_RV620_PLL_INTERNAL_MIN_DEFAULT;
-
-	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS reports maximum VCO freq 0. "
-		   "Using %lu instead\n",(unsigned long)IntMax);
-    }
-#endif
     /* PLL1 */
     PLL = (struct rhdPLL *) xnfcalloc(sizeof(struct rhdPLL), 1);
 
@@ -1416,7 +1428,7 @@ RHDPLLSet(struct rhdPLL *PLL, CARD32 Clock)
 	     PLL->Name, Clock);
 
     if (PLLCalculate(PLL, Clock, &RefDivider, &FBDivider, &PostDivider)) {
-	PLL->Set(PLL, RefDivider, FBDivider, PostDivider);
+	PLL->Set(PLL, Clock, RefDivider, FBDivider, PostDivider);
 
 	PLL->CurrentClock = Clock;
 	PLL->Active = TRUE;
@@ -1521,6 +1533,10 @@ RHDPLLsDestroy(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
+    if (rhdPtr->PLLs[0]->Private)
+	xfree(rhdPtr->PLLs[0]->Private);
     xfree(rhdPtr->PLLs[0]);
+    if (rhdPtr->PLLs[1]->Private)
+	xfree(rhdPtr->PLLs[1]->Private);
     xfree(rhdPtr->PLLs[1]);
 }
