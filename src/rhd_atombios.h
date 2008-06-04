@@ -402,6 +402,7 @@ struct atomCodeTableVersion
 };
 
 struct atomPixelClockConfig {
+    Bool enable;
     int PixelClock;
     int refDiv;
     int fbDiv;
@@ -415,7 +416,7 @@ struct atomPixelClockConfig {
 	} v2;
 	struct {
 	    Bool force;
-	    enum atomOutputType Output;
+	    enum atomOutputType OutputType;
 	    enum atomEncoderMode EncoderMode;
 	    Bool use_ppll;
 	} v3;
@@ -466,7 +467,7 @@ extern Bool rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, Di
 				  int depth);
 extern struct atomCodeTableVersion rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id,
-				 struct atomPixelClockConfig config);
+				 struct atomPixelClockConfig *config);
 extern struct atomCodeTableVersion rhdAtomSetPixelClockVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 				    struct atomCrtcSourceConfig *config);

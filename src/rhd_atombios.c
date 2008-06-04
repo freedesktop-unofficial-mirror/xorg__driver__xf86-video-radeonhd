@@ -1778,7 +1778,7 @@ rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle)
  *
  */
 Bool
-rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPixelClockConfig config)
+rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPixelClockConfig *config)
 {
     AtomBiosArgRec data;
     CARD8 version;
@@ -1795,11 +1795,14 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 	return FALSE;
     switch  (version) {
 	case 1:
-	    ps.pclk.usPixelClock = config.PixelClock / 10;
-	    ps.pclk.usRefDiv = config.refDiv;
-	    ps.pclk.usFbDiv = config.fbDiv;
-	    ps.pclk.ucPostDiv = config.postDiv;
-	    ps.pclk.ucFracFbDiv = config.fracFbDiv;
+	    if (config->enable)
+		ps.pclk.usPixelClock = config->PixelClock / 10;
+	    else
+		ps.pclk.usPixelClock = 0;
+	    ps.pclk.usRefDiv = config->refDiv;
+	    ps.pclk.usFbDiv = config->fbDiv;
+	    ps.pclk.ucPostDiv = config->postDiv;
+	    ps.pclk.ucFracFbDiv = config->fracFbDiv;
 	    ps.pclk.ucRefDivSrc = 0; /* @@@ */
 	    switch (id) {
 		case atomPclk1:
@@ -1810,7 +1813,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		    break;
 	    }
 	    ps.pclk.ucRefDivSrc = 0;
-	    switch (config.Crtc) {
+	    switch (config->Crtc) {
 		case atomCrtc1:
 		    ps.pclk.ucCRTC = ATOM_CRTC1;
 		    break;
@@ -1820,11 +1823,14 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 	    }
 	    break;
 	case 2:
-	    ps.pclk_v2.usPixelClock = config.PixelClock / 10;
-	    ps.pclk_v2.usRefDiv = config.refDiv;
-	    ps.pclk_v2.usFbDiv = config.fbDiv;
-	    ps.pclk_v2.ucPostDiv = config.postDiv;
-	    ps.pclk_v2.ucFracFbDiv = config.fracFbDiv;
+	    if (config->enable)
+		ps.pclk_v2.usPixelClock = config->PixelClock / 10;
+	    else
+		ps.pclk.usPixelClock = 0;
+	    ps.pclk_v2.usRefDiv = config->refDiv;
+	    ps.pclk_v2.usFbDiv = config->fbDiv;
+	    ps.pclk_v2.ucPostDiv = config->postDiv;
+	    ps.pclk_v2.ucFracFbDiv = config->fracFbDiv;
 	    switch (id) {
 		case atomPclk1:
 		    ps.pclk_v2.ucPpll = ATOM_PPLL1;
@@ -1834,7 +1840,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		    break;
 	    }
 	    ps.pclk_v2.ucRefDivSrc = 0; /* @@@ */
-	    switch (config.Crtc) {
+	    switch (config->Crtc) {
 		case atomCrtc1:
 		    ps.pclk_v2.ucCRTC = ATOM_CRTC1;
 		    break;
@@ -1842,15 +1848,18 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		    ps.pclk_v2.ucCRTC = ATOM_CRTC2;
 		    break;
 	    }
-	    ps.pclk_v2.ucMiscInfo = (config.u.v2.force ? 1 : 0)
-		| (config.u.v2.deviceIndex << MISC_DEVICE_INDEX_SHIFT);
+	    ps.pclk_v2.ucMiscInfo = (config->u.v2.force ? 1 : 0)
+		| (config->u.v2.deviceIndex << MISC_DEVICE_INDEX_SHIFT);
 	    break;
 	case 3:
-	    ps.pclk_v3.usPixelClock = config.PixelClock / 10;
-	    ps.pclk_v3.usRefDiv = config.refDiv;
-	    ps.pclk_v3.usFbDiv = config.fbDiv;
-	    ps.pclk_v3.ucPostDiv = config.postDiv;
-	    ps.pclk_v3.ucFracFbDiv = config.fracFbDiv;
+	    if (config->enable)
+		ps.pclk_v3.usPixelClock = config->PixelClock / 10;
+	    else
+		ps.pclk.usPixelClock = 0;
+	    ps.pclk_v3.usRefDiv = config->refDiv;
+	    ps.pclk_v3.usFbDiv = config->fbDiv;
+	    ps.pclk_v3.ucPostDiv = config->postDiv;
+	    ps.pclk_v3.ucFracFbDiv = config->fracFbDiv;
 	    switch (id) {
 		case atomPclk1:
 		    ps.pclk_v3.ucPpll = ATOM_PPLL1;
@@ -1859,7 +1868,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		    ps.pclk_v3.ucPpll = ATOM_PPLL2;
 		    break;
 	    }
-	    switch (config.u.v3.Output) {
+	    switch (config->u.v3.OutputType) {
 		case atomOutputKldskpLvtma:
 		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA;
 		    break;
@@ -1881,7 +1890,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		case atomOutputNone:
 		    return FALSE;
 	    }
-	    switch (config.u.v3.EncoderMode) {
+	    switch (config->u.v3.EncoderMode) {
 		case atomDVI_1Link:
 		case atomDVI_2Link:
 		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DVI;
@@ -1903,8 +1912,8 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk id, struct atomPix
 		default:
 		    return FALSE;
 	    }
-	    ps.pclk_v3.ucMiscInfo = (config.u.v3.force ? 0x1 : 0x0)
-		| (config.u.v3.use_ppll ? 0x0 : 0x1) | (config.Crtc == atomCrtc2 ? 0x1 << 2 : 0);
+	    ps.pclk_v3.ucMiscInfo = (config->u.v3.force ? 0x1 : 0x0)
+		| (config->u.v3.use_ppll ? 0x0 : 0x1) | (config->Crtc == atomCrtc2 ? 0x1 << 2 : 0);
 	default:
 	    return FALSE;
     }
