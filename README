@@ -151,6 +151,9 @@ Problem:
 |autoreconf: /usr/bin/autoconf failed with exit status: 1
 `----
 
+The same error can happen with missing macro definitions for
+XORG_MANPAGE_SECTIONS or XORG_RELEASE_VERSION.
+
 Solution:
 ---------
 
