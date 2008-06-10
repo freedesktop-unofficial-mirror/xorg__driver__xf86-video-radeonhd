@@ -140,7 +140,7 @@ r5xxRestoreMC(RHDPtr rhdPtr)
     else
 	RHDWriteMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION,
 		   MC->FbLocation);
-    RHDWriteMC(rhdPtr, MC_IND_ALL | HDP_FB_LOCATION, MC->HdpFbBase);
+    RHDRegWrite(rhdPtr, HDP_FB_LOCATION, MC->HdpFbBase);
 }
 
 /*
