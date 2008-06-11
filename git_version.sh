@@ -3,7 +3,7 @@
 # Generate some basic versioning information which can be piped to a header.
 #
 # Copyright (c) 2006-2007 Luc Verhaegen <libv@skynet.be>
-# Copyright (C) 2007 Hans Ulrich Niedermann <hun@n-dimensional.de>
+# Copyright (C) 2007-2008 Hans Ulrich Niedermann <hun@n-dimensional.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -62,10 +62,10 @@ Options:
 SED="${SED-sed}"
 
 # Initialize
-working_dir="$(pwd)"
+working_dir=`pwd`
 
 # Who am I?
-self="$(basename "$0")"
+self=`basename "$0"`
 
 # Defaults
 ifndef_symbol="GIT_VERSION_H"
@@ -73,7 +73,7 @@ outfile="-"
 print_example=false
 keep_if_no_repo=no
 quiet=false
-srcdir="$(pwd)"
+srcdir=`pwd`
 
 # Parse command line parameter, affecting defaults
 while [ "x$1" != "x" ]
@@ -127,7 +127,7 @@ do
     shift
 done
 
-# If not printing to stdout, redirect stdout to output file
+# If not printing to stdout, redirect stdout to output file?
 rename_new_output=false
 if [ "x$outfile" = "x-" ]
 then
@@ -137,7 +137,7 @@ else
 fi
 
 # Done with creating output files, so we can change to source dir
-abs_srcdir="$(cd "$srcdir" && pwd)"
+abs_srcdir=`cd "$srcdir" && pwd`
 cd "$srcdir"
 
 # Write program header
@@ -164,6 +164,7 @@ do
         break
     fi
 done
+# If git_found=yes, we can now use $() substitutions (as git does). Hooray!
 
 # Determine git specific defines
 unset git_errors ||:
