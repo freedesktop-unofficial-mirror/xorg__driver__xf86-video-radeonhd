@@ -85,6 +85,8 @@ AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
 CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
 CFLAGS="$SAVED_CFLAGS"
 
+AC_DEFINE(USE_XAA, 1, [Build support for XAA])
+
 # basic exa check.
 AC_MSG_CHECKING([whether to enable EXA support])
 if test "x$EXA" = xyes; then

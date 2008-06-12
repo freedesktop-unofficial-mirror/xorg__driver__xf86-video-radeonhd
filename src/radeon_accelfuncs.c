@@ -133,7 +133,7 @@ FUNC_NAME(RADEONSetupForSolidFill)(ScrnInfoPtr pScrn,
 				   int rop,
 				   unsigned int planemask)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     /* Save for later clipping */
@@ -162,7 +162,7 @@ FUNC_NAME(RADEONSubsequentSolidFillRect)(ScrnInfoPtr pScrn,
 					 int x, int y,
 					 int w, int h)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     BEGIN_ACCEL(3);
@@ -182,7 +182,7 @@ FUNC_NAME(RADEONSetupForSolidLine)(ScrnInfoPtr pScrn,
 				   int rop,
 				   unsigned int planemask)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     /* Save for later clipping */
@@ -191,12 +191,12 @@ FUNC_NAME(RADEONSetupForSolidLine)(ScrnInfoPtr pScrn,
 				     | RADEON_GMC_SRC_DATATYPE_COLOR
 				     | RADEON_ROP[rop].pattern);
 
-    if (info->ChipFamily >= CHIP_FAMILY_RV200) {
+    //if (info->ChipFamily >= CHIP_FAMILY_RV200) {
 	BEGIN_ACCEL(1);
 	OUT_ACCEL_REG(RADEON_DST_LINE_PATCOUNT,
 		      0x55 << RADEON_BRES_CNTL_SHIFT);
 	FINISH_ACCEL();
-    }
+	//}
 
     BEGIN_ACCEL(3);
 
@@ -214,7 +214,7 @@ FUNC_NAME(RADEONSubsequentSolidHorVertLine)(ScrnInfoPtr pScrn,
 					    int len,
 					    int dir)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     int            w    = 1;
     int            h    = 1;
     ACCEL_PREAMBLE();
@@ -247,7 +247,7 @@ FUNC_NAME(RADEONSubsequentSolidTwoPointLine)(ScrnInfoPtr pScrn,
 					     int xb, int yb,
 					     int flags)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     /* TODO: Check bounds -- RADEON only has 14 bits */
@@ -283,7 +283,7 @@ FUNC_NAME(RADEONSetupForDashedLine)(ScrnInfoPtr pScrn,
 				    int length,
 				    unsigned char *pattern)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     uint32_t pat  = *(uint32_t *)(pointer)pattern;
     ACCEL_PREAMBLE();
 
@@ -332,7 +332,7 @@ FUNC_NAME(RADEONDashedLastPel)(ScrnInfoPtr pScrn,
 			       int x, int y,
 			       int fg)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     uint32_t dp_gui_master_cntl = info->dp_gui_master_cntl_clip;
     ACCEL_PREAMBLE();
 
@@ -368,7 +368,7 @@ FUNC_NAME(RADEONSubsequentDashedTwoPointLine)(ScrnInfoPtr pScrn,
 					      int flags,
 					      int phase)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     /* TODO: Check bounds -- RADEON only has 14 bits */
@@ -411,7 +411,7 @@ static void
 FUNC_NAME(RADEONSetTransparency)(ScrnInfoPtr pScrn,
 				 int trans_color)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
     if ((trans_color != -1) || (info->XAAForceTransBlit == TRUE)) {
 	ACCEL_PREAMBLE();
@@ -438,7 +438,7 @@ FUNC_NAME(RADEONSetupForScreenToScreenCopy)(ScrnInfoPtr pScrn,
 					    unsigned int planemask,
 					    int trans_color)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     info->xdir = xdir;
@@ -473,7 +473,7 @@ FUNC_NAME(RADEONSubsequentScreenToScreenCopy)(ScrnInfoPtr pScrn,
 					      int xb, int yb,
 					      int w, int h)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     if (info->xdir < 0) xa += w - 1, xb += w - 1;
@@ -508,7 +508,7 @@ FUNC_NAME(RADEONSetupForMono8x8PatternFill)(ScrnInfoPtr pScrn,
 					    int rop,
 					    unsigned int planemask)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     unsigned char  pattern[8];
 #endif
@@ -565,7 +565,7 @@ FUNC_NAME(RADEONSubsequentMono8x8PatternFillRect)(ScrnInfoPtr pScrn,
 						  int x, int y,
 						  int w, int h)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     BEGIN_ACCEL(4);
@@ -592,6 +592,7 @@ FUNC_NAME(RADEONSetupForColor8x8PatternFill)(ScrnInfoPtr pScrn,
 					     int trans_color)
 {
     RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     /* Save for later clipping */
@@ -620,7 +621,7 @@ FUNC_NAME(RADEONSubsequentColor8x8PatternFillRect)(ScrnInfoPtr pScrn,
 						   int x, int y,
 						   int w, int h)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     BEGIN_ACCEL(4);
@@ -644,7 +645,7 @@ FUNC_NAME(RADEONSubsequentColor8x8PatternFillRect)(ScrnInfoPtr pScrn,
 static void
 RADEONCPScanlinePacket(ScrnInfoPtr pScrn, int bufno)
 {
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     int           chunk_words = info->scanline_hpass * info->scanline_words;
     ACCEL_PREAMBLE();
 
@@ -696,7 +697,7 @@ FUNC_NAME(RADEONSetupForScanlineCPUToScreenColorExpandFill)(ScrnInfoPtr pScrn,
 							    unsigned int
 							    planemask)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     info->scanline_bpp = 0;
@@ -762,7 +763,7 @@ FUNC_NAME(RADEONSubsequentScanlineCPUToScreenColorExpandFill)(ScrnInfoPtr
 							      int w, int h,
 							      int skipleft)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 #ifdef ACCEL_MMIO
     ACCEL_PREAMBLE();
 
@@ -827,7 +828,7 @@ static void
 FUNC_NAME(RADEONSubsequentScanline)(ScrnInfoPtr pScrn,
 				    int bufno)
 {
-    RADEONInfoPtr    info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 #ifdef ACCEL_MMIO
     uint32_t        *p    = (pointer)info->scratch_buffer[bufno];
     int              i;
@@ -840,7 +841,7 @@ FUNC_NAME(RADEONSubsequentScanline)(ScrnInfoPtr pScrn,
     --info->scanline_h;
 
     while (left) {
-	write_mem_barrier();
+	//write_mem_barrier();
 	if (left <= 8) {
 	  /* Last scanline - finish write to DATA_LAST */
 	  if (info->scanline_h == 0) {
@@ -904,7 +905,7 @@ FUNC_NAME(RADEONSetupForScanlineImageWrite)(ScrnInfoPtr pScrn,
 					    int bpp,
 					    int depth)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     info->scanline_bpp = bpp;
@@ -967,7 +968,7 @@ FUNC_NAME(RADEONSubsequentScanlineImageWriteRect)(ScrnInfoPtr pScrn,
 						  int w, int h,
 						  int skipleft)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
 #ifdef ACCEL_MMIO
 
@@ -1043,7 +1044,7 @@ FUNC_NAME(RADEONSetClippingRectangle)(ScrnInfoPtr pScrn,
 				      int xa, int ya,
 				      int xb, int yb)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     unsigned long  tmp1 = 0;
     unsigned long  tmp2 = 0;
     ACCEL_PREAMBLE();
@@ -1094,7 +1095,7 @@ FUNC_NAME(RADEONSetClippingRectangle)(ScrnInfoPtr pScrn,
 static void
 FUNC_NAME(RADEONDisableClipping)(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr info  = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     BEGIN_ACCEL(3);
@@ -1113,7 +1114,7 @@ void
 FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr  info  = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
     a->Flags                            = (PIXMAP_CACHE
 					   | OFFSCREEN_PIXMAPS
@@ -1146,10 +1147,10 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
 					   | HARDWARE_PATTERN_SCREEN_ORIGIN);
 
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
-    if (info->ChipFamily >= CHIP_FAMILY_RV200)
+    //    if (info->ChipFamily >= CHIP_FAMILY_RV200)
 	a->Mono8x8PatternFillFlags |= BIT_ORDER_IN_BYTE_MSBFIRST;
-    else
-	a->Mono8x8PatternFillFlags |= BIT_ORDER_IN_BYTE_LSBFIRST;
+	//else
+	//a->Mono8x8PatternFillFlags |= BIT_ORDER_IN_BYTE_LSBFIRST;
 #else
     a->Mono8x8PatternFillFlags |= BIT_ORDER_IN_BYTE_LSBFIRST;
 #endif
@@ -1206,11 +1207,11 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
     /* RV280s lock up with this using the CP for reasons to be determined.
      * See https://bugs.freedesktop.org/show_bug.cgi?id=5986 .
      */
-    if (info->ChipFamily != CHIP_FAMILY_RV280)
+    //if (info->ChipFamily != CHIP_FAMILY_RV280)
 #endif
 	a->SubsequentSolidTwoPointLine
 	    = FUNC_NAME(RADEONSubsequentSolidTwoPointLine);
-
+#if 0
     /* Disabled on RV200 and newer because it does not pass XTest */
     if (info->ChipFamily < CHIP_FAMILY_RV200) {
 	a->SetupForDashedLine
@@ -1228,7 +1229,7 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
 	a->DashedLineLimits.x2 = pScrn->virtualX-1;
 	a->DashedLineLimits.y2 = pScrn->virtualY-1;
     }
-
+#endif
     } else {
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		   "libxaa too old, can't accelerate TwoPoint lines\n");
@@ -1291,6 +1292,7 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
 					   | BIT_ORDER_IN_BYTE_LSBFIRST);
 #endif
 
+#if 0
 #ifdef RENDER
     if (info->RenderAccel && info->xaaReq.minorversion >= 2) {
 
@@ -1340,6 +1342,7 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration %s\n",
 	       info->RenderAccel ? "enabled" : "disabled");
 #endif /* RENDER */
+#endif
 }
 
 #endif /* USE_XAA */

@@ -577,6 +577,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xf86PrintDepthBpp(pScrn);
 
+    rhdPtr->CurrentLayout.bitsPerPixel = pScrn->bitsPerPixel;
+    rhdPtr->CurrentLayout.depth        = pScrn->depth;
+    rhdPtr->CurrentLayout.pixel_bytes  = pScrn->bitsPerPixel / 8;
+    rhdPtr->CurrentLayout.pixel_code   = (pScrn->bitsPerPixel != 16
+                                       ? pScrn->bitsPerPixel
+					: pScrn->depth);
+
     rhdProcessOptions(pScrn);
 
     /* Now check whether we know this card */
@@ -756,6 +763,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
 
+    ErrorF("FbIntAddress: 0x%x\n", rhdPtr->FbIntAddress);
+
     if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Card information has invalid connector information\n");
@@ -886,6 +895,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	}
     }
 
+    rhdPtr->useEXA = FALSE;
     /* try to load the XAA module here */
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	if (!xf86LoadSubModule(pScrn, "xaa")) {
@@ -903,19 +913,23 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load EXA module."
 		       " Falling back to ShadowFB.\n");
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
-	} else
+	} else {
 	    xf86LoaderReqSymLists(exaSymbols, NULL);
+	    rhdPtr->useEXA = TRUE;
+	}
     }
 #endif /* USE_EXA */
+
+    rhdPtr->tilingEnabled = FALSE;
 
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowPreInit(pScrn);
-
+#if 0
     if ((rhdPtr->AccelMethod == RHD_ACCEL_XAA) ||
 	(rhdPtr->AccelMethod == RHD_ACCEL_EXA))
 	rhdFbOffscreenGrab(pScrn);
-
+#endif
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIAllocateBuffers(pScrn);
@@ -1022,23 +1036,28 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
-	RHDDRIFinishScreenInit(pScreen);
+	rhdPtr->directRenderingEnabled = RHDDRIFinishScreenInit(pScreen);
 #endif
 
+    rhdPtr->accelOn = FALSE;
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))
 	    /* No safetynet anymore */
 	    return FALSE;
-    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxXAAInit(pScrn, pScreen);
+    } else {
+	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+	    RADEONSetupMemEXA(pScreen);
+
+	ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
+	rhdPtr->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
+				     << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
+	ErrorF("pre accelinit\n");
+	if (RADEONAccelInit(pScreen))
+	    rhdPtr->accelOn = TRUE;
+	else
+	    rhdPtr->accelOn = FALSE;
+	ErrorF("post accelinit\n");
     }
-#ifdef USE_EXA
-    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
- 	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxEXAInit(pScrn, pScreen);
-    }
-#endif /* USE_EXA */
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -1099,6 +1118,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
     }
 
+    ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
+
     return TRUE;
 }
 
@@ -1116,9 +1137,14 @@ RHDAllIdle(ScrnInfoPtr pScrn)
 	    Crtc->Power(Crtc, RHD_POWER_RESET);
     }
 
+#if 0
     /* TODO: Invalidate the cached acceleration registers */
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DIdle(pScrn);
+#endif
+
+    if (rhdPtr->accelOn)
+	RADEONEngineRestore(pScrn);
 
     if (!RHDMCIdle(rhdPtr, 1000))
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
@@ -1134,6 +1160,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 
     if(pScrn->vtSema) {
 
+	rhdPtr->accelOn = FALSE;
+
 #ifdef USE_DRI
 	if (rhdPtr->dri)
 	    RHDDRICloseScreen(pScreen);
@@ -1146,18 +1174,25 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
+
 #ifdef USE_EXA
-    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	if (rhdPtr->ChipSet < RHD_R600) {
-	    R5xxEXACloseScreen(pScreen);
-	    R5xxEXADestroy(pScrn);
-	}
-    } else
+    if (rhdPtr->exa) {
+        exaDriverFini(pScreen);
+	xfree(rhdPtr->exa);
+        rhdPtr->exa = NULL;
+    }
 #endif /* USE_EXA */
-	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	    if (rhdPtr->ChipSet < RHD_R600)
-		R5xxXAADestroy(pScrn);
-	}
+#ifdef USE_XAA
+    if (!rhdPtr->useEXA) {
+        if (rhdPtr->accel)
+	    XAADestroyInfoRec(rhdPtr->accel);
+        rhdPtr->accel = NULL;
+
+        if (rhdPtr->scratch_save)
+            xfree(rhdPtr->scratch_save);
+        rhdPtr->scratch_save = NULL;
+    }
+#endif /* USE_XAA */
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
@@ -1185,8 +1220,10 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
+#if 0
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
+#endif
 
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -1200,8 +1237,8 @@ RHDEnterVT(int scrnIndex, int flags)
     /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DSetup(pScrn);
+    if (rhdPtr->accelOn)
+        RADEONEngineRestore(pScrn);
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
@@ -1238,8 +1275,10 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
     RHDFUNC(rhdPtr);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
+#if 0
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
+#endif
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);

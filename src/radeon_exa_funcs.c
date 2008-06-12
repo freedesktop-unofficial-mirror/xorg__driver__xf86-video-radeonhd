@@ -54,8 +54,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "radeon.h"
-
 #include "exa.h"
 
 static int
@@ -71,8 +69,7 @@ FUNC_NAME(RADEONMarkSync)(ScreenPtr pScreen)
 static void
 FUNC_NAME(RADEONSync)(ScreenPtr pScreen, int marker)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RINFO_FROM_SCREEN(pScreen);
 
     TRACE;
 
@@ -81,7 +78,7 @@ FUNC_NAME(RADEONSync)(ScreenPtr pScreen, int marker)
 	info->exaMarkerSynced = marker;
     }
 
-    RADEONPTR(pScrn)->engineMode = EXA_ENGINEMODE_UNKNOWN;
+    RHDPTR(pScrn)->engineMode = EXA_ENGINEMODE_UNKNOWN;
 }
 
 static Bool
@@ -147,7 +144,7 @@ FUNC_NAME(RADEONDoPrepareCopy)(ScrnInfoPtr pScrn, uint32_t src_pitch_offset,
 			       uint32_t dst_pitch_offset, uint32_t datatype, int rop,
 			       Pixel planemask)
 {
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     RADEON_SWITCH_TO_2D();
@@ -241,16 +238,15 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
 				char *src, int src_pitch)
 {
     RINFO_FROM_SCREEN(pDst->drawable.pScreen);
-    uint8_t	   *dst	     = info->FB + exaGetPixmapOffset(pDst);
+    uint8_t	   *dst	     = (uint8_t*)info->FbBase + exaGetPixmapOffset(pDst) + info->FbScanoutStart;
     unsigned int   dst_pitch = exaGetPixmapPitch(pDst);
     unsigned int   bpp	     = pDst->drawable.bitsPerPixel;
 #ifdef ACCEL_CP
     unsigned int   hpass;
     uint32_t	   buf_pitch, dst_pitch_off;
 #endif
-#if X_BYTE_ORDER == X_BIG_ENDIAN 
-    unsigned char *RADEONMMIO = info->MMIO;
-    unsigned int swapper = info->ModeReg->surface_cntl &
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+    unsigned int swapper = info->surface_cntl &
 	    ~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 	      RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 #endif
@@ -323,7 +319,7 @@ RADEONBlitChunk(ScrnInfoPtr pScrn, uint32_t datatype, uint32_t src_pitch_offset,
 		uint32_t dst_pitch_offset, int srcX, int srcY, int dstX, int dstY,
 		int w, int h)
 {
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     ACCEL_PREAMBLE();
 
     BEGIN_ACCEL(6);
@@ -357,7 +353,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	    ~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 	      RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 #endif
-    uint8_t	  *src	     = info->FB + exaGetPixmapOffset(pSrc);
+    uint8_t	  *src	     = (uint8_t*)info->FbBase + exaGetPixmapOffset(pSrc) + info->FbScanoutStart;
     int		   src_pitch = exaGetPixmapPitch(pSrc);
     int		   bpp	     = pSrc->drawable.bitsPerPixel;
 #ifdef ACCEL_CP
@@ -380,7 +376,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	int swap = RADEON_HOST_DATA_SWAP_NONE, wpass = w * bpp / 8;
 	int hpass = min(h, scratch->total/2 / scratch_pitch);
 	uint32_t scratch_pitch_offset = scratch_pitch << 16
-				    | (info->gartLocation + info->bufStart
+				    | (info->gartLocation + info->dri->bufStart
 				       + scratch->idx * scratch->total) >> 10;
 	drmRadeonIndirect indirect;
 	ACCEL_PREAMBLE();
@@ -429,7 +425,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	     * we'd really need is a way to reliably wait for the host interface
 	     * to be done with pushing the data to the host.
 	     */
-	    while ((drmCommandNone(info->drmFD, DRM_RADEON_CP_IDLE) == -EBUSY)
+	    while ((drmCommandNone(info->dri->drmFD, DRM_RADEON_CP_IDLE) == -EBUSY)
 		   && (i++ < RADEON_TIMEOUT))
 		;
 
@@ -452,7 +448,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	indirect.start = indirect.end = 0;
 	indirect.discard = 1;
 
-	drmCommandWriteRead(info->drmFD, DRM_RADEON_INDIRECT,
+	drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
 			    &indirect, sizeof(drmRadeonIndirect));
 
 	info->exaMarkerSynced = info->exaSyncMarker;
@@ -533,15 +529,12 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 
 #ifdef RENDER
     if (info->RenderAccel) {
-	if (info->ChipFamily >= CHIP_FAMILY_R600)
+	if (info->ChipSet >= RHD_R600)
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
 			       "unsupported on R600 and newer cards.\n");
 	else if (IS_R300_3D || IS_R500_3D) {
-	    if ((info->ChipFamily < CHIP_FAMILY_RS400)
 #ifdef XF86DRI
-		|| (info->directRenderingEnabled)
-#endif
-		) {
+	    if (info->directRenderingEnabled) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
 			       "enabled for R300/R400/R500 type cards.\n");
 		info->exa->CheckComposite = R300CheckComposite;
@@ -550,8 +543,9 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 		info->exa->Composite = FUNC_NAME(RadeonComposite);
 		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
 	    } else
+#endif
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "EXA Composite requires CP on R5xx/IGP\n");
-	} else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+	} /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
 		   (info->ChipFamily == CHIP_FAMILY_RV280) ||
 		   (info->ChipFamily == CHIP_FAMILY_RS300) ||
 		   (info->ChipFamily == CHIP_FAMILY_R200)) {
@@ -570,7 +564,7 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 		    FUNC_NAME(R100PrepareComposite);
 		info->exa->Composite = FUNC_NAME(RadeonComposite);
 		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
-	}
+	}*/
     }
 #endif
 

@@ -362,7 +362,7 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->fbLocation + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -544,13 +544,13 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->fbLocation + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
     if (RADEONPixmapIsColortiled(pDst))
 	colorpitch |= RADEON_COLOR_TILE_ENABLE;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->fbLocation + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
     dst_pitch = exaGetPixmapPitch(pDst);
     if ((dst_offset & 0x0f) != 0)
 	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)dst_offset));
@@ -675,7 +675,7 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->fbLocation + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -843,7 +843,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->fbLocation + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
     if (RADEONPixmapIsColortiled(pDst))
@@ -1007,7 +1007,7 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     TRACE;
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->fbLocation + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -1101,7 +1101,7 @@ static Bool R300CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
     ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
     PixmapPtr pSrcPixmap, pDstPixmap;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     int max_tex_w, max_tex_h, max_dst_w, max_dst_h;
 
     TRACE;
@@ -1204,7 +1204,7 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->fbLocation + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
 
@@ -1961,7 +1961,7 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
     }
 
 #ifdef ACCEL_CP
-    if (info->ChipFamily < CHIP_FAMILY_R200) {
+    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
 	BEGIN_RING(4 * vtx_count + 3);
 	OUT_RING(CP_PACKET3(RADEON_CP_PACKET3_3D_DRAW_IMMD,
 			    4 * vtx_count + 1));
@@ -1977,7 +1977,7 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 		 RADEON_CP_VC_CNTL_MAOS_ENABLE |
 		 RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
 		 (4 << RADEON_CP_VC_CNTL_NUM_SHIFT));
-    } else {
+    } else*/ {
 	if (IS_R300_3D | IS_R500_3D)
 	    BEGIN_RING(4 * vtx_count + 4);
 	else
@@ -1996,12 +1996,12 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
     else
 	BEGIN_ACCEL(1 + vtx_count * 4);
 
-    if (info->ChipFamily < CHIP_FAMILY_R200) {
+    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
 	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_TRIANGLE_FAN |
 					  RADEON_VF_PRIM_WALK_DATA |
 					  RADEON_VF_RADEON_MODE |
 					  4 << RADEON_VF_NUM_VERTICES_SHIFT));
-    } else {
+    } else*/ {
 	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_QUAD_LIST |
 					  RADEON_VF_PRIM_WALK_DATA |
 					  4 << RADEON_VF_NUM_VERTICES_SHIFT));
@@ -2114,11 +2114,9 @@ static void FUNC_NAME(RadeonDoneComposite)(PixmapPtr pDst)
 
     ENTER_DRAW(0);
 
-    if (IS_R500_3D || ((info->ChipFamily == CHIP_FAMILY_RS400) ||
-		       (info->ChipFamily == CHIP_FAMILY_RS480) ||
-		       (info->ChipFamily == CHIP_FAMILY_RS600) ||
-		       (info->ChipFamily == CHIP_FAMILY_RS690) ||
-		       (info->ChipFamily == CHIP_FAMILY_RS740))) {
+    if (IS_R500_3D || ((info->ChipSet == RHD_RS600) ||
+		       (info->ChipSet == RHD_RS690) ||
+		       (info->ChipSet == RHD_RS740))) {
 	/* r500 shows corruption on small things like glyphs without a 3D idle 
 	 * IGP shows more substantial corruption
 	 */

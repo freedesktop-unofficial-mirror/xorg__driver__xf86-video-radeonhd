@@ -76,15 +76,13 @@
 #include <errno.h>
 #include <string.h>
 				/* Driver data structures */
-#include "radeon.h"
+#include "rhd.h"
 #include "radeon_reg.h"
-#include "radeon_macros.h"
-#include "radeon_probe.h"
-#include "radeon_version.h"
-#ifdef XF86DRI
+#ifdef USE_DRI
 #define _XF86DRI_SERVER_
 #include "radeon_dri.h"
 #include "radeon_common.h"
+//#include "radeon_drm.h"
 #include "radeon_sarea.h"
 #endif
 
@@ -119,30 +117,39 @@ static struct {
 };
 #endif
 
+/* Compute log base 2 of val */
+int RADEONMinBits(int val)
+{
+    int  bits;
+
+    if (!val) return 1;
+    for (bits = 0; val; val >>= 1, ++bits);
+    return bits;
+}
+
 /* The FIFO has 64 slots.  This routines waits until at least `entries'
  * of these slots are empty.
  */
 void RADEONWaitForFifoFunction(ScrnInfoPtr pScrn, int entries)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
     int            i;
 
     for (;;) {
 	for (i = 0; i < RADEON_TIMEOUT; i++) {
 	    info->fifo_slots =
-		INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK;
+		RHDRegRead(info, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK;
 	    if (info->fifo_slots >= entries) return;
 	}
 	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		       "FIFO timed out: %u entries, stat=0x%08x\n",
-		       (unsigned int)INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
-		       (unsigned int)INREG(RADEON_RBBM_STATUS));
+		       (unsigned int)RHDRegRead(info, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+		       (unsigned int)RHDRegRead(info, RADEON_RBBM_STATUS));
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "FIFO timed out, resetting engine...\n");
 	RADEONEngineReset(pScrn);
 	RADEONEngineRestore(pScrn);
-#ifdef XF86DRI
+#ifdef USE_DRI
 	if (info->directRenderingEnabled) {
 	    RADEONCP_RESET(pScrn, info);
 	    RADEONCP_START(pScrn, info);
@@ -154,54 +161,38 @@ void RADEONWaitForFifoFunction(ScrnInfoPtr pScrn, int entries)
 /* Flush all dirty data in the Pixel Cache to memory */
 void RADEONEngineFlush(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
     int            i;
 
-    if (info->ChipFamily <= CHIP_FAMILY_RV280) {
-	OUTREGP(RADEON_RB3D_DSTCACHE_CTLSTAT,
-		RADEON_RB3D_DC_FLUSH_ALL,
-		~RADEON_RB3D_DC_FLUSH_ALL);
-	for (i = 0; i < RADEON_TIMEOUT; i++) {
-	    if (!(INREG(RADEON_RB3D_DSTCACHE_CTLSTAT) & RADEON_RB3D_DC_BUSY))
-		break;
-	}
-	if (i == RADEON_TIMEOUT) {
-	    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-			   "DC flush timeout: %x\n",
-			   (unsigned int)INREG(RADEON_RB3D_DSTCACHE_CTLSTAT));
-	}
-    } else {
-	OUTREGP(R300_DSTCACHE_CTLSTAT,
-		R300_RB2D_DC_FLUSH_ALL,
-		~R300_RB2D_DC_FLUSH_ALL);
-	for (i = 0; i < RADEON_TIMEOUT; i++) {
-	    if (!(INREG(R300_DSTCACHE_CTLSTAT) & R300_RB2D_DC_BUSY))
-		break;
-	}
-	if (i == RADEON_TIMEOUT) {
-	    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-			   "DC flush timeout: %x\n",
-			   (unsigned int)INREG(R300_DSTCACHE_CTLSTAT));
-	}
+    RHDRegMask(pScrn, R300_DSTCACHE_CTLSTAT,
+	    R300_RB2D_DC_FLUSH_ALL,
+	    ~R300_RB2D_DC_FLUSH_ALL);
+    for (i = 0; i < RADEON_TIMEOUT; i++) {
+	if (!(RHDRegRead(info, R300_DSTCACHE_CTLSTAT) & R300_RB2D_DC_BUSY))
+	    break;
+    }
+    if (i == RADEON_TIMEOUT) {
+	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
+		       "DC flush timeout: %x\n",
+		       (unsigned int)RHDRegRead(info, R300_DSTCACHE_CTLSTAT));
     }
 }
 
 /* Reset graphics card to known state */
 void RADEONEngineReset(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
     uint32_t       clock_cntl_index;
     uint32_t       mclk_cntl;
     uint32_t       rbbm_soft_reset;
     uint32_t       host_path_cntl;
+    uint32_t tmp;
 
     /* The following RBBM_SOFT_RESET sequence can help un-wedge
      * an R300 after the command processor got stuck.
      */
-    rbbm_soft_reset = INREG(RADEON_RBBM_SOFT_RESET);
-    OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
+    rbbm_soft_reset = RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
+    RHDRegWrite(info, RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
                                    RADEON_SOFT_RESET_CP |
                                    RADEON_SOFT_RESET_HI |
                                    RADEON_SOFT_RESET_SE |
@@ -209,8 +200,8 @@ void RADEONEngineReset(ScrnInfoPtr pScrn)
                                    RADEON_SOFT_RESET_PP |
                                    RADEON_SOFT_RESET_E2 |
                                    RADEON_SOFT_RESET_RB));
-    INREG(RADEON_RBBM_SOFT_RESET);
-    OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset & (uint32_t)
+    RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
+    RHDRegWrite(info, RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset & (uint32_t)
                                    ~(RADEON_SOFT_RESET_CP |
                                      RADEON_SOFT_RESET_HI |
                                      RADEON_SOFT_RESET_SE |
@@ -218,100 +209,41 @@ void RADEONEngineReset(ScrnInfoPtr pScrn)
                                      RADEON_SOFT_RESET_PP |
                                      RADEON_SOFT_RESET_E2 |
                                      RADEON_SOFT_RESET_RB)));
-    INREG(RADEON_RBBM_SOFT_RESET);
-    OUTREG(RADEON_RBBM_SOFT_RESET, rbbm_soft_reset);
-    INREG(RADEON_RBBM_SOFT_RESET);
+    RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
+    RHDRegWrite(info, RADEON_RBBM_SOFT_RESET, rbbm_soft_reset);
+    RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
 
     RADEONEngineFlush(pScrn);
 
-    clock_cntl_index = INREG(RADEON_CLOCK_CNTL_INDEX);
-    RADEONPllErrataAfterIndex(info);
-
-#if 0 /* taken care of by new PM code */
-    /* Some ASICs have bugs with dynamic-on feature, which are
-     * ASIC-version dependent, so we force all blocks on for now
-     */
-    if (info->HasCRTC2) {
-	uint32_t tmp;
-
-	tmp = INPLL(pScrn, RADEON_SCLK_CNTL);
-	OUTPLL(RADEON_SCLK_CNTL, ((tmp & ~RADEON_DYN_STOP_LAT_MASK) |
-				  RADEON_CP_MAX_DYN_STOP_LAT |
-				  RADEON_SCLK_FORCEON_MASK));
-
-	if (info->ChipFamily == CHIP_FAMILY_RV200) {
-	    tmp = INPLL(pScrn, RADEON_SCLK_MORE_CNTL);
-	    OUTPLL(RADEON_SCLK_MORE_CNTL, tmp | RADEON_SCLK_MORE_FORCEON);
-	}
-    }
-#endif /* new PM code */
-
-    mclk_cntl = INPLL(pScrn, RADEON_MCLK_CNTL);
-
-#if 0 /* handled by new PM code */
-    OUTPLL(RADEON_MCLK_CNTL, (mclk_cntl |
-			      RADEON_FORCEON_MCLKA |
-			      RADEON_FORCEON_MCLKB |
-			      RADEON_FORCEON_YCLKA |
-			      RADEON_FORCEON_YCLKB |
-			      RADEON_FORCEON_MC |
-			      RADEON_FORCEON_AIC));
-#endif /* new PM code */
 
     /* Soft resetting HDP thru RBBM_SOFT_RESET register can cause some
      * unexpected behaviour on some machines.  Here we use
      * RADEON_HOST_PATH_CNTL to reset it.
      */
-    host_path_cntl = INREG(RADEON_HOST_PATH_CNTL);
-    rbbm_soft_reset = INREG(RADEON_RBBM_SOFT_RESET);
+    host_path_cntl = RHDRegRead(info, RADEON_HOST_PATH_CNTL);
+    rbbm_soft_reset = RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
 
-    if (IS_R300_VARIANT || IS_AVIVO_VARIANT) {
-	uint32_t tmp;
 
-	OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
-					RADEON_SOFT_RESET_CP |
-					RADEON_SOFT_RESET_HI |
-					RADEON_SOFT_RESET_E2));
-	INREG(RADEON_RBBM_SOFT_RESET);
-	OUTREG(RADEON_RBBM_SOFT_RESET, 0);
-	tmp = INREG(RADEON_RB3D_DSTCACHE_MODE);
-	OUTREG(RADEON_RB3D_DSTCACHE_MODE, tmp | (1 << 17)); /* FIXME */
-    } else {
-	OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
-					RADEON_SOFT_RESET_CP |
-					RADEON_SOFT_RESET_SE |
-					RADEON_SOFT_RESET_RE |
-					RADEON_SOFT_RESET_PP |
-					RADEON_SOFT_RESET_E2 |
-					RADEON_SOFT_RESET_RB));
-	INREG(RADEON_RBBM_SOFT_RESET);
-	OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset & (uint32_t)
-					~(RADEON_SOFT_RESET_CP |
-					  RADEON_SOFT_RESET_SE |
-					  RADEON_SOFT_RESET_RE |
-					  RADEON_SOFT_RESET_PP |
-					  RADEON_SOFT_RESET_E2 |
-					  RADEON_SOFT_RESET_RB)));
-	INREG(RADEON_RBBM_SOFT_RESET);
-    }
 
-    OUTREG(RADEON_HOST_PATH_CNTL, host_path_cntl | RADEON_HDP_SOFT_RESET);
-    INREG(RADEON_HOST_PATH_CNTL);
-    OUTREG(RADEON_HOST_PATH_CNTL, host_path_cntl);
+    RHDRegWrite(info, RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
+						RADEON_SOFT_RESET_CP |
+						RADEON_SOFT_RESET_HI |
+						RADEON_SOFT_RESET_E2));
+    RHDRegRead(info, RADEON_RBBM_SOFT_RESET);
+    RHDRegWrite(info, RADEON_RBBM_SOFT_RESET, 0);
+    tmp = RHDRegRead(info, RADEON_RB3D_DSTCACHE_MODE);
+    RHDRegWrite(info, RADEON_RB3D_DSTCACHE_MODE, tmp | (1 << 17)); /* FIXME */
 
-    if (!IS_R300_VARIANT && !IS_AVIVO_VARIANT)
-	OUTREG(RADEON_RBBM_SOFT_RESET, rbbm_soft_reset);
+    RHDRegWrite(info, RADEON_HOST_PATH_CNTL, host_path_cntl | RADEON_HDP_SOFT_RESET);
+    RHDRegRead(info, RADEON_HOST_PATH_CNTL);
+    RHDRegWrite(info, RADEON_HOST_PATH_CNTL, host_path_cntl);
 
-    OUTREG(RADEON_CLOCK_CNTL_INDEX, clock_cntl_index);
-    RADEONPllErrataAfterIndex(info);
-    OUTPLL(pScrn, RADEON_MCLK_CNTL, mclk_cntl);
 }
 
 /* Restore the acceleration hardware to its previous state */
 void RADEONEngineRestore(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
 
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineRestore (%d/%d)\n",
@@ -324,35 +256,35 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
      * in the wrong place (happened).
      */
     RADEONWaitForFifo(pScrn, 2);
-    OUTREG(RADEON_DST_PITCH_OFFSET, info->dst_pitch_offset);
-    OUTREG(RADEON_SRC_PITCH_OFFSET, info->dst_pitch_offset);
+    RHDRegWrite(info, RADEON_DST_PITCH_OFFSET, info->dst_pitch_offset);
+    RHDRegWrite(info, RADEON_SRC_PITCH_OFFSET, info->dst_pitch_offset);
 
     RADEONWaitForFifo(pScrn, 1);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    OUTREGP(RADEON_DP_DATATYPE,
+    RHDRegMask(pScrn, RADEON_DP_DATATYPE,
 	    RADEON_HOST_BIG_ENDIAN_EN,
 	    ~RADEON_HOST_BIG_ENDIAN_EN);
 #else
-    OUTREGP(RADEON_DP_DATATYPE, 0, ~RADEON_HOST_BIG_ENDIAN_EN);
+    RHDRegMask(pScrn, RADEON_DP_DATATYPE, 0, ~RADEON_HOST_BIG_ENDIAN_EN);
 #endif
 
     /* Restore SURFACE_CNTL */
-    OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+    RHDRegWrite(info, RADEON_SURFACE_CNTL, info->surface_cntl);
 
     RADEONWaitForFifo(pScrn, 1);
-    OUTREG(RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX
+    RHDRegWrite(info, RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX
 					    | RADEON_DEFAULT_SC_BOTTOM_MAX));
     RADEONWaitForFifo(pScrn, 1);
-    OUTREG(RADEON_DP_GUI_MASTER_CNTL, (info->dp_gui_master_cntl
+    RHDRegWrite(info, RADEON_DP_GUI_MASTER_CNTL, (info->dp_gui_master_cntl
 				       | RADEON_GMC_BRUSH_SOLID_COLOR
 				       | RADEON_GMC_SRC_DATATYPE_COLOR));
 
     RADEONWaitForFifo(pScrn, 5);
-    OUTREG(RADEON_DP_BRUSH_FRGD_CLR, 0xffffffff);
-    OUTREG(RADEON_DP_BRUSH_BKGD_CLR, 0x00000000);
-    OUTREG(RADEON_DP_SRC_FRGD_CLR,   0xffffffff);
-    OUTREG(RADEON_DP_SRC_BKGD_CLR,   0x00000000);
-    OUTREG(RADEON_DP_WRITE_MASK,     0xffffffff);
+    RHDRegWrite(info, RADEON_DP_BRUSH_FRGD_CLR, 0xffffffff);
+    RHDRegWrite(info, RADEON_DP_BRUSH_BKGD_CLR, 0x00000000);
+    RHDRegWrite(info, RADEON_DP_SRC_FRGD_CLR,   0xffffffff);
+    RHDRegWrite(info, RADEON_DP_SRC_BKGD_CLR,   0x00000000);
+    RHDRegWrite(info, RADEON_DP_WRITE_MASK,     0xffffffff);
 
     RADEONWaitForIdleMMIO(pScrn);
 
@@ -362,16 +294,15 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
 /* Initialize the acceleration hardware */
 void RADEONEngineInit(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
 
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
 		   info->CurrentLayout.pixel_code,
 		   info->CurrentLayout.bitsPerPixel);
 
-#ifdef XF86DRI
-    if (info->directRenderingEnabled && (IS_R300_3D | IS_R500_3D)) {
+#ifdef USE_DRI
+    if (info->directRenderingEnabled) {
 	drmRadeonGetParam np;
 	int num_pipes;
 
@@ -379,7 +310,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 	np.param = RADEON_PARAM_NUM_GB_PIPES;
 	np.value = &num_pipes;
 
-	if (drmCommandWriteRead(info->drmFD, DRM_RADEON_GETPARAM, &np,
+	if (drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_GETPARAM, &np,
 				sizeof(np)) < 0) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		       "Failed to determine num pipes from DRM, falling back to "
@@ -391,57 +322,33 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     }
 #endif
 
-    if ((info->ChipFamily == CHIP_FAMILY_RV410) ||
-	(info->ChipFamily == CHIP_FAMILY_R420)  ||
-	(info->ChipFamily == CHIP_FAMILY_RS600) ||
-	(info->ChipFamily == CHIP_FAMILY_RS690) ||
-	(info->ChipFamily == CHIP_FAMILY_RS740) ||
-	(info->ChipFamily == CHIP_FAMILY_RS400) ||
-	(info->ChipFamily == CHIP_FAMILY_RS480) ||
-	IS_R500_3D) {
-	if (info->num_gb_pipes == 0) {
-	    uint32_t gb_pipe_sel = INREG(R400_GB_PIPE_SELECT);
+    if (info->num_gb_pipes == 0) {
+	uint32_t gb_pipe_sel = RHDRegRead(info, R400_GB_PIPE_SELECT);
 
-	    info->num_gb_pipes = ((gb_pipe_sel >> 12) & 0x3) + 1;
-	    if (IS_R500_3D)
-		OUTPLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, (1 | ((gb_pipe_sel >> 8) & 0xf) << 4));
-	}
-    } else {
-	if (info->num_gb_pipes == 0) {
-	    if ((info->ChipFamily == CHIP_FAMILY_R300) ||
-		(info->ChipFamily == CHIP_FAMILY_R350)) {
-		/* R3xx chips */
-		info->num_gb_pipes = 2;
-	    } else {
-		/* RV3xx chips */
-		info->num_gb_pipes = 1;
-	    }
-	}
+	info->num_gb_pipes = ((gb_pipe_sel >> 12) & 0x3) + 1;
+	if (IS_R500_3D)
+	    RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, (1 | ((gb_pipe_sel >> 8) & 0xf) << 4));
     }
 
-    if (IS_R300_3D | IS_R500_3D)
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		   "num pipes is %d\n", info->num_gb_pipes);
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	       "num pipes is %d\n", info->num_gb_pipes);
 
-    if (IS_R300_3D | IS_R500_3D) {
-	uint32_t gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
+    uint32_t gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
 
-	switch(info->num_gb_pipes) {
-	case 2: gb_tile_config |= R300_PIPE_COUNT_R300; break;
-	case 3: gb_tile_config |= R300_PIPE_COUNT_R420_3P; break;
-	case 4: gb_tile_config |= R300_PIPE_COUNT_R420; break;
-	default:
-	case 1: gb_tile_config |= R300_PIPE_COUNT_RV350; break;
-	}
-
-	OUTREG(R300_GB_TILE_CONFIG, gb_tile_config);
-	OUTREG(RADEON_WAIT_UNTIL, RADEON_WAIT_2D_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN);
-	OUTREG(R300_DST_PIPE_CONFIG, INREG(R300_DST_PIPE_CONFIG) | R300_PIPE_AUTO_CONFIG);
-	OUTREG(R300_RB2D_DSTCACHE_MODE, (INREG(R300_RB2D_DSTCACHE_MODE) |
-					 R300_DC_AUTOFLUSH_ENABLE |
-					 R300_DC_DC_DISABLE_IGNORE_PE));
-    } else
-	OUTREG(RADEON_RB3D_CNTL, 0);
+    switch(info->num_gb_pipes) {
+    case 2: gb_tile_config |= R300_PIPE_COUNT_R300; break;
+    case 3: gb_tile_config |= R300_PIPE_COUNT_R420_3P; break;
+    case 4: gb_tile_config |= R300_PIPE_COUNT_R420; break;
+    default:
+    case 1: gb_tile_config |= R300_PIPE_COUNT_RV350; break;
+    }
+    
+    RHDRegWrite(info, R300_GB_TILE_CONFIG, gb_tile_config);
+    RHDRegWrite(info, RADEON_WAIT_UNTIL, RADEON_WAIT_2D_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN);
+    RHDRegWrite(info, R300_DST_PIPE_CONFIG, RHDRegRead(info, R300_DST_PIPE_CONFIG) | R300_PIPE_AUTO_CONFIG);
+    RHDRegWrite(info, R300_RB2D_DSTCACHE_MODE, (RHDRegRead(info, R300_RB2D_DSTCACHE_MODE) |
+				     R300_DC_AUTOFLUSH_ENABLE |
+				     R300_DC_DC_DISABLE_IGNORE_PE));
 
     RADEONEngineReset(pScrn);
 
@@ -469,19 +376,15 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 	 | RADEON_GMC_CLR_CMP_CNTL_DIS
 	 | RADEON_GMC_DST_PITCH_OFFSET_CNTL);
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     info->sc_left         = 0x00000000;
     info->sc_right        = RADEON_DEFAULT_SC_RIGHT_MAX;
     info->sc_top          = 0x00000000;
     info->sc_bottom       = RADEON_DEFAULT_SC_BOTTOM_MAX;
 
     info->re_top_left     = 0x00000000;
-    if (info->ChipFamily <= CHIP_FAMILY_RV280)
-	info->re_width_height = ((0x7ff << RADEON_RE_WIDTH_SHIFT) |
-				 (0x7ff << RADEON_RE_HEIGHT_SHIFT));
-    else
-	info->re_width_height = ((8191 << R300_SCISSOR_X_SHIFT) |
-				 (8191 << R300_SCISSOR_Y_SHIFT));
+    info->re_width_height = ((8191 << R300_SCISSOR_X_SHIFT) |
+			     (8191 << R300_SCISSOR_Y_SHIFT));
 
     info->aux_sc_cntl     = 0x00000000;
 #endif
@@ -491,15 +394,12 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 
 
 #define ACCEL_MMIO
-#define ACCEL_PREAMBLE()        unsigned char *RADEONMMIO = info->MMIO
+#define ACCEL_PREAMBLE()
 #define BEGIN_ACCEL(n)          RADEONWaitForFifo(pScrn, (n))
-#define OUT_ACCEL_REG(reg, val) OUTREG(reg, val)
+#define OUT_ACCEL_REG(reg, val) RHDRegWrite(info, reg, val)
 #define FINISH_ACCEL()
 
 #include "radeon_commonfuncs.c"
-#if defined(RENDER) && defined(USE_XAA)
-#include "radeon_render.c"
-#endif
 #include "radeon_accelfuncs.c"
 
 #undef ACCEL_MMIO
@@ -508,7 +408,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 #undef OUT_ACCEL_REG
 #undef FINISH_ACCEL
 
-#ifdef XF86DRI
+#ifdef USE_DRI
 
 #define ACCEL_CP
 #define ACCEL_PREAMBLE()						\
@@ -520,9 +420,6 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 
 
 #include "radeon_commonfuncs.c"
-#if defined(RENDER) && defined(USE_XAA)
-#include "radeon_render.c"
-#endif
 #include "radeon_accelfuncs.c"
 
 #undef ACCEL_CP
@@ -532,7 +429,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 #undef FINISH_ACCEL
 
 /* Stop the CP */
-int RADEONCPStop(ScrnInfoPtr pScrn, RADEONInfoPtr info)
+int RADEONCPStop(ScrnInfoPtr pScrn, RHDPtr info)
 {
     drmRadeonCPStop  stop;
     int              ret, i;
@@ -540,7 +437,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RADEONInfoPtr info)
     stop.flush = 1;
     stop.idle  = 1;
 
-    ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &stop,
+    ret = drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP, &stop,
 			  sizeof(drmRadeonCPStop));
 
     if (ret == 0) {
@@ -553,7 +450,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 
     i = 0;
     do {
-	ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &stop,
+	ret = drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP, &stop,
 			      sizeof(drmRadeonCPStop));
     } while (ret && errno == EBUSY && i++ < RADEON_IDLE_RETRY);
 
@@ -565,7 +462,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 
     stop.idle = 0;
 
-    if (drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP,
+    if (drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP,
 			&stop, sizeof(drmRadeonCPStop))) {
 	return -errno;
     } else {
@@ -576,7 +473,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 /* Get an indirect buffer for the CP 2D acceleration commands  */
 drmBufPtr RADEONCPGetBuffer(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     drmDMAReq      dma;
     drmBufPtr      buf = NULL;
     int            indx = 0;
@@ -608,7 +505,7 @@ drmBufPtr RADEONCPGetBuffer(ScrnInfoPtr pScrn)
 
     while (1) {
 	do {
-	    ret = drmDMA(info->drmFD, &dma);
+	    ret = drmDMA(info->dri->drmFD, &dma);
 	    if (ret && ret != -EBUSY) {
 		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 			   "%s: CP GetBuffer %d\n", __FUNCTION__, ret);
@@ -616,13 +513,13 @@ drmBufPtr RADEONCPGetBuffer(ScrnInfoPtr pScrn)
 	} while ((ret == -EBUSY) && (i++ < RADEON_TIMEOUT));
 
 	if (ret == 0) {
-	    buf = &info->buffers->list[indx];
+	    buf = &info->dri->buffers->list[indx];
 	    buf->used = 0;
-	    if (RADEON_VERBOSE) {
+	    //if (RADEON_VERBOSE) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 			   "   GetBuffer returning %d %p\n",
 			   buf->idx, buf->address);
-	    }
+		//}
 	    return buf;
 	}
 
@@ -640,7 +537,7 @@ drmBufPtr RADEONCPGetBuffer(ScrnInfoPtr pScrn)
 /* Flush the indirect buffer to the kernel for submission to the card */
 void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard)
 {
-    RADEONInfoPtr      info   = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     drmBufPtr          buffer = info->indirectBuffer;
     int                start  = info->indirectStart;
     drmRadeonIndirect  indirect;
@@ -648,17 +545,17 @@ void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard)
     if (!buffer) return;
     if (start == buffer->used && !discard) return;
 
-    if (RADEON_VERBOSE) {
+    //if (RADEON_VERBOSE) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Flushing buffer %d\n",
 		   buffer->idx);
-    }
+	//}
 
     indirect.idx     = buffer->idx;
     indirect.start   = start;
     indirect.end     = buffer->used;
     indirect.discard = discard;
 
-    drmCommandWriteRead(info->drmFD, DRM_RADEON_INDIRECT,
+    drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
 			&indirect, sizeof(drmRadeonIndirect));
 
     if (discard) {
@@ -667,17 +564,17 @@ void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard)
     } else {
 	/* Start on a double word boundary */
 	info->indirectStart  = buffer->used = (buffer->used + 7) & ~7;
-	if (RADEON_VERBOSE) {
+	//if (RADEON_VERBOSE) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "   Starting at %d\n",
 		       info->indirectStart);
-	}
+	    //}
     }
 }
 
 /* Flush and release the indirect buffer */
 void RADEONCPReleaseIndirect(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr      info   = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     drmBufPtr          buffer = info->indirectBuffer;
     int                start  = info->indirectStart;
     drmRadeonIndirect  indirect;
@@ -687,17 +584,17 @@ void RADEONCPReleaseIndirect(ScrnInfoPtr pScrn)
 
     if (!buffer) return;
 
-    if (RADEON_VERBOSE) {
+    //if (RADEON_VERBOSE) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Releasing buffer %d\n",
 		   buffer->idx);
-    }
+	//}
 
     indirect.idx     = buffer->idx;
     indirect.start   = start;
     indirect.end     = buffer->used;
     indirect.discard = 1;
 
-    drmCommandWriteRead(info->drmFD, DRM_RADEON_INDIRECT,
+    drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
 			&indirect, sizeof(drmRadeonIndirect));
 }
 
@@ -710,8 +607,8 @@ void
 RADEONHostDataParams(ScrnInfoPtr pScrn, uint8_t *dst, uint32_t pitch, int cpp,
 		     uint32_t *dstPitchOff, int *x, int *y)
 {
-    RADEONInfoPtr info = RADEONPTR( pScrn );
-    uint32_t dstOffs = dst - (uint8_t*)info->FB + info->fbLocation;
+    RHDPtr info = RHDPTR(pScrn);
+    uint32_t dstOffs = dst - (uint8_t*)info->FbBase + info->FbIntAddress + info->FbScanoutStart;
 
     *dstPitchOff = pitch << 16 | (dstOffs & ~RADEON_BUFFER_ALIGN) >> 10;
     *y = ( dstOffs & RADEON_BUFFER_ALIGN ) / pitch;
@@ -734,7 +631,7 @@ RADEONHostDataBlit(
     unsigned int *h,
     unsigned int *hpass
 ){
-    RADEONInfoPtr info = RADEONPTR( pScrn );
+    RHDPtr info = RHDPTR(pScrn);
     uint32_t format, dwords;
     uint8_t *ret;
     RING_LOCALS;
@@ -768,19 +665,17 @@ RADEONHostDataBlit(
     /* Swap doesn't work on R300 and later, it's handled during the
      * copy to ind. buffer pass
      */
-    if (info->ChipFamily < CHIP_FAMILY_R300) {
-        BEGIN_RING(2);
-	if (cpp == 2)
-	    OUT_RING_REG(RADEON_RBBM_GUICNTL,
-			 RADEON_HOST_DATA_SWAP_HDW);
-	else if (cpp == 1)
-	    OUT_RING_REG(RADEON_RBBM_GUICNTL,
-			 RADEON_HOST_DATA_SWAP_32BIT);
-	else
-	    OUT_RING_REG(RADEON_RBBM_GUICNTL,
-			 RADEON_HOST_DATA_SWAP_NONE);
-	ADVANCE_RING();
-    }
+    BEGIN_RING(2);
+    if (cpp == 2)
+	OUT_RING_REG(RADEON_RBBM_GUICNTL,
+		     RADEON_HOST_DATA_SWAP_HDW);
+    else if (cpp == 1)
+	OUT_RING_REG(RADEON_RBBM_GUICNTL,
+		     RADEON_HOST_DATA_SWAP_32BIT);
+    else
+	OUT_RING_REG(RADEON_RBBM_GUICNTL,
+		     RADEON_HOST_DATA_SWAP_NONE);
+    ADVANCE_RING();
 #endif
 
     /*RADEON_PURGE_CACHE();
@@ -883,7 +778,7 @@ RADEONHostDataBlitCopyPass(
 ){
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    RADEONInfoPtr info = RADEONPTR( pScrn );
+    RHDPtr info = RHDPTR(pScrn);
 #endif
 
     /* RADEONHostDataBlitCopy can return NULL ! */
@@ -892,17 +787,15 @@ RADEONHostDataBlitCopyPass(
     if ( dstPitch == srcPitch )
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-        if (info->ChipFamily >= CHIP_FAMILY_R300) {
-	    switch(cpp) {
-	    case 1:
-		RADEONCopySwap(dst, src, hpass * dstPitch,
-			       RADEON_HOST_DATA_SWAP_32BIT);
-		return;
-	    case 2:
-	        RADEONCopySwap(dst, src, hpass * dstPitch,
-			       RADEON_HOST_DATA_SWAP_HDW);
-		return;
-	    }
+	switch(cpp) {
+	case 1:
+	    RADEONCopySwap(dst, src, hpass * dstPitch,
+			   RADEON_HOST_DATA_SWAP_32BIT);
+	    return;
+	case 2:
+	    RADEONCopySwap(dst, src, hpass * dstPitch,
+			   RADEON_HOST_DATA_SWAP_HDW);
+	    return;
 	}
 #endif
 	memcpy( dst, src, hpass * dstPitch );
@@ -913,17 +806,15 @@ RADEONHostDataBlitCopyPass(
 	while ( hpass-- )
 	{
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-            if (info->ChipFamily >= CHIP_FAMILY_R300) {
-		switch(cpp) {
-		case 1:
-		    RADEONCopySwap(dst, src, minPitch,
-				   RADEON_HOST_DATA_SWAP_32BIT);
-		    goto next;
-		case 2:
-	            RADEONCopySwap(dst, src, minPitch,
-				   RADEON_HOST_DATA_SWAP_HDW);
-		    goto next;
-		}
+	    switch(cpp) {
+	    case 1:
+		RADEONCopySwap(dst, src, minPitch,
+			       RADEON_HOST_DATA_SWAP_32BIT);
+		goto next;
+	    case 2:
+		RADEONCopySwap(dst, src, minPitch,
+			       RADEON_HOST_DATA_SWAP_HDW);
+		goto next;
 	    }
 #endif
 	    memcpy( dst, src, minPitch );
@@ -941,20 +832,24 @@ RADEONHostDataBlitCopyPass(
 Bool RADEONAccelInit(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr  info  = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
-    if (info->ChipFamily >= CHIP_FAMILY_R600)
+    if (info->ChipSet >= RHD_R600)
 	return FALSE;
+
+    ErrorF("accelinit\n");
 
 #ifdef USE_EXA
     if (info->useEXA) {
-# ifdef XF86DRI
+# ifdef USE_DRI
 	if (info->directRenderingEnabled) {
+	    ErrorF("accelinit exa CP\n");
 	    if (!RADEONDrawInitCP(pScreen))
 		return FALSE;
 	} else
-# endif /* XF86DRI */
+# endif /* USE_DRI */
 	{
+	    ErrorF("accelinit exa MMIO\n");
 	    if (!RADEONDrawInitMMIO(pScreen))
 		return FALSE;
 	}
@@ -969,11 +864,11 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
 	    return FALSE;
 	}
 
-#ifdef XF86DRI
+#ifdef USE_DRI
 	if (info->directRenderingEnabled)
 	    RADEONAccelInitCP(pScreen, a);
 	else
-#endif /* XF86DRI */
+#endif /* USE_DRI */
 	    RADEONAccelInitMMIO(pScreen, a);
 
 	RADEONEngineInit(pScrn);
@@ -989,9 +884,9 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
 
 void RADEONInit3DEngine(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr info = RADEONPTR (pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     if (info->directRenderingEnabled) {
 	RADEONSAREAPrivPtr pSAREAPriv;
 
@@ -1005,13 +900,14 @@ void RADEONInit3DEngine(ScrnInfoPtr pScrn)
     info->XInited3D = TRUE;
 }
 
+#if 0
 #ifdef USE_XAA
-#ifdef XF86DRI
+#ifdef USE_DRI
 Bool
 RADEONSetupMemXAA_DRI(int scrnIndex, ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr  info  = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     int            cpp = info->CurrentLayout.pixel_bytes;
     int            depthCpp = (info->depthBits - 8) / 4;
     int            width_bytes = pScrn->displayWidth * cpp;
@@ -1269,22 +1165,22 @@ RADEONSetupMemXAA_DRI(int scrnIndex, ScreenPtr pScreen)
 	       info->textureSize/1024, info->textureOffset);
 
     info->frontPitchOffset = (((info->frontPitch * cpp / 64) << 22) |
-			      ((info->frontOffset + info->fbLocation) >> 10));
+			      ((info->frontOffset + info->FbIntAddress + info->FbScanoutStart) >> 10));
 
     info->backPitchOffset = (((info->backPitch * cpp / 64) << 22) |
-			     ((info->backOffset + info->fbLocation) >> 10));
+			     ((info->backOffset + info->FbIntAddress + info->FbScanoutStart) >> 10));
 
     info->depthPitchOffset = (((info->depthPitch * depthCpp / 64) << 22) |
-			      ((info->depthOffset + info->fbLocation) >> 10));
+			      ((info->depthOffset + info->FbIntAddress + info->FbScanoutStart) >> 10));
     return TRUE;
 }
-#endif /* XF86DRI */
+#endif /* USE_DRI */
 
 Bool
 RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr  info  = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     BoxRec         MemBox;
     int            y2;
 
@@ -1342,3 +1238,4 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
     }    
 }
 #endif /* USE_XAA */
+#endif
