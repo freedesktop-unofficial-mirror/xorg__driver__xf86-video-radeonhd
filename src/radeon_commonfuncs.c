@@ -30,8 +30,6 @@
 #include "config.h"
 #endif
 
-#include "ati_pciids_gen.h"
-
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -54,7 +52,7 @@
 
 static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info       = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     uint32_t gb_tile_config, su_reg_dest, vap_cntl;
     ACCEL_PREAMBLE();
 
@@ -155,16 +153,20 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 			(5 << R300_PVS_NUM_CNTLRS_SHIFT) |
 			(5 << R300_VF_MAX_VTX_NUM_SHIFT));
 
-	if (info->ChipFamily == CHIP_FAMILY_RV515)
+	if ((info->ChipSet == RHD_RV505) ||
+	    (info->ChipSet == RHD_RV515) ||
+	    (info->ChipSet == RHD_RV516) ||
+	    (info->ChipSet == RHD_RV550))
+	    // XXX fix me add mobility chips
 	    vap_cntl |= (2 << R300_PVS_NUM_FPUS_SHIFT);
-	else if ((info->ChipFamily == CHIP_FAMILY_RV530) ||
-		 (info->ChipFamily == CHIP_FAMILY_RV560))
+	else if ((info->ChipSet == RHD_RV530) ||
+		 (info->ChipSet == RHD_RV560))
 	    vap_cntl |= (5 << R300_PVS_NUM_FPUS_SHIFT);
-	else if (info->ChipFamily == CHIP_FAMILY_R420)
-	    vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);
-	else if ((info->ChipFamily == CHIP_FAMILY_R520) ||
-		 (info->ChipFamily == CHIP_FAMILY_R580) ||
-		 (info->ChipFamily == CHIP_FAMILY_RV570))
+	/*else if (info->ChipSet == CHIP_FAMILY_R420)
+	  vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);*/
+	else if ((info->ChipSet == RHD_R520) ||
+		 (info->ChipSet == RHD_R580) ||
+		 (info->ChipSet == RHD_RV570))
 	    vap_cntl |= (8 << R300_PVS_NUM_FPUS_SHIFT);
 	else
 	    vap_cntl |= (4 << R300_PVS_NUM_FPUS_SHIFT);
@@ -605,7 +607,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	OUT_ACCEL_REG(R300_SC_CLIP_RULE, 0xAAAA);
 	OUT_ACCEL_REG(R300_SC_SCREENDOOR, 0xffffff);
 	FINISH_ACCEL();
-    } else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+    } /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
 	       (info->ChipFamily == CHIP_FAMILY_RV280) ||
 	       (info->ChipFamily == CHIP_FAMILY_RS300) ||
 	       (info->ChipFamily == CHIP_FAMILY_R200)) {
@@ -663,7 +665,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 				       RADEON_ROUND_MODE_ROUND |
 				       RADEON_ROUND_PREC_4TH_PIX));
 	FINISH_ACCEL();
-    }
+    }*/
 
 }
 
@@ -681,8 +683,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
  */
 void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 {
-    RADEONInfoPtr  info = RADEONPTR(pScrn);
-    unsigned char *RADEONMMIO = info->MMIO;
+    RHDPtr info = RHDPTR(pScrn);
     int            i    = 0;
 
 #ifdef ACCEL_CP
@@ -694,7 +695,7 @@ void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 
 	for (;;) {
 	    do {
-		ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_IDLE);
+		ret = drmCommandNone(info->dri->drmFD, DRM_RADEON_CP_IDLE);
 		if (ret && ret != -EBUSY) {
 		    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 			       "%s: CP idle %d\n", __FUNCTION__, ret);
@@ -718,8 +719,8 @@ void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 #if 0
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "WaitForIdle (entering): %d entries, stat=0x%08x\n",
-		   INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
-		   INREG(RADEON_RBBM_STATUS));
+		   RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+		   RHDRegRead(pScrn, RADEON_RBBM_STATUS));
 #endif
 
     /* Wait for the engine to go idle */
@@ -727,20 +728,20 @@ void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 
     for (;;) {
 	for (i = 0; i < RADEON_TIMEOUT; i++) {
-	    if (!(INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_ACTIVE)) {
+	    if (!(RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_ACTIVE)) {
 		RADEONEngineFlush(pScrn);
 		return;
 	    }
 	}
 	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		       "Idle timed out: %u entries, stat=0x%08x\n",
-		       (unsigned int)INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
-		       (unsigned int)INREG(RADEON_RBBM_STATUS));
+		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS));
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "Idle timed out, resetting engine...\n");
 	RADEONEngineReset(pScrn);
 	RADEONEngineRestore(pScrn);
-#ifdef XF86DRI
+#ifdef USE_DRI
 	if (info->directRenderingEnabled) {
 	    RADEONCP_RESET(pScrn, info);
 	    RADEONCP_START(pScrn, info);
