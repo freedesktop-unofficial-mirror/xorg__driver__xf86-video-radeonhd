@@ -371,13 +371,16 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
  * can start/stop the engine. */
 static void RHDEnterServer(ScreenPtr pScreen)
 {
-#if 0
-    RADEONSAREAPriv * pSAREAPriv;
+#if 1
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr  info  = RHDPTR(pScrn);
+    RADEONSAREAPriv *pSAREAPriv;
+
     RADEON_MARK_SYNC(info, pScrn);
 
 // TODO: we'll probably need something like XInited3D or needCacheFlush in the cp module
-    pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
-    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
+    pSAREAPriv = (RADEONSAREAPriv *)DRIGetSAREAPrivate(pScrn->pScreen);
+    if (pSAREAPriv->ctxOwner != (signed) DRIGetContext(pScrn->pScreen)) {
 	info->XInited3D = FALSE;
 	info->needCacheFlush = TRUE; /*(info->ChipFamily >= CHIP_FAMILY_R300)*/
     }
