@@ -408,6 +408,7 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
 
 #if defined(USE_DRI)
     if (info->directRenderingEnabled) {
+	info->exa->memorySize -= info->dri->pciGartSize;
 	info->exa->offScreenBase = info->dri->textureOffset + info->dri->textureSize;
 	ErrorF("DRI enabled, setting offscreen start: 0x%x", info->exa->offScreenBase);
     }

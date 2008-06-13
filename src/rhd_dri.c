@@ -76,6 +76,7 @@
 /* Driver data structures */
 #include "rhd.h"
 #include "rhd_regs.h"
+#include "radeon_reg.h"
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
 #include "radeon_dri.h"
@@ -373,12 +374,18 @@ static void RHDEnterServer(ScreenPtr pScreen)
  * can start/stop the engine. */
 static void RHDLeaveServer(ScreenPtr pScreen)
 {
-//    RING_LOCALS;
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr  info  = RHDPTR(pScrn);
+    RING_LOCALS;
 
     // TODO: -> cp module
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
-//    RADEONCP_RELEASE(pScrn, info);
+    RADEONCP_RELEASE(pScrn, info);
+
+#ifdef USE_EXA
+    info->engineMode = EXA_ENGINEMODE_UNKNOWN;
+#endif
 
 }
 
@@ -896,10 +903,12 @@ static void RHDDRICPStart(ScrnInfoPtr pScrn)
     struct rhdDri *info   = rhdPtr->dri;
 
     /* Start the CP, no matter which acceleration type is used */
+    /*
     int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
     if (_ret)
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: CP start %d\n", __func__, _ret);
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: CP start %d\n", __FUNCTION__, _ret);
+    */
+    RADEONCP_START(pScrn, rhdPtr);
 }
 
 
