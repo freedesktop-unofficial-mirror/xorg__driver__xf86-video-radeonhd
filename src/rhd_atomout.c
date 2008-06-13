@@ -229,6 +229,7 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 	    return;
     }
     rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
+    RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
 }
 
@@ -452,7 +453,8 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     Output = xnfcalloc(sizeof(struct rhdOutput), 1);
     Output->scrnIndex = rhdPtr->scrnIndex;
 
-
+    ErrorF("FOOBAR\n");
+    
     Output->Name = "AtomOutput";
     Output->Id = OutputType;
     Output->Sense = NULL;
@@ -674,21 +676,4 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     Private->CrtcSourceVersion = rhdAtomSelectCrtcSourceVersion(rhdPtr->atomBIOS);
 
     return Output;
-}
-
-/*
- * This function is public as it is used from within other outputs, too.
- */
-void
-RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
-{
-    RHDPtr rhdPtr = RHDPTRI(Output);
-
-    if (!Output->OutputDriverPrivate)
-	return;
-
-    if (Output->Crtc)
-	rhdAtomBIOSScratchSetCrtcState(rhdPtr, Output->OutputDriverPrivate->Device, Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
-    rhdAtomBIOSScratchUpdateOnState(rhdPtr, Output->OutputDriverPrivate->Device, Output->Active);
-    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr,  Output->OutputDriverPrivate->Device, Output->Connector != NULL);
 }

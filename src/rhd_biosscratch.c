@@ -45,6 +45,7 @@
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
+#include "rhd_crtc.h"
 
 #ifdef ATOM_BIOS
 # include "rhd_atomwrapper.h"
@@ -258,7 +259,27 @@ rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc
     RHDRegWrite(rhdPtr, Addr, BIOS_3);
 }
 
-#endif /* HAVE_XF86_ANSIC_H */
+/*
+ * This function is public as it is used from within other outputs, too.
+ */
+void
+RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
+    if (!Output->OutputDriverPrivate)
+	return;
+
+    if (Output->Crtc)
+	rhdAtomBIOSScratchSetCrtcState(rhdPtr, Output->OutputDriverPrivate->Device,
+				       Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
+    rhdAtomBIOSScratchUpdateOnState(rhdPtr, Output->OutputDriverPrivate->Device,
+				    Output->Active);
+    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr,  Output->OutputDriverPrivate->Device,
+					  Output->Connector != NULL);
+}
+
+#endif 
 
 #if 0
 enum atomScratchInfo {
