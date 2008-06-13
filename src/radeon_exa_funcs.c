@@ -527,13 +527,14 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
     info->exa->pixmapOffsetAlign = RADEON_BUFFER_ALIGN + 1;
     info->exa->pixmapPitchAlign = 64;
 
-#ifdef RENDER
+    //#ifdef RENDER
+    info->RenderAccel = TRUE;
     if (info->RenderAccel) {
 	if (info->ChipSet >= RHD_R600)
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
 			       "unsupported on R600 and newer cards.\n");
 	else if (IS_R300_3D || IS_R500_3D) {
-#ifdef XF86DRI
+#ifdef USE_DRI
 	    if (info->directRenderingEnabled) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
 			       "enabled for R300/R400/R500 type cards.\n");
@@ -566,7 +567,7 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
 	}*/
     }
-#endif
+    //#endif
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Setting EXA maxPitchBytes\n");
