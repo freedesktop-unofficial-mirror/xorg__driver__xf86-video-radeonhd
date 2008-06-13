@@ -692,8 +692,13 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
 	       pScrn->videoRam);
 
+    if (pScrn->videoRam > 262144)
+	pScrn->videoRam = 262144;
+
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
+
+    ErrorF("fbfreesize = 0x%x\n", rhdPtr->FbFreeSize);
 
 #ifdef ATOM_BIOS
     if (rhdPtr->atomBIOS) { 	/* for testing functions */
@@ -707,6 +712,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    rhdPtr->FbFreeStart = atomBiosArg.fb.start;
 	    rhdPtr->FbFreeSize = atomBiosArg.fb.size;
 	}
+
+	ErrorF("fbfreestart = 0x%x\n", rhdPtr->FbFreeStart);
+	ErrorF("fbfreesize = 0x%x\n", rhdPtr->FbFreeSize);
+
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
 			&atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
