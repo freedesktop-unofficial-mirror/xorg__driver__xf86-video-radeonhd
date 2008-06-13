@@ -410,9 +410,13 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
     if (info->directRenderingEnabled) {
 	info->exa->memorySize -= info->dri->pciGartSize;
 	info->exa->offScreenBase = info->dri->textureOffset + info->dri->textureSize;
-	ErrorF("DRI enabled, setting offscreen start: 0x%x", info->exa->offScreenBase);
+	ErrorF("DRI enabled, setting offscreen start: 0x%x\n", info->exa->offScreenBase);
     }
 #endif
+
+    ErrorF("EXA memory base = 0x%x\n", info->exa->memoryBase);
+    ErrorF("EXA memory size = 0x%x\n", info->exa->memorySize);
+    ErrorF("EXA offscreen base = 0x%x\n", info->exa->offScreenBase);
 
 #if 0
     /* Reserve static area for hardware cursor */
