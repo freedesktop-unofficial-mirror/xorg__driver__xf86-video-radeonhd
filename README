@@ -216,7 +216,7 @@ You can easily create patches to send to the developers using git.
    $ git diff
    $ git commit -a
 
-   $ git format-patches origin
+   $ git format-patch origin
 
 Then you can sift through the 0*.patch files and choose a few to send to
 the radeonhd mailing list.
