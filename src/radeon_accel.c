@@ -900,8 +900,8 @@ void RADEONInit3DEngine(ScrnInfoPtr pScrn)
     info->XInited3D = TRUE;
 }
 
-#if 0
 #ifdef USE_XAA
+#if 0
 #ifdef USE_DRI
 Bool
 RADEONSetupMemXAA_DRI(int scrnIndex, ScreenPtr pScreen)
@@ -1175,6 +1175,7 @@ RADEONSetupMemXAA_DRI(int scrnIndex, ScreenPtr pScreen)
     return TRUE;
 }
 #endif /* USE_DRI */
+#endif
 
 Bool
 RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
@@ -1238,4 +1239,3 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
     }    
 }
 #endif /* USE_XAA */
-#endif
