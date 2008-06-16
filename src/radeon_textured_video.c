@@ -95,7 +95,7 @@ static __inline__ uint32_t F_TO_DW(float val)
 #undef OUT_VIDEO_REG
 #undef FINISH_VIDEO
 
-#ifdef XF86DRI
+#ifdef USE_DRI
 
 #define ACCEL_CP
 #define VIDEO_PREAMBLE()						\
@@ -178,7 +178,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 	break;
     }
 
-#ifdef XF86DRI
+#ifdef USE_DRI
    if (info->directRenderingEnabled && info->DMAForXv)
        /* The upload blit only supports multiples of 64 bytes */
        dstPitch = (dstPitch + 63) & ~63;
@@ -282,7 +282,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
     pPriv->w = width;
     pPriv->h = height;
 
-#ifdef XF86DRI
+#ifdef USE_DRI
     if (info->directRenderingEnabled)
 	RADEONDisplayTexturedVideoCP(pScrn, pPriv);
     else
