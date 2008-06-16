@@ -1121,6 +1121,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
 
     if (rhdPtr->ChipSet < RHD_R600) {
+	rhdPtr->DMAForXv = TRUE;
 	RADEONInitVideo(pScreen);
     }
 

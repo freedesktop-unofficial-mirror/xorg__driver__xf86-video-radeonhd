@@ -608,7 +608,7 @@ RADEONHostDataParams(ScrnInfoPtr pScrn, uint8_t *dst, uint32_t pitch, int cpp,
 		     uint32_t *dstPitchOff, int *x, int *y)
 {
     RHDPtr info = RHDPTR(pScrn);
-    uint32_t dstOffs = dst - (uint8_t*)info->FbBase + info->FbIntAddress + info->FbScanoutStart;
+    uint32_t dstOffs = dst - (uint8_t*)info->FbBase + info->FbIntAddress;
 
     *dstPitchOff = pitch << 16 | (dstOffs & ~RADEON_BUFFER_ALIGN) >> 10;
     *y = ( dstOffs & RADEON_BUFFER_ALIGN ) / pitch;
