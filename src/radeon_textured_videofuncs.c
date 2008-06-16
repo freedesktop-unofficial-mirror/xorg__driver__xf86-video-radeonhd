@@ -72,7 +72,7 @@ do {								\
 static void
 FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv)
 {
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     PixmapPtr pPixmap = pPriv->pPixmap;
     uint32_t txformat;
     uint32_t txfilter, txformat0, txformat1, txoffset, txpitch;
@@ -88,13 +88,13 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 
 #ifdef USE_EXA
     if (info->useEXA) {
-	dst_offset = exaGetPixmapOffset(pPixmap) + info->fbLocation + pScrn->fbOffset;
+	dst_offset = exaGetPixmapOffset(pPixmap) + info->FbIntAddress + info->FbScanoutStart;
 	dst_pitch = exaGetPixmapPitch(pPixmap);
     } else
 #endif
 	{
-	    dst_offset = (pPixmap->devPrivate.ptr - info->FB) +
-		info->fbLocation + pScrn->fbOffset;
+	    dst_offset = (pPixmap->devPrivate.ptr - info->FbBase) +
+		info->FbIntAddress;
 	    dst_pitch = pPixmap->devKind;
 	}
 
@@ -422,7 +422,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	FINISH_VIDEO();
 
     } else {
-
+#if 0
 	/* Same for R100/R200 */
 	switch (pPixmap->drawable.bitsPerPixel) {
 	case 16:
@@ -543,6 +543,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 			pPriv->src_pitch - 32);
 	    FINISH_VIDEO();
 	}
+#endif
     }
 
     while (nBox--) {
@@ -578,7 +579,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 #endif
 
 #ifdef ACCEL_CP
-	if (info->ChipFamily < CHIP_FAMILY_R200) {
+	/*if (info->ChipFamily < CHIP_FAMILY_R200) {
 	    BEGIN_RING(4 * VTX_DWORD_COUNT + 3);
 	    OUT_RING(CP_PACKET3(RADEON_CP_PACKET3_3D_DRAW_IMMD,
 				4 * VTX_DWORD_COUNT + 1));
@@ -589,7 +590,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 		     RADEON_CP_VC_CNTL_MAOS_ENABLE |
 		     RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
 		     (4 << RADEON_CP_VC_CNTL_NUM_SHIFT));
-	} else {
+	} else*/ {
 	    if (IS_R300_3D || IS_R500_3D)
 		BEGIN_RING(4 * VTX_DWORD_COUNT + 4);
 	    else
@@ -606,12 +607,12 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	else
 	    BEGIN_VIDEO(1 + VTX_DWORD_COUNT * 4);
 
-	if (info->ChipFamily < CHIP_FAMILY_R200) {
+	/*if (info->ChipFamily < CHIP_FAMILY_R200) {
 	    OUT_VIDEO_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_TRIANGLE_FAN |
 					      RADEON_VF_PRIM_WALK_DATA |
 					      RADEON_VF_RADEON_MODE |
 					      4 << RADEON_VF_NUM_VERTICES_SHIFT));
-	} else {
+	} else*/ {
 	    OUT_VIDEO_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_QUAD_LIST |
 					      RADEON_VF_PRIM_WALK_DATA |
 					      4 << RADEON_VF_NUM_VERTICES_SHIFT));
@@ -639,8 +640,9 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 
 	pBox++;
     }
-
+#ifdef DAMAGE
     DamageDamageRegion(pPriv->pDraw, &pPriv->clip);
+#endif
 }
 
 #undef VTX_OUT

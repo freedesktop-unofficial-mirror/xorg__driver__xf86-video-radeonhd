@@ -14,21 +14,96 @@
 
 #include "xf86.h"
 #include "dixstruct.h"
-#include "atipciids.h"
 #include "xf86fbman.h"
 
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
 
 #define GET_PORT_PRIVATE(pScrn) \
-   (RADEONPortPrivPtr)((RADEONPTR(pScrn))->adaptor->pPortPrivates[0].ptr)
+   (RADEONPortPrivPtr)((RHDPTR(pScrn))->adaptor->pPortPrivates[0].ptr)
+
+#define FOURCC_RGBA32   0x41424752
+
+#define XVIMAGE_RGBA32(byte_order)   \
+        { \
+                FOURCC_RGBA32, \
+                XvRGB, \
+                byte_order, \
+                { 'R', 'G', 'B', 'A', \
+                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
+                32, \
+                XvPacked, \
+                1, \
+                32, 0x00FF0000, 0x0000FF00, 0x000000FF, \
+                0, 0, 0, 0, 0, 0, 0, 0, 0, \
+                {'A', 'R', 'G', 'B', \
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
+                XvTopToBottom \
+        }               
+
+#define FOURCC_RGB24    0x00000000
+
+#define XVIMAGE_RGB24   \
+        { \
+                FOURCC_RGB24, \
+                XvRGB, \
+                LSBFirst, \
+                { 'R', 'G', 'B', 0, \
+                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
+                24, \
+                XvPacked, \
+                1, \
+                24, 0x00FF0000, 0x0000FF00, 0x000000FF, \
+                0, 0, 0, 0, 0, 0, 0, 0, 0, \
+                { 'R', 'G', 'B', \
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
+                XvTopToBottom \
+        }
+
+#define FOURCC_RGBT16   0x54424752
+
+#define XVIMAGE_RGBT16(byte_order)   \
+        { \
+                FOURCC_RGBT16, \
+                XvRGB, \
+                byte_order, \
+                { 'R', 'G', 'B', 'T', \
+                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
+                16, \
+                XvPacked, \
+                1, \
+                16, 0x00007C00, 0x000003E0, 0x0000001F, \
+                0, 0, 0, 0, 0, 0, 0, 0, 0, \
+                {'A', 'R', 'G', 'B', \
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
+                XvTopToBottom \
+        }               
+
+#define FOURCC_RGB16    0x32424752
+
+#define XVIMAGE_RGB16(byte_order)   \
+        { \
+                FOURCC_RGB16, \
+                XvRGB, \
+                byte_order, \
+                { 'R', 'G', 'B', 0x00, \
+                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
+                16, \
+                XvPacked, \
+                1, \
+                16, 0x0000F800, 0x000007E0, 0x0000001F, \
+                0, 0, 0, 0, 0, 0, 0, 0, 0, \
+                {'R', 'G', 'B', \
+                  0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
+                XvTopToBottom \
+        }               
 
 #ifdef USE_EXA
 static void
 ATIVideoSave(ScreenPtr pScreen, ExaOffscreenArea *area)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     RADEONPortPrivPtr pPriv = info->adaptor->pPortPrivates[0].ptr;
 
     if (pPriv->video_memory == area)
@@ -39,7 +114,7 @@ ATIVideoSave(ScreenPtr pScreen, ExaOffscreenArea *area)
 void RADEONInitVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr    info = RADEONPTR(pScrn);
+    RHDPtr    info = RHDPTR(pScrn);
     XF86VideoAdaptorPtr *adaptors, *newAdaptors = NULL;
     XF86VideoAdaptorPtr texturedAdaptor = NULL;
     int num_adaptors;
@@ -53,11 +128,9 @@ void RADEONInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-    if ((info->ChipFamily < CHIP_FAMILY_RS400)
 #ifdef USE_DRI
-	|| (info->directRenderingEnabled)
-#endif
-	) {
+    if ((info->ChipSet < RHD_R600)
+	&& (info->directRenderingEnabled)) {
 	texturedAdaptor = RADEONSetupImageTexturedVideo(pScreen);
 	if (texturedAdaptor != NULL) {
 	    adaptors[num_adaptors++] = texturedAdaptor;
@@ -65,6 +138,7 @@ void RADEONInitVideo(ScreenPtr pScreen)
 	} else
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to set up textured video\n");
     } else
+#endif
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Textured video requires CP on R5xx/IGP\n");
 
     if(num_adaptors)
@@ -75,20 +149,9 @@ void RADEONInitVideo(ScreenPtr pScreen)
 
 }
 
-#define NUM_FORMATS 12
-
-static XF86VideoFormatRec Formats[NUM_FORMATS] =
-{
-   {8, TrueColor}, {8, DirectColor}, {8, PseudoColor},
-   {8, GrayScale}, {8, StaticGray}, {8, StaticColor},
-   {15, TrueColor}, {16, TrueColor}, {24, TrueColor},
-   {15, DirectColor}, {16, DirectColor}, {24, DirectColor}
-};
-
 void
 RADEONStopVideo(ScrnInfoPtr pScrn, pointer data, Bool cleanup)
 {
-  RADEONInfoPtr info = RADEONPTR(pScrn);
   RADEONPortPrivPtr pPriv = (RADEONPortPrivPtr)data;
 
     if (pPriv->textured)
@@ -101,7 +164,6 @@ RADEONSetPortAttribute(ScrnInfoPtr  pScrn,
 		       INT32	    value,
 		       pointer	    data)
 {
-    RADEONInfoPtr	info = RADEONPTR(pScrn);
     RADEONPortPrivPtr	pPriv = (RADEONPortPrivPtr)data;
 
     if (pPriv->textured)
@@ -114,7 +176,6 @@ RADEONGetPortAttribute(ScrnInfoPtr  pScrn,
 		       INT32	    *value,
 		       pointer	    data)
 {
-    RADEONInfoPtr	info = RADEONPTR(pScrn);
     RADEONPortPrivPtr	pPriv = (RADEONPortPrivPtr)data;
 
     if (pPriv->textured)
@@ -130,10 +191,9 @@ RADEONQueryBestSize(
   unsigned int *p_w, unsigned int *p_h,
   pointer data
 ){
-    RADEONPortPrivPtr pPriv = (RADEONPortPrivPtr)data;
 
-  *p_w = drw_w;
-  *p_h = drw_h;
+    *p_w = drw_w;
+    *p_h = drw_h;
 }
 
 void
@@ -147,7 +207,7 @@ RADEONCopyData(
   unsigned int w,
   unsigned int bpp
 ){
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
     /* Get the byte-swapping right for big endian systems */
     if ( bpp == 2 ) {
@@ -182,8 +242,7 @@ RADEONCopyData(
 #endif /* USE_DRI */
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	unsigned char *RADEONMMIO = info->MMIO;
-	unsigned int swapper = info->ModeReg->surface_cntl &
+	unsigned int swapper = info->surface_cntl &
 		~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 		  RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 
@@ -197,7 +256,7 @@ RADEONCopyData(
 		    |  RADEON_NONSURF_AP1_SWP_32BPP;
 	    break;
 	}
-	OUTREG(RADEON_SURFACE_CNTL, swapper);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, swapper);
 #endif
 	w *= bpp;
 
@@ -209,7 +268,7 @@ RADEONCopyData(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->surface_cntl);
 #endif
     }
 }
@@ -227,7 +286,7 @@ RADEONCopyRGB24Data(
     uint32_t *dptr;
     uint8_t *sptr;
     int i,j;
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 #ifdef USE_DRI
 
     if ( info->directRenderingEnabled && info->DMAForXv )
@@ -264,8 +323,7 @@ RADEONCopyRGB24Data(
 #endif /* USE_DRI */
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	unsigned char *RADEONMMIO = info->MMIO;
-	OUTREG(RADEON_SURFACE_CNTL, (info->ModeReg->surface_cntl
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->surface_cntl
 				   | RADEON_NONSURF_AP0_SWP_32BPP)
 				  & ~RADEON_NONSURF_AP0_SWP_16BPP);
 #endif
@@ -281,7 +339,7 @@ RADEONCopyRGB24Data(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
 #endif
     }
 }
@@ -317,7 +375,7 @@ RADEONCopyMungedData(
    unsigned int h,
    unsigned int w
 ){
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 #ifdef USE_DRI
 
     if ( info->directRenderingEnabled && info->DMAForXv )
@@ -359,8 +417,7 @@ RADEONCopyMungedData(
 	int i, j;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	unsigned char *RADEONMMIO = info->MMIO;
-	OUTREG(RADEON_SURFACE_CNTL, (info->ModeReg->surface_cntl
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->surface_cntl
 				   | RADEON_NONSURF_AP0_SWP_32BPP)
 				  & ~RADEON_NONSURF_AP0_SWP_16BPP);
 #endif
@@ -398,7 +455,7 @@ RADEONCopyMungedData(
 	}
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
 #endif
     }
 }
@@ -416,7 +473,7 @@ RADEONAllocateMemory(
    int size
 ){
     ScreenPtr pScreen;
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     int offset = 0;
 
     pScreen = screenInfo.screens[pScrn->scrnIndex];
@@ -491,7 +548,7 @@ RADEONFreeMemory(
    ScrnInfoPtr pScrn,
    void *mem_struct
 ){
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
 #ifdef USE_EXA
     if (info->useEXA) {

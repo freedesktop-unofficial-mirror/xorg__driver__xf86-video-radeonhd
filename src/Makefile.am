@@ -54,6 +54,9 @@ radeonhd_drv_la_SOURCES = \
 	rhd_shadow.h \
 	rhd_mc.h \
 	radeon_accel.c \
+	radeon_video.c \
+	radeon_textured_video.c \
+	radeon_video.h \
 	radeon_reg.h
 
 nodist_radeonhd_drv_la_SOURCES = \
@@ -64,7 +67,7 @@ radeonhd_drv_la_SOURCES += radeon_exa.c
 endif
 
 if USE_DRI
-radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h
+radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_dripriv.h radeon_sarea.h
 endif
 
 if ATOM_BIOS

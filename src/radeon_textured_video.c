@@ -34,11 +34,11 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "radeon.h"
+#include "rhd.h"
 #include "radeon_reg.h"
-#include "radeon_macros.h"
-#include "radeon_probe.h"
 #include "radeon_video.h"
+
+#include "xf86.h"
 
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
@@ -52,7 +52,7 @@
 static Bool
 RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
 {
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
 
 #ifdef USE_EXA
     if (info->useEXA) {
@@ -63,7 +63,7 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
     } else
 #endif
 	{
-	    if (info->tilingEnabled && ((pPix->devPrivate.ptr - info->FB) == 0))
+	    if (info->tilingEnabled && ((pPix->devPrivate.ptr - info->FbBase) == 0))
 		return TRUE;
 	    else
 		return FALSE;
@@ -81,10 +81,10 @@ static __inline__ uint32_t F_TO_DW(float val)
 }
 
 #define ACCEL_MMIO
-#define VIDEO_PREAMBLE()	unsigned char *RADEONMMIO = info->MMIO
+#define VIDEO_PREAMBLE()
 #define BEGIN_VIDEO(n)		RADEONWaitForFifo(pScrn, (n))
-#define OUT_VIDEO_REG(reg, val)	OUTREG(reg, val)
-#define OUT_VIDEO_REG_F(reg, val) OUTREG(reg, F_TO_DW(val))
+#define OUT_VIDEO_REG(reg, val)	RHDRegWrite(info, reg, val)
+#define OUT_VIDEO_REG_F(reg, val) RHDRegWrite(info, reg, F_TO_DW(val))
 #define FINISH_VIDEO()
 
 #include "radeon_textured_videofuncs.c"
@@ -108,7 +108,7 @@ static __inline__ uint32_t F_TO_DW(float val)
 
 #include "radeon_textured_videofuncs.c"
 
-#endif /* XF86DRI */
+#endif /* USE_DRI */
 
 static int
 RADEONPutImageTextured(ScrnInfoPtr pScrn,
@@ -126,7 +126,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 		       DrawablePtr pDraw)
 {
     ScreenPtr pScreen = pScrn->pScreen;
-    RADEONInfoPtr info = RADEONPTR(pScrn);
+    RHDPtr info = RHDPTR(pScrn);
     RADEONPortPrivPtr pPriv = (RADEONPortPrivPtr)data;
     INT32 x1, x2, y1, y2;
     int srcPitch, srcPitch2, dstPitch;
@@ -212,9 +212,8 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 #endif
 
     if (!info->useEXA &&
-	(((char *)pPriv->pPixmap->devPrivate.ptr < (char *)info->FB) ||
-	 ((char *)pPriv->pPixmap->devPrivate.ptr >= (char *)info->FB +
-	  info->FbMapSize))) {
+	(((char *)pPriv->pPixmap->devPrivate.ptr < (char *)(info->FbBase + info->FbScanoutStart)) ||
+	 ((char *)pPriv->pPixmap->devPrivate.ptr >= (char *)(info->FbBase + info->FbMapSize)))) {
 	/* If the pixmap wasn't in framebuffer, then we have no way in XAA to
 	 * force it there. So, we simply refuse to draw and fail.
 	 */
@@ -226,8 +225,8 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
     left = (x1 >> 16) & ~1;
     npixels = ((((x2 + 0xffff) >> 16) + 1) & ~1) - left;
 
-    pPriv->src_offset = pPriv->video_offset + info->fbLocation + pScrn->fbOffset;
-    pPriv->src_addr = (uint8_t *)(info->FB + pPriv->video_offset + (top * dstPitch));
+    pPriv->src_offset = pPriv->video_offset + info->FbIntAddress + info->FbScanoutStart;
+    pPriv->src_addr = (uint8_t *)(info->FbBase + info->FbScanoutStart + pPriv->video_offset + (top * dstPitch));
     pPriv->src_pitch = dstPitch;
     pPriv->size = size;
     pPriv->pDraw = pDraw;
@@ -340,7 +339,7 @@ XF86VideoAdaptorPtr
 RADEONSetupImageTexturedVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr    info = RADEONPTR(pScrn);
+    RHDPtr    info = RHDPTR(pScrn);
     RADEONPortPrivPtr pPortPriv;
     XF86VideoAdaptorPtr adapt;
     int i;
@@ -387,14 +386,13 @@ RADEONSetupImageTexturedVideo(ScreenPtr pScreen)
 	RADEONPortPrivPtr pPriv = &pPortPriv[i];
 
 	pPriv->textured = TRUE;
-	pPriv->videoStatus = 0;
-	pPriv->currentBuffer = 0;
-	pPriv->doubleBuffer = 0;
 
 	/* gotta uninit this someplace, XXX: shouldn't be necessary for textured */
 	REGION_NULL(pScreen, &pPriv->clip);
 	adapt->pPortPrivates[i].ptr = (pointer) (pPriv);
     }
+
+    info->adaptor = adapt;
 
     return adapt;
 }
