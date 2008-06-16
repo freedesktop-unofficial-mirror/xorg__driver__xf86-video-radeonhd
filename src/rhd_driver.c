@@ -1054,6 +1054,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     } else {
 	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
 	    RADEONSetupMemEXA(pScreen);
+	else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+	    RADEONSetupMemXAA(scrnIndex, pScreen);
 
 	ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
 	rhdPtr->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
