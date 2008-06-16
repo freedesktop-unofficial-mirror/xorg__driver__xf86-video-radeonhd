@@ -129,6 +129,9 @@ AC_MSG_RESULT($USE_DRI)
 test "x$USE_DRI" = xyes && AC_DEFINE(USE_DRI, 1, [Build support for DRI])
 AM_CONDITIONAL(USE_DRI, test "x$USE_DRI" = xyes)
 
+AC_CHECK_FILE([${sdkdir}/damage.h],
+	[AC_DEFINE(DAMAGE,1,[Use Damage extension])], [])
+
 # check for xf86_ansic.h
 CFLAGS="$SAVED_CFLAGS"
 CPPFLAGS="$SAVED_CPPFLAGS"

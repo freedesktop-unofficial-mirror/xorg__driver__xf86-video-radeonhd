@@ -1118,6 +1118,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
 
+    if (rhdPtr->ChipSet < RHD_R600) {
+	RADEONInitVideo(pScreen);
+    }
+
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = RHDCloseScreen;
