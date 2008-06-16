@@ -1194,9 +1194,9 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
     if (info->directRenderingEnabled)
 	y2 = pScrn->displayWidth * pScrn->virtualY * 3;
     else
-#else
-	y2 = info->FbMapSize / width_bytes;
 #endif
+	y2 = info->FbMapSize / width_bytes;
+
     if (y2 >= 32768)
 	y2 = 32767; /* because MemBox.y2 is signed short */
     MemBox.y2 = y2;
