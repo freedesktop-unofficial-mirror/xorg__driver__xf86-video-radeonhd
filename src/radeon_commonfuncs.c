@@ -56,7 +56,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
     uint32_t gb_tile_config, su_reg_dest, vap_cntl;
     ACCEL_PREAMBLE();
 
-    info->texW[0] = info->texH[0] = info->texW[1] = info->texH[1] = 1;
+    info->accel_state->texW[0] = info->accel_state->texH[0] = info->accel_state->texW[1] = info->accel_state->texH[1] = 1;
 
     if (IS_R300_3D || IS_R500_3D) {
 
@@ -68,7 +68,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 
 	gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
 
-	switch(info->num_gb_pipes) {
+	switch(info->accel_state->num_gb_pipes) {
 	case 2: gb_tile_config |= R300_PIPE_COUNT_R300; break;
 	case 3: gb_tile_config |= R300_PIPE_COUNT_R420_3P; break;
 	case 4: gb_tile_config |= R300_PIPE_COUNT_R420; break;
@@ -85,7 +85,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	FINISH_ACCEL();
 
 	if (IS_R500_3D) {
-	    su_reg_dest = ((1 << info->num_gb_pipes) - 1);
+	    su_reg_dest = ((1 << info->accel_state->num_gb_pipes) - 1);
 	    BEGIN_ACCEL(2);
 	    OUT_ACCEL_REG(R500_SU_REG_DEST, su_reg_dest);
 	    OUT_ACCEL_REG(R500_VAP_INDEX_OFFSET, 0);
@@ -695,7 +695,7 @@ void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 
 #ifdef ACCEL_CP
     /* Make sure the CP is idle first */
-    if (info->CPStarted) {
+    if (info->cp->CPStarted) {
 	int  ret;
 
 	FLUSH_RING();

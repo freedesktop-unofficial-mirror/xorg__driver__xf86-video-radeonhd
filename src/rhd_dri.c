@@ -371,20 +371,17 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
  * can start/stop the engine. */
 static void RHDEnterServer(ScreenPtr pScreen)
 {
-#if 1
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
     RHDPtr  info  = RHDPTR(pScrn);
     RADEONSAREAPriv *pSAREAPriv;
 
     RADEON_MARK_SYNC(info, pScrn);
 
-// TODO: we'll probably need something like XInited3D or needCacheFlush in the cp module
     pSAREAPriv = (RADEONSAREAPriv *)DRIGetSAREAPrivate(pScrn->pScreen);
     if (pSAREAPriv->ctxOwner != (signed) DRIGetContext(pScrn->pScreen)) {
 	info->XInited3D = FALSE;
-	info->needCacheFlush = TRUE; /*(info->ChipFamily >= CHIP_FAMILY_R300)*/
+	info->cp->needCacheFlush = TRUE;
     }
-#endif
 }
 
 /* Called when the X server goes to sleep to allow the X server's
@@ -405,7 +402,8 @@ static void RHDLeaveServer(ScreenPtr pScreen)
     RADEONCP_RELEASE(pScrn, info);
 
 #ifdef USE_EXA
-    info->engineMode = EXA_ENGINEMODE_UNKNOWN;
+    if (info->accel_state)
+	info->accel_state->engineMode = EXA_ENGINEMODE_UNKNOWN;
 #endif
 
 }
@@ -1118,6 +1116,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     info = xnfcalloc(1, sizeof(struct rhdDri));
     info->scrnIndex = rhdPtr->scrnIndex;
     rhdPtr->dri = info;
+
+    rhdPtr->cp = xnfcalloc(1, sizeof(struct rhdCP));
 
     info->gartSize      = RHD_DEFAULT_GART_SIZE;
     info->ringSize      = RHD_DEFAULT_RING_SIZE;
