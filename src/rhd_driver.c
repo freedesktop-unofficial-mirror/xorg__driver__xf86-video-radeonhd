@@ -698,8 +698,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
 
-    ErrorF("fbfreesize = 0x%x\n", rhdPtr->FbFreeSize);
-
 #ifdef ATOM_BIOS
     if (rhdPtr->atomBIOS) { 	/* for testing functions */
 
@@ -712,9 +710,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    rhdPtr->FbFreeStart = atomBiosArg.fb.start;
 	    rhdPtr->FbFreeSize = atomBiosArg.fb.size;
 	}
-
-	ErrorF("fbfreestart = 0x%x\n", rhdPtr->FbFreeStart);
-	ErrorF("fbfreesize = 0x%x\n", rhdPtr->FbFreeSize);
 
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
 			&atomBiosArg);
@@ -769,8 +764,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
-
-    ErrorF("FbIntAddress: 0x%x\n", rhdPtr->FbIntAddress);
 
     if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1053,7 +1046,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    return FALSE;
     } else {
 	if (!(rhdPtr->accel_state = xcalloc(1, sizeof(struct rhdAccel)))) {
-	    ErrorF("Unable to allocate accel_state rec!\n");
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Unable to allocate accel_state rec!\n");
 	    return FALSE;
 	}
   	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
@@ -1061,15 +1054,12 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
 	    RADEONSetupMemXAA(scrnIndex, pScreen);
 
-	//ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
 	rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
 						  << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
-	ErrorF("pre accelinit\n");
 	if (RADEONAccelInit(pScreen))
 	    rhdPtr->accelOn = TRUE;
 	else
 	    rhdPtr->accelOn = FALSE;
-	ErrorF("post accelinit\n");
     }
 
     miInitializeBackingStore(pScreen);
@@ -1136,8 +1126,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (serverGeneration == 1) {
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
     }
-
-    ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
 
     return TRUE;
 }
