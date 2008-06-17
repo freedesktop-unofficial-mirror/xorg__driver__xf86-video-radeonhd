@@ -291,7 +291,6 @@ static void RHDLeaveServer(ScreenPtr pScreen)
     RHDPtr  info  = RHDPTR(pScrn);
     RING_LOCALS;
 
-    // TODO: -> cp module
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
     RADEONCP_RELEASE(pScrn, info);
@@ -1407,6 +1406,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
+    rhdPtr->directRenderingInited = TRUE;
+
     return TRUE;
 }
 
@@ -1445,40 +1446,25 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 }
 
 static void
-RHDDRMStop(struct rhdDri *info)
+RHDDRMStop(ScreenPtr pScreen)
 {
-    drmRadeonCPStop drmStop;
-    int                  i, ret;
-//    RING_LOCALS;
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr  info  = RHDPTR(pScrn);
+    RING_LOCALS;
 
-    RHDFUNC(info);
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
+                   "RHDDRMStop\n");
 
-    /* If we've generated any CP commands, we must flush them to the
-     * kernel module now. */
-//    RADEONCP_RELEASE(pScrn, info);
-
-    drmStop.flush = 1;
-    drmStop.idle  = 1;
-
-    for (i = 0; i <= RHD_IDLE_RETRY; i++) {
-	ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
-			      sizeof(drmRadeonCPStop));
-	if (ret == 0) {
-	    RHDDebug(info->scrnIndex, "DRMStop #%d succeeded\n", i+1);
-	    return;
-	} else if (ret != -16 /* -EBUSY, unwrapped */) {
-	    xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop #%d failed: %d\n", i, ret);
-	    return;
-	}
-	drmStop.flush = 0;
+    /* Stop the CP */
+    if (info->directRenderingInited) {
+	/* If we've generated any CP commands, we must flush them to the                                   
+         * kernel module now.                                                                              
+         */
+        RADEONCP_RELEASE(pScrn, info);
+        RADEONCP_STOP(pScrn, info);
     }
+    info->directRenderingInited = FALSE;
 
-    RHDDebug(info->scrnIndex, "DRMStop idle failed\n");
-    drmStop.idle = 0;
-    ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
-			  sizeof(drmRadeonCPStop));
-    if (ret)
-	xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop failed: %d\n", ret);
 }
 
 /* Stop all before vt switch / suspend */
@@ -1492,7 +1478,7 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
     DRILock(pScrn->pScreen, 0);
-    RHDDRMStop(info);
+    RHDDRMStop(pScreen);
 
     /* Backup the PCIE GART TABLE from fb memory */
     if (info->pciGartBackup)
@@ -1524,7 +1510,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 
     RHDFUNC(pScrn);
 
-    RHDDRMStop(info);
+    RHDDRMStop(pScreen);
 
     if (info->irq) {
 	RHDDRISetVBlankInterrupt (pScrn, FALSE);
