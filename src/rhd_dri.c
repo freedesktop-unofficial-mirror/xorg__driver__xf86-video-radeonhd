@@ -102,94 +102,6 @@
 #define RADEON_DRIAPI_VERSION_MINOR 3
 #define RADEON_DRIAPI_VERSION_PATCH 0
 
-#if 0
-typedef struct {
-    /* Nothing here yet */
-    int dummy;
-} RADEONConfigPrivRec, *RADEONConfigPrivPtr;
-
-typedef struct {
-    /* Nothing here yet */
-    int dummy;
-} RADEONDRIContextRec, *RADEONDRIContextPtr;
-
-/* driver data only needed by dri */
-struct rhdDri {
-    int               scrnIndex;
-
-    /* FIXME: Some Save&Restore is still a TODO
-     * Need to save/restore/update GEN_INT_CNTL (interrupts) on drm init.
-     * AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION are (partially) handled
-     * in _mc.c */
-
-    int               pixel_code;
-
-    DRIInfoPtr        pDRIInfo;
-    int               drmFD;
-    int               numVisualConfigs;
-    __GLXvisualConfig *pVisualConfigs;
-    RADEONConfigPrivPtr pVisualConfigsPriv;
-
-    drm_handle_t      registerHandle;
-    drm_handle_t      pciMemHandle;
-    int               irq;
-
-    int               have3Dwindows;
-
-    drmSize           gartSize;
-    drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
-    unsigned long     gartOffset;
-    int               agpMode;
-
-    /* CP ring buffer data */
-    unsigned long     ringStart;        /* Offset into GART space */
-    drm_handle_t      ringHandle;       /* Handle from drmAddMap */
-    drmSize           ringMapSize;      /* Size of map */
-    int               ringSize;         /* Size of ring (in MB) */
-    drmAddress        ring;             /* Map */
-    int               ringSizeLog2QW;
-
-    // TODO: what is r/o ring space for (1 page)
-    unsigned long     ringReadOffset;   /* Offset into GART space */
-    drm_handle_t      ringReadPtrHandle; /* Handle from drmAddMap */
-    drmSize           ringReadMapSize;  /* Size of map */
-    drmAddress        ringReadPtr;      /* Map */
-
-    /* CP vertex/indirect buffer data */
-    unsigned long     bufStart;         /* Offset into GART space */
-    drm_handle_t      bufHandle;        /* Handle from drmAddMap */
-    drmSize           bufMapSize;       /* Size of map */
-    int               bufSize;          /* Size of buffers (in MB) */
-    drmAddress        buf;              /* Map */
-    int               bufNumBufs;       /* Number of buffers */
-    drmBufMapPtr      buffers;          /* Buffer map */
-
-    /* CP GART Texture data */
-    unsigned long     gartTexStart;      /* Offset into GART space */
-    drm_handle_t      gartTexHandle;     /* Handle from drmAddMap */
-    drmSize           gartTexMapSize;    /* Size of map */
-    int               gartTexSize;       /* Size of GART tex space (in MB) */
-    drmAddress        gartTex;           /* Map */
-    int               log2GARTTexGran;
-
-    /* DRI screen private data */
-    int               frontOffset;
-    int               frontPitch;
-    int               backOffset;
-    int               backPitch;
-    int               depthOffset;
-    int               depthPitch;
-    int               depthBits;
-    int               textureOffset;
-    int               textureSize;
-    int               log2TexGran;
-
-    int               pciGartSize;
-    CARD32            pciGartOffset;
-    void             *pciGartBackup;
-};
-#endif
-
 static size_t radeon_drm_page_size;
 static char  *dri_driver_name  = "radeon";
 static char  *r300_driver_name = "r300";
@@ -901,14 +813,8 @@ static void RHDDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 static void RHDDRICPStart(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
-    struct rhdDri *info   = rhdPtr->dri;
 
     /* Start the CP, no matter which acceleration type is used */
-    /*
-    int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
-    if (_ret)
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: CP start %d\n", __FUNCTION__, _ret);
-    */
     RADEONCP_START(pScrn, rhdPtr);
 }
 
@@ -1151,13 +1057,13 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
      * Same for 16bpp. */
     info->depthBits = pScrn->depth;
 
-#if 0
-    if (rhdPtr->AccelMethod != RHD_ACCEL_NONE) {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "Disabled 2D acceleration because DRI is enabled (not implemented yet).\n");
-	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+    if ((rhdPtr->AccelMethod != RHD_ACCEL_EXA) &&
+	(rhdPtr->AccelMethod != RHD_ACCEL_XAA)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "DRI requires acceleration\n");
+	return FALSE;
     }
-#endif
+
     return TRUE;
 }
 
@@ -1500,15 +1406,6 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
-#if 1
-    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if ((rhdPtr->ChipSet < RHD_R600) &&
-	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
-	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	//R5xx2DInit(pScrn);
-	RADEONEngineRestore(pScrn);
-#endif
-
     return TRUE;
 }
 
@@ -1540,19 +1437,8 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	memcpy((char *)rhdPtr->FbBase + info->pciGartOffset,
 	       info->pciGartBackup, info->pciGartSize);
 
-//    RHDAdjustMemMapRegisters(pScrn, info->ModeReg);
-//    RHDEngineRestore(pScrn);
     RHDDRICPStart(pScrn);
     RHDDRISetVBlankInterrupt(pScrn, info->have3Dwindows);
-
-#if 1
-    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if ((rhdPtr->ChipSet < RHD_R600) &&
-	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
-	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	//R5xx2DInit(pScrn);
-	RADEONEngineRestore(pScrn);
-#endif
 
     DRIUnlock(pScrn->pScreen);
 }

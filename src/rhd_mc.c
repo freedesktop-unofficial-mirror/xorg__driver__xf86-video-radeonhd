@@ -256,7 +256,7 @@ r5xxSetupMC(RHDPtr rhdPtr)
     fb_location_tmp = rhdPtr->FbIntAddress >> 16;
     fb_location_tmp |= (fb_location_tmp + fb_size) << 16;
 
-    ErrorF("%s: fb_location: 0x%08X "
+    RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
 	     "[fb_size: 0x%04X] -> fb_location: 0x%08X\n",
 	     __func__, (unsigned int)fb_location,
 	     fb_size,(unsigned int)fb_location_tmp);
