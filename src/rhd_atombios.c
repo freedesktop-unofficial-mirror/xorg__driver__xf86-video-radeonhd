@@ -128,6 +128,13 @@ enum msgDataFormat {
     MSG_FORMAT_DEC
 };
 
+enum atomRegisterType {
+    atomRegisterMMIO,
+    atomRegisterMC,
+    atomRegisterPLL,
+    atomRegisterPCICFG
+};
+
 struct atomBIOSRequests {
     AtomBiosRequestID id;
     AtomBiosRequestFunc request;
@@ -342,6 +349,18 @@ struct atomConnectorInfoPrivate {
     enum atomDevice Device[MAX_OUTPUTS_PER_CONNECTOR];
 };
 
+struct atomRegisterSaveList
+{
+    /* header */
+    int Length;
+    int Last;
+    struct atomRegisterList{
+	enum atomRegisterType Type;
+	CARD32 Address;
+	CARD32 Value;
+    } RegisterList[1];
+};
+
 typedef struct _atomBiosHandle {
     int scrnIndex;
     unsigned char *BIOSBase;
@@ -350,6 +369,7 @@ typedef struct _atomBiosHandle {
     CARD32 fbBase;
     unsigned int BIOSImageSize;
     unsigned char *codeTable;
+    struct atomRegisterSaveList **SaveList;
 } atomBiosHandleRec;
 
 enum {
@@ -4233,7 +4253,122 @@ RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
     return ret;
 }
 
+
+void
+atomSetRegisterListLocation(atomBiosHandlePtr handle, void *Location)
+{
+    handle->SaveList = (struct atomRegisterSaveList **)Location;
+}
+
+void
+atomRestoreRegisters(atomBiosHandlePtr handle)
+{
+    struct atomRegisterSaveList *List = *handle->SaveList;
+    int i;
+
+    for (i = 0; i < List->Last; i++) {
+	switch ( List->RegisterList[i].Type) {
+	    case atomRegisterMMIO:
+		DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		RHDRegWrite(handle, List->RegisterList[i].Address, List->RegisterList[i].Value);
+		break;
+	    case atomRegisterMC:
+		DEBUGP(ErrorF("%s: MC(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		RHDWriteMC(handle,  List->RegisterList[i].Address | MC_IND_ALL | MC_IND_WR_EN,
+			   List->RegisterList[i].Value);
+		break;
+	    case atomRegisterPLL:
+		DEBUGP(ErrorF("%s: PLL(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		_RHDWritePLL(handle->scrnIndex, List->RegisterList[i].Address, List->RegisterList[i].Value);
+		break;
+	    case atomRegisterPCICFG:
+		DEBUGP(ErrorF("%s: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+#ifdef XSERVER_LIBPCIACCESS
+		val = pci_device_cfg_write(RHDPTRI(handle)->PciInfo,
+					   &List->RegisterList[i].Value,
+					   List->RegisterList[i].Address, 4, NULL);
+#else
+		{
+		    PCITAG tag = RHDPTRI(handle)->PciTag;
+		    pciWriteLong(tag, List->RegisterList[i].Address, List->RegisterList[i].Value);
+		}
+#endif
+		break;
+	}
+    }
+
+    /* deallocate list and NULL location */
+    xfree(List);
+    *handle->SaveList = NULL;
+}
+
 # ifdef ATOM_BIOS_PARSER
+
+#define ALLOC_CNT 25
+
+static void
+atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 address)
+{
+    struct atomRegisterSaveList *List;
+    CARD32 val = 0;
+    int i;
+
+    if (!handle->SaveList)
+	return;
+
+    if (!(*(handle->SaveList))) {
+	if (!(*handle->SaveList = (struct atomRegisterSaveList *)xalloc(sizeof(struct atomRegisterSaveList)
+								  + sizeof(struct  atomRegisterList) * (ALLOC_CNT - 1))))
+	    return;
+	(*(handle->SaveList))->Length = ALLOC_CNT;
+	(*(handle->SaveList))->Last = 0;
+    } else if ((*(handle->SaveList))->Length == (*(handle->SaveList))->Last) {
+	if (!(List = (struct atomRegisterSaveList *)xrealloc(*handle->SaveList,
+						      sizeof(struct atomRegisterSaveList)
+						      + (sizeof(struct  atomRegisterList)
+							 * ((*(handle->SaveList))->Length + ALLOC_CNT - 1)))))
+	    return;
+	*handle->SaveList = List;
+	List->Length = (*(handle->SaveList))->Length + ALLOC_CNT;
+    }
+    List = *handle->SaveList;
+
+    for (i = 0; i < List->Last; i++)
+	if (List->RegisterList[i].Address == address)
+	    return;
+
+    switch (Type) {
+	case atomRegisterMMIO:
+	    val = RHDRegRead(handle, address);
+	    DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    break;
+	case atomRegisterMC:
+	    val = RHDReadMC(handle, address | MC_IND_ALL);
+	    DEBUGP(ErrorF("%s: MC(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    break;
+	case atomRegisterPLL:
+	    val = _RHDReadPLL(handle->scrnIndex, address);
+	    DEBUGP(ErrorF("%s: PLL(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    break;
+	case atomRegisterPCICFG:
+#ifdef XSERVER_LIBPCIACCESS
+	    val = pci_device_cfg_write(RHDPTRI(handle)->PciInfo,
+				       &val, address, 4, NULL);
+#else
+	    {
+		PCITAG tag = RHDPTRI(handle)->PciTag;
+		val =  pciReadLong(tag, address);
+	    }
+#endif
+	    DEBUGP(ErrorF("%s: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    break;
+    }
+    List->RegisterList[List->Last].Address = address;
+    List->RegisterList[List->Last].Value = val;
+    List->RegisterList[List->Last].Type = Type;
+    List->Last++;
+}
+
 VOID*
 CailAllocateMemory(VOID *CAIL,UINT16 size)
 {
@@ -4275,6 +4410,8 @@ VOID
 CailWriteATIRegister(VOID *CAIL, UINT32 idx, UINT32 data)
 {
     CAILFUNC(CAIL);
+
+    atomSaveRegisters((atomBiosHandlePtr)CAIL, atomRegisterMMIO, idx << 2);
 
     RHDRegWrite(((atomBiosHandlePtr)CAIL),idx << 2,data);
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx << 2,data));
@@ -4339,6 +4476,9 @@ CailWriteMC(VOID *CAIL, ULONG Address, ULONG data)
 
 
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,Address,data));
+
+    atomSaveRegisters((atomBiosHandlePtr)CAIL, atomRegisterMC, Address);
+
     RHDWriteMC(((atomBiosHandlePtr)CAIL), Address | MC_IND_ALL | MC_IND_WR_EN, data);
 }
 
