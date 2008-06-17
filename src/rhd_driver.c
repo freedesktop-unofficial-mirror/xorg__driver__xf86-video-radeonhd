@@ -1511,11 +1511,11 @@ rhdMapFB(RHDPtr rhdPtr)
     rhdPtr->FbBase = NULL;
 
 #ifdef XSERVER_LIBPCIACCESS
-	rhdPtr->FbPCIAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr;
-	rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->regions[RHD_FB_BAR].base_addr;
+    rhdPtr->FbMapSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
 #else
-	rhdPtr->FbPCIAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
-	rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
+    rhdPtr->FbPCIAddress = rhdPtr->PciInfo->memBase[RHD_FB_BAR];
+    rhdPtr->FbMapSize = 1 << rhdPtr->PciInfo->size[RHD_FB_BAR];
 #endif
 
     /* some IGPs are special cases */
@@ -1539,6 +1539,10 @@ rhdMapFB(RHDPtr rhdPtr)
 	if (rhdPtr->unverifiedFeatures.set) {
 	    option = X_CONFIG;
 	    SetIGPMemory = rhdPtr->unverifiedFeatures.val.bool;
+	}
+	if (SetIGPMemory && RHD_MC_IGP_SideportMemoryPresent(rhdPtr)) {
+	    SetIGPMemory = FALSE;
+	    option = X_DEFAULT;
 	}
 	if (SetIGPMemory) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Mapping IGP memory @ 0x%8.8x\n",rhdPtr->FbPhysAddress);
@@ -2238,7 +2242,7 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     CARD32 ret;
 
-    if (rhdPtr->ChipSet < RHD_RS690 || rhdPtr->ChipSet == RHD_RS780) {
+    if (rhdPtr->ChipSet < RHD_RS690) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
@@ -2246,11 +2250,11 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 	ret = _RHDRegRead(scrnIndex, RS60_MC_NB_MC_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
-	CARD32 data = addr & ~RS69_C_IND_WR_EN;
+	CARD32 data = addr & ~RS69_MC_IND_WR_EN;
 	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), RS69_MC_INDEX, 4, NULL);
 	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, RS69_MC_DATA, 4, NULL);
 #else
-	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr & ~RS69_C_IND_WR_EN);
+	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr & ~RS69_MC_IND_WR_EN);
 	ret = pciReadLong(rhdPtr->NBPciTag, RS69_MC_DATA);
 #endif
     } else {
@@ -2259,7 +2263,7 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), RS78_NB_MC_IND_INDEX, 4, NULL);
 	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, RS78_NB_MC_IND_DATA, 4, NULL);
 #else
-	pciWriteLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_INDEX, addr & ~RS78_MC_IND_WR_EN);
+	pciWriteLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_INDEX, (addr & ~RS78_MC_IND_WR_EN));
 	ret = pciReadLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_DATA);
 #endif
     }
@@ -2285,10 +2289,10 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &addr | RS69_C_IND_WR_EN, RS69_MC_INDEX, 4, NULL);
+	pci_device_cfg_write(rhdPtr->NBPciInfo, &addr | RS69_MC_IND_WR_EN, RS69_MC_INDEX, 4, NULL);
 	pci_device_cfg_write(rhdPtr->NBPciInfo, &data, RS69_MC_DATA, 4, NULL);
 #else
-	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr | RS69_C_IND_WR_EN);
+	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_INDEX, addr | RS69_MC_IND_WR_EN);
 	pciWriteLong(rhdPtr->NBPciTag, RS69_MC_DATA, data);
 #endif
 
@@ -2433,6 +2437,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->tvModeName, NULL);
     RhdGetOptValString (rhdPtr->Options, OPTION_SCALE_TYPE,
 		       &rhdPtr->scaleTypeOpt, "default");
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_UNVERIFIED_FEAT,
+			&rhdPtr->unverifiedFeatures, FALSE);
 
     rhdAccelOptionsHandle(pScrn);
 

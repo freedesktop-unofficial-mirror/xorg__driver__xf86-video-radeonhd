@@ -767,7 +767,7 @@ enum RS69_DDIA_PCIE_LINK_CONTROL3_BITS {
 
 enum RS69_MC_INDEX_BITS {
     RS69_MC_IND_ADDR = (0x1 << 0),
-    RS69_C_IND_WR_EN = (0x1 << 9)
+    RS69_MC_IND_WR_EN = (0x1 << 9)
 };
 
 enum RS60_MC_NB_MC_INDEX_BITS {
@@ -777,9 +777,27 @@ enum RS60_MC_NB_MC_INDEX_BITS {
 
 enum _rs690MCRegs {
     RS69_K8_FB_LOCATION		=	0x1E,
+    RS69_MC_MISC_UMA_CNTL	=	0x5f,
     RS69_MC_SYSTEM_STATUS 	=	0x90,  /* (RW) */
     RS69_MCCFG_FB_LOCATION		=	0x100,
     RS69MCCFG_AGP_LOCATION		=	0x101
+};
+
+enum RS69_MC_MISC_UMA_CNTL_BITS {
+    RS69_K8_40BIT_ADDR_EXTENSION = (0x1 << 0),
+    RS69_GART_BYPASS             = (0x1 << 8),
+    RS69_GFX_64BYTE_MODE         = (0x1 << 9),
+    RS69_GFX_64BYTE_LAT          = (0x1 << 10),
+    RS69_GTW_COHERENCY           = (0x1 << 15),
+    RS69_READ_BUFFER_SIZE        = (0x1 << 16),
+    RS69_HDR_ROUTE_TO_DSP        = (0x1 << 24),
+    RS69_GTW_ROUTE_TO_DSP        = (0x1 << 25),
+    RS69_DSP_ROUTE_TO_GFX        = (0x1 << 26),
+    RS69_USE_HDPW_LAT_INIT       = (0x1 << 27),
+    RS69_USE_GFXW_LAT_INIT       = (0x1 << 28),
+    RS69_MCIFR_COHERENT          = (0x1 << 29),
+    RS69_NON_SNOOP_AZR_AIC_BP    = (0x1 << 30),
+    RS69_SIDE_PORT_PRESENT_R     = (0x1 << 31)
 };
 
 enum _rs600MCRegs {
@@ -793,7 +811,7 @@ enum _rs780NBRegs {
 };
 
 enum RS78_NB_IND_INDEX_BITS {
-    RS78_RS78_NB_MC_IND_INDEX = (0xffff << 0),
+    RS78_NB_MC_IND_INDEX_MASK = (0xffff << 0),
     RS78_MC_IND_SEQ_RBS_0     = (0x1 << 16),
     RS78_MC_IND_SEQ_RBS_1     = (0x1 << 17),
     RS78_MC_IND_SEQ_RBS_2     = (0x1 << 18),
@@ -808,7 +826,8 @@ enum RS78_NB_IND_INDEX_BITS {
 enum _rs780MCRegs {
     RS78_MC_SYSTEM_STATUS	=	0x0,
     RS78_MC_FB_LOCATION		=	0x10,
-    RS78_K8_FB_LOCATION		=	0x11
+    RS78_K8_FB_LOCATION		=	0x11,
+    RS78_MC_MISC_UMA_CNTL       =       0x12
 };
 
 enum RS6X_MC_SYSTEM_STATUS_BITS {
@@ -824,6 +843,13 @@ enum RS6X_MC_SYSTEM_STATUS_BITS {
 	RS6X_MCA_SEQ_IDLE	 = (0x1 << 18),
 	RS6X_MCA_ARB_IDLE	 = (0x1 << 19),
 	RS6X_RESERVED20_SYSTEM_STATUS	 = (0xfff << 20)
+};
+
+enum RS78_MC_MISC_UMA_CNTL_BITS {
+    RS78_K8_40BIT_ADDR_EXTENSION = ( 0x1 << 0),
+    RS78_BANKGROUP_SEL           = ( 0x1 << 8),
+    RS78_CNTL_SPARE              = ( 0x1 << 15),
+    RS78_SIDE_PORT_PRESENT_R     = ( 0x1 << 31)
 };
 
 enum R5XX_MC_STATUS_BITS {

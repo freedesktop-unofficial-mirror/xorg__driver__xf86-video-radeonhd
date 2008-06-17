@@ -595,3 +595,25 @@ RHDMCDestroy(RHDPtr rhdPtr)
     rhdPtr->MC = NULL;
 }
 
+Bool
+RHD_MC_IGP_SideportMemoryPresent(RHDPtr rhdPtr)
+{
+    Bool Present = FALSE;
+
+    RHDFUNC(rhdPtr);
+
+    switch (rhdPtr->ChipSet) {
+	case RHD_RS690:
+	case RHD_RS740:
+	    Present = (RHDReadMC(rhdPtr, RS69_MC_MISC_UMA_CNTL) & RS69_SIDE_PORT_PRESENT_R) != 0;
+	    break;
+	case RHD_RS780:
+	    Present = (RHDReadMC(rhdPtr, RS78_MC_MISC_UMA_CNTL) & RS78_SIDE_PORT_PRESENT_R) != 0;
+	    break;
+	default:
+	    break;
+    }
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "IPG sideport memory %s present.\n", Present ? "" : "not");
+
+    return Present;
+}
