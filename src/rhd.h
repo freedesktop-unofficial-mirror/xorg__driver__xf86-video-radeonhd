@@ -237,6 +237,7 @@ typedef struct RHDRec {
     RHDOpt		useDRI;
     RHDOpt		tvModeName;
     RHDOpt		scaleTypeOpt;
+    RHDOpt		unverifiedFeatures;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */

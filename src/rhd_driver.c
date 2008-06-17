@@ -237,7 +237,8 @@ typedef enum {
     OPTION_RROUTPUTORDER,
     OPTION_DRI,
     OPTION_TV_MODE,
-    OPTION_SCALE_TYPE
+    OPTION_SCALE_TYPE,
+    OPTION_UNVERIFIED_FEAT
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -256,6 +257,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_DRI,                  "DRI",                  OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -1529,10 +1531,23 @@ rhdMapFB(RHDPtr rhdPtr)
 	    rhdPtr->FbPhysAddress = 0;
 	    break;
     }
+
     if (rhdPtr->FbPhysAddress) {
-	rhdPtr->FbMapSize = pScrn->videoRam * 1024;
-	rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
-				       rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
+	Bool SetIGPMemory = TRUE;
+	CARD32 option = X_DEFAULT;
+
+	if (rhdPtr->unverifiedFeatures.set) {
+	    option = X_CONFIG;
+	    SetIGPMemory = rhdPtr->unverifiedFeatures.val.bool;
+	}
+	if (SetIGPMemory) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Mapping IGP memory @ 0x%8.8x\n",rhdPtr->FbPhysAddress);
+	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
+	    rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
+					   rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
+	} else {
+	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Not Mapping IGP memory\n");
+	}
     }
 
     /* go through the BAR */
