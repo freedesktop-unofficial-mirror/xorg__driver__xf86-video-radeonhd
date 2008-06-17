@@ -1054,14 +1054,18 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    /* No safetynet anymore */
 	    return FALSE;
     } else {
-	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+	if (!(rhdPtr->accel_state = xcalloc(1, sizeof(struct rhdAccel)))) {
+	    ErrorF("Unable to allocate accel_state rec!\n");
+	    return FALSE;
+	}
+  	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
 	    RADEONSetupMemEXA(pScreen);
 	else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
 	    RADEONSetupMemXAA(scrnIndex, pScreen);
 
-	ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
-	rhdPtr->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
-				     << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
+	//ErrorF("FbScanoutStart: 0x%x\n", rhdPtr->FbScanoutStart);
+	rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
+						  << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
 	ErrorF("pre accelinit\n");
 	if (RADEONAccelInit(pScreen))
 	    rhdPtr->accelOn = TRUE;
@@ -1122,7 +1126,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     if (rhdPtr->ChipSet < RHD_R600) {
 	rhdPtr->DMAForXv = TRUE;
-	RADEONInitVideo(pScreen);
+	if (rhdPtr->accel_state)
+	    RADEONInitVideo(pScreen);
     }
 
     /* Wrap the current CloseScreen function */
@@ -1204,11 +1209,17 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	    XAADestroyInfoRec(rhdPtr->accel);
         rhdPtr->accel = NULL;
 
-        if (rhdPtr->scratch_save)
-            xfree(rhdPtr->scratch_save);
-        rhdPtr->scratch_save = NULL;
+	if (rhdPtr->accel_state) {
+	    if (rhdPtr->accel_state->scratch_save)
+		xfree(rhdPtr->accel_state->scratch_save);
+	    rhdPtr->accel_state->scratch_save = NULL;
+	}
     }
 #endif /* USE_XAA */
+    if (rhdPtr->accel_state) {
+	xfree(rhdPtr->accel_state);
+	rhdPtr->accel_state = NULL;
+    }
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);

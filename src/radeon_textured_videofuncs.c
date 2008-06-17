@@ -161,8 +161,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 
 	txformat0 |= R300_TXPITCH_EN;
 
-	info->texW[0] = pPriv->w;
-	info->texH[0] = pPriv->h;
+	info->accel_state->texW[0] = pPriv->w;
+	info->accel_state->texH[0] = pPriv->h;
 
 	txfilter = (R300_TX_CLAMP_S(R300_TX_CLAMP_CLAMP_LAST) |
 		    R300_TX_CLAMP_T(R300_TX_CLAMP_CLAMP_LAST) |
@@ -471,8 +471,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	    (info->ChipFamily == CHIP_FAMILY_RS300) ||
 	    (info->ChipFamily == CHIP_FAMILY_R200)) {
 
-	    info->texW[0] = pPriv->w;
-	    info->texH[0] = pPriv->h;
+	    info->accel_state->texW[0] = pPriv->w;
+	    info->accel_state->texH[0] = pPriv->h;
 
 	    BEGIN_VIDEO(12);
 
@@ -510,8 +510,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	    FINISH_VIDEO();
 	} else {
 
-	    info->texW[0] = 1;
-	    info->texH[0] = 1;
+	    info->accel_state->texW[0] = 1;
+	    info->accel_state->texH[0] = 1;
 
 	    BEGIN_VIDEO(8);
 
@@ -620,13 +620,13 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 #endif
 
 	VTX_OUT((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / info->texW[0],      xFixedToFloat(srcTopLeft.y) / info->texH[0]);
+		xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)dstX,                                      (float)(dstY + dsth),
-		xFixedToFloat(srcBottomLeft.x) / info->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->texH[0]);
+		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)(dstX + dstw),                                (float)(dstY + dsth),
-		xFixedToFloat(srcBottomRight.x) / info->texW[0],  xFixedToFloat(srcBottomRight.y) / info->texH[0]);
+		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)(dstX + dstw),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->texW[0],     xFixedToFloat(srcTopRight.y) / info->texH[0]);
+		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0]);
 
 	if (IS_R300_3D || IS_R500_3D)
 	    /* flushing is pipelined, free/finish is not */

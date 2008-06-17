@@ -297,7 +297,7 @@ static void RADEONFinishAccess(PixmapPtr pPix, int index)
 do {									\
 	uint32_t wait_until = 0;			\
 	BEGIN_ACCEL(1);							\
-	switch (info->engineMode) {					\
+	switch (info->accel_state->engineMode) {			\
 	case EXA_ENGINEMODE_UNKNOWN:					\
 	    wait_until |= RADEON_WAIT_HOST_IDLECLEAN | RADEON_WAIT_2D_IDLECLEAN;	\
 	case EXA_ENGINEMODE_3D:						\
@@ -307,14 +307,14 @@ do {									\
 	}								\
 	OUT_ACCEL_REG(RADEON_WAIT_UNTIL, wait_until);			\
 	FINISH_ACCEL();							\
-        info->engineMode = EXA_ENGINEMODE_2D;                           \
+        info->accel_state->engineMode = EXA_ENGINEMODE_2D;              \
 } while (0);
 
 #define RADEON_SWITCH_TO_3D()						\
 do {									\
 	uint32_t wait_until = 0;			\
 	BEGIN_ACCEL(1);							\
-	switch (info->engineMode) {					\
+	switch (info->accel_state->engineMode) {			\
 	case EXA_ENGINEMODE_UNKNOWN:					\
 	    wait_until |= RADEON_WAIT_HOST_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN;	\
 	case EXA_ENGINEMODE_2D:						\
@@ -324,7 +324,7 @@ do {									\
 	}								\
 	OUT_ACCEL_REG(RADEON_WAIT_UNTIL, wait_until);			\
 	FINISH_ACCEL();							\
-        info->engineMode = EXA_ENGINEMODE_3D;                           \
+        info->accel_state->engineMode = EXA_ENGINEMODE_3D;              \
 } while (0);
 
 #define ENTER_DRAW(x) TRACE

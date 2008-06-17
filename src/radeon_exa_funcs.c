@@ -63,7 +63,7 @@ FUNC_NAME(RADEONMarkSync)(ScreenPtr pScreen)
 
     TRACE;
 
-    return ++info->exaSyncMarker;
+    return ++info->accel_state->exaSyncMarker;
 }
 
 static void
@@ -73,12 +73,12 @@ FUNC_NAME(RADEONSync)(ScreenPtr pScreen, int marker)
 
     TRACE;
 
-    if (info->exaMarkerSynced != marker) {
+    if (info->accel_state->exaMarkerSynced != marker) {
 	FUNC_NAME(RADEONWaitForIdle)(pScrn);
-	info->exaMarkerSynced = marker;
+	info->accel_state->exaMarkerSynced = marker;
     }
 
-    RHDPTR(pScrn)->engineMode = EXA_ENGINEMODE_UNKNOWN;
+    RHDPTR(pScrn)->accel_state->engineMode = EXA_ENGINEMODE_UNKNOWN;
 }
 
 static Bool
@@ -161,8 +161,8 @@ FUNC_NAME(RADEONDoPrepareCopy)(ScrnInfoPtr pScrn, uint32_t src_pitch_offset,
 	RADEON_GMC_CLR_CMP_CNTL_DIS);
     OUT_ACCEL_REG(RADEON_DP_WRITE_MASK, planemask);
     OUT_ACCEL_REG(RADEON_DP_CNTL,
-	((info->xdir >= 0 ? RADEON_DST_X_LEFT_TO_RIGHT : 0) |
-	 (info->ydir >= 0 ? RADEON_DST_Y_TOP_TO_BOTTOM : 0)));
+	((info->accel_state->xdir >= 0 ? RADEON_DST_X_LEFT_TO_RIGHT : 0) |
+	 (info->accel_state->ydir >= 0 ? RADEON_DST_Y_TOP_TO_BOTTOM : 0)));
     OUT_ACCEL_REG(RADEON_DST_PITCH_OFFSET, dst_pitch_offset);
     OUT_ACCEL_REG(RADEON_SRC_PITCH_OFFSET, src_pitch_offset);
     FINISH_ACCEL();
@@ -179,8 +179,8 @@ FUNC_NAME(RADEONPrepareCopy)(PixmapPtr pSrc,   PixmapPtr pDst,
 
     TRACE;
 
-    info->xdir = xdir;
-    info->ydir = ydir;
+    info->accel_state->xdir = xdir;
+    info->accel_state->ydir = ydir;
 
     if (pDst->drawable.bitsPerPixel == 24)
 	RADEON_FALLBACK(("24bpp unsupported"));
@@ -209,11 +209,11 @@ FUNC_NAME(RADEONCopy)(PixmapPtr pDst,
 
     TRACE;
 
-    if (info->xdir < 0) {
+    if (info->accel_state->xdir < 0) {
 	srcX += w - 1;
 	dstX += w - 1;
     }
-    if (info->ydir < 0) {
+    if (info->accel_state->ydir < 0) {
 	srcY += h - 1;
 	dstY += h - 1;
     }
@@ -306,7 +306,7 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+    OUTREG(RADEON_SURFACE_CNTL, info->surface_cntl);
 #endif
 
     return TRUE;
@@ -348,8 +348,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 {
     RINFO_FROM_SCREEN(pSrc->drawable.pScreen);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    unsigned char *RADEONMMIO = info->MMIO;
-    unsigned int swapper = info->ModeReg->surface_cntl &
+    unsigned int swapper = info->surface_cntl &
 	    ~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 	      RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 #endif
@@ -451,7 +450,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
 			    &indirect, sizeof(drmRadeonIndirect));
 
-	info->exaMarkerSynced = info->exaSyncMarker;
+	info->accel_state->exaMarkerSynced = info->accel_state->exaSyncMarker;
 
 	return TRUE;
     }
@@ -487,7 +486,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+    OUTREG(RADEON_SURFACE_CNTL, info->surface_cntl);
 #endif
 
     return TRUE;

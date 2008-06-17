@@ -389,8 +389,8 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 	txformat |= RADEON_TXFORMAT_NON_POWER2;
     txformat |= unit << 24; /* RADEON_TXFORMAT_ST_ROUTE_STQX */
 
-    info->texW[unit] = 1;
-    info->texH[unit] = 1;
+    info->accel_state->texW[unit] = 1;
+    info->accel_state->texH[unit] = 1;
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -702,8 +702,8 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 	txformat |= R200_TXFORMAT_NON_POWER2;
     txformat |= unit << R200_TXFORMAT_ST_ROUTE_SHIFT;
 
-    info->texW[unit] = w;
-    info->texH[unit] = h;
+    info->accel_state->texW[unit] = w;
+    info->accel_state->texH[unit] = h;
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -1045,8 +1045,8 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
      */
     txformat0 |= R300_TXPITCH_EN;
 
-    info->texW[unit] = w;
-    info->texH[unit] = h;
+    info->accel_state->texW[unit] = w;
+    info->accel_state->texH[unit] = h;
 
     if (pPict->repeat && !(unit == 0 && need_src_tile_x))
       txfilter = R300_TX_CLAMP_S(R300_TX_CLAMP_WRAP);
@@ -2010,26 +2010,26 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 
     if (has_mask) {
 	VTX_OUT_MASK((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / info->texW[0],      xFixedToFloat(srcTopLeft.y) / info->texH[0],
-		xFixedToFloat(maskTopLeft.x) / info->texW[1],     xFixedToFloat(maskTopLeft.y) / info->texH[1]);
+		xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0],
+		xFixedToFloat(maskTopLeft.x) / info->accel_state->texW[1],     xFixedToFloat(maskTopLeft.y) / info->accel_state->texH[1]);
 	VTX_OUT_MASK((float)dstX,                                      (float)(dstY + h),
-		xFixedToFloat(srcBottomLeft.x) / info->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->texH[0],
-		xFixedToFloat(maskBottomLeft.x) / info->texW[1],  xFixedToFloat(maskBottomLeft.y) / info->texH[1]);
+		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0],
+		xFixedToFloat(maskBottomLeft.x) / info->accel_state->texW[1],  xFixedToFloat(maskBottomLeft.y) / info->accel_state->texH[1]);
 	VTX_OUT_MASK((float)(dstX + w),                                (float)(dstY + h),
-		xFixedToFloat(srcBottomRight.x) / info->texW[0],  xFixedToFloat(srcBottomRight.y) / info->texH[0],
-		xFixedToFloat(maskBottomRight.x) / info->texW[1], xFixedToFloat(maskBottomRight.y) / info->texH[1]);
+		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0],
+		xFixedToFloat(maskBottomRight.x) / info->accel_state->texW[1], xFixedToFloat(maskBottomRight.y) / info->accel_state->texH[1]);
 	VTX_OUT_MASK((float)(dstX + w),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->texW[0],     xFixedToFloat(srcTopRight.y) / info->texH[0],
-		xFixedToFloat(maskTopRight.x) / info->texW[1],    xFixedToFloat(maskTopRight.y) / info->texH[1]);
+		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0],
+		xFixedToFloat(maskTopRight.x) / info->accel_state->texW[1],    xFixedToFloat(maskTopRight.y) / info->accel_state->texH[1]);
     } else {
 	VTX_OUT((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / info->texW[0],      xFixedToFloat(srcTopLeft.y) / info->texH[0]);
+		xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)dstX,                                      (float)(dstY + h),
-		xFixedToFloat(srcBottomLeft.x) / info->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->texH[0]);
+		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)(dstX + w),                                (float)(dstY + h),
-		xFixedToFloat(srcBottomRight.x) / info->texW[0],  xFixedToFloat(srcBottomRight.y) / info->texH[0]);
+		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0]);
 	VTX_OUT((float)(dstX + w),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->texW[0],     xFixedToFloat(srcTopRight.y) / info->texH[0]);
+		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0]);
     }
 
     if (IS_R300_3D | IS_R500_3D)
