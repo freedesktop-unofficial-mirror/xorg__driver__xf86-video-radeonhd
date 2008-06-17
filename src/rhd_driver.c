@@ -940,7 +940,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDDebug(pScrn->scrnIndex, "Free FB offset 0x%08X (size = 0x%08X)\n",
 	     rhdPtr->FbFreeStart, rhdPtr->FbFreeSize);
 
-    /* old IGP chips have now PVS/TCL hw */
+    /* old IGP chips have no PVS/TCL hw */
     if ((rhdPtr->ChipSet == RHD_RS600) ||
 	(rhdPtr->ChipSet == RHD_RS690) ||
 	(rhdPtr->ChipSet == RHD_RS740))
