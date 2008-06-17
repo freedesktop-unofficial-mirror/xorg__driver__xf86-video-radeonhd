@@ -527,7 +527,6 @@ typedef struct RHDRec {
     struct rhdAccel   *accel_state;
 
 #ifdef USE_DRI
-    Bool              noBackBuffer;	
     Bool              directRenderingEnabled;
     Bool              directRenderingInited;
 #ifdef DAMAGE
