@@ -177,7 +177,7 @@ typedef struct AtomGoldenSettings
 } AtomGoldenSettings;
 
 struct {
-    enum atomDevice DeviceID;
+    enum atomDevice Device;
 } atomOutputInfo;
 
 typedef union AtomBiosArg
@@ -216,14 +216,15 @@ enum atomCrtcAction {
     atomCrtcDisable
 };
 
+enum atomOutputLinks {
+    atomSingleLink,
+    atomDualLink
+};
+
 enum atomEncoderMode {
-    atomDVI_1Link,
-    atomDVI_2Link,
+    atomDVI,
     atomDP,
-    atomDP_8Lane,
     atomLVDS,
-    atomLVDS_DUAL,
-    atomHDMI_2Link,
     atomHDMI,
     atomSDVO,
     atomTVComposite,
@@ -336,21 +337,22 @@ enum atomDVOOutput {
 
 struct atomTransmitterConfig
 {
-    int pixelClock;
-    enum atomEncoder encoder;
-    enum atomPCIELanes lanes;
-    enum atomEncoderMode mode;
-    enum atomTransmitterLink link;
-    Bool coherent;
+    int PixelClock;
+    enum atomEncoder Encoder;
+    enum atomPCIELanes Lanes;
+    enum atomEncoderMode Mode;
+    enum atomTransmitterLink Link;
+    enum atomOutputLinks LinkCnt;
+    Bool Coherent;
 };
 
 struct atomCrtcSourceConfig
 {
     union {
-	enum atomDevice devId;
+	enum atomDevice Device;
 	struct {
-	    enum atomEncoder encoder;
-	    enum atomEncoderMode mode;
+	    enum atomEncoder Encoder;
+	    enum atomEncoderMode Mode;
 	} crtc2;
     } u;
 };
@@ -380,15 +382,14 @@ enum atomOutputType {
 };
 
 enum atomTemporalGreyLevels {
-    TEMPORAL_DITHER_0,
-    TEMPORAL_DITHER_4,
-    TEMPORAL_DITHER_2
+    atomTemporalDither0,
+    atomTemporalDither4,
+    atomTemporalDither2
 };
 
 struct atomEncoderConfig
 {
-    int pixelClock;
-    enum atomEncoderAction action;
+    int PixelClock;
     union {
 	struct {
 	    enum atomDACStandard Standard;
@@ -397,30 +398,31 @@ struct atomEncoderConfig
 	    enum AtomTVMode Standard;
 	} tv;
 	struct {
-	    Bool dual;
-	    Bool is24bit;
+	    enum atomOutputLinks LinkCnt;
+	    Bool Is24bit;
 	} lvds;
 	struct {
-	    Bool dual;
-	    Bool is24bit;
-	    Bool coherent;
-	    Bool linkB;
-	    Bool hdmi;
-	    Bool spatialDither;
-	    enum atomTemporalGreyLevels temporalGrey;
+	    enum atomOutputLinks LinkCnt;
+	    Bool Is24bit;
+	    Bool Coherent;
+	    Bool LinkB;
+	    Bool Hdmi;
+	    Bool SpatialDither;
+	    enum atomTemporalGreyLevels TemporalGrey;
 	} lvds2;
 	struct {
-	    enum atomTransmitterLink link;
-	    enum atomTransmitter transmitter;
-	    enum atomEncoderMode encoderMode;
+	    enum atomTransmitterLink Link;
+	    enum atomOutputLinks LinkCnt;
+	    enum atomTransmitter Transmitter;
+	    enum atomEncoderMode EncoderMode;
 	} dig;
 	struct {
-	    enum atomDVODeviceType deviceType;
-	    int encoderID;
+	    enum atomDVODeviceType DvoDeviceType;
+	    int EncoderID;
 	} dvo;
 	struct{
-	    enum atomDVORate rate;
-	    enum atomDVOOutput output;
+	    enum atomDVORate Rate;
+	    enum atomDVOOutput DvoOutput;
 	} dvo3;
     } u;
 };
@@ -432,23 +434,23 @@ struct atomCodeTableVersion
 };
 
 struct atomPixelClockConfig {
-    Bool enable;
+    Bool Enable;
     int PixelClock;
-    int refDiv;
-    int fbDiv;
-    int postDiv;
-    int fracFbDiv;
+    int RefDiv;
+    int FbDiv;
+    int PostDiv;
+    int FracFbDiv;
     enum atomCrtc Crtc;
     union  {
 	struct {
-	    Bool force;
-	    int deviceIndex;
+	    Bool Force;
+	    enum atomDevice Device;
 	} v2;
 	struct {
-	    Bool force;
+	    Bool Force;
 	    enum atomOutputType OutputType;
 	    enum atomEncoderMode EncoderMode;
-	    Bool use_ppll;
+	    Bool UsePpll;
 	} v3;
     } u;
 };

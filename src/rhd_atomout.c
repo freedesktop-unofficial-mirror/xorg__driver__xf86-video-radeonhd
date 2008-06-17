@@ -59,7 +59,7 @@ struct rhdAtomOutputPrivate {
     enum atomOutput ControlId;
 
     Bool   RunDualLink;
-    int    pixelClock;
+    int    PixelClock;
 
     CARD16 PowerDigToDE;
     CARD16 PowerDEToBL;
@@ -100,7 +100,7 @@ rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 }
 
 static inline void
-rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int pixelClock)
+rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
@@ -109,7 +109,7 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int pixelClock)
 
     RHDFUNC(Output);
 
-    EncoderConfig->pixelClock = TransmitterConfig->pixelClock = pixelClock;
+    EncoderConfig->PixelClock = TransmitterConfig->PixelClock = PixelClock;
 
     switch (Output->Id) {
 	case RHD_OUTPUT_NONE:
@@ -152,26 +152,25 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int pixelClock)
 
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
-	    if (Output->Connector->Type == RHD_CONNECTOR_DVI
-		) {
-		Private->RunDualLink = (pixelClock > 165000) ? TRUE : FALSE;
+	    if (Output->Connector->Type == RHD_CONNECTOR_DVI) {
+		Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
 	    }
 	    switch (Private->EncoderVersion.cref) {
 		case 1:
 		    if (Private->RunDualLink)
-			EncoderConfig->u.lvds.dual = TRUE;
+			EncoderConfig->u.lvds.LinkCnt = atomDualLink;
 		    else
-			EncoderConfig->u.lvds.dual = FALSE;
+			EncoderConfig->u.lvds.LinkCnt = atomSingleLink;
 		    break;
 		case 2:
 		    if (Private->RunDualLink)
-			EncoderConfig->u.lvds2.dual = TRUE;
+			EncoderConfig->u.lvds2.LinkCnt = atomDualLink;
 		    else
-			EncoderConfig->u.lvds2.dual = FALSE;
+			EncoderConfig->u.lvds2.LinkCnt = atomSingleLink;
 		    if (Private->Coherent)
-			EncoderConfig->u.lvds2.coherent = TRUE;
+			EncoderConfig->u.lvds2.Coherent = TRUE;
 		    else
-			EncoderConfig->u.lvds2.coherent = FALSE;
+			EncoderConfig->u.lvds2.Coherent = FALSE;
 		    break;
 	    }
 	    break;
@@ -185,54 +184,16 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int pixelClock)
 		|| Output->Connector->Type == RHD_CONNECTOR_HDMI_B
 #endif
 		) {
-		Private->RunDualLink = (pixelClock > 165000) ? TRUE : FALSE;
+		Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
 	    }
 
-	    switch (Output->Connector->Type) {
-		case RHD_CONNECTOR_DVI:
-		     /* fix later on depending on if it's really dual link */
-		    if (Private->RunDualLink) {
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDVI_2Link;
-			TransmitterConfig->link = TransmitterConfig->link = atomTransLinkAB;
-		    } else
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDVI_1Link;
-		    break;
-		case RHD_CONNECTOR_DVI_SINGLE:
-		    TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDVI_1Link;
-		    break;
-		case RHD_CONNECTOR_PANEL:
-		    if (Private->RunDualLink) {
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomLVDS_DUAL;
-			TransmitterConfig->link = TransmitterConfig->link = atomTransLinkAB;
-		    } else
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomLVDS;
-		    break;
-#if 0
-		case RHD_CONNECTOR_DP:
-		    TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDP;
-		    break;
-		case RHD_CONNECTOR_DP_DUAL:
-		    if (Private->RunDualLink) {
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDP_8Lane;
-			TransmitterConfig->link = TransmitterConfig->link = atomTransLinkAB;
-		    } else
-		    TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomDP;
-		    break;
-		case RHD_CONNECTOR_HDMI_A:
-		    EncoderConfig->u.dig.encoderMode = atomHDMI;
-		    break;
-		case RHD_CONNECTOR_HDMI_B:
-		    if (Private->RunDualLink) {
-			TransmitterConfig->mode = EncoderConfig->u.dig.encoderMode = atomHDMI_DUAL;
-			TransmitterConfig->link = TransmitterConfig->link = atomTransLinkAB;
-		    } else
-		    EncoderConfig->u.dig.encoderMode = atomHDMI;
-		    break;
-#endif
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unknown connector type\n");
-		    return;
-	    }
-	    TransmitterConfig->coherent = Private->Coherent;
+	    if (Private->RunDualLink) {
+		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomDualLink;
+		TransmitterConfig->Link = atomTransLinkAB;
+	    } else
+		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomSingleLink;
+	    
+	    TransmitterConfig->Coherent = Private->Coherent;
 	    break;
     }
 }
@@ -251,16 +212,16 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDFUNC(Output);
 
-    Private->pixelClock = Mode->SynthClock;
-    rhdSetEncoderTransmitterConfig(Output, Private->pixelClock);
+    Private->PixelClock = Mode->SynthClock;
+    rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
 
     switch ( Private->CrtcSourceVersion.cref){
 	case 1:
-	    CrtcSourceConfig.u.devId = Output->OutputDriverPrivate->Device;
+	    CrtcSourceConfig.u.Device = Output->OutputDriverPrivate->Device;
 	    break;
 	case 2:
-	    CrtcSourceConfig.u.crtc2.encoder = Private->EncoderId;
-	    CrtcSourceConfig.u.crtc2.mode = EncoderConfig->u.dig.encoderMode;
+	    CrtcSourceConfig.u.crtc2.Encoder = Private->EncoderId;
+	    CrtcSourceConfig.u.crtc2.Mode = EncoderConfig->u.dig.EncoderMode;
 	    break;
 	default:
 	    xf86DrvMsg(Output->scrnIndex, X_ERROR,
@@ -283,7 +244,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
     RHDFUNC(Output);
 
     RHDAtomUpdateBIOSScratchForOutput(Output);
-    rhdSetEncoderTransmitterConfig(Output, Private->pixelClock);
+    rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -537,13 +498,13 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS, Private->EncoderId);
 	    switch (Private->EncoderVersion.cref) {
 		case 1:
-		    EncoderConfig->u.lvds.is24bit = Private->LVDS24Bit;
+		    EncoderConfig->u.lvds.Is24bit = Private->LVDS24Bit;
 		    break;
 		case 2:
-		    EncoderConfig->u.lvds2.is24bit = Private->LVDS24Bit;
-		    EncoderConfig->u.lvds2.spatialDither = Private->SpatialDither;
-		    EncoderConfig->u.lvds2.linkB = 0; /* @@@ */
-		    EncoderConfig->u.lvds2.hdmi = FALSE;
+		    EncoderConfig->u.lvds2.Is24bit = Private->LVDS24Bit;
+		    EncoderConfig->u.lvds2.SpatialDither = Private->SpatialDither;
+		    EncoderConfig->u.lvds2.LinkB = 0; /* @@@ */
+		    EncoderConfig->u.lvds2.Hdmi = FALSE;
 #if 0
 		    if (ConnectorType == RHD_CONNECTOR_HDMI_B
 			|| ConnectorType == RHD_CONNECTOR_HDMI_A)
@@ -551,20 +512,20 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 #endif
 		    switch (Private->GreyLevel) {
 			case 2:
-			    EncoderConfig->u.lvds2.temporalGrey = TEMPORAL_DITHER_2;
+			    EncoderConfig->u.lvds2.TemporalGrey = atomTemporalDither2;
 			    break;
 			case 4:
-			    EncoderConfig->u.lvds2.temporalGrey = TEMPORAL_DITHER_4;
+			    EncoderConfig->u.lvds2.TemporalGrey = atomTemporalDither4;
 			    break;
 			case 0:
 			default:
-			    EncoderConfig->u.lvds2.temporalGrey = TEMPORAL_DITHER_0;
+			    EncoderConfig->u.lvds2.TemporalGrey = atomTemporalDither0;
 		    }
 		    if (Private->SpatialDither)
-			EncoderConfig->u.lvds2.spatialDither = TRUE;
+			EncoderConfig->u.lvds2.SpatialDither = TRUE;
 		    else
-			EncoderConfig->u.lvds2.spatialDither = FALSE;
-		    EncoderConfig->u.lvds2.coherent = Private->Coherent;
+			EncoderConfig->u.lvds2.SpatialDither = FALSE;
+		    EncoderConfig->u.lvds2.Coherent = Private->Coherent;
 		    break;
 		case 3:
 		    /* for these outputs we should not have v3 */
@@ -580,37 +541,40 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS,
 								   Private->EncoderId);
 	    Private->TransmitterId = atomTransmitterLVTMA;
-	    EncoderConfig->u.dig.link = atomTransLinkB;
-	    EncoderConfig->u.dig.transmitter = atomTransmitterLVTMA;
+	    EncoderConfig->u.dig.Link = atomTransLinkB;
+	    EncoderConfig->u.dig.Transmitter = atomTransmitterLVTMA;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->link = atomTransLinkB;
-	    TransmitterConfig->encoder =  Private->TransmitterId;
+	    TransmitterConfig->Link = atomTransLinkB;
+	    TransmitterConfig->Encoder =  Private->TransmitterId;
 
-	    if (ConnectorType == RHD_CONNECTOR_PANEL)
+	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
+		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomLVDS;
 		LVDSInfoRetrieve(rhdPtr, Private);
-	    else
+	    } else {
+		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
 		TMDSInfoRetrieve(rhdPtr, Private);
+	    }
 	    break;
 
 	case RHD_OUTPUT_UNIPHYA:
 	    Private->EncoderId = atomEncoderDIG1;
-	    EncoderConfig->u.dig.link = atomTransLinkA;
-	    EncoderConfig->u.dig.transmitter = atomTransmitterUNIPHY;
+	    EncoderConfig->u.dig.Link = atomTransLinkA;
+	    EncoderConfig->u.dig.Transmitter = atomTransmitterUNIPHY;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
 		Private->TransmitterId = atomTransmitterPCIEPHY;
 	    else
 		Private->TransmitterId = atomTransmitterUNIPHY;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->link = atomTransLinkA;
-	    TransmitterConfig->encoder =  Private->TransmitterId;
+	    TransmitterConfig->Link = atomTransLinkA;
+	    TransmitterConfig->Encoder =  Private->TransmitterId;
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;
 		if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
 				    &data) == ATOM_SUCCESS)
-		    TransmitterConfig->lanes = data.pcieLanes.Chassis;
+		    TransmitterConfig->Lanes = data.pcieLanes.Chassis;
 		/* only do 'chassis' for now */
 		else {
 		    xfree(Private);
@@ -627,11 +591,16 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
+		    break;
 #if 0
 		case RHD_CONNECTOR_DP:
 		case RHD_CONNECTOR_DP_DUAL:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDP;
+		    break;
 		case RHD_CONNECTOR_HDMI_A:
 		case RHD_CONNECTOR_HDMI_B:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomHDMI;
 		    break;
 #endif
 		default:
@@ -643,22 +612,22 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    break;
 	case RHD_OUTPUT_UNIPHYB:
 	    Private->EncoderId = atomEncoderDIG2;
-	    EncoderConfig->u.dig.link = atomTransLinkB;
-	    EncoderConfig->u.dig.transmitter = atomTransmitterUNIPHY;
+	    EncoderConfig->u.dig.Link = atomTransLinkB;
+	    EncoderConfig->u.dig.Transmitter = atomTransmitterUNIPHY;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
 		Private->TransmitterId = atomTransmitterPCIEPHY;
 	    else
 		Private->TransmitterId = atomTransmitterUNIPHY;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->link = atomTransLinkB;
-	    TransmitterConfig->encoder =  Private->TransmitterId;
+	    TransmitterConfig->Link = atomTransLinkB;
+	    TransmitterConfig->Encoder =  Private->TransmitterId;
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;
 		if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
 				    &data) == ATOM_SUCCESS)
-		    TransmitterConfig->lanes = data.pcieLanes.Chassis;
+		    TransmitterConfig->Lanes = data.pcieLanes.Chassis;
 		/* only do 'chassis' for now */
 		else {
 		    xfree(Private);
@@ -670,11 +639,16 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
+		    break;
 #if 0
 		case RHD_CONNECTOR_DP:
 		case RHD_CONNECTOR_DP_DUAL:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDP;
+		    break;
 		case RHD_CONNECTOR_HDMI_A:
 		case RHD_CONNECTOR_HDMI_B:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomHDMI;
 		    break;
 #endif
 		default:
