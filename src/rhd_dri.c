@@ -1405,6 +1405,27 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
+#ifdef USE_EXA
+    if (rhdPtr->accelDFS) {
+	drmRadeonGetParam gp;
+	int gart_base;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = RADEON_PARAM_GART_BASE;
+	gp.value = &gart_base;
+
+	if (drmCommandWriteRead(info->drmFD, DRM_RADEON_GETPARAM, &gp,
+				sizeof(gp)) < 0) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                       "Failed to determine GART area MC location, not using "
+		       "accelerated DownloadFromScreen hook!\n");
+	    rhdPtr->accelDFS = FALSE;
+	} else {
+	    info->gartLocation = gart_base;
+	}
+    }
+#endif /* USE_EXA */
+
     rhdPtr->directRenderingInited = TRUE;
 
     return TRUE;

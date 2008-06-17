@@ -375,7 +375,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	int swap = RADEON_HOST_DATA_SWAP_NONE, wpass = w * bpp / 8;
 	int hpass = min(h, scratch->total/2 / scratch_pitch);
 	uint32_t scratch_pitch_offset = scratch_pitch << 16
-				    | (info->gartLocation + info->dri->bufStart
+				    | (info->dri->gartLocation + info->dri->bufStart
 				       + scratch->idx * scratch->total) >> 10;
 	drmRadeonIndirect indirect;
 	ACCEL_PREAMBLE();

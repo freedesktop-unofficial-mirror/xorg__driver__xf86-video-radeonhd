@@ -266,7 +266,7 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
 #endif
 
     /* Restore SURFACE_CNTL */
-    RHDRegWrite(info, RADEON_SURFACE_CNTL, info->surface_cntl);
+    RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 
     RADEONWaitForFifo(pScrn, 1);
     RHDRegWrite(info, RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX

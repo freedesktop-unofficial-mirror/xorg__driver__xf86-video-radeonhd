@@ -1037,6 +1037,15 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     xf86SetBlackWhitePixels(pScreen);
 
 #ifdef USE_DRI
+    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	rhdPtr->accelDFS = rhdPtr->cardType != RHD_CARD_AGP;
+	/* FIXME: add option to enable/disable */
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		  "%ssing accelerated EXA DownloadFromScreen hook\n",
+		  rhdPtr->accelDFS ? "U" : "Not u");
+    } else
+	rhdPtr->accelDFS = FALSE;
+
     if (rhdPtr->dri)
 	rhdPtr->directRenderingEnabled = RHDDRIFinishScreenInit(pScreen);
 #endif
