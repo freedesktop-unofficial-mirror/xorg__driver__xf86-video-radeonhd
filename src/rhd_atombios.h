@@ -103,18 +103,6 @@ typedef struct AtomFb {
     unsigned int size;
 } AtomFbRec, *AtomFbPtr;
 
-typedef enum AtomTVMode {
-    ATOM_TVMODE_NTSC = 1 << 0,
-    ATOM_TVMODE_NTSCJ = 1 << 1,
-    ATOM_TVMODE_PAL = 1 << 2,
-    ATOM_TVMODE_PALM = 1 << 3,
-    ATOM_TVMODE_PALCN = 1 << 4,
-    ATOM_TVMODE_PALN = 1 << 5,
-    ATOM_TVMODE_PAL60 = 1 << 6,
-    ATOM_TVMODE_SECAM = 1 << 7,
-    ATOM_TVMODE_CV = 1 << 8
-} AtomTVMode;
-
 enum atomPCIELanes {
     atomPCIELaneNONE,
     atomPCIELane0_3,
@@ -174,7 +162,7 @@ typedef union AtomBiosArg
     DisplayModePtr		mode;
     AtomExecRec			exec;
     AtomFbRec			fb;
-    enum AtomTVMode		tvMode;
+    enum RHD_TV_MODE		tvMode;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 enum atomCrtc {
@@ -300,14 +288,14 @@ enum atomDVODeviceType {
 };
 
 enum atomDVORate {
-    ATOM_DVO_RATE_SDR,
-    ATOM_DVO_RATE_DDR
+    atomDVO_RateSDR,
+    atomDVO_RateDDR
 };
 
 enum atomDVOOutput {
-    ATOM_DVO_OUTPUT_LOW12BIT,
-    ATOM_DVO_OUTPUT_HIGH12BIT,
-    ATOM_DVO_OUTPUT_24BIT
+    atomDVO_OutputLow12Bit,
+    atomDVO_OutputHigh12Bit,
+    atomDVO_Output24Bit
 };
 
 enum atomScaler {
@@ -355,10 +343,10 @@ struct atomEncoderConfig
     int PixelClock;
     union {
 	struct {
-	    enum atomDACStandard Standard;
+	    enum atomDACStandard DacStandard;
 	} dac;
 	struct {
-	    enum AtomTVMode Standard;
+	    enum RHD_TV_MODE TvStandard;
 	} tv;
 	struct {
 	    enum atomOutputLinks LinkCnt;
@@ -382,6 +370,12 @@ struct atomEncoderConfig
 	struct {
 	    enum atomDVODeviceType DvoDeviceType;
 	    int EncoderID;
+	    Bool digital;
+	    union
+	    {
+		enum RHD_TV_MODE TVMode;
+		char dummy; /* @@@ placeholder for digital attributes */
+	    } u;
 	} dvo;
 	struct{
 	    enum atomDVORate Rate;

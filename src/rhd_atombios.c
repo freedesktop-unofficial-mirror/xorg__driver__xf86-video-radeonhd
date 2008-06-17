@@ -828,6 +828,8 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     }
 
     Transmitter.ucConfig = 0;
+
+    /* INIT is only called by ASIC_Init, for our actions this is always the PXLCLK */
     switch (config->LinkCnt) {
 	case atomSingleLink:
 	    Transmitter.usPixelClock = config->PixelClock / 10;
@@ -900,7 +902,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	    name = "UNIPHYTransmitterControl";
 
 	    if (id == atomTransmitterPCIEPHY)
-		return FALSE; /* for now */
+		return FALSE; /* for now @@@ */
 
 	    break;
 
@@ -944,6 +946,7 @@ Bool
 rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput OutputId, enum atomOutputAction Action)
 {
     AtomBiosArgRec data;
+    CARD8 version;
     char *name;
 
     union
@@ -970,7 +973,15 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput OutputId, enum at
 	case atomDVOOutput:
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
 	    name = "DVOOutputControl";
-	    break;
+	    if (!rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+		return FALSE;
+	    switch  (version) {
+		case 1:
+		case 2:
+		    break;
+		case 3:      /* For now. This needs to be treated like DIGTransmitterControl. @@@ */
+		    return FALSE;
+	    }
 	case atomLCDOutput:
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND,  LCD1OutputControl);
 	    name = "LCD1OutputControl";
@@ -1252,7 +1263,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	    }
 	    {
 		DAC_ENCODER_CONTROL_PARAMETERS *dac = &ps.dac;
-		switch (Config->u.dac.Standard) {
+		switch (Config->u.dac.DacStandard) {
 		    case atomDAC_VGA:
 			dac->ucDacStandard = ATOM_DAC1_PS2;
 			break;
@@ -1284,34 +1295,36 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	    name = "TVAEncoderControl";
 	    {
 		TV_ENCODER_CONTROL_PARAMETERS *tv = &ps.tv;
-		switch (Config->u.tv.Standard) {
-		    case ATOM_TVMODE_NTSC:
+		switch (Config->u.tv.TvStandard) {
+		    case RHD_TV_NTSC:
 			tv->ucTvStandard = ATOM_TV_NTSC;
 			break;
-		    case ATOM_TVMODE_NTSCJ:
+		    case RHD_TV_NTSCJ:
 			tv->ucTvStandard = ATOM_TV_NTSCJ;
 			break;
-		    case ATOM_TVMODE_PAL:
+		    case RHD_TV_PAL:
 			tv->ucTvStandard = ATOM_TV_PAL;
 			break;
-		    case ATOM_TVMODE_PALM:
+		    case RHD_TV_PALM:
 			tv->ucTvStandard = ATOM_TV_PALM;
 			break;
-		    case ATOM_TVMODE_PALCN:
+		    case RHD_TV_PALCN:
 			tv->ucTvStandard = ATOM_TV_PALCN;
 			break;
-		    case ATOM_TVMODE_PALN:
+		    case RHD_TV_PALN:
 			tv->ucTvStandard = ATOM_TV_PALN;
 			break;
-		    case ATOM_TVMODE_PAL60:
+		    case RHD_TV_PAL60:
 			tv->ucTvStandard = ATOM_TV_PAL60;
 			break;
-		    case ATOM_TVMODE_SECAM:
+		    case RHD_TV_SECAM:
 			tv->ucTvStandard = ATOM_TV_SECAM;
 			break;
-		    case ATOM_TVMODE_CV:
+		    case RHD_TV_CV:
 			tv->ucTvStandard = ATOM_TV_CV;
 			break;
+		    case RHD_TV_NONE:
+			return FALSE;
 		}
 		switch (Action) {
 		    case atomEncoderOn:
@@ -1524,6 +1537,41 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			    dvo->ucDeviceType = ATOM_DEVICE_CV_INDEX;
 			    break;
 		    }
+		    if (Config->u.dvo.digital) {
+			dvo->usDevAttr.sDigAttrib.ucAttribute = 0; /* @@@ What do these attributes mean? */
+		    } else {
+			switch (Config->u.dvo.u.TVMode) {
+			    case RHD_TV_NTSC:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_NTSC;
+				break;
+			    case RHD_TV_NTSCJ:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_NTSCJ;
+				break;
+			    case RHD_TV_PAL:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_PAL;
+				break;
+			    case RHD_TV_PALM:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_PALM;
+				break;
+			    case RHD_TV_PALCN:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_PALCN;
+				break;
+			    case RHD_TV_PALN:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_PALN;
+				break;
+			    case RHD_TV_PAL60:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_PAL60;
+				break;
+			    case RHD_TV_SECAM:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_SECAM;
+				break;
+			    case RHD_TV_CV:
+				dvo->usDevAttr.sAlgAttrib.ucTVStandard = ATOM_TV_CV;
+				break;
+			    case RHD_TV_NONE:
+				return FALSE;
+			}
+		    }
 		    switch (Action) {
 			case atomEncoderOn:
 			    dvo->ucAction = ATOM_ENABLE;
@@ -1541,18 +1589,18 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		{
 		    DVO_ENCODER_CONTROL_PARAMETERS_V3 *dvo = &ps.dvo_v3;
 		    dvo->ucDVOConfig = 0;
-		    if (Config->u.dvo3.Rate == ATOM_DVO_RATE_SDR)
+		    if (Config->u.dvo3.Rate == atomDVO_RateSDR)
 			dvo->ucDVOConfig |= DVO_ENCODER_CONFIG_SDR_SPEED;
 		    else
 			dvo->ucDVOConfig |= DVO_ENCODER_CONFIG_DDR_SPEED;
 		    switch (Config->u.dvo3.DvoOutput) {
-			case ATOM_DVO_OUTPUT_LOW12BIT:
+			case atomDVO_OutputLow12Bit:
 			    dvo->ucDVOConfig = DVO_ENCODER_CONFIG_LOW12BIT;
 			    break;
-			case ATOM_DVO_OUTPUT_HIGH12BIT:
+			case atomDVO_OutputHigh12Bit:
 			    dvo->ucDVOConfig = DVO_ENCODER_CONFIG_UPPER12BIT;
 			    break;
-			case ATOM_DVO_OUTPUT_24BIT:
+			case atomDVO_Output24Bit:
 			    dvo->ucDVOConfig = DVO_ENCODER_CONFIG_24BIT;
 			    break;
 		    }
@@ -1914,7 +1962,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 	    ps.pclk.usFbDiv = Config->FbDiv;
 	    ps.pclk.ucPostDiv = Config->PostDiv;
 	    ps.pclk.ucFracFbDiv = Config->FracFbDiv;
-	    ps.pclk.ucRefDivSrc = 0; /* @@@ */
+	    ps.pclk.ucRefDivSrc = 0; /* What's this? @@@ */
 	    switch (PCLKId) {
 		case atomPclk1:
 		    ps.pclk.ucPpll = ATOM_PPLL1;
@@ -1950,7 +1998,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    ps.pclk_v2.ucPpll = ATOM_PPLL2;
 		    break;
 	    }
-	    ps.pclk_v2.ucRefDivSrc = 0; /* @@@ */
+	    ps.pclk_v2.ucRefDivSrc = 0; /* See above... @@@ */
 	    switch (Config->Crtc) {
 		case atomCrtc1:
 		    ps.pclk_v2.ucCRTC = ATOM_CRTC1;

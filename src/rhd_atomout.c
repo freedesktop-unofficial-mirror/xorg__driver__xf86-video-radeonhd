@@ -56,7 +56,7 @@ struct rhdAtomOutputPrivate {
     struct atomTransmitterConfig TransmitterConfig;
     enum atomTransmitter TransmitterId;
 
-    enum atomOutput ControlId;
+    enum atomOutput OutputControlId;
 
     Bool   RunDualLink;
     int    PixelClock;
@@ -118,23 +118,36 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
     switch (Output->Id) {
 	case RHD_OUTPUT_NONE:
 	case RHD_OUTPUT_DVO:
-	    xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unhandled output\n", __func__);
-	    break; /* we don't handle these yet */
+	    EncoderConfig->u.dvo.DvoDeviceType = Output->OutputDriverPrivate->Device;
+	    switch (EncoderConfig->u.dvo.DvoDeviceType) {
+		case atomDvoLCD:
+		case atomDvoDFP:
+		    EncoderConfig->u.dvo.digital = TRUE;
+		    /* @@@ no digital attributes, yet */
+		    break;
+		case atomDvoTV:
+		case atomDvoCV:
+		    EncoderConfig->u.dvo.u.TVMode = rhdPtr->tvMode;
+		case atomDvoCRT:
+		    EncoderConfig->u.dvo.digital = FALSE;
+		    break;
+	    }
+	    break;
 	case RHD_OUTPUT_DACA:
 	case RHD_OUTPUT_DACB:
 	    switch (Output->SensedType) {
 		case RHD_SENSED_VGA:
-		    EncoderConfig->u.dac.Standard = atomDAC_VGA;
+		    EncoderConfig->u.dac.DacStandard = atomDAC_VGA;
 		    break;
 		case RHD_SENSED_TV_COMPONENT:
-		    EncoderConfig->u.dac.Standard = atomDAC_CV;
+		    EncoderConfig->u.dac.DacStandard = atomDAC_CV;
 		    break;
 		case RHD_SENSED_TV_SVIDEO:
 		case RHD_SENSED_TV_COMPOSITE:
 		    switch (rhdPtr->tvMode) {
 			case RHD_TV_NTSC:
 			case RHD_TV_NTSCJ:
-			    EncoderConfig->u.dac.Standard = atomDAC_NTSC;
+			    EncoderConfig->u.dac.DacStandard = atomDAC_NTSC;
 			    /* NTSC */
 			    break;
 			case RHD_TV_PAL:
@@ -142,17 +155,17 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 			case RHD_TV_PALCN:
 			case RHD_TV_PAL60:
 			default:
-			    EncoderConfig->u.dac.Standard = atomDAC_PAL;
+			    EncoderConfig->u.dac.DacStandard = atomDAC_PAL;
 			    /* PAL */
 			    break;
 		    }
 		    break;
 		case RHD_SENSED_NONE:
-		    EncoderConfig->u.dac.Standard = atomDAC_VGA;
+		    EncoderConfig->u.dac.DacStandard = atomDAC_VGA;
 		    break;
 		default:
 		    xf86DrvMsg(Output->scrnIndex, X_ERROR, "Sensed incompatible output for DAC\n");
-		    EncoderConfig->u.dac.Standard = atomDAC_VGA;
+		    EncoderConfig->u.dac.DacStandard = atomDAC_VGA;
 		    break;
 	    }
 	    break;
@@ -281,7 +294,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnableOutput)");
 		    break;
 		default:
-		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputEnable))
+		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputEnable))
 			ERROR_MSG("rhdAtomOutputControl(atomOutputEnable)");
 		    break;
 	    }
@@ -297,7 +310,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisableOutput)");
 		    break;
 		default:
-		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable))
+		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputDisable))
 			ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
 		    break;
 	    }
@@ -318,7 +331,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisable)");
 		    break;
 		default:
-			if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable))
+			if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputDisable))
 			    ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
 			break;
 	    }
@@ -534,12 +547,12 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	case RHD_OUTPUT_DACA:
 	    Output->Sense = rhdAtomDACSense;
 	    Private->EncoderId = atomEncoderDACA;
-	    Private->ControlId = atomDAC1Output;
+	    Private->OutputControlId = atomDAC1Output;
 	    break;
 	case RHD_OUTPUT_DACB:
 	    Output->Sense = rhdAtomDACSense;
 	    Private->EncoderId = atomEncoderDACB;
-	    Private->ControlId = atomDAC2Output;
+	    Private->OutputControlId = atomDAC2Output;
 	    break;
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
@@ -559,9 +572,9 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    Private->DualLink = FALSE;
 
 	    if (OutputType == RHD_OUTPUT_LVTMA)
-		Private->ControlId = atomLVTMAOutput;
+		Private->OutputControlId = atomLVTMAOutput;
 	    else
-		Private->ControlId = atomTMDSAOutput;
+		Private->OutputControlId = atomTMDSAOutput;
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS, Private->EncoderId);
 	    switch (Private->EncoderVersion.cref) {
 		case 1:
@@ -598,6 +611,37 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    }
 	    break;
 	case RHD_OUTPUT_DVO:
+	    Private->EncoderId = atomEncoderDVO;
+	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS,
+								   Private->EncoderId);
+	    switch (Private->EncoderVersion.cref) {
+		case 1:
+		case 2:
+		    /* Output->OutputDriverPrivate->Device not set yet. */
+		    break;
+		case 3:  /* @@@ still to be handled */
+		    xfree(Output);
+		    xfree(Private);
+		    return NULL;
+	    }
+	    {
+		struct atomCodeTableVersion version = rhdAtomOutputControlVersion(rhdPtr->atomBIOS, atomDVOOutput);
+		switch (version.cref) {
+		    case 1:
+		    case 2:
+			Private->OutputControlId = atomDVOOutput;
+			break;
+		    case 3:
+#if 0
+			Private->TransmitterId = atomTransmitterDVO;    /* @@@ check how to handle this one */
+			break;
+#else
+			xfree(Output);
+			xfree(Private);
+			return NULL;
+#endif
+		}
+	    }
 	    break;
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Private->EncoderId = atomEncoderDIG2;
