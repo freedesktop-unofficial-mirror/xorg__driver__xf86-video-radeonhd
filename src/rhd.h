@@ -327,6 +327,7 @@ struct rhdDri {
     CARD32            pciGartOffset;
     void             *pciGartBackup;
 
+    uint32_t         gartLocation;
 };
 #endif
 
@@ -398,6 +399,8 @@ typedef struct rhdAccel {
     int               num_gb_pipes;
     unsigned short    texW[2];
     unsigned short    texH[2];
+
+    uint32_t         surface_cntl;
 
 };
 
@@ -596,8 +599,6 @@ typedef struct RHDRec {
     /* X itself has the 3D context */
     Bool             XInited3D;
     Bool             has_tcl;
-    uint32_t         surface_cntl;
-    uint32_t         gartLocation;
 
     /* Xv */
     XF86VideoAdaptorPtr adaptor;
