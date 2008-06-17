@@ -403,16 +403,14 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
     info->exa->memorySize = info->FbMapSize - info->FbScanoutStart;
     info->exa->offScreenBase = screen_size + info->FbScanoutStart;
 
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Allocating from a screen of %ld kb\n",
-	       info->exa->memorySize / 1024);
-
 #if defined(USE_DRI)
     if (info->directRenderingEnabled) {
-	info->exa->memorySize -= info->dri->pciGartSize;
-	info->exa->offScreenBase = info->dri->textureOffset + info->dri->textureSize;
-	ErrorF("DRI enabled, setting offscreen start: 0x%x\n", info->exa->offScreenBase);
+	info->exa->memorySize = 3 * screen_size;
     }
 #endif
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Allocating from a screen of %ld kb\n",
+	       info->exa->memorySize / 1024);
 
     ErrorF("EXA memory base = 0x%x\n", info->exa->memoryBase);
     ErrorF("EXA memory size = 0x%x\n", info->exa->memorySize);

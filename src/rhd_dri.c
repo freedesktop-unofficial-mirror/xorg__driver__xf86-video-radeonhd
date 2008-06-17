@@ -1182,9 +1182,10 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
     info->frontPitch  = pScrn->displayWidth;
     info->frontOffset = rhdPtr->FbScanoutStart;
 
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	/* reserve some space for XAA offscreen */
-	RHDAllocFb(rhdPtr, size * 2, "XAA offscreen Buffer");
+    if ((rhdPtr->AccelMethod == RHD_ACCEL_XAA) ||
+	(rhdPtr->AccelMethod == RHD_ACCEL_EXA)) {
+	/* reserve some space for 2D offscreen */
+	RHDAllocFb(rhdPtr, size * 2, "XAA/EXA offscreen Buffer");
 	ErrorF("reserved 0x%x for XAA offscreen\n", size * 2);
     }
 
