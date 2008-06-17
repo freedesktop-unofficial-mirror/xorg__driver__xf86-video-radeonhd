@@ -537,7 +537,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	}
 	switch (Type) {
 	    case RHD_CRTC_SCALE_TYPE_NONE:
-		mode = atomScaleNone;
+		mode = atomScaleDisable;
 		break;
 	    case RHD_CRTC_SCALE_TYPE_CENTER:
 		mode = atomScaleCenter;

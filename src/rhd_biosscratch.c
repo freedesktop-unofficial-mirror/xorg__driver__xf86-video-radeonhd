@@ -72,16 +72,23 @@ typedef unsigned short USHORT;
 
 # include "atombios.h"
 
+/*
+ *
+ */
 enum rhdSensedOutput
 rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 BIOS_0;
 
+    RHDFUNC(Output);
+
     if (rhdPtr->ChipSet < RHD_R600)
 	BIOS_0 = RHDRegRead(Output, 0x10);
     else
 	BIOS_0 = RHDRegRead(Output, 0x1724);
+
+    RHDDebug(Output->scrnIndex, "BIOSScratch_0: 0x%4.4x\n",BIOS_0);
 
     switch (DAC) {
 	case atomDACA:
@@ -92,23 +99,36 @@ rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC)
 	case atomDACExt:
 	    return RHD_SENSED_NONE;
     }
-    if (BIOS_0 & ATOM_S0_CRT1_MASK)
+
+    if (BIOS_0 & ATOM_S0_CRT1_MASK) {
+	RHDDebug(Output->scrnIndex, "%s sensed RHD_SENSED_VGA\n",__func__);
 	return RHD_SENSED_VGA;
-    else if (BIOS_0 & ATOM_S0_TV1_COMPOSITE_A)
+    } else if (BIOS_0 & ATOM_S0_TV1_COMPOSITE_A) {
+	RHDDebug(Output->scrnIndex, "%s: RHD_SENSED_TV_COMPOSITE\n",__func__);
 	return RHD_SENSED_TV_COMPOSITE;
-    else if (BIOS_0 & ATOM_S0_TV1_SVIDEO_A)
+    } else if (BIOS_0 & ATOM_S0_TV1_SVIDEO_A) {
+	RHDDebug(Output->scrnIndex, "%s: RHD_SENSED_TV_SVIDE\n",__func__);
 	return RHD_SENSED_TV_SVIDEO;
-    else if (BIOS_0 & ATOM_S0_CV_MASK_A)
+    } else if (BIOS_0 & ATOM_S0_CV_MASK_A) {
+	RHDDebug(Output->scrnIndex, "%s: RHD_SENSED_TV_COMPONENT\n",__func__);
 	return RHD_SENSED_TV_COMPONENT;
-    else return RHD_SENSED_NONE;
+    }    else {
+	RHDDebug(Output->scrnIndex, "%s: RHD_SENSED_NONE\n",__func__);
+	return RHD_SENSED_NONE;
+    }
 }
 
+/*
+ *
+ */
 void
 rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool attached)
 {
     CARD32 BIOS_0;
     CARD32 Addr;
     CARD32 Mask;
+
+    RHDFUNC(rhdPtr);
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x10;
@@ -147,12 +167,17 @@ rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool a
     RHDRegWrite(rhdPtr, Addr, BIOS_0);
 }
 
+/*
+ *
+ */
 void
 rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
 {
     CARD32 BIOS_3;
     CARD32 Addr;
     CARD32 Mask = 0;
+
+    RHDFUNC(rhdPtr);
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x1C;
@@ -203,12 +228,17 @@ rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
     RHDRegWrite(rhdPtr, Addr, BIOS_3);
 }
 
+/*
+ *
+ */
 void
 rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc Crtc)
 {
     CARD32 BIOS_3;
     CARD32 Addr;
     CARD32 Mask = 0;
+
+    RHDFUNC(rhdPtr);
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x1C;
@@ -267,6 +297,8 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
 
+    RHDFUNC(Output);
+
     if (!Output->OutputDriverPrivate)
 	return;
 
@@ -279,7 +311,7 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 					  Output->Connector != NULL);
 }
 
-#endif 
+#endif
 
 #if 0
 enum atomScratchInfo {

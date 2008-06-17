@@ -83,18 +83,22 @@ rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
     RHDPtr rhdPtr = RHDPTRI(Output);
     enum atomDAC DAC;
 
+    RHDFUNC(Output);
+
     switch (Output->Id) {
 	case RHD_OUTPUT_DACA:
+	    RHDDebug(Output->scrnIndex, "Sensing DACA on Output %s\n",Output->Name);
 	    DAC = atomDACA;
 	    break;
 	case RHD_OUTPUT_DACB:
+	    RHDDebug(Output->scrnIndex, "Sensing DACB on Output %s\n",Output->Name);
 	    DAC = atomDACB;
 	    break;
 	default:
 	    return FALSE;
     }
 
-    if (! AtomDACLoadDetection(rhdPtr->atomBIOS, Output->OutputDriverPrivate->Device, DAC))
+    if (!AtomDACLoadDetection(rhdPtr->atomBIOS, Output->OutputDriverPrivate->Device, DAC))
 	return RHD_SENSED_NONE;
     return rhdAtomBIOSScratchDACSenseResults(Output, DAC);
 }
@@ -143,6 +147,9 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 			    break;
 		    }
 		    break;
+		case RHD_SENSED_NONE:
+		    EncoderConfig->u.dac.Standard = atomDAC_VGA;
+		    break;
 		default:
 		    xf86DrvMsg(Output->scrnIndex, X_ERROR, "Sensed incompatible output for DAC\n");
 		    EncoderConfig->u.dac.Standard = atomDAC_VGA;
@@ -152,9 +159,13 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
-	    if (Output->Connector->Type == RHD_CONNECTOR_DVI) {
-		Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
-	    }
+	    if (Output->Connector && PixelClock > 0) {
+		if (Output->Connector->Type == RHD_CONNECTOR_DVI)
+		    Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
+	    } else
+		/* only get here for power down: thus power down both channels to be save */
+		Private->RunDualLink = TRUE;
+
 	    switch (Private->EncoderVersion.cref) {
 		case 1:
 		    if (Private->RunDualLink)
@@ -178,22 +189,25 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
-	    if (Output->Connector->Type == RHD_CONNECTOR_DVI
+	    if (Output->Connector && PixelClock > 0) {
+		if (Output->Connector->Type == RHD_CONNECTOR_DVI
 #if 0
-		|| Output->Connector->Type == RHD_CONNECTOR_DP_DUAL
-		|| Output->Connector->Type == RHD_CONNECTOR_HDMI_B
+		    || Output->Connector->Type == RHD_CONNECTOR_DP_DUAL
+		    || Output->Connector->Type == RHD_CONNECTOR_HDMI_B
 #endif
-		) {
-		Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
-	    }
+		    )
+		    Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
+	    } else
+		/* only get here for power down: thus power down both channels to be save */
+		Private->RunDualLink = TRUE;
 
 	    if (Private->RunDualLink) {
 		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomDualLink;
 		TransmitterConfig->Link = atomTransLinkAB;
 	    } else
 		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomSingleLink;
-	    
-	    TransmitterConfig->Coherent = Private->Coherent;
+
+ 	    TransmitterConfig->Coherent = Private->Coherent;
 	    break;
     }
 }
@@ -236,6 +250,9 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  *
  */
+#define ERROR_MSG(x) 	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: %s failed.\n", __func__, x)
+
+
 static inline void
 rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 {
@@ -249,48 +266,65 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 
     switch (Power) {
 	case RHD_POWER_ON:
+	    RHDDebug(Output->scrnIndex, "RHD_POWER_ON\n");
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
-		    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS,  Private->TransmitterId,
-					      atomTransEnable, &Private->TransmitterConfig);
-		    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS,  Private->TransmitterId,
-					      atomTransEnableOutput, &Private->TransmitterConfig);
+		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+						      atomTransEnable, &Private->TransmitterConfig)) {
+			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnable)");
+			return;
+		    }
+		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+						      atomTransEnableOutput, &Private->TransmitterConfig))
+			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnableOutput)");
 		    break;
 		default:
-		    rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputEnable);
+		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputEnable))
+			ERROR_MSG("rhdAtomOutputControl(atomOutputEnable)");
 		    break;
 	    }
 	    break;
 	case RHD_POWER_RESET:
+	    RHDDebug(Output->scrnIndex, "RHD_POWER_RESET\n");
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
-		    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS,  Private->TransmitterId,
-					      atomTransDisableOutput, &Private->TransmitterConfig);
+		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+						      atomTransDisableOutput, &Private->TransmitterConfig))
+			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisableOutput)");
 		    break;
 		default:
-		    rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable);
+		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable))
+			ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
 		    break;
 	    }
 	    break;
 	case RHD_POWER_SHUTDOWN:
+	    RHDDebug(Output->scrnIndex, "RHD_POWER_SHUTDOWN\n");
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
-		    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS,  Private->TransmitterId,
-					      atomTransDisableOutput, &Private->TransmitterConfig);
-		    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS,  Private->TransmitterId,
-					      atomTransDisable, &Private->TransmitterConfig);
+		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+						      atomTransDisableOutput, &Private->TransmitterConfig)) {
+			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisableOutput)");
+			return;
+		    }
+		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+						      atomTransDisable, &Private->TransmitterConfig))
+			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisable)");
 		    break;
 		default:
-		    rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable);
-		    break;
+			if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->ControlId, atomOutputDisable))
+			    ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
+			break;
 	    }
-	    rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOff, &Private->EncoderConfig);
+
+	    if (!rhdAtomEncoderControl(rhdPtr->atomBIOS, Private->EncoderId, atomEncoderOff, &Private->EncoderConfig))
+		ERROR_MSG("rhdAtomEncoderControl(atomEncoderOff)");
 	    break;
     }
 }
@@ -357,6 +391,7 @@ rhdAtomOutputDestroy(struct rhdOutput *Output)
 	return;
 
     xfree(Output->Private);
+    xfree(Output->Name);
     Output->Private = NULL;
 }
 
@@ -447,20 +482,49 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     struct rhdAtomOutputPrivate *Private;
     struct atomEncoderConfig *EncoderConfig;
     struct atomTransmitterConfig *TransmitterConfig;
+    char *OutputName;
 
     RHDFUNC(rhdPtr);
+
+    switch (OutputType) {
+	case  RHD_OUTPUT_DACA:
+	    OutputName = "DACA";
+	    break;
+	case RHD_OUTPUT_DACB:
+	    OutputName = "DACB";
+	    break;
+	case RHD_OUTPUT_TMDSA:
+	    OutputName = "TMDSA";
+	    break;
+	case RHD_OUTPUT_LVTMA:
+	    OutputName = "LVTMA";
+	    break;
+	case RHD_OUTPUT_DVO:
+	    OutputName = "DVO";
+	    break;
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	    OutputName = "KldskpLvtma";
+	    break;
+	case RHD_OUTPUT_UNIPHYA:
+	    OutputName = "UniphyA";
+	    break;
+	case RHD_OUTPUT_UNIPHYB:
+	    OutputName = "UniphyB";
+	    break;
+    }
 
     Output = xnfcalloc(sizeof(struct rhdOutput), 1);
     Output->scrnIndex = rhdPtr->scrnIndex;
 
-    ErrorF("FOOBAR\n");
-    
-    Output->Name = "AtomOutput";
+    Output->Name = RhdAppendString(NULL, "AtomOutput");
+    Output->Name = RhdAppendString(Output->Name, OutputName);
+
     Output->Id = OutputType;
     Output->Sense = NULL;
     Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
     Output->Private = Private;
     EncoderConfig = &Private->EncoderConfig;
+    Private->PixelClock = 0;
 
     switch (OutputType) {
         case RHD_OUTPUT_NONE:
@@ -479,19 +543,20 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    break;
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
-	    if (OutputType == RHD_OUTPUT_LVTMA &&
-		ConnectorType == RHD_CONNECTOR_PANEL) {
-		LVDSInfoRetrieve(rhdPtr, Private);
-		Private->RunDualLink = Private->DualLink;
-		Private->EncoderId = atomEncoderLVDS;
-	    } else {
-		Private->EncoderId = atomEncoderTMDS1;
+	    if (OutputType == RHD_OUTPUT_LVTMA) {
+		if (ConnectorType == RHD_CONNECTOR_PANEL) {
+		    LVDSInfoRetrieve(rhdPtr, Private);
+		    Private->RunDualLink = Private->DualLink;
+		    Private->EncoderId = atomEncoderLVDS;
+		} else
+		    Private->EncoderId = atomEncoderTMDS2;
+	    } else
+		    Private->EncoderId = atomEncoderTMDS1;
+
 		if (OutputType == RHD_CONNECTOR_DVI)
 		    Private->DualLink = TRUE;
 		else
 		    Private->DualLink = FALSE;
-
-	    }
 
 	    if (OutputType == RHD_OUTPUT_LVTMA)
 		Private->ControlId = atomLVTMAOutput;
@@ -503,6 +568,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    EncoderConfig->u.lvds.Is24bit = Private->LVDS24Bit;
 		    break;
 		case 2:
+		case 3:
 		    EncoderConfig->u.lvds2.Is24bit = Private->LVDS24Bit;
 		    EncoderConfig->u.lvds2.SpatialDither = Private->SpatialDither;
 		    EncoderConfig->u.lvds2.LinkB = 0; /* @@@ */
@@ -529,11 +595,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 			EncoderConfig->u.lvds2.SpatialDither = FALSE;
 		    EncoderConfig->u.lvds2.Coherent = Private->Coherent;
 		    break;
-		case 3:
-		    /* for these outputs we should not have v3 */
-		    xfree(Output);
-		    xfree(Private);
-		    return NULL;
 	    }
 	    break;
 	case RHD_OUTPUT_DVO:
@@ -570,7 +631,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkA;
-	    TransmitterConfig->Encoder =  Private->TransmitterId;
+	    TransmitterConfig->Encoder =  Private->EncoderId;
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;
@@ -623,7 +684,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkB;
-	    TransmitterConfig->Encoder =  Private->TransmitterId;
+	    TransmitterConfig->Encoder =  Private->EncoderId;
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;

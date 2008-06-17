@@ -1792,11 +1792,24 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
     /* First, try to sense */
     for (i = 0; i < 2; i++) {
 	Output = Connector->Output[i];
-	if (Output && Output->Sense
-	    && (Output->SensedType = Output->Sense(Output, Connector->Type))) {
-	    RHDOutputPrintSensedType(Output);
-	    Output->Connector = Connector;
-	    break;
+	if (Output && Output->Sense) {
+	    /*
+	     * This is ugly and needs to change when the TV support patches are in.
+	     * The problem here is that the Output struct can be used for two connectors
+	     * and thus two different devices
+	     */
+	    if (!Output->OutputDriverPrivate) {
+		/* Do this before sensing as AtomBIOS sense needs this info */
+		rhdAtomFindOutputPrivate(Connector, Output);
+		if ((Output->SensedType = Output->Sense(Output, Connector->Type)) != RHD_SENSED_NONE) {
+		    RHDOutputPrintSensedType(Output);
+		    Output->Connector = Connector;
+		    break;
+		} else {
+		    xfree(Output->OutputDriverPrivate);
+		    Output->OutputDriverPrivate = NULL;
+		}
+	    }
 	}
     }
 
@@ -1806,6 +1819,7 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	    Output = Connector->Output[i];
 	    if (Output && !Output->Sense) {
 		Output->Connector = Connector;
+		rhdAtomFindOutputPrivate(Connector, Output);
 		break;
 	    }
 	}

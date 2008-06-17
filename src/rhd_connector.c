@@ -366,8 +366,11 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			       ConnectorInfo[i].Output[k]);
 		    break;
 		}
+#else
+		Output = RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Type, ConnectorInfo[i].Output[k]);
+		if (Output)
+		    RHDOutputAdd(rhdPtr, Output);
 #endif
-		RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Output[k], ConnectorInfo[i].Type);
 	    }
 
 	    if (Output) {
@@ -379,23 +382,23 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			Connector->Output[l] = Output;
 			break;
 		    }
+	    }
+	}
+
 #ifdef ATOM_BIOS
 		{
 		    AtomBiosArgRec data;
 		    AtomBiosResult result;
 
-		    data.AtomOutputPrivate.ConnectorInfo = &ConnectorInfo[i];
-		    data.AtomOutputPrivate.Output = Output;
+		    data.AtomConnectorPrivate.ConnectorInfo = &ConnectorInfo[i];
+		    data.AtomConnectorPrivate.Connector = Connector;
 		    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				 ATOM_GET_ATOM_OUTPUT_PRIVATE, &data);
+				 ATOM_GET_ATOM_CONNECTOR_PRIVATE, &data);
 		    if (result != ATOM_SUCCESS)
 			xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-				   "No AtomBIOS output information found.\n");
+				   "No AtomBIOS Connector information found.\n");
 		}
 #endif
-	    }
-	}
-
 	rhdPtr->Connector[j] = Connector;
 	j++;
     }
@@ -407,8 +410,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	for (i = 0; i < RHD_CONNECTORS_MAX; i++)
 	    if (ConnectorInfo[i].Type != RHD_CONNECTOR_NONE)
 		xfree(ConnectorInfo[i].Name);
-	if (ConnectorInfo->Private)
-	    xfree(ConnectorInfo->Private);
+	/* Don't free the Privates as they are hooked into the rhdConnector structures !!! */
 	xfree(ConnectorInfo);
     }
 
