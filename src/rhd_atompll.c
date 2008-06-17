@@ -91,16 +91,16 @@ rhdAtomPLLPower(struct rhdPLL *PLL, int Power)
     switch (Power) {
 	case RHD_POWER_ON:
 	    if (config->PixelClock > 0)
-		config->enable = TRUE;
+		config->Enable = TRUE;
 	    else {
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 			   "%s: cannot enable pixel clock without frequency set\n",__func__);
-		config->enable = FALSE;
+		config->Enable = FALSE;
 	    }
 	    break;
 	case RHD_POWER_RESET:
 	case RHD_POWER_SHUTDOWN:
-	    config->enable = FALSE;
+	    config->Enable = FALSE;
 	default:
 	    break;
     }
@@ -121,10 +121,10 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
     RHDFUNC(PLL);
 
     Private->Config.PixelClock = PixelClock / 10;
-    Private->Config.refDiv = ReferenceDivider;
-    Private->Config.fbDiv = FeedbackDivider;
-    Private->Config.postDiv = PostDivider;
-    Private->Config.fracFbDiv = 0;
+    Private->Config.RefDiv = ReferenceDivider;
+    Private->Config.FbDiv = FeedbackDivider;
+    Private->Config.PostDiv = PostDivider;
+    Private->Config.FracFbDiv = 0;
     if (rhdPtr->Crtc[0]->PLL == PLL) {
 	Private->Config.Crtc = atomCrtc1;
 	Crtc = rhdPtr->Crtc[0];
@@ -143,14 +143,14 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	if (Output) {
 	    switch (Private->Version.cref) {
 		case 2:
-		    Private->Config.u.v2.deviceIndex = Output->OutputDriverPrivate->Device;
-		    Private->Config.u.v2.force = TRUE;
+		    Private->Config.u.v2.Device = Output->OutputDriverPrivate->Device;
+		    Private->Config.u.v2.Force = TRUE;
 		    break;
 		case 3:
 		    switch (Output->Connector->Type) {
 			case RHD_CONNECTOR_DVI:
 			case RHD_CONNECTOR_DVI_SINGLE:
-			    Private->Config.u.v3.EncoderMode = atomDVI_1Link;
+			    Private->Config.u.v3.EncoderMode = atomDVI;
 			    break;
 			case RHD_CONNECTOR_PANEL:
 			    Private->Config.u.v3.EncoderMode = atomLVDS;
@@ -191,7 +191,7 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 			    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unhandled ouptut type\n",__func__);
 			    break;
 		    }
-		    Private->Config.u.v3.force = TRUE;
+		    Private->Config.u.v3.Force = TRUE;
 		    break;
 		default:
 		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unsupported SelectPixelClock version; %i\n",Private->Version.cref);

@@ -742,13 +742,14 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     RHDFUNC(Output);
 
-    atc->coherent = Private->Coherent;
+    atc->Coherent = Private->Coherent;
 
     if (Private->RunDualLink)
-	atc->mode = atomDVI_2Link;
+	atc->Mode = atomDualLink;
     else
-	atc->mode = atomDVI_1Link;
-    atc->pixelClock = Mode->SynthClock;
+	atc->Mode = atomSingleLink;
+    
+    atc->PixelClock = Mode->SynthClock;
 
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
 				 atomTransSetup, atc);
@@ -771,11 +772,11 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
     RHDAtomUpdateBIOSScratchForOutput(Output);
 
     if (Private->RunDualLink)
-	atc->mode = atomDVI_2Link;
+	atc->LinkCnt = atomDualLink;
     else
-	atc->mode = atomDVI_1Link;
+	atc->LinkCnt = atomSingleLink;
 
-    atc->coherent = Private->Coherent;
+    atc->Coherent = Private->Coherent;
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -790,7 +791,7 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 	    break;
 	case RHD_POWER_SHUTDOWN:
 	    if (!Output->Connector || Output->Connector->Type == RHD_CONNECTOR_DVI)
-		atc->mode = atomDVI_2Link;
+		atc->Mode = atomDVI;
 
 	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
 					 atomTransDisableOutput, atc);
@@ -1391,15 +1392,15 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->coherent = Private->Coherent;
-		atc->encoder = atomEncoderDIG1;
-		atc->link = atomTransLinkA;
+		atc->Coherent = Private->Coherent;
+		atc->Encoder = atomEncoderDIG1;
+		atc->Link = atomTransLinkA;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
 		    AtomBiosArgRec data;
 		    data.val = 1;
 		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
 					&data) == ATOM_SUCCESS)
-			atc->lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
+			atc->Lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
 		    else {
 			xfree(Private);
 			xfree(Output);
@@ -1434,15 +1435,15 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->coherent = Private->Coherent;
-		atc->encoder = atomEncoderDIG2;
-		atc->link = atomTransLinkB;
+		atc->Coherent = Private->Coherent;
+		atc->Encoder = atomEncoderDIG2;
+		atc->Link = atomTransLinkB;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
 		    AtomBiosArgRec data;
 		    data.val = 2;
 		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
 					&data) == ATOM_SUCCESS)
-			atc->lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
+			atc->Lanes = data.pcieLanes.Chassis; /* only do 'chassis' for now */
 		    else {
 			xfree(Private);
 			xfree(Output);
