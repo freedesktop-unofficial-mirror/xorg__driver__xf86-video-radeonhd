@@ -539,21 +539,6 @@ typedef struct RHDRec {
 
     struct rhdCP      *cp;
 
-#if 0
-#ifdef USE_XAA
-    uint32_t          frontPitchOffset;
-    uint32_t          backPitchOffset;
-    uint32_t          depthPitchOffset;
-
-				/* offscreen memory management */
-    int               backLines;
-    FBAreaPtr         backArea;
-    int               depthTexLines;
-    FBAreaPtr         depthTexArea;
-#endif
-    int               irq;
-#endif
-
     Bool              DMAForXv;
 
 #ifdef PER_CONTEXT_SAREA
@@ -565,13 +550,6 @@ typedef struct RHDRec {
     /* Render */
     Bool              RenderAccel;
 
-#if 0
-#ifdef USE_XAA
-    FBLinearPtr       RenderTex;
-    void              (*RenderCallback)(ScrnInfoPtr);
-    Time              RenderTimeout;
-#endif
-#endif
 #ifdef USE_EXA
     XF86ModReqInfo    exaReq;
 #endif
@@ -583,6 +561,7 @@ typedef struct RHDRec {
 
     /* X itself has the 3D context */
     Bool             XInited3D;
+    /* chips with PVS/TCL hw (used for EXA render) */
     Bool             has_tcl;
 
     /* Xv */
@@ -685,7 +664,7 @@ void _RHDRegMaskD(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 # define DEBUGP(x)
 #endif
 
-#define IS_R300_3D ((info->ChipSet == RHD_RS690) || (info->ChipSet == RHD_RS740))
+#define IS_R300_3D ((info->ChipSet == RHD_RS600) || (info->ChipSet == RHD_RS690) || (info->ChipSet == RHD_RS740))
 #define IS_R500_3D ((info->ChipSet >= RHD_RV505) && (info->ChipSet <= RHD_M71))
 
 #define RADEON_TIMEOUT    2000000 /* Fall out of wait loops after this count */
@@ -731,14 +710,11 @@ extern void RADEONHostDataParams(ScrnInfoPtr pScrn, uint8_t *dst,
                                  uint32_t *dstPitchOffset, int *x, int *y);
 extern void RADEONInit3DEngine(ScrnInfoPtr pScrn);
 extern void RADEONWaitForFifoFunction(ScrnInfoPtr pScrn, int entries);
-#ifdef XF86DRI
+#ifdef USE_DRI
 extern drmBufPtr RADEONCPGetBuffer(ScrnInfoPtr pScrn);
 extern void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard);
 extern void RADEONCPReleaseIndirect(ScrnInfoPtr pScrn);
 extern int RADEONCPStop(ScrnInfoPtr pScrn,  RHDPtr info);
-#  ifdef USE_XAA
-extern Bool RADEONSetupMemXAA_DRI(int scrnIndex, ScreenPtr pScreen);
-#  endif
 #endif
 
 #ifdef USE_XAA
@@ -748,7 +724,7 @@ extern Bool RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen);
 #endif
 
 /* radeon_commonfuncs.c */
-#ifdef XF86DRI
+#ifdef USE_DRI
 extern void RADEONWaitForIdleCP(ScrnInfoPtr pScrn);
 #endif
 extern void RADEONWaitForIdleMMIO(ScrnInfoPtr pScrn);
