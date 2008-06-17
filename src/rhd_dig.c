@@ -1464,7 +1464,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
 	    Private->Transmitter.Sense = NULL;
 	    Private->Transmitter.ModeValid = LVTMATransmitterModeValid;
-	    if (ConnectorType == RHD_CONNECTOR_DVI) {
+	    if (ConnectorType != RHD_CONNECTOR_PANEL) {
 		Private->Transmitter.Mode = LVTMA_TMDSTransmitterSet;
 		Private->Transmitter.Power = LVTMA_TMDSTransmitterPower;
 		Private->Transmitter.Save = LVTMA_TMDSTransmitterSave;
