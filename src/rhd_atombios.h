@@ -34,7 +34,7 @@ typedef enum _AtomBiosRequestID {
     ATOMBIOS_TEARDOWN,
 # ifdef ATOM_BIOS_PARSER
     ATOMBIOS_EXEC,
-#endif
+# endif
     ATOMBIOS_ALLOCATE_FB_SCRATCH,
     ATOMBIOS_GET_CONNECTORS,
     ATOMBIOS_GET_PANEL_MODE,
@@ -82,7 +82,7 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_PCIENB_CFG_REG7,
     ATOM_GET_CAPABILITY_FLAG,
     ATOM_GET_PCIE_LANES,
-    ATOM_GET_ATOM_OUTPUT_PRIVATE,
+    ATOM_GET_ATOM_CONNECTOR_PRIVATE,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -126,17 +126,17 @@ enum atomPCIELanes {
 };
 
 enum atomDevice {
-    atomNone,
-    atomCRT1,
-    atomLCD1,
-    atomTV1,
-    atomDFP1,
-    atomCRT2,
-    atomLCD2,
-    atomTV2,
-    atomDFP2,
-    atomCV,
-    atomDFP3
+    atomNone, /* 0 */
+    atomCRT1, /* 1 */
+    atomLCD1, /* 2 */
+    atomTV1,  /* 3 */
+    atomDFP1, /* 4 */
+    atomCRT2, /* 5 */
+    atomLCD2, /* 6 */
+    atomTV2,  /* 7 */
+    atomDFP2, /* 8 */
+    atomCV,   /* 9 */
+    atomDFP3  /* a */
 };
 
 typedef struct AtomGoldenSettings
@@ -168,8 +168,8 @@ typedef union AtomBiosArg
     } pcieLanes;
     struct {
 	struct rhdConnectorInfo *ConnectorInfo;
-	struct rhdOutput        *Output;
-    } AtomOutputPrivate;
+	struct rhdConnector      *Connector;
+    } AtomConnectorPrivate;
     atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;
@@ -192,77 +192,12 @@ enum atomOutputLinks {
     atomDualLink
 };
 
-enum atomEncoderMode {
-    atomDVI,
-    atomDP,
-    atomLVDS,
-    atomHDMI,
-    atomSDVO,
-    atomTVComposite,
-    atomTVSVideo,
-    atomTVComponent,
-    atomCRT
-};
-
 enum atomTransmitter {
     atomTransmitterLVTMA,
     atomTransmitterUNIPHY,
     atomTransmitterPCIEPHY,
     atomTransmitterDIG1,
     atomTransmitterDIG2
-};
-
-enum atomEncoder {
-    atomEncoderDACA,
-    atomEncoderDACB,
-    atomEncoderTV,
-    atomEncoderTMDS1,
-    atomEncoderTMDS2,
-    atomEncoderLVDS,
-    atomEncoderDVO,
-    atomEncoderDIG1,
-    atomEncoderDIG2,
-    atomEncoderExternal
-};
-
-enum atomOutput {
-    atomDVOOutput,
-    atomLCDOutput,
-    atomCVOutput,
-    atomTVOutput,
-    atomLVTMAOutput,
-    atomTMDSAOutput,
-    atomDAC1Output,
-    atomDAC2Output
-};
-
-enum atomDAC {
-    atomDACA,
-    atomDACB,
-    atomDACExt
-};
-
-enum atomScaler {
-    atomScaler1,
-    atomScaler2
-};
-
-enum atomScalerMode {
-    atomScalerDisable,
-    atomScalerCenter,
-    atomScalerExpand,
-    atomScalerMulttabExpand
-};
-
-enum atomOutputAction {
-    atomOutputEnable,
-    atomOutputDisable,
-    atomOutputLcdOn,
-    atomOutputLcdOff,
-    atomOutputLcdBrightnessControl,
-    atomOutputLcdSelftestStart,
-    atomOutputLcdSelftestStop,
-    atomOutputEncoderInit
 };
 
 enum atomTransmitterAction {
@@ -279,52 +214,29 @@ enum atomTransmitterLink {
     atomTransLinkAB
 };
 
-enum atomDVODeviceType {
-    atomDvoLCD,
-    atomDvoCRT,
-    atomDvoDFP,
-    atomDvoTV,
-    atomDvoCV
+enum atomEncoder {
+    atomEncoderDACA,
+    atomEncoderDACB,
+    atomEncoderTV,
+    atomEncoderTMDS1,  /* TMDSA */
+    atomEncoderTMDS2,  /* LVTMA */
+    atomEncoderLVDS,   /* LVTMA (Panel) */
+    atomEncoderDVO,
+    atomEncoderDIG1,
+    atomEncoderDIG2,
+    atomEncoderExternal
 };
 
-enum atomDACStandard {
-    atomDAC_VGA,
-    atomDAC_CV,
-    atomDAC_NTSC,
-    atomDAC_PAL
-};
-
-enum atomDVORate {
-    ATOM_DVO_RATE_SDR,
-    ATOM_DVO_RATE_DDR
-};
-
-enum atomDVOOutput {
-    ATOM_DVO_OUTPUT_LOW12BIT,
-    ATOM_DVO_OUTPUT_HIGH12BIT,
-    ATOM_DVO_OUTPUT_24BIT
-};
-
-struct atomTransmitterConfig
-{
-    int PixelClock;
-    enum atomEncoder Encoder;
-    enum atomPCIELanes Lanes;
-    enum atomEncoderMode Mode;
-    enum atomTransmitterLink Link;
-    enum atomOutputLinks LinkCnt;
-    Bool Coherent;
-};
-
-struct atomCrtcSourceConfig
-{
-    union {
-	enum atomDevice Device;
-	struct {
-	    enum atomEncoder Encoder;
-	    enum atomEncoderMode Mode;
-	} crtc2;
-    } u;
+enum atomEncoderMode {
+    atomDVI,
+    atomDP,
+    atomLVDS,
+    atomHDMI,
+    atomSDVO,
+    atomTVComposite,
+    atomTVSVideo,
+    atomTVComponent,
+    atomCRT
 };
 
 enum atomEncoderAction {
@@ -332,11 +244,15 @@ enum atomEncoderAction {
     atomEncoderOff
 };
 
-enum atomScaleMode {
-    atomScaleNone,
-    atomScaleCenter,
-    atomScaleExpand,
-    atomScaleMulti
+enum atomOutput {
+    atomDVOOutput,
+    atomLCDOutput,
+    atomCVOutput,
+    atomTVOutput,
+    atomLVTMAOutput,
+    atomTMDSAOutput,
+    atomDAC1Output,
+    atomDAC2Output
 };
 
 enum atomOutputType {
@@ -351,10 +267,87 @@ enum atomOutputType {
     atomOutputUniphyB
 };
 
+enum atomOutputAction {
+    atomOutputEnable,
+    atomOutputDisable,
+    atomOutputLcdOn,
+    atomOutputLcdOff,
+    atomOutputLcdBrightnessControl,
+    atomOutputLcdSelftestStart,
+    atomOutputLcdSelftestStop,
+    atomOutputEncoderInit
+};
+
+enum atomDAC {
+    atomDACA,
+    atomDACB,
+    atomDACExt
+};
+
+enum atomDACStandard {
+    atomDAC_VGA,
+    atomDAC_CV,
+    atomDAC_NTSC,
+    atomDAC_PAL
+};
+
+enum atomDVODeviceType {
+    atomDvoLCD,
+    atomDvoCRT,
+    atomDvoDFP,
+    atomDvoTV,
+    atomDvoCV
+};
+
+enum atomDVORate {
+    ATOM_DVO_RATE_SDR,
+    ATOM_DVO_RATE_DDR
+};
+
+enum atomDVOOutput {
+    ATOM_DVO_OUTPUT_LOW12BIT,
+    ATOM_DVO_OUTPUT_HIGH12BIT,
+    ATOM_DVO_OUTPUT_24BIT
+};
+
+enum atomScaler {
+    atomScaler1,
+    atomScaler2
+};
+
+enum atomScaleMode {
+    atomScaleDisable,
+    atomScaleCenter,
+    atomScaleExpand,
+    atomScaleMulttabExpand
+};
+
+enum atomPxclk {
+    atomPclk1,
+    atomPclk2
+};
+
+struct atomCodeTableVersion
+{
+    CARD8 cref;
+    CARD8 fref;
+};
+
 enum atomTemporalGreyLevels {
     atomTemporalDither0,
     atomTemporalDither4,
     atomTemporalDither2
+};
+
+struct atomTransmitterConfig
+{
+    int PixelClock;
+    enum atomEncoder Encoder;
+    enum atomPCIELanes Lanes;
+    enum atomEncoderMode Mode;
+    enum atomTransmitterLink Link;
+    enum atomOutputLinks LinkCnt;
+    Bool Coherent;
 };
 
 struct atomEncoderConfig
@@ -397,10 +390,15 @@ struct atomEncoderConfig
     } u;
 };
 
-struct atomCodeTableVersion
+struct atomCrtcSourceConfig
 {
-    CARD8 cref;
-    CARD8 fref;
+    union {
+	enum atomDevice Device;
+	struct {
+	    enum atomEncoder Encoder;
+	    enum atomEncoderMode Mode;
+	} crtc2;
+    } u;
 };
 
 struct atomPixelClockConfig {
@@ -425,11 +423,6 @@ struct atomPixelClockConfig {
     } u;
 };
 
-enum atomPxclk {
-    atomPclk1,
-    atomPclk2
-};
-
 struct atomOutputPrivate {
     enum atomDevice Device;
 };
@@ -443,7 +436,7 @@ extern Bool rhdAtomASICInit(atomBiosHandlePtr handle);
 extern struct atomCodeTableVersion rhdAtomASICInitVersion(atomBiosHandlePtr handle);
 #endif
 extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
-		 enum atomScalerMode mode);
+		 enum atomScaleMode mode);
 extern struct atomCodeTableVersion rhdAtomSetScalerVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 					 enum atomTransmitterAction action,
@@ -474,6 +467,7 @@ extern struct atomCodeTableVersion rhdAtomSetPixelClockVersion(atomBiosHandlePtr
 extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 				    struct atomCrtcSourceConfig *config);
 extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomFindOutputPrivate(struct rhdConnector *Connector, struct rhdOutput *Output);
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);

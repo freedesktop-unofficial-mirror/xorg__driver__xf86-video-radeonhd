@@ -33,7 +33,7 @@ struct rhdConnectorInfo {
     rhdDDC DDC;
     rhdHPD HPD;
     rhdOutputType Output[MAX_OUTPUTS_PER_CONNECTOR];
-    rhdConnectorPrivate *Private;
+    rhdConnectorDriverPrivate *Private;
 };
 
 /* Some card specific flags, where and when needed */

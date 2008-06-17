@@ -101,8 +101,8 @@ static AtomBiosResult rhdAtomFirmwareInfoQuery(atomBiosHandlePtr handle,
 						   AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 					   AtomBiosRequestID unused, AtomBiosArgPtr data);
-static AtomBiosResult rhdAtomGetAtomOutputPrivate(atomBiosHandlePtr handle,
-					   AtomBiosRequestID unused, AtomBiosArgPtr data);
+static AtomBiosResult rhdAtomGetAtomConnectorPrivate(atomBiosHandlePtr handle,
+						     AtomBiosRequestID unused, AtomBiosArgPtr data);
 static AtomBiosResult
 rhdAtomAnalogTVInfoQuery(atomBiosHandlePtr handle,
 			 AtomBiosRequestID func, AtomBiosArgPtr data);
@@ -241,8 +241,8 @@ struct atomBIOSRequests {
      "CapabilityFlag",				MSG_FORMAT_HEX},
     {ATOM_GET_PCIE_LANES, rhdAtomIntegratedSystemInfoQuery,
      "PCI Lanes",				MSG_FORMAT_NONE},
-    {ATOM_GET_ATOM_OUTPUT_PRIVATE, rhdAtomGetAtomOutputPrivate,
-     "PCI Lanes",				MSG_FORMAT_NONE},
+    {ATOM_GET_ATOM_CONNECTOR_PRIVATE, rhdAtomGetAtomConnectorPrivate,
+     "Output Privates",				MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -327,10 +327,6 @@ typedef struct _atomDataTables
     ATOM_POWER_SOURCE_INFO              *PowerSourceInfo;
 } atomDataTables, *atomDataTablesPtr;
 
-struct atomConnectorInfoPrivate {
-    enum atomDevice Device[MAX_OUTPUTS_PER_CONNECTOR];
-};
-
 struct atomRegisterSaveList
 {
     /* header */
@@ -359,6 +355,10 @@ enum {
     legacyBIOSMax = 0x10000
 };
 
+struct atomConnectorInfoPrivate {
+    enum atomDevice *Devices;
+};
+
 #  ifdef ATOM_BIOS_PARSER
 
 #   define LOG_CAIL LOG_DEBUG + 1
@@ -377,9 +377,11 @@ CailDebug(int scrnIndex, const char *format, ...)
 
 #  endif
 
-#  define DEBUG_VERSION(handle, version) xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 3, "%s returned version %i\n",__func__,version.cref)
-#  define DEBUG_VERSION_NAME(handle, name, version) \
-    xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 3, "%s(%s) returned version %i\n",__func__,name,version.cref)
+#  define DEBUG_VERSION(index, handle, version) \
+    xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 3, "%s returned version %i for index 0x%x\n" ,__func__,version.cref,index)
+#  define DEBUG_VERSION_NAME(index, handle, name, version)		\
+    xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 3, "%s(%s) returned version %i for index 0x%x\n",\
+		   __func__,name,version.cref,index)
 
 static int
 rhdAtomAnalyzeCommonHdr(ATOM_COMMON_TABLE_HEADER *hdr)
@@ -449,10 +451,15 @@ static Bool
 rhdAtomGetCommandTableRevisionSize(atomBiosHandlePtr handle, int index,
 				   CARD8 *contentRev, CARD8 *formatRev, unsigned short *size)
 {
-    unsigned short offset = ((unsigned short *)(handle->codeTable))[index];
+    unsigned short offset = ((USHORT *)&(((ATOM_MASTER_COMMAND_TABLE *)handle->codeTable)
+					 ->ListOfCommandTables))[index];
     ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *hdr = (ATOM_COMMON_ROM_COMMAND_TABLE_HEADER *)(handle->BIOSBase + offset);
     ATOM_COMMON_TABLE_HEADER hdr1 = hdr->CommonHeader;
 
+    if (!offset) {
+	*contentRev = *formatRev = 0;
+	return FALSE;
+    }
     return rhdAtomGetTableRevisionAndSize(&hdr1, contentRev, formatRev, size);
 }
 
@@ -705,7 +712,7 @@ rhdAtomASICInitVersion(atomBiosHandlePtr handle)
  *
  */
 Bool
-rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScalerMode mode)
+rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScaleMode mode)
 {
     ENABLE_SCALER_PARAMETERS scaler;
     AtomBiosArgRec data;
@@ -722,7 +729,7 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
     }
 
     switch (mode) {
-	case atomScaleNone:
+	case atomScaleDisable:
 	    scaler.ucEnable = ATOM_SCALER_DISABLE;
 	    break;
 	case atomScaleCenter:
@@ -731,7 +738,7 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
 	case atomScaleExpand:
 	    scaler.ucEnable = ATOM_SCALER_EXPANSION;
 	    break;
-	case atomScaleMulti:
+	case atomScaleMulttabExpand:
 	    scaler.ucEnable = ATOM_SCALER_MULTI_EX;
 	    break;
     }
@@ -910,7 +917,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
-	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
 	return TRUE;
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
@@ -926,7 +933,7 @@ rhdAtomDigTransmitterControlVersion(atomBiosHandlePtr handle)
     struct atomCodeTableVersion version;
     int index = GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
     return version;
 }
 
@@ -944,6 +951,8 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput OutputId, enum at
 	DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS op;
 	DISPLAY_DEVICE_OUTPUT_CONTROL_PS_ALLOCATION opa;
     } ps;
+
+    RHDFUNC(handle);
 
     switch (Action) {
 	case atomOutputEnable:
@@ -1067,7 +1076,7 @@ rhdAtomOutputControlVersion(atomBiosHandlePtr handle, enum atomOutput OutputId)
     struct atomCodeTableVersion version = {0 , 0};
     int index;
     char *name;
-    
+
     switch (OutputId) {
 	case atomDVOOutput:
 	    index = GetIndexIntoMasterTable(COMMAND, DVOOutputControl);
@@ -1106,7 +1115,7 @@ rhdAtomOutputControlVersion(atomBiosHandlePtr handle, enum atomOutput OutputId)
     }
 
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
-    DEBUG_VERSION_NAME(handle, name, version);
+    DEBUG_VERSION_NAME(index, handle, name, version);
     return version;
 }
 
@@ -1123,9 +1132,12 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice Device, enum atom
 	DAC_LOAD_DETECTION_PS_ALLOCATION lda;
     } ps;
 
+    RHDFUNC(handle);
+
     data.exec.dataSpace = NULL;
     data.exec.pspace = &ps;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC_LoadDetection);
+    ps.ld.ucMisc = 0;
 
     switch (Device) {
 	case atomCRT1:
@@ -1136,9 +1148,11 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice Device, enum atom
 	    break;
 	case atomTV1:
 	    ps.ld.usDeviceID = ATOM_DEVICE_TV1_SUPPORT;
+	    ps.ld.ucMisc = DAC_LOAD_MISC_YPrPb;
 	    break;
 	case atomTV2:
 	    ps.ld.usDeviceID = ATOM_DEVICE_TV2_SUPPORT;
+	    ps.ld.ucMisc = DAC_LOAD_MISC_YPrPb;
 	    break;
 	case atomCV:
 	    ps.ld.usDeviceID = ATOM_DEVICE_CV_SUPPORT;
@@ -1149,6 +1163,7 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice Device, enum atom
 	case atomDFP2:
 	case atomDFP3:
 	case atomNone:
+	    xf86DrvMsg(handle->scrnIndex, X_ERROR, "Unsupported device for load detection.\n");
 	    return FALSE;
     }
     switch (dac) {
@@ -1184,7 +1199,7 @@ AtomDACLoadDetectionVersion(atomBiosHandlePtr handle, enum atomDevice id)
     int index = GetIndexIntoMasterTable(COMMAND, DAC_LoadDetection);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
 
     return version;
 }
@@ -1199,7 +1214,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
     AtomBiosArgRec data;
     char *name = NULL;
     CARD8 version;
-    
+
     union
     {
 	DAC_ENCODER_CONTROL_PARAMETERS dac;
@@ -1221,6 +1236,8 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	USHORT usPixelClock;
     } ps;
 
+    RHDFUNC(handle);
+
     ps.usPixelClock = Config->PixelClock / 10;
 
     switch (EncoderId) {
@@ -1230,7 +1247,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		name = "DACAEncoderControl";
 		data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC1EncoderControl);
 	    } else {
-		name = "DACAEncoderControl";
+		name = "DACBEncoderControl";
 		data.exec.index = GetIndexIntoMasterTable(COMMAND, DAC2EncoderControl);
 	    }
 	    {
@@ -1257,6 +1274,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			dac->ucAction = ATOM_DISABLE;
 			break;
 		    default:
+			xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DAC unknown action\n",__func__);
 			return FALSE;
 		}
 	    }
@@ -1303,6 +1321,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			tv->ucAction = ATOM_DISABLE;
 			break;
 		    default:
+			xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: TV unknown action\n",__func__);
 			return FALSE;
 		}
 	    }
@@ -1310,14 +1329,17 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	case atomEncoderTMDS1:
 	case atomEncoderTMDS2:
 	case atomEncoderLVDS:
-	    if (atomEncoderLVDS) {
+	    if (EncoderId == atomEncoderLVDS) {
 		name = "LVDSEncoderControl";
 		data.exec.index = GetIndexIntoMasterTable(COMMAND, LVDSEncoderControl);
-	    } else {
+	    } else if (EncoderId == atomEncoderTMDS1) {
 		name = "TMDSAEncoderControl";
 		data.exec.index = GetIndexIntoMasterTable(COMMAND, TMDSAEncoderControl);
+	    } else {
+		name = "LVTMAEncoderControl";
+		data.exec.index = GetIndexIntoMasterTable(COMMAND, LVTMAEncoderControl);
 	    }
-	    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+	    if (!rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
 		return FALSE;
 	    switch  (version) {
 		case 1:
@@ -1337,13 +1359,16 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			    lvds->ucAction = ATOM_DISABLE;
 			    break;
 			default:
+			    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: LVDS unknown action\n",__func__);
 			    return FALSE;
 		    }
 		    break;
 		}
 		case 2:
+		case 3:
 		{
 		    LVDS_ENCODER_CONTROL_PARAMETERS_V2 *lvds = &ps.lvdsv2;
+
 		    lvds->ucMisc = 0;
 		    if (Config->u.lvds2.LinkCnt == atomDualLink)
 			lvds->ucMisc |= PANEL_ENCODER_MISC_DUAL;
@@ -1357,6 +1382,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    lvds->ucSpatial = 0;
 		    lvds->ucTemporal = 0;
 		    lvds->ucFRC = 0;
+
 		    if (EncoderId == atomEncoderLVDS) {
 			if (Config->u.lvds2.Is24bit) {
 			    lvds->ucTruncate |= PANEL_ENCODER_TRUNCATE_DEPTH;
@@ -1374,20 +1400,23 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			}
 			switch (Config->u.lvds2.SpatialDither)
 			    lvds->ucSpatial |= PANEL_ENCODER_SPATIAL_DITHER_EN;
-			switch (Action) {
-			    case atomEncoderOn:
-				lvds->ucAction = ATOM_ENABLE;
-				break;
-			    case atomEncoderOff:
-				lvds->ucAction = ATOM_DISABLE;
-				break;
-			    default:
-				return FALSE;
-			}
+		    }
+
+		    switch (Action) {
+			case atomEncoderOn:
+			    lvds->ucAction = ATOM_ENABLE;
+			    break;
+			case atomEncoderOff:
+			    lvds->ucAction = ATOM_DISABLE;
+			    break;
+			default:
+			    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: LVDS2 unknown action\n",__func__);
+			    return FALSE;
 		    }
 		    break;
 		}
 		default:
+		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: LVDS unknown version\n",__func__);
 		    return FALSE;
 	    }
 	    break;
@@ -1463,13 +1492,14 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    dig->ucAction = ATOM_DISABLE;
 		    break;
 		default:
+		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DIG unknown action\n",__func__);
 		    return FALSE;
 	    }
 	    break;
 	case atomEncoderDVO:
 	    name = "DVOEncoderControl";
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND, DVOEncoderControl);
-	    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+	    if (!rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
 		return FALSE;
 	    switch  (version) {
 		case 1:
@@ -1502,6 +1532,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			    dvo->ucAction = ATOM_DISABLE;
 			    break;
 			default:
+			    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DVO unknown action\n",__func__);
 			    return FALSE;
 		    }
 		    break;
@@ -1533,6 +1564,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			    dvo->ucAction = ATOM_DISABLE;
 			    break;
 			default:
+			    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DVO3 unknown action\n",__func__);
 			    return FALSE;
 		    }
 		    break;
@@ -1609,7 +1641,7 @@ rhdAtomEncoderControlVersion(atomBiosHandlePtr handle, enum atomEncoder EncoderI
 
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION_NAME(handle, name, version);
+    DEBUG_VERSION_NAME(index, handle, name, version);
 
     return version;
 }
@@ -1627,6 +1659,8 @@ rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 	ENABLE_CRTC_PARAMETERS crtc;
 	ENABLE_CRTC_PS_ALLOCATION crtc_a;
     } ps;
+
+    RHDFUNC(handle);
 
     switch (CrtcId) {
 	case atomCrtc1:
@@ -1671,7 +1705,7 @@ rhdAtomEnableCrtcVersion(atomBiosHandlePtr handle)
     int index = GetIndexIntoMasterTable(COMMAND,  EnableCRTC);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
 
     return version;
 }
@@ -1689,6 +1723,8 @@ rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 	ENABLE_CRTC_PARAMETERS crtc;
 	ENABLE_CRTC_PS_ALLOCATION crtc_a;
     } ps;
+
+    RHDFUNC(handle);
 
     switch (CrtcId) {
 	case atomCrtc1:
@@ -1733,7 +1769,7 @@ rhdAtomEnableCrtcMemReqVersion(atomBiosHandlePtr handle)
     int index = GetIndexIntoMasterTable(COMMAND, EnableCRTCMemReq);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
 
     return version;
 
@@ -1752,6 +1788,8 @@ rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, DisplayModePtr
 /* 	SET_CRTC_TIMING_PS_ALLOCATION crtc_a; */
     } ps;
     ATOM_MODE_MISC_INFO_ACCESS* msc = &(ps.crtc.susModeMiscInfo);
+
+    RHDFUNC(handle);
 
     ps.crtc.usH_Total = mode->CrtcHTotal;
     ps.crtc.usH_Disp = mode->CrtcHDisplay;
@@ -1810,7 +1848,7 @@ rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle)
     int index = GetIndexIntoMasterTable(COMMAND, SetCRTC_Timing);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
     return version;
 
 }
@@ -2012,7 +2050,7 @@ rhdAtomSetPixelClockVersion(atomBiosHandlePtr handle)
     int index = GetIndexIntoMasterTable(COMMAND, SetPixelClock);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
 
     return version;
 
@@ -2036,10 +2074,13 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 /* 	SELECT_CRTC_SOURCE_PS_ALLOCATION_V2 crtc2_a; */
     } ps;
 
+    RHDFUNC(handle);
+
     data.exec.index = GetIndexIntoMasterTable(COMMAND, SelectCRTC_Source);
 
-    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+    if (!rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
 	return FALSE;
+
     switch  (version) {
 	case 1:
 	    switch (CrtcId) {
@@ -2174,7 +2215,7 @@ rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle)
     int index = GetIndexIntoMasterTable(COMMAND, SelectCRTC_Source);
     rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
 
-    DEBUG_VERSION(handle, version);
+    DEBUG_VERSION(index, handle, version);
 
     return version;
 }
@@ -3487,11 +3528,11 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 
     if (!Record->ucNumberOfDevice) return NULL;
 
-    devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
-
     *num = Record->ucNumberOfDevice;
-    *devList = (enum atomDevice *)xcalloc(Record->ucNumberOfDevice,
+    *devList = (enum atomDevice *)xcalloc(Record->ucNumberOfDevice + 1,
 					  sizeof(enum atomDevice));
+
+    devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
 
     for (i = 0; i < Record->ucNumberOfDevice; i++) {
 	k = 0;
@@ -3506,6 +3547,7 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 	    (*devList)[i] = rhd_devices[k].atomDevID;
 	}
     }
+    (*devList)[i] = atomNone;
 
     RHDDebug(handle->scrnIndex,"   Devices:%s\n",devices);
 
@@ -3661,7 +3703,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 		       "beyond Object_Header table\n",__func__,i);
 	    continue;
 	}
-	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(RHD_CONNECTORS_MAX,
+	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(1,
 							   sizeof(struct atomConnectorInfoPrivate)))) {
 	    xfree(cp);
 	    return ATOM_FAILED;
@@ -3697,8 +3739,8 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	while (Record->ucRecordType > 0
 	       && Record->ucRecordType <= ATOM_MAX_OBJECT_RECORD_NUMBER ) {
 	    int cnt;
-	    enum atomDevice *atomDevices;
 	    char *taglist;
+	    enum atomDevice *atomDevices = NULL;
 
 	    if ((record_base += Record->ucRecordSize)
 		> object_header_size) {
@@ -3729,13 +3771,12 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 		    taglist = rhdAtomDeviceTagsFromRecord(handle,
 							  (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record,
 			                                  &cnt, &atomDevices);
+		    acp->Devices = atomDevices;
 		    if (taglist) {
-			int i = 0;
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
+
 			xfree(taglist);
-			while ((nout_dev < MAX_OUTPUTS_PER_CONNECTOR) && (i < cnt))
-			    acp->Device[nout_dev++] = atomDevices[i++];
-			xfree(atomDevices);
+
 		    }
 		    break;
 
@@ -3896,7 +3937,7 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    continue;
 	if (devices[n].con == RHD_CONNECTOR_NONE)
 	    continue;
-	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(RHD_CONNECTORS_MAX,
+	if (!(acp = (struct atomConnectorInfoPrivate *)xcalloc(1,
 							   sizeof(struct atomConnectorInfoPrivate)))) {
 	    xfree(cp);
 	    return ATOM_FAILED;
@@ -3910,7 +3951,9 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	cp[ncon].Name = xstrdup(devices[n].name);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
-	acp->Device[0] = rhd_devices[n].atomDevID;
+	acp->Devices = xcalloc(1, 3 * sizeof(enum atomDevice));
+	acp->Devices[0] = rhd_devices[n].atomDevID;
+	acp->Devices[1] = atomNone; /* simple end marker */
 
 	if (devices[n].dual) {
 	    if (devices[n].ddc == RHD_DDC_NONE)
@@ -3937,7 +3980,8 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 
 			cp[ncon].Output[1] = devices[i].ot;
 
-			acp->Device[1] = rhd_devices[i].atomDevID;
+			acp->Devices[1] = rhd_devices[i].atomDevID;
+			acp->Devices[2] = atomNone;   /* new end marker */
 
 			if (cp[ncon].HPD == RHD_HPD_NONE)
 			    cp[ncon].HPD = devices[i].hpd;
@@ -3980,6 +4024,8 @@ rhdAtomConnectorInfo(atomBiosHandlePtr handle,
 {
     int chipset = data->chipset;
 
+    RHDFUNC(handle);
+
     if (rhdAtomConnectorInfoFromObjectHeader(handle,&data->ConnectorInfo)
 	== ATOM_SUCCESS)
 	return ATOM_SUCCESS;
@@ -3990,32 +4036,96 @@ rhdAtomConnectorInfo(atomBiosHandlePtr handle,
     }
 }
 
+/*
+ *
+ */
 static AtomBiosResult
-rhdAtomGetAtomOutputPrivate(atomBiosHandlePtr handle,
+rhdAtomGetAtomConnectorPrivate(atomBiosHandlePtr handle,
 					   AtomBiosRequestID unused, AtomBiosArgPtr data)
 {
-    struct rhdOutput *Output = data->AtomOutputPrivate.Output;
-    int i;
+    RHDFUNC(handle);
 
-    if (!data->ConnectorInfo->Private)
+    if (!data->AtomConnectorPrivate.ConnectorInfo->Private) {
+	RHDDebug(handle->scrnIndex, "No connector privates available.\n");
 	return ATOM_FAILED;
+    }
 
-    for (i = 0; i < MAX_OUTPUTS_PER_CONNECTOR; i++)
-	if (data->ConnectorInfo->Output[i] == Output->Id)
-	    break;
-
-    if (i == MAX_OUTPUTS_PER_CONNECTOR)
-	return ATOM_FAILED;
-
-    if ((Output->OutputDriverPrivate
-	 = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate))))
-	return ATOM_FAILED;
-
-    Output->OutputDriverPrivate->Device = data->ConnectorInfo->Private->Device[i];
-
+    data->AtomConnectorPrivate.Connector->ConnectorDriverPrivate = data->ConnectorInfo->Private;
     return ATOM_SUCCESS;
 }
 
+/*
+ *
+ */
+Bool
+rhdAtomFindOutputPrivate(struct rhdConnector *Connector, struct rhdOutput *Output)
+{
+    int i = 0;
+    struct atomConnectorInfoPrivate *cip = Connector->ConnectorDriverPrivate;
+    enum rhdConnectorType ct = Connector->Type;
+    enum rhdOutputType ot = Output->Id;
+    enum atomDevice dev = atomNone;
+
+    RHDFUNC(Connector);
+
+    if (!cip->Devices)
+	return FALSE;
+
+    while ((dev = cip->Devices[i++]) != atomNone) {
+	switch (dev) {
+	    case atomNone:
+		break;
+	    case atomCRT1:
+	    case atomCRT2:
+		switch (ot) {
+		    case RHD_OUTPUT_DACA:
+		    case RHD_OUTPUT_DACB:
+			break;
+		    default:
+			continue;
+		}
+		break;
+	    case atomLCD1:
+	    case atomLCD2:
+		break;
+	    case atomTV1:
+	    case atomTV2:
+	    case atomCV:
+		switch (ct) {
+		    case RHD_CONNECTOR_TV:
+			break;
+		    default:
+			continue;
+		}
+		break;
+	    case atomDFP1:
+	    case atomDFP2:
+	    case atomDFP3:
+		switch (ot) {
+		    case RHD_OUTPUT_TMDSA:
+		    case RHD_OUTPUT_LVTMA:
+		    case RHD_OUTPUT_KLDSKP_LVTMA:
+		    case RHD_OUTPUT_UNIPHYA:
+		    case RHD_OUTPUT_UNIPHYB:
+			break;
+		    default:
+			continue;
+		}
+		break;
+	}
+	break;
+    }
+    if (!(Output->OutputDriverPrivate = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate))))
+	return FALSE;
+
+    Output->OutputDriverPrivate->Device = dev;
+
+    return TRUE;
+}
+
+/*
+ *
+ */
 struct atomCodeDataTableHeader
 {
     unsigned char signature;
