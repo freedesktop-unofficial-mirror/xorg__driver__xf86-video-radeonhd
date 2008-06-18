@@ -4168,7 +4168,7 @@ rhdAtomGetAtomConnectorPrivate(atomBiosHandlePtr handle,
  *
  */
 Bool
-rhdAtomFindOutputPrivate(struct rhdConnector *Connector, struct rhdOutput *Output)
+rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput *Output)
 {
     int i = 0;
     struct atomConnectorInfoPrivate *cip = Connector->ConnectorDriverPrivate;

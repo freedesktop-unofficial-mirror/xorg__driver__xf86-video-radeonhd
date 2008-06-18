@@ -45,6 +45,7 @@
 #include "rhd_atombios.h"
 #include "rhd_biosscratch.h"
 
+#ifdef ATOM_BIOS
 struct rhdAtomOutputPrivate {
     Bool Stored;
 
@@ -782,3 +783,5 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
     return Output;
 }
+
+#endif /* ATOM_BIOS */
