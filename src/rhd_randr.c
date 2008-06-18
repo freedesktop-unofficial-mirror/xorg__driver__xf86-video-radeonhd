@@ -56,6 +56,7 @@
 
 /* Driver specific headers */
 #include "rhd.h"
+#include "rhd_atombios.h"
 #include "rhd_randr.h"
 
 #ifdef RANDR_12_SUPPORT
@@ -880,14 +881,27 @@ rhdRROutputDetect(xf86OutputPtr output)
 	     * HPD returned true
 	     */
 	    if (rout->Output->Sense) {
-		if ((rout->Output->SensedType
-		     = rout->Output->Sense(rout->Output,
-					   rout->Connector->Type))) {
-		    RHDOutputPrintSensedType(rout->Output);
-		    rout->Output->Connector = rout->Connector; /* @@@ */
-		    return XF86OutputStatusConnected;
-		} else
-		    return XF86OutputStatusDisconnected;
+		/*
+		 * This is ugly and needs to change when the TV support patches are in.
+		 * The problem here is that the Output struct can be used for two connectors
+		 * and thus two different devices
+		 */
+		if (!rout->Output->OutputDriverPrivate) {
+#ifdef ATOM_BIOS
+		    rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
+		    if ((rout->Output->SensedType
+			 = rout->Output->Sense(rout->Output,
+					       rout->Connector->Type))) {
+			RHDOutputPrintSensedType(rout->Output);
+			rout->Output->Connector = rout->Connector; /* @@@ */
+			return XF86OutputStatusConnected;
+		    } else {
+			xfree(rout->Output->OutputDriverPrivate);
+			rout->Output->OutputDriverPrivate = NULL;
+		    }
+		}
+		return XF86OutputStatusDisconnected;
 	    } else {
 		/* HPD returned true, but no Sense() available
 		 * Typically the case on TMDSB.
@@ -897,17 +911,28 @@ rhdRROutputDetect(xf86OutputPtr output)
 		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 		    rhdRandrOutputPtr o =
 			(rhdRandrOutputPtr) (*ro)->driver_private;
-		    if (o != rout &&
+		    if (!o->Output->OutputDriverPrivate && o != rout &&
 			o->Connector == rout->Connector &&
 			o->Output->Sense) {
+#ifdef ATOM_BIOS
+			rhdAtomFindOutputDriverPrivate(o->Connector, o->Output);
+#endif
 			/* Yes, this looks wrong, but is correct */
-			if ((o->Output->SensedType =
-			     o->Output->Sense(o->Output, o->Connector->Type))) {
+			o->Output->SensedType =
+			    o->Output->Sense(o->Output, o->Connector->Type);
+
+			xfree(o->Output->OutputDriverPrivate);
+			o->Output->OutputDriverPrivate = NULL;
+
+			if (o->Output->SensedType != RHD_SENSED_NONE) {
 			    RHDOutputPrintSensedType(o->Output);
 			    return XF86OutputStatusDisconnected;
 			}
 		    }
 		}
+#ifdef ATOM_BIOS
+		rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
 	    }
@@ -920,15 +945,27 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    if (rhdPtr->Card && (rhdPtr->Card->flags & RHD_CARD_FLAG_DMS59)) {
 		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "RandR: Verifying state of DMS-59 VGA connector.\n");
-		if (rout->Output->Sense &&
-		    (rout->Output->SensedType
-		     = rout->Output->Sense(rout->Output,
-					   rout->Connector->Type))) {
-		    rout->Output->Connector = rout->Connector; /* @@@ */
-		    RHDOutputPrintSensedType(rout->Output);
-		    return XF86OutputStatusConnected;
+		if (rout->Output->Sense) {
+
+		    /* Already sensed elsewhere */
+		    if (rout->Output->OutputDriverPrivate)
+			return XF86OutputStatusDisconnected;
+
+#ifdef ATOM_BIOS
+		    rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
+		    rout->Output->SensedType = rout->Output->Sense(rout->Output,
+								   rout->Connector->Type);
+		    if (rout->Output->SensedType != RHD_SENSED_NONE) {
+			rout->Output->Connector = rout->Connector; /* @@@ */
+			RHDOutputPrintSensedType(rout->Output);
+			return XF86OutputStatusConnected;
+		    }
+		    xfree(rout->Output->OutputDriverPrivate);
+		    rout->Output->OutputDriverPrivate = NULL;
 		}
 	    }
+
 	    return XF86OutputStatusDisconnected;
 	}
     } else {
@@ -936,25 +973,41 @@ rhdRROutputDetect(xf86OutputPtr output)
 	 * No HPD available, Sense() if possible
 	 */
 	if (rout->Output->Sense) {
-	    if ((rout->Output->SensedType
-		 = rout->Output->Sense(rout->Output, rout->Connector->Type))) {
+	    /* Already sensed elsewhere */
+	    if (rout->Output->OutputDriverPrivate)
+		return XF86OutputStatusDisconnected;
+#ifdef ATOM_BIOS
+	    rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
+	    rout->Output->SensedType
+		= rout->Output->Sense(rout->Output, rout->Connector->Type);
+	    if (rout->Output->SensedType != RHD_SENSED_NONE) {
 		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    RHDOutputPrintSensedType(rout->Output);
 		    return XF86OutputStatusConnected;
-	    } else
+	    } else {
+		xfree(rout->Output->OutputDriverPrivate);
+		rout->Output->OutputDriverPrivate = NULL;
 		return XF86OutputStatusDisconnected;
+	    }
 	}
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
 	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0)) {
 		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",rout->Output->Name);
 		rout->Output->Connector = rout->Connector; /* @@@ */
+#ifdef ATOM_BIOS
+		rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
 		return XF86OutputStatusConnected;
 	    }  else
 		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned disconnected\n",rout->Output->Name);
 		return XF86OutputStatusDisconnected;
 	}
 	rout->Output->Connector = rout->Connector; /* @@@ */
+#ifdef ATOM_BIOS
+	rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
+#endif
 	return XF86OutputStatusUnknown;
     }
 }
