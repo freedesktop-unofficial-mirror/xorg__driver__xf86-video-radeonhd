@@ -62,6 +62,8 @@ struct rhdAtomOutputPrivate {
     Bool   RunDualLink;
     int    PixelClock;
 
+    void  *Save;
+
     CARD16 PowerDigToDE;
     CARD16 PowerDEToBL;
     CARD16 OffDelay;
@@ -237,8 +239,12 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     struct atomEncoderConfig *EncoderConfig = &Private->EncoderConfig;
 /*     struct atomTransmitterConfig *TransmitterConfig = &Private->TransmitterConfig; */
     struct atomCrtcSourceConfig CrtcSourceConfig;
+    union AtomBiosArg data;
 
     RHDFUNC(Output);
+
+    data.Address = &Private->Save;
+    RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     Private->PixelClock = Mode->SynthClock;
     rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
@@ -259,6 +265,8 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
     RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
+    data.Address = NULL;
+    RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
 
 /*
@@ -272,8 +280,12 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+    union AtomBiosArg data;
 
     RHDFUNC(Output);
+
+    data.Address = &Private->Save;
+    RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
@@ -288,7 +300,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransEnable, &Private->TransmitterConfig)) {
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnable)");
-			return;
+			break;
 		    }
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransEnableOutput, &Private->TransmitterConfig))
@@ -325,7 +337,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransDisableOutput, &Private->TransmitterConfig)) {
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisableOutput)");
-			return;
+			break;
 		    }
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransDisable, &Private->TransmitterConfig))
@@ -341,6 +353,8 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		ERROR_MSG("rhdAtomEncoderControl(atomEncoderOff)");
 	    break;
     }
+    data.Address = &Private->Save;
+    RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
 
 /*
@@ -349,6 +363,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 static inline void
 rhdAtomOutputSave(struct rhdOutput *Output)
 {
+    /* We do save directly when we write the registers */
 }
 
 /*
@@ -357,7 +372,12 @@ rhdAtomOutputSave(struct rhdOutput *Output)
 static void
 rhdAtomOutputRestore(struct rhdOutput *Output)
 {
-/*     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private; */
+     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+     RHDPtr rhdPtr = RHDPTRI(Output);
+     union AtomBiosArg data;
+
+     data.Address = Private->Save;
+     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
 }
 
 /*
@@ -406,6 +426,7 @@ rhdAtomOutputDestroy(struct rhdOutput *Output)
 
     xfree(Output->Private);
     xfree(Output->Name);
+    xfree(Output->Save);
     Output->Private = NULL;
 }
 
@@ -496,11 +517,13 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     struct rhdAtomOutputPrivate *Private;
     struct atomEncoderConfig *EncoderConfig;
     struct atomTransmitterConfig *TransmitterConfig;
-    char *OutputName;
+    char *OutputName = NULL;
 
     RHDFUNC(rhdPtr);
 
     switch (OutputType) {
+	case RHD_OUTPUT_NONE:
+	    return NULL;
 	case  RHD_OUTPUT_DACA:
 	    OutputName = "DACA";
 	    break;

@@ -92,6 +92,8 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_CAPABILITY_FLAG,
     ATOM_GET_PCIE_LANES,
     ATOM_GET_ATOM_CONNECTOR_PRIVATE,
+    ATOM_SET_REGISTER_LIST_LOCATION,
+    ATOM_RESTORE_REGISTERS,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -187,6 +189,7 @@ typedef union AtomBiosArg
     enum RHD_CHIPSETS		chipset;
     struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
+    void                       *Address;
     struct {
 	unsigned char *loc;
 	unsigned short size;
