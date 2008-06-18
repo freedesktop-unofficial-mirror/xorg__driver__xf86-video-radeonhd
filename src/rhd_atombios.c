@@ -118,8 +118,11 @@ static AtomBiosResult
 rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 			      AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult
-rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle,
-				 AtomBiosRequestID func, AtomBiosArgPtr data);
+rhdAtomIntegratedSystemInfoQuery(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+atomSetRegisterListLocation(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 
 
 enum msgDataFormat {
@@ -243,6 +246,10 @@ struct atomBIOSRequests {
      "PCI Lanes",				MSG_FORMAT_NONE},
     {ATOM_GET_ATOM_CONNECTOR_PRIVATE, rhdAtomGetAtomConnectorPrivate,
      "Output Privates",				MSG_FORMAT_NONE},
+    {ATOM_SET_REGISTER_LIST_LOCATION, atomSetRegisterListLocation,
+     "Register List Location",			MSG_FORMAT_NONE},
+    {ATOM_RESTORE_REGISTERS, atomRestoreRegisters,
+     "Restore Registers",			MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -4350,17 +4357,22 @@ RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 }
 
 
-void
-atomSetRegisterListLocation(atomBiosHandlePtr handle, void *Location)
+static AtomBiosResult
+atomSetRegisterListLocation(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
 {
-    handle->SaveList = (struct atomRegisterSaveList **)Location;
+    handle->SaveList = (struct atomRegisterSaveList **)data->Address;
+
+    return ATOM_SUCCESS;
 }
 
-void
-atomRestoreRegisters(atomBiosHandlePtr handle)
+static AtomBiosResult
+atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
 {
-    struct atomRegisterSaveList *List = *handle->SaveList;
+    struct atomRegisterSaveList *List = data->Address;
     int i;
+
+    if (!List)
+	return ATOM_FAILED;
 
     for (i = 0; i < List->Last; i++) {
 	switch ( List->RegisterList[i].Type) {
@@ -4393,9 +4405,10 @@ atomRestoreRegisters(atomBiosHandlePtr handle)
 	}
     }
 
-    /* deallocate list and NULL location */
+    /* deallocate list */
     xfree(List);
-    *handle->SaveList = NULL;
+
+    return ATOM_SUCCESS;
 }
 
 # ifdef ATOM_BIOS_PARSER
@@ -4590,6 +4603,7 @@ CailReadPCIConfigData(VOID*CAIL, VOID* ret, UINT32 idx,UINT16 size)
 VOID
 CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 {
+    atomSaveRegisters((atomBiosHandlePtr)CAIL, atomRegisterPCICFG, idx << 2);
     pci_device_cfg_write(RHDPTRI((atomBiosHandlePtr)CAIL)->PciInfo,
 			 src, idx << 2, size >> 3, NULL);
 }
@@ -4631,6 +4645,9 @@ CailWritePCIConfigData(VOID*CAIL,VOID*src,UINT32 idx,UINT16 size)
 
     CAILFUNC(CAIL);
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,idx,(*(unsigned int*)src)));
+
+    atomSaveRegisters((atomBiosHandlePtr)CAIL, atomRegisterPCICFG, idx << 2);
+
     switch (size) {
 	case 8:
 	    pciWriteByte(tag,idx << 2,*(CARD8*)src);
@@ -4667,6 +4684,7 @@ CailWritePLL(VOID *CAIL, ULONG Address,ULONG Data)
     CAILFUNC(CAIL);
 
     DEBUGP(ErrorF("%s(%x,%x)\n",__func__,Address,Data));
+    atomSaveRegisters((atomBiosHandlePtr)CAIL, atomRegisterPLL, Address);
     _RHDWritePLL(((atomBiosHandlePtr)CAIL)->scrnIndex, Address, Data);
 }
 
