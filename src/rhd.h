@@ -45,7 +45,6 @@
 
 #ifdef USE_DRI
 #define _XF86DRI_SERVER_
-#include "radeon_dripriv.h"
 #include "dri.h"
 #include "GL/glxint.h"
 #ifdef DAMAGE

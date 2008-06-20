@@ -1,4 +1,6 @@
 /*
+ * Copyright 2000  ATI Technologies Inc., Markham, Ontario,
+ * Copyright 2000  VA Linux Systems Inc., Fremont, California.
  * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
  * Copyright 2007  Egbert Eich   <eich@novell.com>
@@ -52,6 +54,17 @@ extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 #       define RADEON_CSQ_PRIPIO_INDBM         (3    << 28)
 #       define RADEON_CSQ_PRIBM_INDBM          (4    << 28)
 #       define RADEON_CSQ_PRIPIO_INDPIO        (15   << 28)
+
+typedef struct {
+    /* Nothing here yet */
+    int dummy;
+} RADEONConfigPrivRec, *RADEONConfigPrivPtr;
+
+typedef struct {
+    /* Nothing here yet */
+    int dummy;
+}
+RADEONDRIContextRec, *RADEONDRIContextPtr;
 
 struct rhdDri {
     int               scrnIndex;

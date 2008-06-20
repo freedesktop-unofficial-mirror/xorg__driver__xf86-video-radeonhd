@@ -56,7 +56,6 @@
 
 /* GLX/DRI/DRM definitions */
 #define _XF86DRI_SERVER_
-#include "radeon_dripriv.h"
 #include "dri.h"
 //#include "radeon_drm.h"
 #include "radeon_common.h"
