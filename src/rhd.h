@@ -216,16 +216,6 @@ enum AccelMethod {
     RHD_ACCEL_DEFAULT = 4 /* keep as highest. */
 };
 
-typedef struct {
-    int               bitsPerPixel;
-    int               depth;
-    int               displayWidth;
-    int               displayHeight;
-    int               pixel_code;
-    int               pixel_bytes;
-    DisplayModePtr    mode;
-} RADEONFBLayout;
-
 struct rhdAccel {
 #ifdef USE_XAA
     /*
@@ -413,8 +403,6 @@ typedef struct RHDRec {
     Bool              accelOn;
     Bool              allowColorTiling;
     Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
-
-    RADEONFBLayout    CurrentLayout;
 
     struct rhdAccel   *accel_state;
 

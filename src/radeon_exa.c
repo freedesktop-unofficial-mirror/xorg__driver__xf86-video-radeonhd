@@ -381,7 +381,7 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr info = RHDPTR(pScrn);
     //xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
-    int cpp = info->CurrentLayout.pixel_bytes;
+    int cpp = pScrn->bitsPerPixel >> 3;
     int screen_size;
     int byteStride = pScrn->displayWidth * cpp;
 
