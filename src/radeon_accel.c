@@ -94,6 +94,7 @@
 				/* X and server generic header files */
 #include "xf86.h"
 
+#define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
 
 #ifdef USE_XAA
 static struct {
@@ -247,8 +248,8 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
 
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineRestore (%d/%d)\n",
-		   info->CurrentLayout.pixel_code,
-		   info->CurrentLayout.bitsPerPixel);
+		   PIXEL_CODE(pScrn),
+		    pScrn->bitsPerPixel);
 
     /* Setup engine location. This shouldn't be necessary since we
      * set them appropriately before any accel ops, but let's avoid
@@ -295,11 +296,12 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
 void RADEONEngineInit(ScrnInfoPtr pScrn)
 {
     RHDPtr info = RHDPTR(pScrn);
-
+    int pixel_code = PIXEL_CODE(pScrn);
+    
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
-		   info->CurrentLayout.pixel_code,
-		   info->CurrentLayout.bitsPerPixel);
+		   PIXEL_CODE(pScrn),
+		   pScrn->bitsPerPixel);
 
 #ifdef USE_DRI
     if (info->directRenderingEnabled) {
@@ -352,7 +354,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 
     RADEONEngineReset(pScrn);
 
-    switch (info->CurrentLayout.pixel_code) {
+    switch (pixel_code) {
     case 8:  info->accel_state->datatype = 2; break;
     case 15: info->accel_state->datatype = 3; break;
     case 16: info->accel_state->datatype = 4; break;
@@ -361,12 +363,11 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     default:
 	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		       "Unknown depth/bpp = %d/%d (code = %d)\n",
-		       info->CurrentLayout.depth,
-		       info->CurrentLayout.bitsPerPixel,
-		       info->CurrentLayout.pixel_code);
+		       pScrn->depth, pScrn->bitsPerPixel,
+		       pixel_code);
     }
-    info->accel_state->pitch = ((info->CurrentLayout.displayWidth / 8) *
-				(info->CurrentLayout.pixel_bytes == 3 ? 3 : 1));
+    info->accel_state->pitch = ((pScrn->displayWidth >> 3) *
+				((pScrn->bitsPerPixel >> 3) == 3 ? 3 : 1));
 
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "Pitch for acceleration = %d\n", info->accel_state->pitch);
@@ -903,7 +904,7 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
     BoxRec         MemBox;
     int            y2;
 
-    int width_bytes = pScrn->displayWidth * info->CurrentLayout.pixel_bytes;
+    int width_bytes = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
 
     MemBox.x1 = 0;
     MemBox.y1 = 0;

@@ -575,13 +575,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
     xf86PrintDepthBpp(pScrn);
 
-    rhdPtr->CurrentLayout.bitsPerPixel = pScrn->bitsPerPixel;
-    rhdPtr->CurrentLayout.depth        = pScrn->depth;
-    rhdPtr->CurrentLayout.pixel_bytes  = pScrn->bitsPerPixel / 8;
-    rhdPtr->CurrentLayout.pixel_code   = (pScrn->bitsPerPixel != 16
-                                       ? pScrn->bitsPerPixel
-					: pScrn->depth);
-
     rhdProcessOptions(pScrn);
 
     /* Now check whether we know this card */
@@ -1071,7 +1064,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
 	    RADEONSetupMemXAA(scrnIndex, pScreen);
 
-	rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * rhdPtr->CurrentLayout.pixel_bytes / 64)
+	rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * (pScrn->bitsPerPixel >> 3) / 64)
 						  << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
 	if (RADEONAccelInit(pScreen))
 	    rhdPtr->accelOn = TRUE;

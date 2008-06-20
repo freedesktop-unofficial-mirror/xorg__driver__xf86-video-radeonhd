@@ -501,7 +501,7 @@ RADEONAllocateMemory(
 #ifdef USE_XAA
     if (!info->useEXA) {
 	FBLinearPtr linear = *mem_struct;
-	int cpp = info->CurrentLayout.bitsPerPixel / 8;
+	int cpp = pScrn->bitsPerPixel >> 3;
 
 	/* XAA allocates in units of pixels at the screen bpp, so adjust size
 	 * appropriately.
