@@ -9,6 +9,8 @@
 #include <math.h>
 
 #include "rhd.h"
+#include "rhd_cp.h"
+
 #include "radeon_reg.h"
 #include "radeon_video.h"
 

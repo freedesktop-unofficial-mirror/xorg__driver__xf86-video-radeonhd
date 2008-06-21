@@ -53,4 +53,90 @@ extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 #       define RADEON_CSQ_PRIBM_INDBM          (4    << 28)
 #       define RADEON_CSQ_PRIPIO_INDPIO        (15   << 28)
 
+struct rhdDri {
+    int               scrnIndex;
+
+    /* FIXME: Some Save&Restore is still a TODO
+     * Need to save/restore/update GEN_INT_CNTL (interrupts) on drm init.
+     * AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION are (partially) handled
+     * in _mc.c */
+
+#if 0
+    /* TODO: color tiling
+     * discuss: should front buffer ever be tiled?
+     * should xv surfaces ever be tiled?
+     * should anything else ever *not* be tiled?) */
+    Bool              allowColorTiling;
+    Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
+#endif
+
+    int               pixel_code;
+
+    DRIInfoPtr        pDRIInfo;
+    int               drmFD;
+    int               numVisualConfigs;
+    __GLXvisualConfig *pVisualConfigs;
+    RADEONConfigPrivPtr pVisualConfigsPriv;
+
+    drm_handle_t      registerHandle;
+    drm_handle_t      pciMemHandle;
+    int               irq;
+
+    int               have3Dwindows;
+
+    drmSize           gartSize;
+    drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
+    unsigned long     gartOffset;
+    int               agpMode;
+
+    /* CP ring buffer data */
+    unsigned long     ringStart;        /* Offset into GART space */
+    drm_handle_t      ringHandle;       /* Handle from drmAddMap */
+    drmSize           ringMapSize;      /* Size of map */
+    int               ringSize;         /* Size of ring (in MB) */
+    drmAddress        ring;             /* Map */
+    int               ringSizeLog2QW;
+
+    /* TODO: what is r/o ring space for (1 page) */
+    unsigned long     ringReadOffset;   /* Offset into GART space */
+    drm_handle_t      ringReadPtrHandle; /* Handle from drmAddMap */
+    drmSize           ringReadMapSize;  /* Size of map */
+    drmAddress        ringReadPtr;      /* Map */
+
+    /* CP vertex/indirect buffer data */
+    unsigned long     bufStart;         /* Offset into GART space */
+    drm_handle_t      bufHandle;        /* Handle from drmAddMap */
+    drmSize           bufMapSize;       /* Size of map */
+    int               bufSize;          /* Size of buffers (in MB) */
+    drmAddress        buf;              /* Map */
+    int               bufNumBufs;       /* Number of buffers */
+    drmBufMapPtr      buffers;          /* Buffer map */
+
+    /* CP GART Texture data */
+    unsigned long     gartTexStart;      /* Offset into GART space */
+    drm_handle_t      gartTexHandle;     /* Handle from drmAddMap */
+    drmSize           gartTexMapSize;    /* Size of map */
+    int               gartTexSize;       /* Size of GART tex space (in MB) */
+    drmAddress        gartTex;           /* Map */
+    int               log2GARTTexGran;
+
+    /* DRI screen private data */
+    int               frontOffset;
+    int               frontPitch;
+    int               backOffset;
+    int               backPitch;
+    int               depthOffset;
+    int               depthPitch;
+    int               depthBits;
+    int               textureOffset;
+    int               textureSize;
+    int               log2TexGran;
+
+    int               pciGartSize;
+    CARD32            pciGartOffset;
+    void             *pciGartBackup;
+
+    uint32_t         gartLocation;
+};
+
 #endif

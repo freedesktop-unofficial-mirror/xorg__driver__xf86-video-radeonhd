@@ -78,6 +78,7 @@
 #include "rhd_regs.h"
 #include "radeon_reg.h"
 #include "rhd_dri.h"
+#include "rhd_cp.h"
 #include "r5xx_accel.h"
 #include "radeon_dri.h"
 
@@ -101,7 +102,6 @@
 #define RADEON_DRIAPI_VERSION_MAJOR_TILED 5
 #define RADEON_DRIAPI_VERSION_MINOR 3
 #define RADEON_DRIAPI_VERSION_PATCH 0
-
 
 static size_t radeon_drm_page_size;
 static char  *dri_driver_name  = "radeon";

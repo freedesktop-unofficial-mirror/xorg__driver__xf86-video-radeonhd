@@ -34,6 +34,9 @@
 #endif
 
 #include "rhd.h"
+#include "rhd_dri.h"
+#include "rhd_cp.h"
+
 #include "radeon_reg.h"
 #ifdef USE_DRI
 #include "radeon_dri.h"
