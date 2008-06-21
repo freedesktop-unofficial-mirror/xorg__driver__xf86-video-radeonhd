@@ -1413,7 +1413,9 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 #endif
 
 #ifdef USE_EXA
-    if (rhdPtr->accelDFS) {
+    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA
+	&& rhdPtr->cardType != RHD_CARD_AGP) {
+	/* FIXME: add option to enable/disable */
 	drmRadeonGetParam gp;
 	int gart_base;
 
@@ -1429,6 +1431,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 	    rhdPtr->accelDFS = FALSE;
 	} else {
 	    rhdDRI->gartLocation = gart_base;
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		       "Using accelerated EXA DownloadFromScreen hook\n");
 	}
     }
 #endif /* USE_EXA */
