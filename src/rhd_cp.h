@@ -42,8 +42,8 @@ do {									\
 #  define RADEONCP_RELEASE(pScrn, info)					\
 do {									\
     if (info->cp->CPInUse) {						\
-	RADEON_PURGE_CACHE();						\
-	RADEON_WAIT_UNTIL_IDLE();					\
+	RADEON_PURGE_CACHE(info);						\
+	RADEON_WAIT_UNTIL_IDLE(info);					\
 	RADEONCPReleaseIndirect(pScrn);					\
 	info->cp->CPInUse = FALSE;					\
     }									\
@@ -79,11 +79,11 @@ do {									\
 do {									\
     if (!info->cp->CPInUse) {						\
 	if (info->cp->needCacheFlush) {					\
-	    RADEON_PURGE_CACHE();					\
+	    RADEON_PURGE_CACHE(info);					\
 	    RADEON_PURGE_ZCACHE();					\
 	    info->cp->needCacheFlush = FALSE;				\
 	}								\
-	RADEON_WAIT_UNTIL_IDLE();					\
+	RADEON_WAIT_UNTIL_IDLE(info);					\
             BEGIN_RING(4);                                              \
             OUT_RING_REG(R300_SC_SCISSOR0, info->accel_state->re_top_left);   \
 	    OUT_RING_REG(R300_SC_SCISSOR1, info->accel_state->re_width_height);      \
@@ -107,7 +107,7 @@ do {									\
 
 #  define RING_LOCALS	uint32_t *__head = NULL; int __expected; int __count = 0
 
-#  define BEGIN_RING(n) do {						\
+#  define BEGIN_RING_INFO(info, n) do {					\
     if (RADEON_VERBOSE) {						\
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO,				\
 		   "BEGIN_RING(%d) in %s\n", (unsigned int)n, __FUNCTION__);\
@@ -133,7 +133,9 @@ do {									\
     __count = 0;							\
 } while (0)
 
-#  define ADVANCE_RING() do {						\
+#  define BEGIN_RING(n) BEGIN_RING_INFO(info, n)
+
+#  define ADVANCE_RING_INFO(info) do {						\
     if (info->cp->dma_begin_count-- != 1) {				\
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,				\
 		   "ADVANCE_RING without begin at %s:%d\n",		\
@@ -154,6 +156,8 @@ do {									\
     }									\
     info->cp->indirectBuffer->used += __count * (int)sizeof(uint32_t);	\
 } while (0)
+
+#  define ADVANCE_RING() ADVANCE_RING_INFO(info)
 
 #  define OUT_RING(x) do {						\
     if (RADEON_VERBOSE) {						\
@@ -198,26 +202,26 @@ do {									\
     ADVANCE_RING();							\
 } while (0)
 
-#  define RADEON_WAIT_UNTIL_IDLE()					\
+#  define RADEON_WAIT_UNTIL_IDLE(info)					\
 do {									\
     if (RADEON_VERBOSE) {						\
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO,				\
 		   "WAIT_UNTIL_IDLE() in %s\n", __FUNCTION__);		\
     }									\
-    BEGIN_RING(2);							\
+    BEGIN_RING_INFO(info,2);						\
     OUT_RING(CP_PACKET0(RADEON_WAIT_UNTIL, 0));				\
     OUT_RING((RADEON_WAIT_2D_IDLECLEAN |				\
 	      RADEON_WAIT_3D_IDLECLEAN |				\
 	      RADEON_WAIT_HOST_IDLECLEAN));				\
-    ADVANCE_RING();							\
+    ADVANCE_RING_INFO(info);							\
 } while (0)
 
-#  define RADEON_PURGE_CACHE()						\
+#  define RADEON_PURGE_CACHE(info)						\
 do {									\
-    BEGIN_RING(2);							\
+    BEGIN_RING_INFO(info,2);						\
         OUT_RING(CP_PACKET0(R300_RB3D_DSTCACHE_CTLSTAT, 0));		\
         OUT_RING(R300_RB3D_DC_FLUSH_ALL);				\
-    ADVANCE_RING();							\
+    ADVANCE_RING_INFO(info);							\
 } while (0)
 
 #  define RADEON_PURGE_ZCACHE()						\
