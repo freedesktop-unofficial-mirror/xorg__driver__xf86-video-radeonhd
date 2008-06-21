@@ -78,6 +78,7 @@
 #include "rhd_regs.h"
 #include "radeon_reg.h"
 #include "rhd_dri.h"
+#include "rhd_cp.h"
 #include "r5xx_accel.h"
 #include "radeon_dri.h"
 
