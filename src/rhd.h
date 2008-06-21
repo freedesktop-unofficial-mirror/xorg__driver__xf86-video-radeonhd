@@ -407,9 +407,6 @@ typedef struct RHDRec {
 
 #ifdef USE_EXA
     ExaDriverPtr      exa;
-#ifdef USE_DRI
-    Bool              accelDFS;
-#endif
 #endif
 #ifdef USE_XAA
     XAAInfoRecPtr     accel;
@@ -432,21 +429,10 @@ typedef struct RHDRec {
 
     Bool              DMAForXv;
 
-#ifdef PER_CONTEXT_SAREA
-    int               perctx_sarea_size;
-#endif
-
 #endif /* USE_DRI */
 
     /* Render */
     Bool              RenderAccel;
-
-#ifdef USE_EXA
-    XF86ModReqInfo    exaReq;
-#endif
-#ifdef USE_XAA
-    XF86ModReqInfo    xaaReq;
-#endif
 
     Bool              useEXA;
 

@@ -1183,8 +1183,6 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
     a->SubsequentSolidHorVertLine
 	= FUNC_NAME(RADEONSubsequentSolidHorVertLine);
 
-    if (info->xaaReq.minorversion >= 1) {
-
     /* RADEON only supports 14 bits for lines and clipping and only
      * draws lines that are completely on-screen correctly.  This will
      * cause display corruption problem in the cases when out-of-range
@@ -1230,10 +1228,6 @@ FUNC_NAME(RADEONAccelInit)(ScreenPtr pScreen, XAAInfoRecPtr a)
 	a->DashedLineLimits.y2 = pScrn->virtualY-1;
     }
 #endif
-    } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "libxaa too old, can't accelerate TwoPoint lines\n");
-    }
 
     /* Clipping, note that without this, all line accelerations will
      * not be called
