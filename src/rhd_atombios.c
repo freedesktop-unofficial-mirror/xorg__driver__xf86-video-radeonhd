@@ -842,7 +842,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
-	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
 	return TRUE;
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Failed\n",name);
