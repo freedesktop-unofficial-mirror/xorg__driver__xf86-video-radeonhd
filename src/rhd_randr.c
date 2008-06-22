@@ -665,6 +665,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     DisplayModePtr     Mode   = xf86DuplicateMode(OrigMode);
     int                Status;
 
+    RHDFUNC(rhdPtr);
     /* RandR may give us a mode without a name... (xf86RandRModeConvert)
      * xf86DuplicateMode should fill it up, though */
     if (!Mode->name)
@@ -702,6 +703,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     DisplayModePtr     DisplayedMode;
     Bool               Scaled = FALSE;
 
+    RHDFUNC(rhdPtr);
     ASSERT(out->crtc);
     Crtc = (struct rhdCrtc *) out->crtc->driver_private;
 
@@ -804,6 +806,8 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
     struct rhdCrtc   *Crtc   = (struct rhdCrtc *) out->crtc->driver_private;
 
+    RHDFUNC(rhdPtr);
+    
     /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
     if (!Mode->name && out->crtc->mode.name)
 	Mode->name = xstrdup(out->crtc->mode.name);
@@ -1068,6 +1072,8 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 {
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+
+    RHDFUNC(rhdPtr);
 
     if (property == atomPanningArea) {
 	int w = 0, h = 0, x = 0, y = 0;
@@ -1473,6 +1479,8 @@ RHDRandrModeInit(ScrnInfoPtr pScrn)
     Bool ret;
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    RHDFUNC(rhdPtr);
+    
     /* Stop crap from being shown: gets reenabled through SaveScreen */
     rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
     rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);

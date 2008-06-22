@@ -1264,6 +1264,7 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
     DRIInfoPtr     pDRIInfo;
     RADEONDRIPtr   pRADEONDRI;
 
+    RHDFUNC(rhdPtr);
     /* Create the DRI data structure, and fill it in before calling the
      * DRIScreenInit(). */
     if (!(pDRIInfo = DRICreateInfoRec())) return FALSE;
@@ -1390,6 +1391,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     struct rhdDri      *info   = rhdPtr->dri;
     drm_radeon_sarea_t *pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
+
+    RHDFUNC(rhdPtr);
 
     if (! info)
 	return FALSE;
