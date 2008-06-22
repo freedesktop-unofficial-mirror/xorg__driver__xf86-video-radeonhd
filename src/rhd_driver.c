@@ -1139,9 +1139,15 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	RHDShadowCloseScreen(pScreen);
 #ifdef USE_EXA
     else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	if (rhdPtr->ChipSet < RHD_R600)
+	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxEXACloseScreen(pScreen);
+	    R5xxEXADestroy(pScrn);
+	}
+    } else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	if (rhdPtr->ChipSet < RHD_R600)
+	    R5xxXAADestroy(pScrn);
     }
+
 #endif /* USE_EXA */
     /* nothing for XAA: handled in FreeRec */
 
