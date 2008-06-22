@@ -1491,7 +1491,7 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
     else
 	RamSize = (RHDRegRead(rhdPtr, R6XX_CONFIG_MEMSIZE)) >> 10;
 #ifdef XSERVER_LIBPCIACCESS
-    BARSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+    BARSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size >> 10;
 #else
     BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
 #endif
