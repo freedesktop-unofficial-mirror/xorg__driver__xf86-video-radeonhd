@@ -1551,6 +1551,20 @@ rhdMapFB(RHDPtr rhdPtr)
 	    option = X_DEFAULT;
 	}
 	if (SetIGPMemory) {
+	    CARD32 tmp = 0xfffffc00;
+	    CARD32 s = pScrn->videoRam;
+	    while (! (s & 0x1)) {
+		s >>= 1;
+		tmp <<= 1;
+	    }
+	    if (rhdPtr->FbPhysAddress & ~tmp) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+			   "IGP memory base 0x%8.8x seems to be bogus.\n", rhdPtr->FbPhysAddress);
+		SetIGPMemory = FALSE;
+		option = X_DEFAULT;
+	    }
+	}
+	if (SetIGPMemory) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Mapping IGP memory @ 0x%8.8x\n",rhdPtr->FbPhysAddress);
 	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 	    rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
