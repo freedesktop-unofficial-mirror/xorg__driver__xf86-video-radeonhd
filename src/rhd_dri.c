@@ -1010,6 +1010,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     rhdDRI->ringSize      = RHD_DEFAULT_RING_SIZE;
     rhdDRI->bufSize       = RHD_DEFAULT_BUFFER_SIZE;
 
+    rhdDRI->gartLocation  = GART_LOCATION_INVALID;
+
 #if 0
     if ((xf86GetOptValInteger(rhdPtr->Options,
 			      OPTION_GART_SIZE, (int *)&(rhdDRI->gartSize))) ||
@@ -1413,8 +1415,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 #endif
 
 #ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA
-	&& rhdPtr->cardType != RHD_CARD_AGP) {
+    /* @@@ for emmes: do we need to update this on EnterVT? */
+    if (rhdPtr->cardType != RHD_CARD_AGP) {
 	/* FIXME: add option to enable/disable */
 	drmRadeonGetParam gp;
 	int gart_base;
@@ -1426,15 +1428,17 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 	if (drmCommandWriteRead(rhdDRI->drmFD, DRM_RADEON_GETPARAM, &gp,
 				sizeof(gp)) < 0) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                       "Failed to determine GART area MC location, not using "
+		       "Failed to determine GART area MC location, not using "
 		       "accelerated DownloadFromScreen hook!\n");
-	    rhdPtr->accelDFS = FALSE;
+	    rhdDRI->gartLocation = GART_LOCATION_INVALID;
 	} else {
 	    rhdDRI->gartLocation = gart_base;
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "Using accelerated EXA DownloadFromScreen hook\n");
+		       "Using accelerated EXA DownloadFromScreen hook; GART location = 0x%8.8x\n",
+		       gart_base);
 	}
-    }
+    } else
+	rhdDRI->gartLocation = GART_LOCATION_INVALID;
 #endif /* USE_EXA */
 
     rhdPtr->directRenderingInited = TRUE;
@@ -1549,6 +1553,9 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 	rhdDRI->irq = 0;
 //	rhdDRI->ModeReg->gen_int_cntl = 0;
     }
+
+    /* invalidate GART location for EXA */
+    rhdDRI->gartLocation  = GART_LOCATION_INVALID;
 
     /* De-allocate vertex buffers */
     if (rhdDRI->buffers) {
