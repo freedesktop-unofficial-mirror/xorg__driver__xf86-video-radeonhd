@@ -463,7 +463,12 @@ main(int argc, char *argv[])
 		    device->vendor_id, device->device_id, bus, dev, func);
 	    return 1;
 	}
+    } else {
+	fprintf(stderr, "No PCI tag provided. "
+		"Please provide a pci tag of the form xx:xx.x.\n");
+	return 1;
     }
+
 
     /* make sure we can actually read DEV_MEM before we do anything else */
     devMem = open(DEV_MEM, O_RDWR);
