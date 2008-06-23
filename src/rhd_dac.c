@@ -90,11 +90,12 @@ DACSense(struct rhdOutput *Output, CARD32 offset, Bool TV)
     RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000001);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00ff0000);
 
-    if (TV)
-	RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x00000100);
-    else
-	RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000100);
-
+    if (offset) { /* We can do TV on DACA but only DACB has mux for separate connector */
+	if (TV)
+	    RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x00000100);
+	else
+	    RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x00000100);
+    }
     RHDRegWrite(Output, offset + DACA_FORCE_DATA, 0);
     RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000001, 0x0000001);
 
@@ -250,12 +251,14 @@ DACSet(struct rhdOutput *Output, CARD16 offset)
     RHDRegMask(Output, offset + DACA_CONTROL1, Adjust << 8, 0x0000FF00);
 
     if (TV) {
-	/* tv enable */ /* ??? is this bit even available on DACA ??? */
-	RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x0000FF00);
+	/* tv enable */
+	if (offset) /* TV mux only available on DACB */
+	    RHDRegMask(Output, offset + DACA_CONTROL2, 0x00000100, 0x0000FF00);
 	/* select tv encoder */
 	RHDRegMask(Output, offset + DACA_SOURCE_SELECT, 0x00000002, 0x00000003);
     } else {
-	RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x0000FF00);
+	if (offset) /* TV mux only available on DACB */
+	    RHDRegMask(Output, offset + DACA_CONTROL2, 0, 0x0000FF00);
 	/* select a crtc */
 	RHDRegMask(Output, offset + DACA_SOURCE_SELECT, Output->Crtc->Id & 0x01, 0x00000003);
     }
@@ -477,10 +480,12 @@ DACSenseRV620(struct rhdOutput *Output, CARD32 offset, Bool TV)
     DetectControl = RHDRegRead(Output, offset + RV620_DACA_AUTODETECT_CONTROL);
     CompEnable = RHDRegRead(Output, offset + RV620_DACA_COMPARATOR_ENABLE);
 
-    if (TV)
-	RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x100, 0xff00);
-    else
-	RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x00, 0xff00);
+    if (offset) {  /* We can do TV on DACA but only DACB has mux for separate connector */
+	if (TV)
+	    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x100, 0xff00);
+	else
+	    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x00, 0xff00);
+    }
     RHDRegMask(Output, offset + RV620_DACA_FORCE_DATA, 0x18, 0xffff);
     RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
     RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_CONTROL, 0x00, 0xff);
@@ -621,7 +626,8 @@ DACSetRV620(struct rhdOutput *Output, CARD16 offset)
     }
     RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, Mode); /* no fine control yet */
     RHDRegMask(Output,  offset + RV620_DACA_SOURCE_SELECT, Source, 0x00000003);
-    RHDRegMask(Output,  offset + RV620_DACA_CONTROL2, TV << 8, 0x0100); /* tv enable/disable */
+    if (offset) /* TV mux only present on DACB */
+	RHDRegMask(Output,  offset + RV620_DACA_CONTROL2, TV << 8, 0x0100); /* tv enable/disable */
     /* use fine control from white_fine control register */
     RHDRegMask(Output, offset + RV620_DACA_AUTO_CALIB_CONTROL, 0x0, 0x4);
     RHDRegMask(Output, offset + RV620_DACA_BGADJ_SRC, 0x0, 0x30);
