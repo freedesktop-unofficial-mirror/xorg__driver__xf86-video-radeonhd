@@ -101,6 +101,7 @@ struct rhdDri {
     drm_handle_t      agpMemHandle;     /* Handle from drmAgpAlloc */
     unsigned long     gartOffset;
     int               agpMode;
+    Bool              CPStarted;
 
     /* CP ring buffer data */
     unsigned long     ringStart;        /* Offset into GART space */
