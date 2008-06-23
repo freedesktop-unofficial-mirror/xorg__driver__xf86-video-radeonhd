@@ -405,11 +405,6 @@ typedef struct RHDRec {
 
 #ifdef USE_DRI
     Bool              directRenderingEnabled;
-    Bool              directRenderingInited;
-#ifdef DAMAGE
-    DamagePtr         pDamage;
-    RegionRec         driRegion;
-#endif
     struct rhdCP      *cp;
     Bool              DMAForXv;
 #endif /* USE_DRI */

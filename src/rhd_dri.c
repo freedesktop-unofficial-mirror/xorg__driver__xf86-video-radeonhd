@@ -1352,6 +1352,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 
     /* Initialize and start the CP if required */
     RHDDRICPStart(pScrn);
+    rhdDRI->CPStarted = TRUE;
+
 
     /* Initialize the SAREA private data structure */
     pSAREAPriv = (RADEONSAREAPriv *)DRIGetSAREAPrivate(pScreen);
@@ -1441,8 +1443,6 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 	rhdDRI->gartLocation = GART_LOCATION_INVALID;
 #endif /* USE_EXA */
 
-    rhdPtr->directRenderingInited = TRUE;
-
     return TRUE;
 }
 
@@ -1475,6 +1475,8 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	       rhdDRI->pciGartBackup, rhdDRI->pciGartSize);
 
     RHDDRICPStart(pScrn);
+    rhdDRI->CPStarted = TRUE;
+
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
     DRIUnlock(pScrn->pScreen);
@@ -1485,20 +1487,20 @@ RHDDRMStop(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
     RHDPtr  rhdPtr  = RHDPTR(pScrn);
+    struct rhdDri *rhdDRI   = rhdPtr->dri;
     RING_LOCALS;
 
-    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-                   "RHDDRMStop\n");
+    RHDFUNC(rhdPtr);
 
     /* Stop the CP */
-    if (rhdPtr->directRenderingInited) {
+    if (rhdDRI->CPStarted) {
 	/* If we've generated any CP commands, we must flush them to the
          * kernel module now.
          */
         RADEONCP_RELEASE(pScrn, rhdPtr);
         RADEONCP_STOP(pScrn, rhdPtr);
     }
-    rhdPtr->directRenderingInited = FALSE;
+    rhdDRI->CPStarted = FALSE;
 
 }
 
