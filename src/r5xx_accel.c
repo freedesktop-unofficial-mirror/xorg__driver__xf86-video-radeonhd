@@ -121,15 +121,15 @@ R5xx2DFlush(int scrnIndex)
 {
     int i;
 
-    _RHDRegMask(scrnIndex, R5XX_RB3D_DSTCACHE_CTLSTAT,
-		R5XX_RB3D_DC_FLUSH_ALL, R5XX_RB3D_DC_FLUSH_ALL);
+    _RHDRegMask(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT,
+		R5XX_RB2D_DC_FLUSH_ALL, R5XX_RB2D_DC_FLUSH_ALL);
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
-	if (!(_RHDRegRead(scrnIndex, R5XX_RB3D_DSTCACHE_CTLSTAT) & R5XX_RB3D_DC_BUSY))
+	if (!(_RHDRegRead(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT) & R5XX_RB2D_DC_BUSY))
 	    return TRUE;
 
     xf86DrvMsg(scrnIndex, X_ERROR, "%s: Timeout 0x%08x.\n", __func__,
-	       (unsigned int)_RHDRegRead(scrnIndex, R5XX_RB3D_DSTCACHE_CTLSTAT));
+	       (unsigned int)_RHDRegRead(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT));
     return FALSE;
 }
 
@@ -212,8 +212,9 @@ R5xx2DReset(ScrnInfoPtr pScrn)
     RHDRegRead(rhdPtr, R5XX_RBBM_SOFT_RESET);
     RHDRegWrite(rhdPtr, R5XX_RBBM_SOFT_RESET, 0);
 
-    tmp = RHDRegRead(rhdPtr, R5XX_RB3D_DSTCACHE_MODE);
-    RHDRegWrite(rhdPtr, R5XX_RB3D_DSTCACHE_MODE, tmp | (1 << 17)); /* FIXME */
+    RHDRegMask(rhdPtr, R5XX_RB2D_DSTCACHE_MODE,
+	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE,
+	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE);
 
     RHDRegWrite(rhdPtr, R5XX_HOST_PATH_CNTL, save | R5XX_HDP_SOFT_RESET);
     RHDRegRead(rhdPtr, R5XX_HOST_PATH_CNTL);
@@ -373,7 +374,13 @@ R5xx2DInit(ScrnInfoPtr pScrn)
 
     R5xx2DPreInit(pScrn);
 
-    RHDRegWrite(rhdPtr, R5XX_RB3D_CNTL, 0);
+    RHDRegMask(rhdPtr, R5XX_GB_TILE_CONFIG, 0, R5XX_ENABLE_TILING);
+    RHDRegWrite(rhdPtr, R5XX_WAIT_UNTIL,
+		R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
+    RHDRegMask(rhdPtr, R5XX_DST_PIPE_CONFIG, R5XX_PIPE_AUTO_CONFIG, R5XX_PIPE_AUTO_CONFIG);
+    RHDRegMask(rhdPtr, R5XX_RB2D_DSTCACHE_MODE,
+	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE,
+	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE);
 
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);

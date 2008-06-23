@@ -225,6 +225,13 @@
 #       define R5XX_SC_SIGN_MASK_LO       0x8000
 #       define R5XX_SC_SIGN_MASK_HI       0x80000000
 
+#define R5XX_DST_PIPE_CONFIG		  0x170c
+#       define R5XX_PIPE_AUTO_CONFIG      (1 << 31)
+
+#define R5XX_WAIT_UNTIL			  0x1720
+#       define R5XX_WAIT_2D_IDLECLEAN     (1 << 16)
+#       define R5XX_WAIT_3D_IDLECLEAN     (1 << 17)
+
 #define R5XX_RBBM_GUICNTL                 0x172c
 #       define R5XX_HOST_DATA_SWAP_NONE   (0 << 0)
 #       define R5XX_HOST_DATA_SWAP_16BIT  (1 << 0)
@@ -241,48 +248,25 @@
 #define R5XX_HOST_DATA7                   0x17dc
 #define R5XX_HOST_DATA_LAST               0x17e0
 
-#define R5XX_RB3D_CNTL                    0x1c3c
-#       define R5XX_ALPHA_BLEND_ENABLE       (1  <<  0)
-#       define R5XX_PLANE_MASK_ENABLE        (1  <<  1)
-#       define R5XX_DITHER_ENABLE            (1  <<  2)
-#       define R5XX_ROUND_ENABLE             (1  <<  3)
-#       define R5XX_SCALE_DITHER_ENABLE      (1  <<  4)
-#       define R5XX_DITHER_INIT              (1  <<  5)
-#       define R5XX_ROP_ENABLE               (1  <<  6)
-#       define R5XX_STENCIL_ENABLE           (1  <<  7)
-#       define R5XX_Z_ENABLE                 (1  <<  8)
-#       define R5XX_DEPTH_XZ_OFFEST_ENABLE   (1  <<  9)
-#       define R5XX_COLOR_FORMAT_ARGB1555    (3  << 10)
-#       define R5XX_COLOR_FORMAT_RGB565      (4  << 10)
-#       define R5XX_COLOR_FORMAT_ARGB8888    (6  << 10)
-#       define R5XX_COLOR_FORMAT_RGB332      (7  << 10)
-#       define R5XX_COLOR_FORMAT_Y8          (8  << 10)
-#       define R5XX_COLOR_FORMAT_RGB8        (9  << 10)
-#       define R5XX_COLOR_FORMAT_YUV422_VYUY (11 << 10)
-#       define R5XX_COLOR_FORMAT_YUV422_YVYU (12 << 10)
-#       define R5XX_COLOR_FORMAT_aYUV444     (14 << 10)
-#       define R5XX_COLOR_FORMAT_ARGB4444    (15 << 10)
-#       define R5XX_CLRCMP_FLIP_ENABLE       (1  << 14)
+#define R5XX_RB2D_DSTCACHE_MODE		                0x3428
+#       define R5XX_RB2D_DC_AUTOFLUSH_ENABLE            (1 << 8)
+#       define R5XX_RB2D_DC_DISABLE_IGNORE_PE           (1 << 17)
+#define R5XX_RB2D_DSTCACHE_CTLSTAT		        0x342C
+#       define R5XX_RB2D_DC_FLUSH_2D                    (1 << 0)
+#       define R5XX_RB2D_DC_FREE_2D                     (1 << 2)
+#       define R5XX_RB2D_DC_FLUSH_ALL                   (R5XX_RB2D_DC_FLUSH_2D | R5XX_RB2D_DC_FREE_2D)
+#       define R5XX_RB2D_DC_BUSY                        (1 << 31)
 
-#define R5XX_RB3D_DSTCACHE_CTLSTAT        0x325C
-#       define R5XX_RB3D_DC_FLUSH         (3 << 0)
-#       define R5XX_RB3D_DC_FREE          (3 << 2)
-#       define R5XX_RB3D_DC_FLUSH_ALL     0xf
-#       define R5XX_RB3D_DC_BUSY          (1 << 31)
-
-#define R5XX_RB3D_DSTCACHE_MODE           0x3258
-# define R5XX_RB3D_DC_CACHE_ENABLE            (0)
-# define R5XX_RB3D_DC_2D_CACHE_DISABLE        (1)
-# define R5XX_RB3D_DC_3D_CACHE_DISABLE        (2)
-# define R5XX_RB3D_DC_CACHE_DISABLE           (3)
-# define R5XX_RB3D_DC_2D_CACHE_LINESIZE_128   (1 << 2)
-# define R5XX_RB3D_DC_3D_CACHE_LINESIZE_128   (2 << 2)
-# define R5XX_RB3D_DC_2D_CACHE_AUTOFLUSH      (1 << 8)
-# define R5XX_RB3D_DC_3D_CACHE_AUTOFLUSH      (2 << 8)
-# define R200_RB3D_DC_2D_CACHE_AUTOFREE       (1 << 10)
-# define R200_RB3D_DC_3D_CACHE_AUTOFREE       (2 << 10)
-# define R5XX_RB3D_DC_FORCE_RMW               (1 << 16)
-# define R5XX_RB3D_DC_DISABLE_RI_FILL         (1 << 24)
-# define R5XX_RB3D_DC_DISABLE_RI_READ         (1 << 25)
+#define R5XX_GB_TILE_CONFIG				0x4018
+#       define R5XX_ENABLE_TILING                       (1 << 0)
+#       define R5XX_PIPE_COUNT_RV350                    (0 << 1)
+#       define R5XX_PIPE_COUNT_R300                     (3 << 1)
+#       define R5XX_PIPE_COUNT_R420_3P                  (6 << 1)
+#       define R5XX_PIPE_COUNT_R420                     (7 << 1)
+#       define R5XX_TILE_SIZE_8                         (0 << 4)
+#       define R5XX_TILE_SIZE_16                        (1 << 4)
+#       define R5XX_TILE_SIZE_32                        (2 << 4)
+#       define R5XX_SUBPIXEL_1_12                       (0 << 16)
+#       define R5XX_SUBPIXEL_1_16                       (1 << 16)
 
 #endif /* _R5XX_2DREGS_H */
