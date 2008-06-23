@@ -148,7 +148,7 @@ struct rhdDri {
     int               pciGartSize;
     CARD32            pciGartOffset;
     void             *pciGartBackup;
-
+#define GART_LOCATION_INVALID (~(CARD32)0)
     uint32_t         gartLocation;
 };
 

@@ -368,7 +368,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
      * blitting the bits to one half while copying them out of the other one and
      * then swapping the halves.
      */
-    if (info->accelDFS && bpp != 24 && RADEONGetDatatypeBpp(bpp, &datatype) &&
+    if (info->dri->gartLocation != GART_LOCATION_INVALID && bpp != 24 && RADEONGetDatatypeBpp(bpp, &datatype) &&
 	RADEONGetPixmapOffsetPitch(pSrc, &src_pitch_offset) &&
 	(scratch = RADEONCPGetBuffer(pScrn)))
     {
