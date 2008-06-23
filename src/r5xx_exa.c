@@ -46,7 +46,7 @@
 
 #include "rhd.h"
 #include "r5xx_accel.h"
-#include "r5xx_2dregs.h"
+#include "r5xx_regs.h"
 
 extern struct R5xxRop R5xxRops[];
 

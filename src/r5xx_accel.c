@@ -70,7 +70,7 @@
 
 #include "rhd.h"
 #include "r5xx_accel.h"
-#include "r5xx_2dregs.h"
+#include "r5xx_regs.h"
 
 /*
  * Used by both XAA and EXA code.

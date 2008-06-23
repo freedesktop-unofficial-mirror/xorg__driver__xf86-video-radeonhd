@@ -54,7 +54,7 @@ radeonhd_drv_la_SOURCES = \
 	r5xx_accel.c \
 	r5xx_accel.h \
 	r5xx_xaa.c \
-	r5xx_2dregs.h
+	r5xx_regs.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
