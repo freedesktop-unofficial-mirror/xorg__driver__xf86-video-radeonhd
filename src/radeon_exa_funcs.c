@@ -527,45 +527,42 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
     info->exa->pixmapPitchAlign = 64;
 
     //#ifdef RENDER
-    info->RenderAccel = TRUE;
-    if (info->RenderAccel) {
-	if (info->ChipSet >= RHD_R600)
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
-			       "unsupported on R600 and newer cards.\n");
-	else if (IS_R300_3D || IS_R500_3D) {
+    if (info->ChipSet >= RHD_R600)
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
+		   "unsupported on R600 and newer cards.\n");
+    else if (IS_R300_3D || IS_R500_3D) {
 #ifdef USE_DRI
-	    if (info->directRenderingEnabled) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
-			       "enabled for R300/R400/R500 type cards.\n");
-		info->exa->CheckComposite = R300CheckComposite;
-		info->exa->PrepareComposite =
-		    FUNC_NAME(R300PrepareComposite);
-		info->exa->Composite = FUNC_NAME(RadeonComposite);
-		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
-	    } else
+	if (info->directRenderingEnabled) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
+		       "enabled for R300/R400/R500 type cards.\n");
+	    info->exa->CheckComposite = R300CheckComposite;
+	    info->exa->PrepareComposite =
+		FUNC_NAME(R300PrepareComposite);
+	    info->exa->Composite = FUNC_NAME(RadeonComposite);
+	    info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
+	} else
 #endif
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "EXA Composite requires CP on R5xx/IGP\n");
-	} /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
-		   (info->ChipFamily == CHIP_FAMILY_RV280) ||
-		   (info->ChipFamily == CHIP_FAMILY_RS300) ||
-		   (info->ChipFamily == CHIP_FAMILY_R200)) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
-			       "enabled for R200 type cards.\n");
-		info->exa->CheckComposite = R200CheckComposite;
-		info->exa->PrepareComposite =
-		    FUNC_NAME(R200PrepareComposite);
-		info->exa->Composite = FUNC_NAME(RadeonComposite);
-		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "EXA Composite requires CP on R5xx/IGP\n");
+    } /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+	(info->ChipFamily == CHIP_FAMILY_RV280) ||
+	(info->ChipFamily == CHIP_FAMILY_RS300) ||
+	(info->ChipFamily == CHIP_FAMILY_R200)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
+	"enabled for R200 type cards.\n");
+	info->exa->CheckComposite = R200CheckComposite;
+	info->exa->PrepareComposite =
+	FUNC_NAME(R200PrepareComposite);
+	info->exa->Composite = FUNC_NAME(RadeonComposite);
+	info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
 	} else {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
-			       "enabled for R100 type cards.\n");
-		info->exa->CheckComposite = R100CheckComposite;
-		info->exa->PrepareComposite =
-		    FUNC_NAME(R100PrepareComposite);
-		info->exa->Composite = FUNC_NAME(RadeonComposite);
-		info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
+	"enabled for R100 type cards.\n");
+	info->exa->CheckComposite = R100CheckComposite;
+	info->exa->PrepareComposite =
+	FUNC_NAME(R100PrepareComposite);
+	info->exa->Composite = FUNC_NAME(RadeonComposite);
+	info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
 	}*/
-    }
     //#endif
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)

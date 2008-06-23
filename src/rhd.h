@@ -393,6 +393,7 @@ typedef struct RHDRec {
 #ifdef USE_EXA
     ExaDriverPtr      exa;
 #endif
+    Bool              useEXA;
 #ifdef USE_XAA
     XAAInfoRecPtr     accel;
 #endif
@@ -409,18 +410,9 @@ typedef struct RHDRec {
     DamagePtr         pDamage;
     RegionRec         driRegion;
 #endif
-
     struct rhdCP      *cp;
-
     Bool              DMAForXv;
-
 #endif /* USE_DRI */
-
-    /* Render */
-    Bool              RenderAccel;
-
-    Bool              useEXA;
-
     /* X itself has the 3D context */
     Bool             XInited3D;
     /* chips with PVS/TCL hw (used for EXA render) */
