@@ -94,8 +94,6 @@
 				/* X and server generic header files */
 #include "xf86.h"
 
-#define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
-
 #ifdef USE_XAA
 static struct {
     int rop;

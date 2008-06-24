@@ -428,6 +428,7 @@ typedef struct RHDRec {
 #  define CONST
 #endif
 
+#define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */

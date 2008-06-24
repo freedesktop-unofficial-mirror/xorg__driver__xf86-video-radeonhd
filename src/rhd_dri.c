@@ -144,12 +144,13 @@ static Bool RHDInitVisualConfigs(ScreenPtr pScreen)
     RADEONConfigPrivPtr  pRADEONConfigs    = 0;
     RADEONConfigPrivPtr *pRADEONConfigPtrs = 0;
     int                  i, accum, stencil, db;
+    int pixel_code = PIXEL_CODE(pScrn);
 
 #define RHD_USE_ACCUM   1
 #define RHD_USE_STENCIL 1
 #define RHD_USE_DB      1
 
-    switch (rhdDRI->pixel_code) {
+    switch (pixel_code) {
 
     case 16:
     case 32:
@@ -186,7 +187,7 @@ static Bool RHDInitVisualConfigs(ScreenPtr pScreen)
 		pConfigs[i].vid                = (VisualID)(-1);
 		pConfigs[i].class              = -1;
 		pConfigs[i].rgba               = TRUE;
-		if (rhdDRI->pixel_code == 32) {
+		if (pixel_code == 32) {
 		    pConfigs[i].redSize            = 8;
 		    pConfigs[i].greenSize          = 8;
 		    pConfigs[i].blueSize           = 8;
@@ -207,11 +208,11 @@ static Bool RHDInitVisualConfigs(ScreenPtr pScreen)
 		    pConfigs[i].accumRedSize   = 16;
 		    pConfigs[i].accumGreenSize = 16;
 		    pConfigs[i].accumBlueSize  = 16;
-		    if (rhdDRI->pixel_code == 32)
+		    if (pixel_code == 32)
 			pConfigs[i].accumAlphaSize = 16;
 		}
 		pConfigs[i].doubleBuffer       = db;
-		pConfigs[i].bufferSize         = rhdDRI->pixel_code;
+		pConfigs[i].bufferSize         = pixel_code;
 		pConfigs[i].depthSize          = rhdDRI->depthBits;
 		if (stencil)
 		    pConfigs[i].stencilSize    = 8;
@@ -231,7 +232,7 @@ static Bool RHDInitVisualConfigs(ScreenPtr pScreen)
 	xf86DrvMsg(pScreen->myNum, X_ERROR,
 		   "[dri] RHDInitVisualConfigs failed "
 		   "(depth %d not supported).  "
-		   "Disabling DRI.\n", rhdDRI->pixel_code);
+		   "Disabling DRI.\n", pixel_code);
 	return FALSE;
     }
 
@@ -693,7 +694,7 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.ring_size           = rhdDRI->ringSize*1024*1024;
     drmInfo.usec_timeout        = RHD_DEFAULT_CP_TIMEOUT;
 
-    drmInfo.fb_bpp              = rhdDRI->pixel_code;
+    drmInfo.fb_bpp              = PIXEL_CODE(pScrn);
     drmInfo.depth_bpp           = (rhdDRI->depthBits - 8) * 2;
 
     drmInfo.front_offset        = rhdDRI->frontOffset;
@@ -962,6 +963,7 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *rhdDRI;
+    int pixel_code = PIXEL_CODE(pScrn);
 
     if (!rhdPtr->useDRI.val.bool) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by"
@@ -1037,16 +1039,12 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     rhdDRI->gartTexSize = rhdDRI->gartSize - (rhdDRI->ringSize + rhdDRI->bufSize);
     radeon_drm_page_size = getpagesize();
 
-    rhdDRI->pixel_code     = (pScrn->bitsPerPixel != 16
-			    ? pScrn->bitsPerPixel
-			    : pScrn->depth);
-
     /* Only 16 and 32 color depths are supports currently. */
-    if (rhdDRI->pixel_code != 16 && rhdDRI->pixel_code != 32) {
+    if (pixel_code != 16 && pixel_code != 32) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "[dri] RHDInitVisualConfigs failed "
 		   "(depth %d not supported).  "
-		   "Disabling DRI.\n", rhdDRI->pixel_code);
+		   "Disabling DRI.\n", pixel_code);
 	rhdPtr->directRenderingEnabled = FALSE;
 	return FALSE;
     }
