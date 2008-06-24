@@ -485,7 +485,7 @@ R5xxEXADestroy(ScrnInfoPtr pScrn)
 	return;
 
     xfree(rhdPtr->EXAInfo);
-    rhdPtr->XAAInfo = NULL;
+    rhdPtr->EXAInfo = NULL;
 
     R5xx2DDestroy(pScrn);
 }
