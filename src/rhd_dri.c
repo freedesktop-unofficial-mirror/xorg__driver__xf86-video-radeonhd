@@ -1410,8 +1410,14 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
+#if 0
+    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
+    if (rhdPtr->ChipSet < RHD_R600 &&
+	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
+	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
+	R5xx2DInit(pScrn);
+#endif
 #ifdef USE_EXA
-    /* @@@ for emmes: do we need to update this on EnterVT? */
     if (rhdPtr->cardType != RHD_CARD_AGP) {
 	/* FIXME: add option to enable/disable */
 	drm_radeon_getparam_t gp;
@@ -1472,6 +1478,12 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
+#if 0
+    if (rhdPtr->ChipSet < RHD_R600 &&
+	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
+	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
+	R5xx2DInit(pScrn);
+#endif
     DRIUnlock(pScrn->pScreen);
 }
 
