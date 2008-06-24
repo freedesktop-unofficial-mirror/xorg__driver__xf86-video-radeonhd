@@ -1167,6 +1167,9 @@ R6xxI2CStatus(void *map)
 	fprintf(stderr, "I2CStatus: %x\n",val);
 #endif
     if (!count || (val & (R6_DC_I2C_SW_STOPPED_ON_NACK
+			  | R6_DC_I2C_SW_ABORTED | R6_DC_I2C_SW_TIMEOUT
+			  | R6_DC_I2C_SW_INTERRUPTED
+			  | R6_DC_I2C_SW_BUFFER_OVERFLOW
 			  | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
     return TRUE; /* 1 */
@@ -1309,6 +1312,10 @@ enum _rhdRS69I2CBits {
     RS69_DC_I2C_SW_DONE_ACK   = (0x1 << 1),
     /* RS69_DC_I2C_SW_STATUS */
     RS69_DC_I2C_SW_DONE       = (0x1 << 2),
+    RS69_DC_I2C_SW_ABORTED    = (0x1 << 4),
+    RS69_DC_I2C_SW_TIMEOUT    = (0x1 << 5),
+    RS69_DC_I2C_SW_INTERRUPTED= (0x1 << 6),
+    RS69_DC_I2C_SW_BUFFER_OVERFLOW= (0x1 << 7),
     RS69_DC_I2C_SW_STOPPED_ON_NACK    = (0x1 << 8),
     RS69_DC_I2C_SW_NACK0      = (0x1 << 12),
     RS69_DC_I2C_SW_NACK1      = (0x1 << 13)
@@ -1336,6 +1343,9 @@ RS69I2CStatus(void *map)
     RegMask(map, RS69_DC_I2C_INTERRUPT_CONTROL, RS69_DC_I2C_SW_DONE_ACK,
 	    RS69_DC_I2C_SW_DONE_ACK);
     if (!count || (val & (RS69_DC_I2C_SW_STOPPED_ON_NACK
+			  | RS69_DC_I2C_SW_ABORTED | RS69_DC_I2C_SW_TIMEOUT
+			  | RS69_DC_I2C_SW_INTERRUPTED
+			  | RS69_DC_I2C_SW_BUFFER_OVERFLOW
 			  | RS69_DC_I2C_SW_NACK0 | RS69_DC_I2C_SW_NACK1
 			  | 0x3)))
 	return FALSE; /* 2 */
@@ -1594,7 +1604,8 @@ R5xxI2CStatus(void *map)
 #ifdef DEBUG
 	fprintf(stderr, "I2CStatus: %x\n",res);
 #endif
-	if (res & R5_DC_I2C_DONE)
+	if (res & R5_DC_I2C_DONE
+	    && !(res & (R5_DC_I2C_NACK | R5_DC_I2C_HALT)))
 	    return TRUE;
 	else
 	    return FALSE;
