@@ -958,7 +958,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     RHDPtr rhdPtr;
     VisualPtr visual;
     unsigned int racflag = 0;
-
+    Bool DriScreenInited = FALSE;
+    
     pScrn = xf86Screens[pScreen->myNum];
     rhdPtr = RHDPTR(pScrn);
     RHDFUNC(pScrn);
@@ -993,7 +994,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
      * call back. */
     if (rhdPtr->dri)
-	RHDDRIScreenInit(pScreen);
+	DriScreenInited = RHDDRIScreenInit(pScreen);
 #endif
 
     /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
@@ -1036,7 +1037,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     xf86SetBlackWhitePixels(pScreen);
 
 #ifdef USE_DRI
-if (rhdPtr->dri)
+if (DriScreenInited)
 	rhdPtr->directRenderingEnabled = RHDDRIFinishScreenInit(pScreen);
 #endif
 

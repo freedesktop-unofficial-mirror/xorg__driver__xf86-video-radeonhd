@@ -1047,8 +1047,7 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 		   "[dri] RHDInitVisualConfigs failed "
 		   "(depth %d not supported).  "
 		   "Disabling DRI.\n", rhdDRI->pixel_code);
-	xfree(rhdDRI);
-	rhdPtr->dri = NULL;
+	rhdPtr->directRenderingEnabled = FALSE;
 	return FALSE;
     }
 
@@ -1120,8 +1119,7 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
 	rhdPtr->FbFreeSize  = old_freesize;
 
 	/* return RHDDRICloseScreen(pScrn->pScreen); */
-	xfree(rhdDRI);
-	rhdPtr->dri = NULL;
+	rhdPtr->directRenderingEnabled = FALSE;
 	return FALSE;
     }
 
@@ -1609,8 +1607,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 	rhdDRI->pVisualConfigsPriv = NULL;
     }
 
-    xfree(rhdDRI);
-    rhdPtr->dri = NULL;
+    rhdPtr->directRenderingEnabled = FALSE;
 
     return FALSE;
 }
