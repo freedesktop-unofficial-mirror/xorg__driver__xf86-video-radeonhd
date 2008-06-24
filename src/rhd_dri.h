@@ -83,8 +83,6 @@ struct rhdDri {
     Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
 #endif
 
-    int               pixel_code;
-
     DRIInfoPtr        pDRIInfo;
     int               drmFD;
     int               numVisualConfigs;
