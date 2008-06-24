@@ -1138,16 +1138,16 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    rhdPtr->accelOn = FALSE;
+
+#ifdef USE_DRI
+    if (rhdPtr->dri)
+	RHDDRICloseScreen(pScreen);
+#endif
+
     if(pScrn->vtSema) {
 	struct rhdCrtc *Crtc;
 	int i;
-
-	rhdPtr->accelOn = FALSE;
-
-#ifdef USE_DRI
-	if (rhdPtr->dri)
-	    RHDDRICloseScreen(pScreen);
-#endif
 
 	/* stop scanout */
 	for (i = 0; i < 2; i++) {

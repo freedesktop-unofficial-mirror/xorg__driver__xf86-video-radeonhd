@@ -57,9 +57,8 @@
 /* GLX/DRI/DRM definitions */
 #define _XF86DRI_SERVER_
 #include "dri.h"
-//#include "radeon_drm.h"
-#include "radeon_common.h"
-#include "radeon_sarea.h"
+#include "radeon_drm.h"
+//#include "radeon_common.h"
 #include "GL/glxint.h"
 #include "GL/glxtokens.h"
 #include "sarea.h"
@@ -267,12 +266,12 @@ static void RHDEnterServer(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
     RHDPtr  rhdPtr  = RHDPTR(pScrn);
-    RADEONSAREAPriv *pSAREAPriv;
+    drm_radeon_sarea_t *pSAREAPriv;
 
     RADEON_MARK_SYNC(rhdPtr, pScrn);
 
-    pSAREAPriv = (RADEONSAREAPriv *)DRIGetSAREAPrivate(pScrn->pScreen);
-    if (pSAREAPriv->ctxOwner != (signed) DRIGetContext(pScrn->pScreen)) {
+    pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
+    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
 	rhdPtr->XInited3D = FALSE;
 	rhdPtr->cp->needCacheFlush = TRUE;
     }
@@ -677,16 +676,15 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
     struct rhdDri *rhdDRI   = rhdPtr->dri;
     int            bytesPerPixel = pScrn->bitsPerPixel / 8;
-    //drm_radeon_init_t  drmInfo;
-    drmRadeonInit drmInfo;
+    drm_radeon_init_t drmInfo;
 
-    memset(&drmInfo, 0, sizeof(drmRadeonInit));
-#ifdef RADEON_INIT_R600_CP
+    memset(&drmInfo, 0, sizeof(drm_radeon_init_t));
+#ifdef DRM_RADEON_INIT_R600_CP
     if (rhdPtr->ChipSet >= RHD_R600)
-	drmInfo.func             = DRM_RADEON_INIT_R600_CP;
+	drmInfo.func             = RADEON_INIT_R600_CP;
     else
 #endif
-	drmInfo.func             = DRM_RADEON_INIT_R300_CP;
+	drmInfo.func             = RADEON_INIT_R300_CP;
 
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
     drmInfo.is_pci              = (rhdPtr->cardType != RHD_CARD_AGP);
@@ -711,7 +709,7 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.gart_textures_offset= rhdDRI->gartTexHandle;
 
     if (drmCommandWrite(rhdDRI->drmFD, DRM_RADEON_CP_INIT,
-			&drmInfo, sizeof(drmRadeonInit)) < 0)
+			&drmInfo, sizeof(drm_radeon_init_t)) < 0)
 	return FALSE;
 
     // FIXME: this is to be moved to rhd_cp
@@ -725,7 +723,7 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 
 static void RHDDRIGartHeapInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 {
-    drmRadeonMemInitHeap drmHeap;
+    drm_radeon_mem_init_heap_t drmHeap;
 
     /* Start up the simple memory manager for GART space */
     drmHeap.region = RADEON_MEM_REGION_GART;
@@ -1219,7 +1217,7 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
 
     /* For now the mapping works by using a fixed size defined
      * in the SAREA header */
-    if (sizeof(XF86DRISAREARec)+sizeof(RADEONSAREAPriv) > SAREA_MAX) {
+    if (sizeof(XF86DRISAREARec)+sizeof(drm_radeon_sarea_t) > SAREA_MAX) {
 	ErrorF("Data does not fit in SAREA\n");
 	return RHDDRICloseScreen(pScreen);
     }
@@ -1301,7 +1299,7 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     ScrnInfoPtr         pScrn  = xf86Screens[pScreen->myNum];
     RHDPtr              rhdPtr = RHDPTR(pScrn);
     struct rhdDri      *rhdDRI   = rhdPtr->dri;
-    RADEONSAREAPriv *pSAREAPriv;
+    drm_radeon_sarea_t *pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
 
     if (! rhdDRI)
@@ -1345,11 +1343,9 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 
     /* Initialize and start the CP if required */
     RHDDRICPStart(pScrn);
-    rhdDRI->CPStarted = TRUE;
-
 
     /* Initialize the SAREA private data structure */
-    pSAREAPriv = (RADEONSAREAPriv *)DRIGetSAREAPrivate(pScreen);
+    pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
     memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
 
     pRADEONDRI                    = (RADEONDRIPtr)rhdDRI->pDRIInfo->devPrivate;
@@ -1413,7 +1409,7 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     /* @@@ for emmes: do we need to update this on EnterVT? */
     if (rhdPtr->cardType != RHD_CARD_AGP) {
 	/* FIXME: add option to enable/disable */
-	drmRadeonGetParam gp;
+	drm_radeon_getparam_t gp;
 	int gart_base;
 
 	memset(&gp, 0, sizeof(gp));
@@ -1468,7 +1464,6 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	       rhdDRI->pciGartBackup, rhdDRI->pciGartSize);
 
     RHDDRICPStart(pScrn);
-    rhdDRI->CPStarted = TRUE;
 
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
@@ -1480,21 +1475,18 @@ RHDDRMStop(ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
     RHDPtr  rhdPtr  = RHDPTR(pScrn);
-    struct rhdDri *rhdDRI   = rhdPtr->dri;
     RING_LOCALS;
 
     RHDFUNC(rhdPtr);
 
-    /* Stop the CP */
-    if (rhdDRI->CPStarted) {
+    /* Stop the CP, make sure we are not switched away! */
+    if (pScrn->vtSema) {
 	/* If we've generated any CP commands, we must flush them to the
          * kernel module now.
          */
         RADEONCP_RELEASE(pScrn, rhdPtr);
         RADEONCP_STOP(pScrn, rhdPtr);
     }
-    rhdDRI->CPStarted = FALSE;
-
 }
 
 /* Stop all before vt switch / suspend */
@@ -1517,9 +1509,9 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
 
     /* Make sure 3D clients will re-upload textures to video RAM */
     if (rhdDRI->textureSize) {
-	RADEONSAREAPriv *pSAREAPriv = DRIGetSAREAPrivate(pScreen);
-	struct drm_tex_region *list = pSAREAPriv->texList[0];
-	int age = ++pSAREAPriv->texAge[0], i = 0;
+	drm_radeon_sarea_t *pSAREAPriv = DRIGetSAREAPrivate(pScreen);
+	struct drm_tex_region *list = pSAREAPriv->tex_list[0];
+	int age = ++pSAREAPriv->tex_age[0], i = 0;
 	do {
 	    list[i].age = age;
 	    i = list[i].next;
@@ -1536,7 +1528,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *rhdDRI   = rhdPtr->dri;
     //drm_radeon_init_t drmInfo;
-    drmRadeonInit drmInfo;
+    drm_radeon_init_t drmInfo;
 
     RHDFUNC(pScrn);
 
@@ -1559,10 +1551,10 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
     }
 
     /* De-allocate all kernel resources */
-    memset(&drmInfo, 0, sizeof(drmRadeonInit));
-    drmInfo.func = DRM_RADEON_CLEANUP_CP;
+    memset(&drmInfo, 0, sizeof(drm_radeon_init_t));
+    drmInfo.func = RADEON_CLEANUP_CP;
     drmCommandWrite(rhdDRI->drmFD, DRM_RADEON_CP_INIT,
-		    &drmInfo, sizeof(drmRadeonInit));
+		    &drmInfo, sizeof(drm_radeon_init_t));
 
     /* De-allocate all GART resources */
     if (rhdDRI->gartTex) {
@@ -1626,8 +1618,8 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 
 static void RHDDisablePageFlip(ScreenPtr pScreen)
 {
-    RADEONSAREAPriv *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
-    pSAREAPriv->pfAllowPageFlip = 0;
+    drm_radeon_sarea_t *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
+    pSAREAPriv->pfState = 0;
 }
 
 static void RHDDRITransitionSingleToMulti3d(ScreenPtr pScreen)
@@ -1657,7 +1649,7 @@ static void RHDDRITransitionTo2d(ScreenPtr pScreen)
 {
     ScrnInfoPtr         pScrn      = xf86Screens[pScreen->myNum];
     struct rhdDri *       rhdDRI       = RHDPTR(pScrn)->dri;
-    RADEONSAREAPriv *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
+    drm_radeon_sarea_t *  pSAREAPriv = DRIGetSAREAPrivate(pScreen);
 
     rhdDRI->have3Dwindows = FALSE;
 
@@ -1718,15 +1710,15 @@ static void RHDDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
 
 static int RHDDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
 {
-    drmRadeonSetParam  radeonsetparam;
+    drm_radeon_setparam_t  radeonsetparam;
     struct rhdDri *  rhdDRI   = RHDPTR(pScrn)->dri;
     int ret;
 
-    memset(&radeonsetparam, 0, sizeof(drmRadeonSetParam));
+    memset(&radeonsetparam, 0, sizeof(drm_radeon_setparam_t));
     radeonsetparam.param = param;
     radeonsetparam.value = value;
     ret = drmCommandWrite(rhdDRI->drmFD, DRM_RADEON_SETPARAM,
-			  &radeonsetparam, sizeof(drmRadeonSetParam));
+			  &radeonsetparam, sizeof(drm_radeon_setparam_t));
     return ret;
 }
 
