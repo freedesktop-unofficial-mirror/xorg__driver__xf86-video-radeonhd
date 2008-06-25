@@ -170,6 +170,8 @@ RADEONSetPortAttribute(ScrnInfoPtr  pScrn,
 
     if (pPriv->textured)
 	return BadMatch;
+
+    return Success;
 }
 
 int
@@ -182,6 +184,8 @@ RADEONGetPortAttribute(ScrnInfoPtr  pScrn,
 
     if (pPriv->textured)
 	return BadMatch;
+
+    return Success;
 }
 
 void
@@ -275,6 +279,7 @@ RADEONCopyData(
     }
 }
 
+#if 0
 static void
 RADEONCopyRGB24Data(
   ScrnInfoPtr pScrn,
@@ -287,7 +292,7 @@ RADEONCopyRGB24Data(
 ){
     uint32_t *dptr;
     uint8_t *sptr;
-    int i,j;
+    unsigned int i, j;
     RHDPtr info = RHDPTR(pScrn);
 #ifdef USE_DRI
 
@@ -345,7 +350,7 @@ RADEONCopyRGB24Data(
 #endif
     }
 }
-
+#endif
 
 #ifdef USE_DRI
 static void RADEON_420_422(
@@ -416,7 +421,7 @@ RADEONCopyMungedData(
     {
 	uint32_t *dst;
 	uint8_t *s1, *s2, *s3;
-	int i, j;
+	unsigned int i, j;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->surface_cntl

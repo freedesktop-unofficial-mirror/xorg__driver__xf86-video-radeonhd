@@ -295,6 +295,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 {
     RHDPtr info = RHDPTR(pScrn);
     int pixel_code = PIXEL_CODE(pScrn);
+    uint32_t gb_tile_config;
     
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
@@ -333,7 +334,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "num pipes is %d\n", info->accel_state->num_gb_pipes);
 
-    uint32_t gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
+    gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
 
     switch(info->accel_state->num_gb_pipes) {
     case 2: gb_tile_config |= R300_PIPE_COUNT_R300; break;
@@ -681,7 +682,7 @@ RADEONHostDataBlit(
     *hpass = min( *h, ( ( RADEON_BUFFER_SIZE - 10 * 4 ) / *bufPitch ) );
     dwords = *hpass * *bufPitch / 4;
 
-    BEGIN_RING( dwords + 10 );
+    BEGIN_RING( (int)dwords + 10 );
     OUT_RING( CP_PACKET3( RADEON_CP_PACKET3_CNTL_HOSTDATA_BLT, dwords + 10 - 2 ) );
     OUT_RING( RADEON_GMC_DST_PITCH_OFFSET_CNTL
 	    | RADEON_GMC_DST_CLIPPING

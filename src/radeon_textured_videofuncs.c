@@ -74,7 +74,9 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 {
     RHDPtr info = RHDPTR(pScrn);
     PixmapPtr pPixmap = pPriv->pPixmap;
+#if 0
     uint32_t txformat;
+#endif
     uint32_t txfilter, txformat0, txformat1, txoffset, txpitch;
     uint32_t dst_offset, dst_pitch, dst_format;
     uint32_t txenable, colorpitch;
@@ -93,7 +95,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     } else
 #endif
 	{
-	    dst_offset = (pPixmap->devPrivate.ptr - info->FbBase) +
+	    dst_offset = ((char *)pPixmap->devPrivate.ptr - (char *)info->FbBase) +
 		info->FbIntAddress;
 	    dst_pitch = pPixmap->devKind;
 	}

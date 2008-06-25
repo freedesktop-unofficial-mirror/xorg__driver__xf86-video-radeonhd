@@ -102,13 +102,14 @@ static struct blendinfo RadeonBlendOp[] = {
 };
 
 struct formatinfo {
-    int fmt;
+    unsigned int fmt;
     uint32_t card_fmt;
 };
 
 /* Note on texture formats:
  * TXFORMAT_Y8 expands to (Y,Y,Y,1).  TXFORMAT_I8 expands to (I,I,I,I)
  */
+#ifndef RHD_DRIVER
 static struct formatinfo R100TexFormats[] = {
 	{PICT_a8r8g8b8,	RADEON_TXFORMAT_ARGB8888 | RADEON_TXFORMAT_ALPHA_IN_MAP},
 	{PICT_x8r8g8b8,	RADEON_TXFORMAT_ARGB8888},
@@ -128,6 +129,7 @@ static struct formatinfo R200TexFormats[] = {
     {PICT_x1r5g5b5,	R200_TXFORMAT_ARGB1555},
     {PICT_a8,		R200_TXFORMAT_I8 | R200_TXFORMAT_ALPHA_IN_MAP},
 };
+#endif
 
 static struct formatinfo R300TexFormats[] = {
     {PICT_a8r8g8b8,	R300_EASY_TX_FORMAT(X, Y, Z, W, W8Z8Y8X8)},
@@ -141,7 +143,7 @@ static struct formatinfo R300TexFormats[] = {
 };
 
 /* Common Radeon setup code */
-
+#ifndef RHD_DRIVER
 static Bool RADEONGetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 {
     switch (pDstPicture->format) {
@@ -166,6 +168,7 @@ static Bool RADEONGetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 
     return TRUE;
 }
+#endif
 
 static Bool R300GetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 {
@@ -260,7 +263,7 @@ static Bool RADEONPitchMatches(PixmapPtr pPix)
     int h = pPix->drawable.height;
     uint32_t txpitch = exaGetPixmapPitch(pPix);
 
-    if (h > 1 && ((w * pPix->drawable.bitsPerPixel / 8 + 31) & ~31) != txpitch)
+    if (h > 1 && (unsigned int)((w * pPix->drawable.bitsPerPixel / 8 + 31) & ~31) != txpitch)
 	return FALSE;
 
     return TRUE;
@@ -318,12 +321,12 @@ static Bool RADEONSetupSourceTile(PicturePtr pPict,
 }
 
 /* R100-specific code */
-
+# ifndef RHD_DRIVER
 static Bool R100CheckCompositeTexture(PicturePtr pPict, int unit)
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i;
+    unsigned int i;
 
     if ((w > 0x7ff) || (h > 0x7ff))
 	RADEON_FALLBACK(("Picture w/h too large (%dx%d)\n", w, h));
@@ -347,9 +350,10 @@ static Bool R100CheckCompositeTexture(PicturePtr pPict, int unit)
 
     return TRUE;
 }
-
+# endif
 #endif /* ONLY_ONCE */
 
+#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
@@ -358,7 +362,7 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
     Bool repeat = pPict->repeat && !(unit == 0 && (need_src_tile_x || need_src_tile_y));
-    int i;
+    unsigned int i;
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
@@ -435,7 +439,7 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 
     return TRUE;
 }
-
+# endif
 #ifdef ONLY_ONCE
 
 static PixmapPtr
@@ -447,6 +451,7 @@ RADEONGetDrawablePixmap(DrawablePtr pDrawable)
 	return (PixmapPtr)pDrawable;
 }
 
+# ifndef RHD_DRIVER
 static Bool R100CheckComposite(int op, PicturePtr pSrcPicture,
 			       PicturePtr pMaskPicture, PicturePtr pDstPicture)
 {
@@ -454,7 +459,7 @@ static Bool R100CheckComposite(int op, PicturePtr pSrcPicture,
     uint32_t tmp1;
 
     /* Check for unsupported compositing operations. */
-    if (op >= sizeof(RadeonBlendOp) / sizeof(RadeonBlendOp[0]))
+    if ((unsigned int)op >= sizeof(RadeonBlendOp) / sizeof(RadeonBlendOp[0]))
 	RADEON_FALLBACK(("Unsupported Composite op 0x%x\n", op));
 
     if (!pSrcPicture->pDrawable)
@@ -513,8 +518,10 @@ static Bool R100CheckComposite(int op, PicturePtr pSrcPicture,
 
     return TRUE;
 }
+# endif
 #endif /* ONLY_ONCE */
 
+# ifndef RHD_DRIVER
 static Bool FUNC_NAME(R100PrepareComposite)(int op,
 					    PicturePtr pSrcPicture,
 					    PicturePtr pMaskPicture,
@@ -630,14 +637,14 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 
     return TRUE;
 }
-
+# endif
 #ifdef ONLY_ONCE
-
+# ifndef RHD_DRIVER
 static Bool R200CheckCompositeTexture(PicturePtr pPict, int unit)
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i;
+    unsigned int i;
 
     if ((w > 0x7ff) || (h > 0x7ff))
 	RADEON_FALLBACK(("Picture w/h too large (%dx%d)\n", w, h));
@@ -660,9 +667,10 @@ static Bool R200CheckCompositeTexture(PicturePtr pPict, int unit)
 
     return TRUE;
 }
-
+# endif
 #endif /* ONLY_ONCE */
 
+#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
@@ -671,7 +679,7 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
     Bool repeat = pPict->repeat && !(unit == 0 && (need_src_tile_x || need_src_tile_y));
-    int i;
+    unsigned int i;
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
@@ -750,8 +758,10 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 
     return TRUE;
 }
+# endif
 
 #ifdef ONLY_ONCE
+# ifndef RHD_DRIVER
 static Bool R200CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
 			       PicturePtr pDstPicture)
 {
@@ -816,8 +826,10 @@ static Bool R200CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 
     return TRUE;
 }
+# endif
 #endif /* ONLY_ONCE */
 
+#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 				PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
@@ -935,7 +947,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     return TRUE;
 }
-
+# endif
 #ifdef ONLY_ONCE
 
 static Bool R300CheckCompositeTexture(PicturePtr pPict,
@@ -946,7 +958,7 @@ static Bool R300CheckCompositeTexture(PicturePtr pPict,
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i;
+    unsigned int i;
     int max_tex_w, max_tex_h;
 
     if (is_r500) {
@@ -1001,7 +1013,8 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     uint32_t txfilter, txformat0, txformat1, txoffset, txpitch;
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i, pixel_shift;
+    unsigned int i;
+    int pixel_shift;
     ACCEL_PREAMBLE();
 
     TRACE;
@@ -1107,7 +1120,7 @@ static Bool R300CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
     TRACE;
 
     /* Check for unsupported compositing operations. */
-    if (op >= sizeof(RadeonBlendOp) / sizeof(RadeonBlendOp[0]))
+    if ((unsigned int)op >= sizeof(RadeonBlendOp) / sizeof(RadeonBlendOp[0]))
 	RADEON_FALLBACK(("Unsupported Composite op 0x%x\n", op));
 
     pSrcPixmap = RADEONGetDrawablePixmap(pSrcPicture->pDrawable);

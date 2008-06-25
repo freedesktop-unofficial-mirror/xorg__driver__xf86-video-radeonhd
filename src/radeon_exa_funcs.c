@@ -373,7 +373,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	(scratch = RADEONCPGetBuffer(pScrn)))
     {
 	int swap = RADEON_HOST_DATA_SWAP_NONE, wpass = w * bpp / 8;
-	int hpass = min(h, scratch->total/2 / scratch_pitch);
+	int hpass = min(h, scratch->total/2 / (int)scratch_pitch);
 	uint32_t scratch_pitch_offset = scratch_pitch << 16
 				    | (info->dri->gartLocation + info->dri->bufStart
 				       + scratch->idx * scratch->total) >> 10;
@@ -405,7 +405,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 
 	    y += oldhpass;
 	    h -= oldhpass;
-	    hpass = min(h, scratch->total/2 / scratch_pitch);
+	    hpass = min(h, scratch->total/2 / (int)scratch_pitch);
 
 	    /* Prepare next blit if anything's left */
 	    if (hpass) {
@@ -433,7 +433,8 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 		FLUSH_RING();
 
 	    /* Copy out data from previous blit */
-	    if (wpass == scratch_pitch && wpass == dst_pitch) {
+	    if ((unsigned int)wpass == scratch_pitch
+		&& wpass ==  dst_pitch) {
 		RADEONCopySwap((uint8_t*)dst, src, wpass * oldhpass, swap);
 		dst += dst_pitch * oldhpass;
 	    } else while (oldhpass--) {

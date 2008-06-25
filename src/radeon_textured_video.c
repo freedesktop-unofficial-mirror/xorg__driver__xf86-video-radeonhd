@@ -65,7 +65,7 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
     } else
 #endif
 	{
-	    if (info->tilingEnabled && ((pPix->devPrivate.ptr - info->FbBase) == 0))
+	    if (info->tilingEnabled && (((char *)pPix->devPrivate.ptr - (char *)info->FbBase) == 0))
 		return TRUE;
 	    else
 		return FALSE;
@@ -214,8 +214,8 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 #endif
 
     if (!info->useEXA &&
-	(((char *)pPriv->pPixmap->devPrivate.ptr < (char *)(info->FbBase + info->FbScanoutStart)) ||
-	 ((char *)pPriv->pPixmap->devPrivate.ptr >= (char *)(info->FbBase + info->FbMapSize)))) {
+	(((char *)pPriv->pPixmap->devPrivate.ptr < ((char *)info->FbBase + info->FbScanoutStart)) ||
+	 ((char *)pPriv->pPixmap->devPrivate.ptr >= ((char *)info->FbBase + info->FbMapSize)))) {
 	/* If the pixmap wasn't in framebuffer, then we have no way in XAA to
 	 * force it there. So, we simply refuse to draw and fail.
 	 */
@@ -228,7 +228,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
     npixels = ((((x2 + 0xffff) >> 16) + 1) & ~1) - left;
 
     pPriv->src_offset = pPriv->video_offset + info->FbIntAddress + info->FbScanoutStart;
-    pPriv->src_addr = (uint8_t *)(info->FbBase + info->FbScanoutStart + pPriv->video_offset + (top * dstPitch));
+    pPriv->src_addr = ((uint8_t *)info->FbBase + info->FbScanoutStart + pPriv->video_offset + (top * dstPitch));
     pPriv->src_pitch = dstPitch;
     pPriv->size = size;
     pPriv->pDraw = pDraw;

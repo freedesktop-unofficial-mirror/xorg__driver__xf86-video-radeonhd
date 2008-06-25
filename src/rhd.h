@@ -30,6 +30,8 @@
 #  error "config.h missing!"
 # endif
 
+#define RHD_DRIVER
+
 #ifdef USE_EXA
 #include "exa.h"
 #endif

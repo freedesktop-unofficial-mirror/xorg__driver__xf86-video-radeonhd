@@ -415,9 +415,9 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Allocating from a screen of %ld kb\n",
 	       info->exa->memorySize / 1024);
 
-    ErrorF("EXA memory base = 0x%x\n", info->exa->memoryBase);
-    ErrorF("EXA memory size = 0x%x\n", info->exa->memorySize);
-    ErrorF("EXA offscreen base = 0x%x\n", info->exa->offScreenBase);
+    ErrorF("EXA memory base = 0x%p\n", info->exa->memoryBase);
+    ErrorF("EXA memory size = 0x%lx\n", (unsigned long)info->exa->memorySize);
+    ErrorF("EXA offscreen base = 0x%lx\n", (unsigned long)info->exa->offScreenBase);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 	       "Will use %ld kb for X Server offscreen at offset 0x%08lx\n",
