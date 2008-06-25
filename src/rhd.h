@@ -412,11 +412,9 @@ typedef struct RHDRec {
 #ifdef USE_EXA
     ExaDriverPtr      exa;
 #endif
-    Bool              useEXA;
 #ifdef USE_XAA
     XAAInfoRecPtr     accel;
 #endif
-    Bool              accelOn;
     Bool              allowColorTiling;
     Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
 

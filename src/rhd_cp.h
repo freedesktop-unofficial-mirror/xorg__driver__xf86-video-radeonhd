@@ -298,11 +298,11 @@ do {									\
 static __inline__ void RADEON_MARK_SYNC(RHDPtr info, ScrnInfoPtr pScrn)
 {
 # ifdef USE_EXA
-    if (info->useEXA)
+    if (info->AccelMethod == RHD_ACCEL_EXA)
 	exaMarkSync(pScrn->pScreen);
 # endif
 # ifdef USE_XAA
-    if (!info->useEXA)
+    if (info->AccelMethod == RHD_ACCEL_XAA)
 	SET_SYNC_FLAG(info->accel);
 # endif
 }
@@ -310,11 +310,11 @@ static __inline__ void RADEON_MARK_SYNC(RHDPtr info, ScrnInfoPtr pScrn)
 static __inline__ void RADEON_SYNC(RHDPtr info, ScrnInfoPtr pScrn)
 {
 # ifdef USE_EXA
-    if (info->useEXA)
+    if (info->AccelMethod == RHD_ACCEL_EXA)
 	exaWaitSync(pScrn->pScreen);
 # endif
 # ifdef USE_XAA
-    if (!info->useEXA && info->accel)
+    if (info->AccelMethod == RHD_ACCEL_XAA && info->accel)
 	info->accel->Sync(pScrn);
 # endif
 }

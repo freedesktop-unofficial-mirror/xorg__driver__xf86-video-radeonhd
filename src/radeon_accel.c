@@ -836,7 +836,7 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
 	return FALSE;
 
 #ifdef USE_EXA
-    if (info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_EXA) {
 # ifdef USE_DRI
 	if (info->directRenderingEnabled) {
 	    if (!RADEONDrawInitCP(pScreen))
@@ -850,7 +850,7 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (!info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_XAA) {
 	XAAInfoRecPtr  a;
 
 	if (!(a = info->accel = XAACreateInfoRec())) {

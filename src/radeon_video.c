@@ -1,4 +1,3 @@
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -485,7 +484,7 @@ RADEONAllocateMemory(
 
     pScreen = screenInfo.screens[pScrn->scrnIndex];
 #ifdef USE_EXA
-    if (info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_EXA) {
 	ExaOffscreenArea *area = *mem_struct;
 
 	if (area != NULL) {
@@ -504,7 +503,7 @@ RADEONAllocateMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (!info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_XAA) {
 	FBLinearPtr linear = *mem_struct;
 	int cpp = pScrn->bitsPerPixel >> 3;
 
@@ -558,7 +557,7 @@ RADEONFreeMemory(
     RHDPtr info = RHDPTR(pScrn);
 
 #ifdef USE_EXA
-    if (info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_EXA) {
 	ExaOffscreenArea *area = mem_struct;
 
 	if (area != NULL)
@@ -566,7 +565,7 @@ RADEONFreeMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (!info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_XAA) {
 	FBLinearPtr linear = mem_struct;
 
 	if (linear != NULL)
