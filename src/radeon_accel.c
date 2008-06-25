@@ -912,7 +912,7 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
 	y2 = pScrn->displayWidth * pScrn->virtualY * 3;
     else
 #endif
-	y2 = info->FbMapSize / width_bytes;
+	y2 = (info->FbScanoutSize + info->FbOffscreenSize) / width_bytes;
 
     if (y2 >= 32768)
 	y2 = 32767; /* because MemBox.y2 is signed short */

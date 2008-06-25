@@ -403,8 +403,8 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
 
     ErrorF("FbScanoutStart: 0x%x\n", info->FbScanoutStart);
     info->exa->memoryBase = (CARD8 *) info->FbBase + info->FbScanoutStart;
-    info->exa->memorySize = info->FbMapSize - info->FbScanoutStart;
-    info->exa->offScreenBase = screen_size + info->FbScanoutStart;
+    info->exa->memorySize = info->FbScanoutSize + info->FbOffscreenSize;
+    info->exa->offScreenBase = info->FbOffscreenStart - info->FbScanoutStart;
 
 #if defined(USE_DRI)
     if (info->directRenderingEnabled) {
