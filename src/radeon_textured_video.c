@@ -57,7 +57,7 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
     RHDPtr info = RHDPTR(pScrn);
 
 #ifdef USE_EXA
-    if (info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_EXA) {
 	if (info->tilingEnabled && exaGetPixmapOffset(pPix) == 0)
 	    return TRUE;
 	else
@@ -207,13 +207,13 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 	pPriv->pPixmap = (PixmapPtr)pDraw;
 
 #ifdef USE_EXA
-    if (info->useEXA) {
+    if (info->AccelMethod == RHD_ACCEL_EXA) {
 	/* Force the pixmap into framebuffer so we can draw to it. */
 	exaMoveInPixmap(pPriv->pPixmap);
     }
 #endif
 
-    if (!info->useEXA &&
+    if (info->AccelMethod == RHD_ACCEL_XAA &&
 	(((char *)pPriv->pPixmap->devPrivate.ptr < ((char *)info->FbBase + info->FbScanoutStart)) ||
 	 ((char *)pPriv->pPixmap->devPrivate.ptr >= ((char *)info->FbBase + info->FbMapSize)))) {
 	/* If the pixmap wasn't in framebuffer, then we have no way in XAA to
