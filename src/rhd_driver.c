@@ -685,9 +685,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
 	       pScrn->videoRam);
 
-    if (pScrn->videoRam > 262144)
-	pScrn->videoRam = 262144;
-
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
 
@@ -1542,7 +1539,7 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
     else
 	RamSize = (RHDRegRead(rhdPtr, R6XX_CONFIG_MEMSIZE)) >> 10;
 #ifdef XSERVER_LIBPCIACCESS
-    BARSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size;
+    BARSize = rhdPtr->PciInfo->regions[RHD_FB_BAR].size >> 10;
 #else
     BARSize = 1 << (rhdPtr->PciInfo->size[RHD_FB_BAR] - 10);
 #endif
