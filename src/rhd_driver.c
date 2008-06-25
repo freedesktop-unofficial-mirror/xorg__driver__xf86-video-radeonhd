@@ -917,11 +917,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowPreInit(pScrn);
-#if 0
+
     if ((rhdPtr->AccelMethod == RHD_ACCEL_XAA) ||
 	(rhdPtr->AccelMethod == RHD_ACCEL_EXA))
 	rhdFbOffscreenGrab(pScrn);
-#endif
+
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIAllocateBuffers(pScrn);
