@@ -121,15 +121,15 @@ R5xx2DFlush(int scrnIndex)
 {
     int i;
 
-    _RHDRegMask(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT,
-		R5XX_RB2D_DC_FLUSH_ALL, R5XX_RB2D_DC_FLUSH_ALL);
+    _RHDRegMask(scrnIndex, R5XX_DSTCACHE_CTLSTAT,
+		R5XX_DSTCACHE_FLUSH_ALL, R5XX_DSTCACHE_FLUSH_ALL);
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
-	if (!(_RHDRegRead(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT) & R5XX_RB2D_DC_BUSY))
+	if (!(_RHDRegRead(scrnIndex, R5XX_DSTCACHE_CTLSTAT) & R5XX_DSTCACHE_BUSY))
 	    return TRUE;
 
     xf86DrvMsg(scrnIndex, X_ERROR, "%s: Timeout 0x%08x.\n", __func__,
-	       (unsigned int)_RHDRegRead(scrnIndex, R5XX_RB2D_DSTCACHE_CTLSTAT));
+	       (unsigned int)_RHDRegRead(scrnIndex, R5XX_DSTCACHE_CTLSTAT));
     return FALSE;
 }
 

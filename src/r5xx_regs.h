@@ -228,6 +228,12 @@
 #define R5XX_DST_PIPE_CONFIG		  0x170c
 #       define R5XX_PIPE_AUTO_CONFIG      (1 << 31)
 
+#define R5XX_DSTCACHE_CTLSTAT		  0x1714
+#       define R5XX_DSTCACHE_FLUSH_2D     (1 << 0)
+#       define R5XX_DSTCACHE_FREE_2D      (1 << 2)
+#       define R5XX_DSTCACHE_FLUSH_ALL    (R5XX_DSTCACHE_FLUSH_2D | R5XX_DSTCACHE_FREE_2D)
+#       define R5XX_DSTCACHE_BUSY         (1 << 31)
+
 #define R5XX_WAIT_UNTIL			  0x1720
 #       define R5XX_WAIT_2D_IDLECLEAN     (1 << 16)
 #       define R5XX_WAIT_3D_IDLECLEAN     (1 << 17)
@@ -248,14 +254,9 @@
 #define R5XX_HOST_DATA7                   0x17dc
 #define R5XX_HOST_DATA_LAST               0x17e0
 
-#define R5XX_RB2D_DSTCACHE_MODE		                0x3428
-#       define R5XX_RB2D_DC_AUTOFLUSH_ENABLE            (1 << 8)
-#       define R5XX_RB2D_DC_DISABLE_IGNORE_PE           (1 << 17)
-#define R5XX_RB2D_DSTCACHE_CTLSTAT		        0x342C
-#       define R5XX_RB2D_DC_FLUSH_2D                    (1 << 0)
-#       define R5XX_RB2D_DC_FREE_2D                     (1 << 2)
-#       define R5XX_RB2D_DC_FLUSH_ALL                   (R5XX_RB2D_DC_FLUSH_2D | R5XX_RB2D_DC_FREE_2D)
-#       define R5XX_RB2D_DC_BUSY                        (1 << 31)
+#define R5XX_RB2D_DSTCACHE_MODE		           0x3428
+#       define R5XX_RB2D_DC_AUTOFLUSH_ENABLE       (1 << 8)
+#       define R5XX_RB2D_DC_DISABLE_IGNORE_PE      (1 << 17)
 
 #define R5XX_GB_TILE_CONFIG				0x4018
 #       define R5XX_ENABLE_TILING                       (1 << 0)
