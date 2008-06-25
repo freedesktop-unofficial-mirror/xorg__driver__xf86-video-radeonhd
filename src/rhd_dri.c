@@ -1110,7 +1110,9 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
 	rhdPtr->FbFreeSize  = old_freesize;
 
 	/* return RHDDRICloseScreen(pScrn->pScreen); */
-	rhdPtr->directRenderingEnabled = FALSE;
+	/* so far we are called from PreInit(): if we fail we free the DRI struct */
+	xfree(rhdPtr->dri);
+	rhdPtr->dri = NULL;
 	return FALSE;
     }
 
