@@ -538,7 +538,7 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 
     TRACE;
 
-    if (!info->XInited3D)
+    if (!info->accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
@@ -842,7 +842,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     TRACE;
 
-    if (!info->XInited3D)
+    if (!info->accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
@@ -1204,7 +1204,7 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     TRACE;
 
-    if (!info->XInited3D)
+    if (!info->accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!R300GetDestFormat(pDstPicture, &dst_format))

@@ -108,7 +108,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     dstyoff = 0;
 #endif
 
-    if (!info->XInited3D)
+    if (!info->accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     /* we can probably improve this */

@@ -287,7 +287,7 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
 
     RADEONWaitForIdleMMIO(pScrn);
 
-    info->XInited3D = FALSE;
+    info->accel_state->XHas3DEngineState = FALSE;
 }
 
 /* Initialize the acceleration hardware */
@@ -891,7 +891,7 @@ void RADEONInit3DEngine(ScrnInfoPtr pScrn)
 #endif
 	RADEONInit3DEngineMMIO(pScrn);
 
-    info->XInited3D = TRUE;
+    info->accel_state->XHas3DEngineState = TRUE;
 }
 
 #ifdef USE_XAA
