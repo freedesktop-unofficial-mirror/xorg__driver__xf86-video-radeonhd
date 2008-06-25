@@ -377,7 +377,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	uint32_t scratch_pitch_offset = scratch_pitch << 16
 				    | (info->dri->gartLocation + info->dri->bufStart
 				       + scratch->idx * scratch->total) >> 10;
-	drmRadeonIndirect indirect;
+	struct drm_radeon_indirect indirect;
 	ACCEL_PREAMBLE();
 
 	RADEON_SWITCH_TO_2D();
@@ -449,7 +449,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 	indirect.discard = 1;
 
 	drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
-			    &indirect, sizeof(drmRadeonIndirect));
+			    &indirect, sizeof(struct drm_radeon_indirect));
 
 	info->accel_state->exaMarkerSynced = info->accel_state->exaSyncMarker;
 

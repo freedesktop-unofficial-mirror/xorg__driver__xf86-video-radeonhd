@@ -40,9 +40,8 @@
 #include "radeon_reg.h"
 #ifdef USE_DRI
 #include "radeon_dri.h"
-//#include "radeon_drm.h"
-#include "radeon_sarea.h"
-#include "radeon_common.h"
+#include "radeon_drm.h"
+#include "sarea.h"
 #endif
 
 #include "xf86.h"

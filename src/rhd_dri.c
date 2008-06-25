@@ -58,7 +58,6 @@
 #define _XF86DRI_SERVER_
 #include "dri.h"
 #include "radeon_drm.h"
-//#include "radeon_common.h"
 #include "GL/glxint.h"
 #include "GL/glxtokens.h"
 #include "sarea.h"

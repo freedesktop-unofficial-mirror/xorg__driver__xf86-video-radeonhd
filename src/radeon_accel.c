@@ -84,8 +84,8 @@
 #ifdef USE_DRI
 #define _XF86DRI_SERVER_
 #include "radeon_dri.h"
-#include "radeon_common.h"
-#include "radeon_sarea.h"
+#include "radeon_drm.h"
+#include "sarea.h"
 #endif
 
 				/* Line support */
@@ -304,7 +304,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 
 #ifdef USE_DRI
     if (info->directRenderingEnabled) {
-	drmRadeonGetParam np;
+	struct drm_radeon_getparam np;
 	int num_pipes;
 
 	memset(&np, 0, sizeof(np));
@@ -429,14 +429,14 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 /* Stop the CP */
 int RADEONCPStop(ScrnInfoPtr pScrn, RHDPtr info)
 {
-    drmRadeonCPStop  stop;
+    struct drm_radeon_cp_stop  stop;
     int              ret, i;
 
     stop.flush = 1;
     stop.idle  = 1;
 
     ret = drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP, &stop,
-			  sizeof(drmRadeonCPStop));
+			  sizeof(struct drm_radeon_cp_stop));
 
     if (ret == 0) {
 	return 0;
@@ -449,7 +449,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RHDPtr info)
     i = 0;
     do {
 	ret = drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP, &stop,
-			      sizeof(drmRadeonCPStop));
+			      sizeof(struct drm_radeon_cp_stop));
     } while (ret && errno == EBUSY && i++ < RADEON_IDLE_RETRY);
 
     if (ret == 0) {
@@ -461,7 +461,7 @@ int RADEONCPStop(ScrnInfoPtr pScrn, RHDPtr info)
     stop.idle = 0;
 
     if (drmCommandWrite(info->dri->drmFD, DRM_RADEON_CP_STOP,
-			&stop, sizeof(drmRadeonCPStop))) {
+			&stop, sizeof(struct drm_radeon_cp_stop))) {
 	return -errno;
     } else {
 	return 0;
@@ -538,7 +538,7 @@ void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard)
     RHDPtr info = RHDPTR(pScrn);
     drmBufPtr          buffer = info->cp->indirectBuffer;
     int                start  = info->cp->indirectStart;
-    drmRadeonIndirect  indirect;
+    struct drm_radeon_indirect  indirect;
 
     if (!buffer) return;
     if (start == buffer->used && !discard) return;
@@ -554,7 +554,7 @@ void RADEONCPFlushIndirect(ScrnInfoPtr pScrn, int discard)
     indirect.discard = discard;
 
     drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
-			&indirect, sizeof(drmRadeonIndirect));
+			&indirect, sizeof(struct drm_radeon_indirect));
 
     if (discard) {
 	info->cp->indirectBuffer = RADEONCPGetBuffer(pScrn);
@@ -575,7 +575,7 @@ void RADEONCPReleaseIndirect(ScrnInfoPtr pScrn)
     RHDPtr info = RHDPTR(pScrn);
     drmBufPtr          buffer = info->cp->indirectBuffer;
     int                start  = info->cp->indirectStart;
-    drmRadeonIndirect  indirect;
+    struct drm_radeon_indirect  indirect;
 
     info->cp->indirectBuffer = NULL;
     info->cp->indirectStart  = 0;
@@ -593,7 +593,7 @@ void RADEONCPReleaseIndirect(ScrnInfoPtr pScrn)
     indirect.discard = 1;
 
     drmCommandWriteRead(info->dri->drmFD, DRM_RADEON_INDIRECT,
-			&indirect, sizeof(drmRadeonIndirect));
+			&indirect, sizeof(struct drm_radeon_indirect));
 }
 
 /** \brief Calculate HostDataBlit parameters from pointer and pitch
@@ -882,10 +882,10 @@ void RADEONInit3DEngine(ScrnInfoPtr pScrn)
 
 #ifdef USE_DRI
     if (info->directRenderingEnabled) {
-	RADEONSAREAPrivPtr pSAREAPriv;
+	drm_radeon_sarea_t *pSAREAPriv;
 
 	pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
-	pSAREAPriv->ctxOwner = DRIGetContext(pScrn->pScreen);
+	pSAREAPriv->ctx_owner = DRIGetContext(pScrn->pScreen);
 	RADEONInit3DEngineCP(pScrn);
     } else
 #endif
