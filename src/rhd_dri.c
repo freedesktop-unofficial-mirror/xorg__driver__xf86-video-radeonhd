@@ -273,7 +273,7 @@ static void RHDEnterServer(ScreenPtr pScreen)
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
-	rhdPtr->XInited3D = FALSE;
+	rhdPtr->accel_state->XHas3DEngineState = FALSE;
 	rhdPtr->cp->needCacheFlush = TRUE;
     }
 }

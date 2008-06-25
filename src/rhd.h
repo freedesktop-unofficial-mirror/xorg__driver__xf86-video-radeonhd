@@ -287,6 +287,8 @@ struct rhdAccel {
     unsigned short    texH[2];
 
     uint32_t         surface_cntl;
+    /* X itself has the 3D context */
+    Bool             XHas3DEngineState;
 };
 
 
@@ -410,8 +412,6 @@ typedef struct RHDRec {
     struct rhdCP      *cp;
     Bool              DMAForXv;
 #endif /* USE_DRI */
-    /* X itself has the 3D context */
-    Bool             XInited3D;
     /* chips with PVS/TCL hw (used for EXA render) */
     Bool             has_tcl;
 
