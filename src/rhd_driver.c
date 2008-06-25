@@ -687,9 +687,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_PROBED, "VideoRAM: %d kByte\n",
 	       pScrn->videoRam);
 
-    if (pScrn->videoRam > 262144)
-	pScrn->videoRam = 262144;
-
     rhdPtr->FbFreeStart = 0;
     rhdPtr->FbFreeSize = pScrn->videoRam * 1024;
 
