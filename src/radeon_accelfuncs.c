@@ -267,6 +267,9 @@ FUNC_NAME(RADEONSubsequentSolidTwoPointLine)(ScrnInfoPtr pScrn,
     FINISH_ACCEL();
 }
 
+#if 0
+/* Disabled on RV200 and newer because it does not pass XTest */
+
 /* Setup for XAA dashed lines
  *
  * Tests: xtest CH05/stdshs, XFree86/drwln
@@ -400,6 +403,7 @@ FUNC_NAME(RADEONSubsequentDashedTwoPointLine)(ScrnInfoPtr pScrn,
 
     FINISH_ACCEL();
 }
+#endif
 
 /* Set up for transparency
  *
