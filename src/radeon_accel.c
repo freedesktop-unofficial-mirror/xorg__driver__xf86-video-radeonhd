@@ -297,6 +297,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     int pixel_code = PIXEL_CODE(pScrn);
     uint32_t gb_tile_config;
     int pitch;
+    int datatype;
     
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
@@ -355,11 +356,11 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     RADEONEngineReset(pScrn);
 
     switch (pixel_code) {
-    case 8:  info->accel_state->datatype = 2; break;
-    case 15: info->accel_state->datatype = 3; break;
-    case 16: info->accel_state->datatype = 4; break;
-    case 24: info->accel_state->datatype = 5; break;
-    case 32: info->accel_state->datatype = 6; break;
+    case 8:  datatype = 2; break;
+    case 15: datatype = 3; break;
+    case 16: datatype = 4; break;
+    case 24: datatype = 5; break;
+    case 32: datatype = 6; break;
     default:
 	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		       "Unknown depth/bpp = %d/%d (code = %d)\n",
@@ -373,7 +374,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 		   "Pitch for acceleration = %d\n", pitch);
 
     info->accel_state->dp_gui_master_cntl =
-	((info->accel_state->datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
+	((datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
 	 | RADEON_GMC_CLR_CMP_CNTL_DIS
 	 | RADEON_GMC_DST_PITCH_OFFSET_CNTL);
 
