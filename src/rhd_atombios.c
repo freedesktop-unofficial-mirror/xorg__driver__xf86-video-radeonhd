@@ -4392,9 +4392,9 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
 	    case atomRegisterPCICFG:
 		DEBUGP(ErrorF("%s: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
 #ifdef XSERVER_LIBPCIACCESS
-		val = pci_device_cfg_write(RHDPTRI(handle)->PciInfo,
-					   &List->RegisterList[i].Value,
-					   List->RegisterList[i].Address, 4, NULL);
+		pci_device_cfg_write(RHDPTRI(handle)->PciInfo,
+				     &List->RegisterList[i].Value,
+				     List->RegisterList[i].Address, 4, NULL);
 #else
 		{
 		    PCITAG tag = RHDPTRI(handle)->PciTag;
