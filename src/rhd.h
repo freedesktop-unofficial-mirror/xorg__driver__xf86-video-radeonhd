@@ -218,13 +218,6 @@ enum AccelMethod {
 };
 
 struct rhdAccel {
-#ifdef USE_XAA
-    /*
-     * XAAForceTransBlit is used to change the behavior of the XAA
-     * SetupForScreenToScreenCopy function, to make it DGA-friendly.
-     */
-    Bool              XAAForceTransBlit;
-#endif
     int               fifo_slots;       /* Free slots in the FIFO (64 max)   */
 
 				/* Computed values for Radeon */
