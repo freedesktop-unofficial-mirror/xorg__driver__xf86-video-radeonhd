@@ -296,6 +296,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     RHDPtr info = RHDPTR(pScrn);
     int pixel_code = PIXEL_CODE(pScrn);
     uint32_t gb_tile_config;
+    int pitch;
     
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
@@ -365,11 +366,11 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 		       pScrn->depth, pScrn->bitsPerPixel,
 		       pixel_code);
     }
-    info->accel_state->pitch = ((pScrn->displayWidth >> 3) *
+    pitch = ((pScrn->displayWidth >> 3) *
 				((pScrn->bitsPerPixel >> 3) == 3 ? 3 : 1));
 
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-		   "Pitch for acceleration = %d\n", info->accel_state->pitch);
+		   "Pitch for acceleration = %d\n", pitch);
 
     info->accel_state->dp_gui_master_cntl =
 	((info->accel_state->datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
