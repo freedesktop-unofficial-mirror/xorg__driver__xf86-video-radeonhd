@@ -228,7 +228,6 @@ struct rhdAccel {
     int               fifo_slots;       /* Free slots in the FIFO (64 max)   */
 
 				/* Computed values for Radeon */
-    int               datatype;
     uint32_t          dp_gui_master_cntl;
     uint32_t          dp_gui_master_cntl_clip;
     uint32_t          trans_color;
