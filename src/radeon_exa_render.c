@@ -320,8 +320,21 @@ static Bool RADEONSetupSourceTile(PicturePtr pPict,
     return TRUE;
 }
 
+static PixmapPtr
+RADEONGetDrawablePixmap(DrawablePtr pDrawable)
+{
+    if (pDrawable->type == DRAWABLE_WINDOW)
+	return pDrawable->pScreen->GetWindowPixmap((WindowPtr)pDrawable);
+    else
+	return (PixmapPtr)pDrawable;
+}
+
+#endif /* ONLY_ONCE */
+
+#ifndef RHD_DRIVER
+
 /* R100-specific code */
-# ifndef RHD_DRIVER
+# ifdef ONLY_ONCE
 static Bool R100CheckCompositeTexture(PicturePtr pPict, int unit)
 {
     int w = pPict->pDrawable->width;
@@ -350,10 +363,8 @@ static Bool R100CheckCompositeTexture(PicturePtr pPict, int unit)
 
     return TRUE;
 }
-# endif
-#endif /* ONLY_ONCE */
+# endif ONLY_ONCE
 
-#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
@@ -439,19 +450,9 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 
     return TRUE;
 }
-# endif
-#ifdef ONLY_ONCE
 
-static PixmapPtr
-RADEONGetDrawablePixmap(DrawablePtr pDrawable)
-{
-    if (pDrawable->type == DRAWABLE_WINDOW)
-	return pDrawable->pScreen->GetWindowPixmap((WindowPtr)pDrawable);
-    else
-	return (PixmapPtr)pDrawable;
-}
+# ifdef ONLY_ONCE
 
-# ifndef RHD_DRIVER
 static Bool R100CheckComposite(int op, PicturePtr pSrcPicture,
 			       PicturePtr pMaskPicture, PicturePtr pDstPicture)
 {
@@ -518,10 +519,8 @@ static Bool R100CheckComposite(int op, PicturePtr pSrcPicture,
 
     return TRUE;
 }
-# endif
-#endif /* ONLY_ONCE */
+# endif /* ONLY_ONCE */
 
-# ifndef RHD_DRIVER
 static Bool FUNC_NAME(R100PrepareComposite)(int op,
 					    PicturePtr pSrcPicture,
 					    PicturePtr pMaskPicture,
@@ -637,9 +636,8 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 
     return TRUE;
 }
-# endif
-#ifdef ONLY_ONCE
-# ifndef RHD_DRIVER
+
+# ifdef ONLY_ONCE
 static Bool R200CheckCompositeTexture(PicturePtr pPict, int unit)
 {
     int w = pPict->pDrawable->width;
@@ -667,10 +665,8 @@ static Bool R200CheckCompositeTexture(PicturePtr pPict, int unit)
 
     return TRUE;
 }
-# endif
-#endif /* ONLY_ONCE */
+# endif /* ONLY_ONCE */
 
-#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
@@ -758,10 +754,8 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 
     return TRUE;
 }
-# endif
 
-#ifdef ONLY_ONCE
-# ifndef RHD_DRIVER
+# ifdef ONLY_ONCE
 static Bool R200CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
 			       PicturePtr pDstPicture)
 {
@@ -826,10 +820,8 @@ static Bool R200CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 
     return TRUE;
 }
-# endif
-#endif /* ONLY_ONCE */
+# endif /* ONLY_ONCE */
 
-#ifndef RHD_DRIVER
 static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 				PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
@@ -947,7 +939,8 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     return TRUE;
 }
-# endif
+#endif /* RHD_DRIVER */
+
 #ifdef ONLY_ONCE
 
 static Bool R300CheckCompositeTexture(PicturePtr pPict,
