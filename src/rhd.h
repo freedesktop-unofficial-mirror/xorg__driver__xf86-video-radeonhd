@@ -253,12 +253,12 @@ struct rhdAccel {
     int               scanline_hpass;
     int               scanline_x1clip;
     int               scanline_x2clip;
-#endif
 				/* Saved values for DashedTwoPointLine */
     int               dashLen;
     uint32_t          dashPattern;
     int               dash_fg;
     int               dash_bg;
+#endif
 
     uint32_t          dst_pitch_offset;
 
@@ -270,12 +270,6 @@ struct rhdAccel {
 #define EXA_ENGINEMODE_2D      1
 #define EXA_ENGINEMODE_3D      2
 #endif
-
-				/* Saved scissor values */
-    uint32_t          sc_left;
-    uint32_t          sc_right;
-    uint32_t          sc_top;
-    uint32_t          sc_bottom;
 
     uint32_t          re_top_left;
     uint32_t          re_width_height;
