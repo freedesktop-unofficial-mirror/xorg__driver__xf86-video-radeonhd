@@ -437,7 +437,11 @@ FUNC_NAME(RADEONSetTransparency)(ScrnInfoPtr pScrn,
 {
     RHDPtr info = RHDPTR(pScrn);
 
-    if ((trans_color != -1) || (info->accel_state->XAAForceTransBlit == TRUE)) {
+    if ((trans_color != -1)
+#ifndef RHD_DRIVER
+	|| (info->accel_state->XAAForceTransBlit == TRUE)
+#endif
+	) {
 	ACCEL_PREAMBLE();
 
 	BEGIN_ACCEL(3);
