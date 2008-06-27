@@ -259,9 +259,6 @@ struct rhdAccel {
     int               dash_fg;
     int               dash_bg;
 #endif
-
-    uint32_t          dst_pitch_offset;
-
 #if USE_EXA
     int               exaSyncMarker;
     int               exaMarkerSynced;
@@ -271,14 +268,15 @@ struct rhdAccel {
 #define EXA_ENGINEMODE_3D      2
 #endif
 
-    uint32_t          re_top_left;
-    uint32_t          re_width_height;
+    uint32_t          dst_pitch_offset;
 
     int               num_gb_pipes;
+
     unsigned short    texW[2];
     unsigned short    texH[2];
 
     uint32_t         surface_cntl;
+
     /* X itself has the 3D context */
     Bool             XHas3DEngineState;
 };

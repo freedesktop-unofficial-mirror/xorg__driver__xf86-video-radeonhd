@@ -378,13 +378,6 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 	 | RADEON_GMC_CLR_CMP_CNTL_DIS
 	 | RADEON_GMC_DST_PITCH_OFFSET_CNTL);
 
-#ifdef USE_DRI
-
-    info->accel_state->re_top_left     = 0x00000000;
-    info->accel_state->re_width_height = ((8191 << R300_SCISSOR_X_SHIFT) |
-			     (8191 << R300_SCISSOR_Y_SHIFT));
-#endif
-
     RADEONEngineRestore(pScrn);
 }
 

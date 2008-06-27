@@ -146,8 +146,9 @@ do {									\
 	}								\
 	RADEON_WAIT_UNTIL_IDLE(info);					\
             BEGIN_RING(4);                                              \
-            OUT_RING_REG(R300_SC_SCISSOR0, info->accel_state->re_top_left);   \
-	    OUT_RING_REG(R300_SC_SCISSOR1, info->accel_state->re_width_height);      \
+            OUT_RING_REG(R300_SC_SCISSOR0, 0x00000000);                 \
+	    OUT_RING_REG(R300_SC_SCISSOR1, ((8191 << R300_SCISSOR_X_SHIFT) | \
+                                  (8191 << R300_SCISSOR_Y_SHIFT)));     \
             ADVANCE_RING();                                             \
 	info->cp->CPInUse = TRUE;					\
     }									\
