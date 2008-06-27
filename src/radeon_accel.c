@@ -379,10 +379,6 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 	 | RADEON_GMC_DST_PITCH_OFFSET_CNTL);
 
 #ifdef USE_DRI
-    info->accel_state->sc_left         = 0x00000000;
-    info->accel_state->sc_right        = RADEON_DEFAULT_SC_RIGHT_MAX;
-    info->accel_state->sc_top          = 0x00000000;
-    info->accel_state->sc_bottom       = RADEON_DEFAULT_SC_BOTTOM_MAX;
 
     info->accel_state->re_top_left     = 0x00000000;
     info->accel_state->re_width_height = ((8191 << R300_SCISSOR_X_SHIFT) |
