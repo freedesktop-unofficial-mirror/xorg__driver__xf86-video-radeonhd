@@ -89,7 +89,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     pixel_shift = pPixmap->drawable.bitsPerPixel >> 4;
 
 #ifdef USE_EXA
-    if (info->AccelMethod == RHD_ACCEL_EXA) {
+    if (info->exa) {
 	dst_offset = exaGetPixmapOffset(pPixmap) + info->FbIntAddress + info->FbScanoutStart;
 	dst_pitch = exaGetPixmapPitch(pPixmap);
     } else

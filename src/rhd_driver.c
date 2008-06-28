@@ -992,9 +992,9 @@ RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
 		    xfree(rhdPtr->accel_state->scratch_save);
 		rhdPtr->accel_state->scratch_save = NULL;
 
-		if (rhdPtr->accel)
-		    xfree(rhdPtr->accel);
-		rhdPtr->accel = NULL;
+		if (rhdPtr->xaa)
+		    xfree(rhdPtr->xaa);
+		rhdPtr->xaa = NULL;
 	    }
 	}
     }
@@ -1223,9 +1223,9 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 #endif /* USE_EXA */
 #ifdef USE_XAA
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-        if (rhdPtr->accel)
-	    XAADestroyInfoRec(rhdPtr->accel);
-        rhdPtr->accel = NULL;
+        if (rhdPtr->xaa)
+	    XAADestroyInfoRec(rhdPtr->xaa);
+        rhdPtr->xaa = NULL;
 
 	if (rhdPtr->accel_state) {
 	    if (rhdPtr->accel_state->scratch_save)
