@@ -548,7 +548,6 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
     info->exa->pixmapOffsetAlign = RADEON_BUFFER_ALIGN + 1;
     info->exa->pixmapPitchAlign = 64;
 
-    //#ifdef RENDER
     if (info->ChipSet >= RHD_R600)
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Render acceleration "
 		   "unsupported on R600 and newer cards.\n");
@@ -565,7 +564,9 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 	} else
 #endif
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "EXA Composite requires CP on R5xx/IGP\n");
-    } /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+    }
+#ifndef RHD_DRIVER
+    else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
 	(info->ChipFamily == CHIP_FAMILY_RV280) ||
 	(info->ChipFamily == CHIP_FAMILY_RS300) ||
 	(info->ChipFamily == CHIP_FAMILY_R200)) {
@@ -584,8 +585,8 @@ Bool FUNC_NAME(RADEONDrawInit)(ScreenPtr pScreen)
 	FUNC_NAME(R100PrepareComposite);
 	info->exa->Composite = FUNC_NAME(RadeonComposite);
 	info->exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
-	}*/
-    //#endif
+	}
+#endif
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Setting EXA maxPitchBytes\n");
