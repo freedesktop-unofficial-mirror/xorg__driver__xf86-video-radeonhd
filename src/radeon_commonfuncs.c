@@ -168,8 +168,10 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 		 (info->ChipSet == RHD_M58) ||
 		 (info->ChipSet == RHD_M66))
 	    vap_cntl |= (5 << R300_PVS_NUM_FPUS_SHIFT);
-	/*else if (info->ChipSet == CHIP_FAMILY_R420)
-	  vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);*/
+#ifndef RHD_DRIVER
+	else if (info->ChipSet == CHIP_FAMILY_R420)
+	  vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);
+#endif
 	else if ((info->ChipSet == RHD_R520) ||
 		 (info->ChipSet == RHD_R580) ||
 		 (info->ChipSet == RHD_RV570) ||
@@ -614,7 +616,9 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	OUT_ACCEL_REG(R300_SC_CLIP_RULE, 0xAAAA);
 	OUT_ACCEL_REG(R300_SC_SCREENDOOR, 0xffffff);
 	FINISH_ACCEL();
-    } /*else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+    }
+#ifndef RHD_DRIVER
+    else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
 	       (info->ChipFamily == CHIP_FAMILY_RV280) ||
 	       (info->ChipFamily == CHIP_FAMILY_RS300) ||
 	       (info->ChipFamily == CHIP_FAMILY_R200)) {
@@ -672,8 +676,8 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 				       RADEON_ROUND_MODE_ROUND |
 				       RADEON_ROUND_PREC_4TH_PIX));
 	FINISH_ACCEL();
-    }*/
-
+    }
+#endif
 }
 
 
