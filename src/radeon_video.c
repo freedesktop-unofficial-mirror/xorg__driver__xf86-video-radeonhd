@@ -484,7 +484,7 @@ RADEONAllocateMemory(
 
     pScreen = screenInfo.screens[pScrn->scrnIndex];
 #ifdef USE_EXA
-    if (info->AccelMethod == RHD_ACCEL_EXA) {
+    if (info->exa) {
 	ExaOffscreenArea *area = *mem_struct;
 
 	if (area != NULL) {
@@ -503,7 +503,7 @@ RADEONAllocateMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (info->AccelMethod == RHD_ACCEL_XAA) {
+    if (info->exa) {
 	FBLinearPtr linear = *mem_struct;
 	int cpp = pScrn->bitsPerPixel >> 3;
 
@@ -557,7 +557,7 @@ RADEONFreeMemory(
     RHDPtr info = RHDPTR(pScrn);
 
 #ifdef USE_EXA
-    if (info->AccelMethod == RHD_ACCEL_EXA) {
+    if (info->exa) {
 	ExaOffscreenArea *area = mem_struct;
 
 	if (area != NULL)
@@ -565,7 +565,7 @@ RADEONFreeMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (info->AccelMethod == RHD_ACCEL_XAA) {
+    if (info->exa) {
 	FBLinearPtr linear = mem_struct;
 
 	if (linear != NULL)

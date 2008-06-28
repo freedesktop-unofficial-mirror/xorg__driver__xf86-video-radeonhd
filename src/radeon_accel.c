@@ -844,7 +844,7 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
     if (info->AccelMethod == RHD_ACCEL_XAA) {
 	XAAInfoRecPtr  a;
 
-	if (!(a = info->accel = XAACreateInfoRec())) {
+	if (!(a = info->xaa = XAACreateInfoRec())) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "XAACreateInfoRec Error\n");
 	    return FALSE;
 	}

@@ -229,6 +229,14 @@ struct rhdAccel {
     int               xdir;
     int               ydir;
 
+    uint32_t          dst_pitch_offset;
+
+    int               num_gb_pipes;
+
+    unsigned short    texW[2];
+    unsigned short    texH[2];
+
+    uint32_t         surface_cntl;
 #ifdef USE_XAA
 				/* ScanlineScreenToScreenColorExpand support */
     unsigned char     *scratch_buffer[1];
@@ -261,17 +269,10 @@ struct rhdAccel {
 #define EXA_ENGINEMODE_3D      2
 #endif
 
-    uint32_t          dst_pitch_offset;
-
-    int               num_gb_pipes;
-
-    unsigned short    texW[2];
-    unsigned short    texH[2];
-
-    uint32_t         surface_cntl;
-
     /* X itself has the 3D context */
     Bool             XHas3DEngineState;
+
+
 };
 
 
@@ -381,7 +382,7 @@ typedef struct RHDRec {
     ExaDriverPtr      exa;
 #endif
 #ifdef USE_XAA
-    XAAInfoRecPtr     accel;
+    XAAInfoRecPtr     xaa;
 #endif
     Bool              allowColorTiling;
     Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
