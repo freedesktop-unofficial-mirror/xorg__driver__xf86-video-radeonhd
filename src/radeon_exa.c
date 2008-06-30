@@ -198,8 +198,6 @@ Bool RADEONGetPixmapOffsetPitch(PixmapPtr pPix, uint32_t *pitch_offset)
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 
-static unsigned long swapper_surfaces[3];
-
 static Bool RADEONPrepareAccess(PixmapPtr pPix, int index)
 {
     RINFO_FROM_SCREEN(pPix->drawable.pScreen);
@@ -252,7 +250,7 @@ static Bool RADEONPrepareAccess(PixmapPtr pPix, int index)
 		       " swapper, err: %d!\n", rc);
 	    return FALSE;
 	}
-	swapper_surfaces[index] = offset;
+	info->accel_state->swapper_surfaces[index] = offset;
 
 	return TRUE;
     }
@@ -261,7 +259,7 @@ static Bool RADEONPrepareAccess(PixmapPtr pPix, int index)
     RHDRegWrite(info, RADEON_SURFACE0_INFO + soff, flags);
     RHDRegWrite(info, RADEON_SURFACE0_LOWER_BOUND + soff, offset);
     RHDRegWrite(info, RADEON_SURFACE0_UPPER_BOUND + soff, offset + size - 1);
-    swapper_surfaces[index] = offset;
+    info->accel_state->swapper_surfaces[index] = offset;
     return TRUE;
 }
 
@@ -275,7 +273,7 @@ static void RADEONFinishAccess(PixmapPtr pPix, int index)
     if (offset == 0)
         return;
 
-    if (swapper_surfaces[index] == 0)
+    if (info->accel_state->swapper_surfaces[index] == 0)
         return;
 #if defined(USE_DRI)
     if (info->directRenderingEnabled && info->allowColorTiling) {
@@ -284,7 +282,7 @@ static void RADEONFinishAccess(PixmapPtr pPix, int index)
 	drmsurffree.address = offset;
 	drmCommandWrite(info->dri->drmFD, DRM_RADEON_SURF_FREE,
 			&drmsurffree, sizeof(drmsurffree));
-	swapper_surfaces[index] = 0;
+	info->accel_state->swapper_surfaces[index] = 0;
 	return;
     }
 #endif
@@ -292,7 +290,7 @@ static void RADEONFinishAccess(PixmapPtr pPix, int index)
     RHDRegWrite(info, RADEON_SURFACE0_INFO + soff, 0);
     RHDRegWrite(info, RADEON_SURFACE0_LOWER_BOUND + soff, 0);
     RHDRegWrite(info, RADEON_SURFACE0_UPPER_BOUND + soff, 0);
-    swapper_surfaces[index] = 0;
+    info->accel_state->swapper_surfaces[index] = 0;
 }
 
 #endif /* X_BYTE_ORDER == X_BIG_ENDIAN */
