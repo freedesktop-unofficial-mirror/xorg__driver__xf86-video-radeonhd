@@ -78,6 +78,7 @@
 #include "rhd_cp.h"
 #include "r5xx_accel.h"
 #include "radeon_dri.h"
+#include "radeon_accel.h"
 
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
 # include "xf86Crtc.h"

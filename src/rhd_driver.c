@@ -111,7 +111,12 @@
 #include "rhd_shadow.h"
 #include "rhd_card.h"
 #include "rhd_randr.h"
+#if 0
 #include "r5xx_accel.h"
+#endif
+#include "radeon_accel.h"
+#include "radeon_xaa.h"
+#include "radeon_exa.h"
 
 #ifdef USE_DRI
 #include "rhd_dri.h"
