@@ -33,6 +33,7 @@
 /* radeon_exa.c */
 extern Bool RADEONSetupMemEXA(ScreenPtr pScreen);
 extern Bool RADEON_EXAInit(ScreenPtr pScreen);
+extern void RADEONCloseEXA(ScreenPtr pScreen);
 
 # endif /* USE_EXA */
 #endif /* _RADEON_EXA_H */

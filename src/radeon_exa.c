@@ -389,6 +389,19 @@ RADEON_EXAInit(ScreenPtr pScreen)
     return TRUE;
 }
 
+void
+RADEONCloseEXA(ScreenPtr pScreen)
+{
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr info = RHDPTR(pScrn);
+
+    if (info->exa) {
+        exaDriverFini(pScreen);
+	xfree(info->exa);
+        info->exa = NULL;
+    }
+}
+
 /*
  * Once screen->off_screen_base is set, this function
  * allocates the remaining memory appropriately

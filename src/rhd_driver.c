@@ -974,30 +974,16 @@ RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
 
 #ifdef USE_EXA
     if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	if  (RADEONSetupMemEXA(pScreen)) {
-	    if (!(ret = RADEON_EXAInit(pScreen))) {
-
-		if (rhdPtr->exa)
-		    xfree(rhdPtr->exa);
-		rhdPtr->exa = NULL;
-
-	    }
-	}
+	if  (RADEONSetupMemEXA(pScreen))
+	    ret = RADEON_EXAInit(pScreen);
     }
 #endif
 #ifdef USE_XAA
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	if (RADEONSetupMemXAA(pScrn->scrnIndex, pScreen)) {
-
-	    if (!(ret = RADEON_XAAInit(pScreen))) {
-
-		if (rhdPtr->accel_state->scratch_save)
-		    xfree(rhdPtr->accel_state->scratch_save);
-		rhdPtr->accel_state->scratch_save = NULL;
-	    }
+	if (RADEONSetupMemXAA(pScrn->scrnIndex, pScreen))
+	    ret = RADEON_XAAInit(pScreen);
 	}
-    }
 #endif
     if (!ret) {
 	xfree(rhdPtr->accel_state);
@@ -1215,25 +1201,12 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	RHDShadowCloseScreen(pScreen);
 
 #ifdef USE_EXA
-    if (rhdPtr->exa) {
-        exaDriverFini(pScreen);
-	xfree(rhdPtr->exa);
-        rhdPtr->exa = NULL;
-    }
+    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+	RADEONCloseEXA(pScreen);
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-        if (rhdPtr->xaa)
-	    XAADestroyInfoRec(rhdPtr->xaa);
-        rhdPtr->xaa = NULL;
-
-	if (rhdPtr->accel_state) {
-	    if (rhdPtr->accel_state->scratch_save)
-		xfree(rhdPtr->accel_state->scratch_save);
-	    rhdPtr->accel_state->scratch_save = NULL;
-	}
-
-    }
+    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+	RADEONCloseXAA(pScreen);
 #endif /* USE_XAA */
     if (rhdPtr->accel_state) {
 	xfree(rhdPtr->accel_state);

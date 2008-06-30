@@ -164,13 +164,26 @@ RADEON_XAAInit(ScreenPtr pScreen)
 
     if (!XAAInit(pScreen, info->xaa)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "XAAInit Error\n");
-	XAADestroyInfoRec(info->xaa);
-	info->xaa = NULL;
+	RADEONCloseXAA(pScreen);
 
 	return FALSE;
     }
 
     return TRUE;
+}
+
+void
+RADEONCloseXAA(ScreenPtr pScreen)
+{
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr info = RHDPTR(pScrn);
+
+    XAADestroyInfoRec(info->xaa);
+    info->xaa = NULL;
+    
+    if (info->accel_state && info->accel_state->scratch_save)
+	xfree(info->accel_state->scratch_save);
+    info->accel_state->scratch_save = NULL;
 }
 
 Bool
