@@ -83,6 +83,18 @@ struct rhdAccel {
 #  define EXA_ENGINEMODE_UNKNOWN 0
 #  define EXA_ENGINEMODE_2D      1
 #  define EXA_ENGINEMODE_3D      2
+#  if X_BYTE_ORDER == X_BIG_ENDIAN
+    unsigned long swapper_surfaces[3];
+#  endif
+    Bool is_transform[2];
+    PictTransform *transform[2];
+    Bool has_mask;
+/* Whether we are tiling horizontally and vertically */
+    Bool need_src_tile_x;
+    Bool need_src_tile_y;
+/* Size of tiles ... set to 65536x65536 if not tiling in that direction */
+    Bool src_tile_width;
+    Bool src_tile_height;
 # endif
 
 };
