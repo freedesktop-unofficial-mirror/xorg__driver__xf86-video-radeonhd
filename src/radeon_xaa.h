@@ -33,6 +33,7 @@
 
 extern Bool RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen);
 extern Bool RADEON_XAAInit(ScreenPtr pScreen);
+extern void RADEONCloseXAA(ScreenPtr pScreen);
 
 # endif /* USE_XAA */
 
