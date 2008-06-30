@@ -85,10 +85,6 @@ struct rhdCP {
 
 };
 
-#  ifdef USE_XAA
-/* radeon_accelfuncs.c */
-extern void RADEONAccelInitCP(ScreenPtr pScreen, XAAInfoRecPtr a);
-#  endif
 
 #  define RADEONCP_START(pScrn, info)					\
 do {									\

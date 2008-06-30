@@ -52,6 +52,10 @@ radeonhd_drv_la_SOURCES = \
 	rhd_shadow.h \
 	rhd_mc.h \
 	radeon_accel.c \
+	radeon_accel.h \
+	radeon_xaa.c \
+	radeon_xaa.h \
+	radeon_exa.h \
 	radeon_video.c \
 	radeon_textured_video.c \
 	radeon_video.h \

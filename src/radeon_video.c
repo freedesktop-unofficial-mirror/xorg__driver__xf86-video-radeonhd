@@ -12,6 +12,7 @@
 
 #include "radeon_reg.h"
 #include "radeon_video.h"
+#include "radeon_accel.h"
 
 #include "xf86.h"
 #include "dixstruct.h"

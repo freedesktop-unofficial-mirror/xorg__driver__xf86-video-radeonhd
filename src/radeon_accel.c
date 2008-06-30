@@ -52,25 +52,6 @@
  *   RAGE 128 Software Development Manual (Technical Reference Manual P/N
  *   SDK-G04000 Rev. 0.01), ATI Technologies: June 1999.
  *
- * Notes on unimplemented XAA optimizations:
- *
- *   SetClipping:   This has been removed as XAA expects 16bit registers
- *                  for full clipping.
- *   TwoPointLine:  The Radeon supports this. Not Bresenham.
- *   DashedLine with non-power-of-two pattern length: Apparently, there is
- *                  no way to set the length of the pattern -- it is always
- *                  assumed to be 8 or 32 (or 1024?).
- *   ScreenToScreenColorExpandFill: See p. 4-17 of the Technical Reference
- *                  Manual where it states that monochrome expansion of frame
- *                  buffer data is not supported.
- *   CPUToScreenColorExpandFill, direct: The implementation here uses a hybrid
- *                  direct/indirect method.  If we had more data registers,
- *                  then we could do better.  If XAA supported a trigger write
- *                  address, the code would be simpler.
- *   Color8x8PatternFill: Apparently, an 8x8 color brush cannot take an 8x8
- *                  pattern from frame buffer memory.
- *   ImageWrites:   Same as CPUToScreenColorExpandFill
- *
  */
 
 #include <errno.h>
@@ -80,6 +61,10 @@
 #include "rhd_dri.h"
 #include "rhd_cp.h"
 
+#include "radeon_accel.h"
+#include "radeon_xaa.h"
+#include "radeon_exa.h"
+
 #include "radeon_reg.h"
 #ifdef USE_DRI
 #define _XF86DRI_SERVER_
@@ -87,36 +72,9 @@
 #include "radeon_drm.h"
 #include "sarea.h"
 #endif
-
-				/* Line support */
-#include "miline.h"
-
 				/* X and server generic header files */
 #include "xf86.h"
 
-#ifdef USE_XAA
-static struct {
-    int rop;
-    int pattern;
-} RADEON_ROP[] = {
-    { RADEON_ROP3_ZERO, RADEON_ROP3_ZERO }, /* GXclear        */
-    { RADEON_ROP3_DSa,  RADEON_ROP3_DPa  }, /* Gxand          */
-    { RADEON_ROP3_SDna, RADEON_ROP3_PDna }, /* GXandReverse   */
-    { RADEON_ROP3_S,    RADEON_ROP3_P    }, /* GXcopy         */
-    { RADEON_ROP3_DSna, RADEON_ROP3_DPna }, /* GXandInverted  */
-    { RADEON_ROP3_D,    RADEON_ROP3_D    }, /* GXnoop         */
-    { RADEON_ROP3_DSx,  RADEON_ROP3_DPx  }, /* GXxor          */
-    { RADEON_ROP3_DSo,  RADEON_ROP3_DPo  }, /* GXor           */
-    { RADEON_ROP3_DSon, RADEON_ROP3_DPon }, /* GXnor          */
-    { RADEON_ROP3_DSxn, RADEON_ROP3_PDxn }, /* GXequiv        */
-    { RADEON_ROP3_Dn,   RADEON_ROP3_Dn   }, /* GXinvert       */
-    { RADEON_ROP3_SDno, RADEON_ROP3_PDno }, /* GXorReverse    */
-    { RADEON_ROP3_Sn,   RADEON_ROP3_Pn   }, /* GXcopyInverted */
-    { RADEON_ROP3_DSno, RADEON_ROP3_DPno }, /* GXorInverted   */
-    { RADEON_ROP3_DSan, RADEON_ROP3_DPan }, /* GXnand         */
-    { RADEON_ROP3_ONE,  RADEON_ROP3_ONE  }  /* GXset          */
-};
-#endif
 
 /* Compute log base 2 of val */
 int RADEONMinBits(int val)
@@ -298,7 +256,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     uint32_t gb_tile_config;
     int pitch;
     int datatype;
-    
+
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
 		   "EngineInit (%d/%d)\n",
 		   PIXEL_CODE(pScrn),
@@ -345,7 +303,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     default:
     case 1: gb_tile_config |= R300_PIPE_COUNT_RV350; break;
     }
-    
+
     RHDRegWrite(info, R300_GB_TILE_CONFIG, gb_tile_config);
     RHDRegWrite(info, RADEON_WAIT_UNTIL, RADEON_WAIT_2D_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN);
     RHDRegWrite(info, R300_DST_PIPE_CONFIG, RHDRegRead(info, R300_DST_PIPE_CONFIG) | R300_PIPE_AUTO_CONFIG);
@@ -366,6 +324,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 		       "Unknown depth/bpp = %d/%d (code = %d)\n",
 		       pScrn->depth, pScrn->bitsPerPixel,
 		       pixel_code);
+	datatype = 6;
     }
     pitch = ((pScrn->displayWidth >> 3) *
 				((pScrn->bitsPerPixel >> 3) == 3 ? 3 : 1));
@@ -381,7 +340,6 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     RADEONEngineRestore(pScrn);
 }
 
-
 #define ACCEL_MMIO
 #define ACCEL_PREAMBLE()
 #define BEGIN_ACCEL(n)          RADEONWaitForFifo(pScrn, (n))
@@ -389,7 +347,6 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 #define FINISH_ACCEL()
 
 #include "radeon_commonfuncs.c"
-#include "radeon_accelfuncs.c"
 
 #undef ACCEL_MMIO
 #undef ACCEL_PREAMBLE
@@ -407,9 +364,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 #define OUT_ACCEL_REG(reg, val) OUT_RING_REG(reg, val)
 #define FINISH_ACCEL()          ADVANCE_RING()
 
-
 #include "radeon_commonfuncs.c"
-#include "radeon_accelfuncs.c"
 
 #undef ACCEL_CP
 #undef ACCEL_PREAMBLE
@@ -816,7 +771,25 @@ RADEONHostDataBlitCopyPass(
     }
 }
 
+#endif /* USE_DRI */
+
+void RADEONInit3DEngine(ScrnInfoPtr pScrn)
+{
+    RHDPtr info = RHDPTR(pScrn);
+
+#ifdef USE_DRI
+    if (info->directRenderingEnabled) {
+	drm_radeon_sarea_t *pSAREAPriv;
+
+	pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
+	pSAREAPriv->ctx_owner = DRIGetContext(pScrn->pScreen);
+	RADEONInit3DEngineCP(pScrn);
+    } else
 #endif
+	RADEONInit3DEngineMMIO(pScrn);
+
+    info->accel_state->XHas3DEngineState = TRUE;
+}
 
 Bool RADEONAccelInit(ScreenPtr pScreen)
 {
@@ -866,91 +839,3 @@ Bool RADEONAccelInit(ScreenPtr pScreen)
 #endif /* USE_XAA */
     return TRUE;
 }
-
-void RADEONInit3DEngine(ScrnInfoPtr pScrn)
-{
-    RHDPtr info = RHDPTR(pScrn);
-
-#ifdef USE_DRI
-    if (info->directRenderingEnabled) {
-	drm_radeon_sarea_t *pSAREAPriv;
-
-	pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
-	pSAREAPriv->ctx_owner = DRIGetContext(pScrn->pScreen);
-	RADEONInit3DEngineCP(pScrn);
-    } else
-#endif
-	RADEONInit3DEngineMMIO(pScrn);
-
-    info->accel_state->XHas3DEngineState = TRUE;
-}
-
-#ifdef USE_XAA
-Bool
-RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
-{
-    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr info = RHDPTR(pScrn);
-    BoxRec         MemBox;
-    int            y2;
-
-    int width_bytes = pScrn->displayWidth * (pScrn->bitsPerPixel >> 3);
-
-    MemBox.x1 = 0;
-    MemBox.y1 = 0;
-    MemBox.x2 = pScrn->displayWidth;
-#if USE_DRI
-    if (info->directRenderingEnabled)
-	y2 = pScrn->displayWidth * pScrn->virtualY * 3;
-    else
-#endif
-	y2 = (info->FbScanoutSize + info->FbOffscreenSize) / width_bytes;
-
-    if (y2 >= 32768)
-	y2 = 32767; /* because MemBox.y2 is signed short */
-    MemBox.y2 = y2;
-    
-    /* The acceleration engine uses 14 bit
-     * signed coordinates, so we can't have any
-     * drawable caches beyond this region.
-     */
-    if (MemBox.y2 > 8191)
-	MemBox.y2 = 8191;
-
-    if (!xf86InitFBManager(pScreen, &MemBox)) {
-	xf86DrvMsg(scrnIndex, X_ERROR,
-		   "Memory manager initialization to "
-		   "(%d,%d) (%d,%d) failed\n",
-		   MemBox.x1, MemBox.y1, MemBox.x2, MemBox.y2);
-	return FALSE;
-    } else {
-	int       width, height;
-	FBAreaPtr fbarea;
-
-	xf86DrvMsg(scrnIndex, X_INFO,
-		   "Memory manager initialized to (%d,%d) (%d,%d)\n",
-		   MemBox.x1, MemBox.y1, MemBox.x2, MemBox.y2);
-	if ((fbarea = xf86AllocateOffscreenArea(pScreen,
-						pScrn->displayWidth,
-						info->allowColorTiling ? 
-						((pScrn->virtualY + 15) & ~15)
-						- pScrn->virtualY + 2 : 2,
-						0, NULL, NULL,
-						NULL))) {
-	    xf86DrvMsg(scrnIndex, X_INFO,
-		       "Reserved area from (%d,%d) to (%d,%d)\n",
-		       fbarea->box.x1, fbarea->box.y1,
-		       fbarea->box.x2, fbarea->box.y2);
-	} else {
-	    xf86DrvMsg(scrnIndex, X_ERROR, "Unable to reserve area\n");
-	}
-	if (xf86QueryLargestOffscreenArea(pScreen, &width, &height,
-					      0, 0, 0)) {
-	    xf86DrvMsg(scrnIndex, X_INFO,
-		       "Largest offscreen area available: %d x %d\n",
-		       width, height);
-	}
-	return TRUE;
-    }    
-}
-#endif /* USE_XAA */

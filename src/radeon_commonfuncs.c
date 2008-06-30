@@ -760,3 +760,5 @@ void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
 #endif
     }
 }
+
+#undef FUNC_NAME
