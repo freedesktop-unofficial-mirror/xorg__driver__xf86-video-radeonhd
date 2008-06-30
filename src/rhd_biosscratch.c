@@ -311,6 +311,58 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 					  Output->Connector != NULL);
 }
 
+struct rhdBiosScratchRegisters {
+    CARD32 Scratch0;
+    CARD32 Scratch3;
+};
+
+struct rhdBiosScratchRegisters *
+RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
+{
+    struct rhdBiosScratchRegisters *regs;
+    CARD32 S0Addr, S3Addr;
+    
+    RHDFUNC(rhdPtr);
+
+    if (!(regs = (struct rhdBiosScratchRegisters *)xalloc(sizeof(struct rhdBiosScratchRegisters))))
+	return NULL;
+
+    if (rhdPtr->ChipSet < RHD_R600) {
+	S0Addr = 0x10;
+	S3Addr = 0x1C;
+    } else {
+	S0Addr = 0x1724;
+	S3Addr = 0x1730;
+    }
+    regs->Scratch0 = RHDRegRead(rhdPtr, S0Addr);
+    regs->Scratch3 = RHDRegRead(rhdPtr, S3Addr);
+
+    return regs;
+}
+
+void
+RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *regs)
+{
+    CARD32 S0Addr, S3Addr;
+
+    RHDFUNC(rhdPtr);
+
+    if (!regs)
+	return;
+
+    if (rhdPtr->ChipSet < RHD_R600) {
+	S0Addr = 0x10;
+	S3Addr = 0x1C;
+    } else {
+	S0Addr = 0x1724;
+	S3Addr = 0x1730;
+    }
+    RHDRegWrite(rhdPtr, S0Addr, regs->Scratch0);
+    RHDRegWrite(rhdPtr, S3Addr, regs->Scratch3);
+
+    xfree(regs);
+}
+
 #endif
 
 #if 0
