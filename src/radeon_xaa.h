@@ -32,12 +32,7 @@
 # ifdef USE_XAA
 
 extern Bool RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen);
-
-/* radeon_accelfuncs.c */
-extern void RADEONAccelInitMMIO(ScreenPtr pScreen, XAAInfoRecPtr a);
-#  ifdef USE_DRI
-extern void RADEONAccelInitCP(ScreenPtr pScreen, XAAInfoRecPtr a);
-#  endif
+extern Bool RADEON_XAAInit(ScreenPtr pScreen);
 
 # endif /* USE_XAA */
 

@@ -88,7 +88,6 @@ struct rhdAccel {
 };
 
 /* radeon_accel.c */
-extern Bool RADEONAccelInit(ScreenPtr pScreen);
 extern void RADEONEngineFlush(ScrnInfoPtr pScrn);
 extern void RADEONEngineInit(ScrnInfoPtr pScrn);
 extern void RADEONEngineReset(ScrnInfoPtr pScrn);

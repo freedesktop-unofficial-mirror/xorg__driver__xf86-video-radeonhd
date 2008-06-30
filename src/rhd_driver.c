@@ -959,11 +959,6 @@ RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
     if (rhdPtr->ChipSet >= RHD_R600)
 	return FALSE;
 
-    if (!(rhdPtr->accel_state = xcalloc(1, sizeof(struct rhdAccel)))) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Unable to allocate accel_state rec!\n");
-	return FALSE;
-    }
-
     /* old IGP chips have no PVS/TCL hw */
     if ((rhdPtr->ChipSet == RHD_RS600) ||
 	(rhdPtr->ChipSet == RHD_RS690) ||
@@ -972,13 +967,17 @@ RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
     else
 	rhdPtr->has_tcl = TRUE;
 
+    if (!(rhdPtr->accel_state = xcalloc(1, sizeof(struct rhdAccel)))) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Unable to allocate accel_state rec!\n");
+	return FALSE;
+    }
     rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * (pScrn->bitsPerPixel >> 3) / 64)
 					      << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
 
 #ifdef USE_EXA
     if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
 	if  (RADEONSetupMemEXA(pScreen)) {
-	    if (!(ret = RADEONAccelInit(pScreen))) {
+	    if (!(ret = RADEON_EXAInit(pScreen))) {
 
 		if (rhdPtr->exa)
 		    xfree(rhdPtr->exa);
@@ -993,15 +992,11 @@ RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	if (RADEONSetupMemXAA(pScrn->scrnIndex, pScreen)) {
 
-	    if (!(ret = RADEONAccelInit(pScreen))) {
+	    if (!(ret = RADEON_XAAInit(pScreen))) {
 
 		if (rhdPtr->accel_state->scratch_save)
 		    xfree(rhdPtr->accel_state->scratch_save);
 		rhdPtr->accel_state->scratch_save = NULL;
-
-		if (rhdPtr->xaa)
-		    xfree(rhdPtr->xaa);
-		rhdPtr->xaa = NULL;
 	    }
 	}
     }

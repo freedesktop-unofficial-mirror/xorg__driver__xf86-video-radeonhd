@@ -142,6 +142,38 @@ static struct {
 #endif /* USE_DRI */
 
 Bool
+RADEON_XAAInit(ScreenPtr pScreen)
+{
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr info = RHDPTR(pScrn);
+
+    if (!(info->xaa = XAACreateInfoRec())) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "XAACreateInfoRec Error\n");
+
+	return FALSE;
+    }
+
+#ifdef USE_DRI
+    if (info->directRenderingEnabled)
+	RADEONAccelInitCP(pScreen, info->xaa);
+    else
+#endif
+	RADEONAccelInitMMIO(pScreen, info->xaa);
+
+    RADEONEngineInit(pScrn);
+
+    if (!XAAInit(pScreen, info->xaa)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "XAAInit Error\n");
+	XAADestroyInfoRec(info->xaa);
+	info->xaa = NULL;
+
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+Bool
 RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
@@ -164,7 +196,7 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
     if (y2 >= 32768)
 	y2 = 32767; /* because MemBox.y2 is signed short */
     MemBox.y2 = y2;
-    
+
     /* The acceleration engine uses 14 bit
      * signed coordinates, so we can't have any
      * drawable caches beyond this region.
@@ -187,7 +219,7 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
 		   MemBox.x1, MemBox.y1, MemBox.x2, MemBox.y2);
 	if ((fbarea = xf86AllocateOffscreenArea(pScreen,
 						pScrn->displayWidth,
-						info->allowColorTiling ? 
+						info->allowColorTiling ?
 						((pScrn->virtualY + 15) & ~15)
 						- pScrn->virtualY + 2 : 2,
 						0, NULL, NULL,
@@ -206,6 +238,6 @@ RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen)
 		       width, height);
 	}
 	return TRUE;
-    }    
+    }
 }
 #endif /* USE_XAA */

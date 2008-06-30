@@ -373,6 +373,22 @@ do {									\
 #endif /* USE_DRI */
 
 #if 1
+Bool
+RADEON_EXAInit(ScreenPtr pScreen)
+{
+    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr info = RHDPTR(pScrn);
+
+#ifdef USE_DRI
+    if (info->directRenderingEnabled)
+	RADEONDrawInitCP(pScreen);
+    else
+#endif
+	RADEONDrawInitMMIO(pScreen);
+
+    return TRUE;
+}
+
 /*
  * Once screen->off_screen_base is set, this function
  * allocates the remaining memory appropriately

@@ -32,12 +32,7 @@
 # ifdef USE_EXA
 /* radeon_exa.c */
 extern Bool RADEONSetupMemEXA(ScreenPtr pScreen);
-
-/* radeon_exafuncs.c */
-extern Bool RADEONDrawInitMMIO(ScreenPtr pScreen);
-#  ifdef USE_DRI
-extern Bool RADEONDrawInitCP(ScreenPtr pScreen);
-#  endif
+extern Bool RADEON_EXAInit(ScreenPtr pScreen);
 
 # endif /* USE_EXA */
 #endif /* _RADEON_EXA_H */
