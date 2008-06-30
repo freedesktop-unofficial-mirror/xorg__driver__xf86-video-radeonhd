@@ -145,6 +145,7 @@ static Bool RHDInitVisualConfigs(ScreenPtr pScreen)
     RADEONConfigPrivPtr *pRADEONConfigPtrs = 0;
     int                  i, accum, stencil, db;
     int pixel_code = PIXEL_CODE(pScrn);
+    RHDFUNC(pScrn);
 
 #define RHD_USE_ACCUM   1
 #define RHD_USE_STENCIL 1
@@ -347,6 +348,8 @@ static void RHDDRIInitGARTValues(struct rhdDri * rhdDRI)
 {
     int            s, l;
 
+    RHDFUNC(rhdDRI);
+
     rhdDRI->gartOffset = 0;
 
     /* Initialize the CP ring buffer data */
@@ -381,7 +384,9 @@ static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
     CARD32 agp_status = (RHDRegRead (rhdDRI, AGP_STATUS) | AGPv3_MODE) & mode;
     Bool is_v3 = (agp_status & AGPv3_MODE);
 
-    if (is_v3) {
+     RHDFUNC(rhdDRI);
+
+   if (is_v3) {
 	rhdDRI->agpMode = (agp_status & AGPv3_8X_MODE) ? 8 : 4;
     } else {
 	if (agp_status & AGP_4X_MODE)
@@ -432,6 +437,8 @@ static void RHDSetAgpBase(struct rhdDri * rhdDRI)
 static Bool RHDDRIAgpInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 {
     int            ret;
+
+    RHDFUNC(rhdDRI);
 
     if (drmAgpAcquire(rhdDRI->drmFD) < 0) {
 	xf86DrvMsg(pScreen->myNum, X_WARNING, "[agp] AGP not available\n");
@@ -551,6 +558,8 @@ static Bool RHDDRIPciInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
     int  ret;
     int  flags = DRM_READ_ONLY | DRM_LOCKED | DRM_KERNEL;
 
+    RHDFUNC(rhdDRI);
+
     ret = drmScatterGatherAlloc(rhdDRI->drmFD, rhdDRI->gartSize*1024*1024,
 				&rhdDRI->pciMemHandle);
     if (ret < 0) {
@@ -659,6 +668,8 @@ static Bool RHDDRIMapInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 {
     struct rhdDri *rhdDRI = rhdPtr->dri;
 
+    RHDFUNC(rhdPtr);
+
     /* Map registers */
     if (drmAddMap(rhdDRI->drmFD,
 		  rhdPtr->MMIOPCIAddress, rhdPtr->MMIOMapSize,
@@ -678,6 +689,8 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     struct rhdDri *rhdDRI   = rhdPtr->dri;
     int            bytesPerPixel = pScrn->bitsPerPixel / 8;
     drm_radeon_init_t drmInfo;
+
+    RHDFUNC(rhdDRI);
 
     memset(&drmInfo, 0, sizeof(drm_radeon_init_t));
 #ifdef DRM_RADEON_INIT_R600_CP
@@ -726,6 +739,8 @@ static void RHDDRIGartHeapInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 {
     drm_radeon_mem_init_heap_t drmHeap;
 
+    RHDFUNC(rhdDRI);
+
     /* Start up the simple memory manager for GART space */
     drmHeap.region = RADEON_MEM_REGION_GART;
     drmHeap.start  = 0;
@@ -747,6 +762,8 @@ static void RHDDRIGartHeapInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 static Bool RHDDRIBufInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 {
     struct rhdDri *rhdDRI = rhdPtr->dri;
+
+    RHDFUNC(rhdPtr);
 
     /* Initialize vertex buffers */
     rhdDRI->bufNumBufs = drmAddBufs(rhdDRI->drmFD,
@@ -780,6 +797,8 @@ static void RHDDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 {
     ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
     struct rhdDri *rhdDRI  = rhdPtr->dri;
+
+    RHDFUNC(rhdPtr);
 
     if (!rhdDRI->irq) {
 	rhdDRI->irq = drmGetInterruptFromBusID(
@@ -826,6 +845,8 @@ RHDDRIVersionCheck(RHDPtr rhdPtr)
     drmVersionPtr  DrmVersion = NULL;
     int            major, minor, patch, fd;
     char           *busId;
+
+    RHDFUNC(rhdPtr);
 
     /* Check that the GLX, DRI, and DRM modules have been loaded by testing
      * for known symbols in each module. */
@@ -938,6 +959,8 @@ static Bool RHDDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
     struct rhdDri *  rhdDRI    = RHDPTR(pScrn)->dri;
     int value = 0;
 
+    RHDFUNC(rhdDRI);
+
     if (rhdDRI->irq) {
         if (on) {
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
@@ -964,6 +987,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *rhdDRI;
     int pixel_code = PIXEL_CODE(pScrn);
+
+    RHDFUNC(rhdPtr);
 
     if (!rhdPtr->useDRI.val.bool) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by"
@@ -1076,6 +1101,8 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
     int            size, depth_size;
     unsigned int   old_freeoffset, old_freesize;
 
+    RHDFUNC(rhdPtr);
+
     size = pScrn->displayWidth * bytesPerPixel;
 #if 0
     /* Need to adjust screen size for 16 line tiles, and then make it align to
@@ -1165,6 +1192,8 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
     struct rhdDri *rhdDRI    = rhdPtr->dri;
     DRIInfoPtr     pDRIInfo;
     RADEONDRIPtr   pRADEONDRI;
+
+    RHDFUNC(rhdPtr);
 
     /* Create the DRI data structure, and fill it in before calling the
      * DRIScreenInit(). */
@@ -1292,6 +1321,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     struct rhdDri      *rhdDRI   = rhdPtr->dri;
     drm_radeon_sarea_t *pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
+
+    RHDFUNC(rhdPtr);
 
     if (! rhdDRI)
 	return FALSE;
@@ -1689,6 +1720,8 @@ static void RHDDRIAllocatePCIGARTTable(ScrnInfoPtr pScrn)
 {
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *rhdDRI   = RHDPTR(pScrn)->dri;
+
+    RHDFUNC(rhdPtr);
 
     if (rhdPtr->cardType != RHD_CARD_PCIE)
       return;
