@@ -74,10 +74,11 @@ struct rhdTMDSPrivate {
  * RV570 (0x7280) and R600 and above seem ok.
  */
 static enum rhdSensedOutput
-TMDSASense(struct rhdOutput *Output, enum rhdConnectorType Type)
+TMDSASense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 Enable, Control, Detect;
+    enum rhdConnectorType Type = Connector->Type;
     Bool ret;
 
     RHDFUNC(Output);

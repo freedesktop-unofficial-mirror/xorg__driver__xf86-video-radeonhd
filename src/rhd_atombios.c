@@ -4232,7 +4232,7 @@ rhdAtomGetAtomConnectorPrivate(atomBiosHandlePtr handle,
 /*
  *
  */
-Bool
+struct atomOutputPrivate *
 rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput *Output)
 {
     int i = 0;
@@ -4240,6 +4240,7 @@ rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput 
     enum rhdConnectorType ct = Connector->Type;
     enum rhdOutputType ot = Output->Id;
     enum atomDevice dev = atomNone;
+    struct atomOutputPrivate *OutputDriverPrivate;
 
     RHDFUNC(Connector);
 
@@ -4290,12 +4291,12 @@ rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput 
 	}
 	break;
     }
-    if (!(Output->OutputDriverPrivate = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate))))
+    if (!(OutputDriverPrivate = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate))))
 	return FALSE;
 
-    Output->OutputDriverPrivate->Device = dev;
+    OutputDriverPrivate->Device = dev;
 
-    return TRUE;
+    return OutputDriverPrivate;
 }
 
 /*

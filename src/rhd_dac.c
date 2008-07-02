@@ -137,8 +137,9 @@ DACSense(struct rhdOutput *Output, CARD32 offset, Bool TV)
  *
  */
 static enum rhdSensedOutput
-DACASense(struct rhdOutput *Output, enum rhdConnectorType Type)
+DACASense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
+    enum rhdConnectorType Type = Connector->Type;
     RHDFUNC(Output);
 
     switch (Type) {
@@ -160,8 +161,9 @@ DACASense(struct rhdOutput *Output, enum rhdConnectorType Type)
  *
  */
 static enum rhdSensedOutput
-DACBSense(struct rhdOutput *Output, enum rhdConnectorType Type)
+DACBSense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
+    enum rhdConnectorType Type = Connector->Type;
     RHDFUNC(Output);
 
     switch (Type) {
@@ -508,8 +510,9 @@ DACSenseRV620(struct rhdOutput *Output, CARD32 offset, Bool TV)
  *
  */
 static enum rhdSensedOutput
-DACASenseRV620(struct rhdOutput *Output, enum rhdConnectorType Type)
+DACASenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
+    enum rhdConnectorType Type = Connector->Type;
     RHDFUNC(Output);
 
     switch (Type) {
@@ -542,8 +545,9 @@ DACASenseRV620(struct rhdOutput *Output, enum rhdConnectorType Type)
  *
  */
 static enum rhdSensedOutput
-DACBSenseRV620(struct rhdOutput *Output, enum rhdConnectorType Type)
+DACBSenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
+    enum rhdConnectorType Type = Connector->Type;
     RHDFUNC(Output);
 
     switch (Type) {
