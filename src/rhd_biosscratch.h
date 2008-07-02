@@ -28,6 +28,7 @@
 
 extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
 extern void RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
+extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
 extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters * regs);
 
