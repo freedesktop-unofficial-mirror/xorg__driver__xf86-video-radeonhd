@@ -693,11 +693,9 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     RHDFUNC(rhdDRI);
 
     memset(&drmInfo, 0, sizeof(drm_radeon_init_t));
-#ifdef DRM_RADEON_INIT_R600_CP
     if (rhdPtr->ChipSet >= RHD_R600)
 	drmInfo.func             = RADEON_INIT_R600_CP;
     else
-#endif
 	drmInfo.func             = RADEON_INIT_R300_CP;
 
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
@@ -723,8 +721,10 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.gart_textures_offset= rhdDRI->gartTexHandle;
 
     if (drmCommandWrite(rhdDRI->drmFD, DRM_RADEON_CP_INIT,
-			&drmInfo, sizeof(drm_radeon_init_t)) < 0)
+			&drmInfo, sizeof(drm_radeon_init_t)) < 0) {
+	xf86DrvMsg(pScreen->myNum, X_ERROR, "[dri] CP_INIT failed\n");
 	return FALSE;
+    }
 
     // FIXME: this is to be moved to rhd_cp
     /* DRM_RADEON_CP_INIT does an engine reset, which resets some engine
