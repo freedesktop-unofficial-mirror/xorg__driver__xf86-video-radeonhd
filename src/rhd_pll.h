@@ -92,5 +92,6 @@ void RHDPLLsDestroy(RHDPtr rhdPtr);
 void RHDSetupLimits(RHDPtr rhdPtr, CARD32 *RefClock,
 		    CARD32 *IntMin, CARD32 *IntMax,
 		    CARD32 *PixMin, CARD32 *PixMax);
+Bool RHDAtomPLLsInit(RHDPtr rhdPtr);
 
 #endif /* _RHD_PLL_H */
