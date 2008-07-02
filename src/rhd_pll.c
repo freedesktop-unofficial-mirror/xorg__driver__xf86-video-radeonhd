@@ -1167,7 +1167,7 @@ enum pllComp {
  *
  */
 #ifdef ATOM_BIOS
-Bool
+static Bool
 getPLLValuesFromAtomBIOS(RHDPtr rhdPtr,
 			 AtomBiosRequestID func, char *msg, CARD32 *val, enum pllComp comp)
 {
