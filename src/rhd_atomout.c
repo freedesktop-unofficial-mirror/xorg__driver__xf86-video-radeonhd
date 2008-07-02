@@ -82,12 +82,17 @@ struct rhdAtomOutputPrivate {
  *
  */
 static enum rhdSensedOutput
-rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
+rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     enum atomDAC DAC;
+    struct atomOutputPrivate *OutputDriverPrivate;
+    Bool ret;
 
     RHDFUNC(Output);
+
+    OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
+    rhdAtomFindOutputDriverPrivate(Connector, Output);
 
     switch (Output->Id) {
 	case RHD_OUTPUT_DACA:
@@ -102,8 +107,12 @@ rhdAtomDACSense(struct rhdOutput *Output, enum rhdConnectorType Type)
 	    return FALSE;
     }
 
-    if (!AtomDACLoadDetection(rhdPtr->atomBIOS, Output->OutputDriverPrivate->Device, DAC))
+    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, OutputDriverPrivate->Device, DAC);
+    xfree(OutputDriverPrivate);
+
+    if (!ret)
 	return RHD_SENSED_NONE;
+
     return rhdAtomBIOSScratchDACSenseResults(Output, DAC);
 }
 
@@ -121,6 +130,7 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 
     switch (Output->Id) {
 	case RHD_OUTPUT_NONE:
+	    break;
 	case RHD_OUTPUT_DVO:
 	    EncoderConfig->u.dvo.DvoDeviceType = Output->OutputDriverPrivate->Device;
 	    switch (EncoderConfig->u.dvo.DvoDeviceType) {
@@ -428,8 +438,8 @@ rhdAtomOutputDestroy(struct rhdOutput *Output)
 	xfree(((struct rhdAtomOutputPrivate *)(Output->Private))->Save);
     if (Output->Private)
 	xfree(Output->Private);
-
     Output->Private = NULL;
+    xfree(Output->Name);
 }
 
 /*

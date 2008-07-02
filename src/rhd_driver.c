@@ -1799,18 +1799,17 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	     * The problem here is that the Output struct can be used for two connectors
 	     * and thus two different devices
 	     */
-	    if (!Output->OutputDriverPrivate) {
-		/* Do this before sensing as AtomBIOS sense needs this info */
+	    if (Output->SensedType == RHD_SENSED_NONE) {
 #ifdef ATOM_BIOS
-		rhdAtomFindOutputDriverPrivate(Connector, Output);
+		if (Output->OutputDriverPrivate)
+		    xfree(Output->OutputDriverPrivate);
+		Output->OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
 #endif
-		if ((Output->SensedType = Output->Sense(Output, Connector->Type)) != RHD_SENSED_NONE) {
+		/* Do this before sensing as AtomBIOS sense needs this info */
+		if ((Output->SensedType = Output->Sense(Output, Connector)) != RHD_SENSED_NONE) {
 		    RHDOutputPrintSensedType(Output);
 		    Output->Connector = Connector;
 		    break;
-		} else {
-		    xfree(Output->OutputDriverPrivate);
-		    Output->OutputDriverPrivate = NULL;
 		}
 	    }
 	}
@@ -1823,7 +1822,7 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	    if (Output && !Output->Sense) {
 		Output->Connector = Connector;
 #ifdef ATOM_BIOS
-		rhdAtomFindOutputDriverPrivate(Connector, Output);
+		Output->OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
 #endif
 		break;
 	    }

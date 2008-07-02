@@ -80,7 +80,7 @@ struct rhdOutput {
     enum rhdSensedOutput SensedType;
 
     enum rhdSensedOutput (*Sense) (struct rhdOutput *Output,
-				   enum rhdConnectorType Type);
+				   struct rhdConnector *Connector);
     ModeStatus (*ModeValid) (struct rhdOutput *Output, DisplayModePtr Mode);
     void (*Mode) (struct rhdOutput *Output, DisplayModePtr Mode);
     void (*Power) (struct rhdOutput *Output, int Power);
