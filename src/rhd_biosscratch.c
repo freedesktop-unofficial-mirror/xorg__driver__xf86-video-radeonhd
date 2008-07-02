@@ -121,7 +121,7 @@ rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC)
 /*
  *
  */
-void
+static void
 rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool attached)
 {
     CARD32 BIOS_0;
@@ -170,7 +170,7 @@ rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool a
 /*
  *
  */
-void
+static void
 rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
 {
     CARD32 BIOS_3;
@@ -231,7 +231,7 @@ rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
 /*
  *
  */
-void
+static void
 rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc Crtc)
 {
     CARD32 BIOS_3;
@@ -311,6 +311,53 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 					  Output->Connector != NULL);
 }
 
+enum atomDevice
+RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc)
+{
+    CARD32 BIOS_3;
+    CARD32 Addr;
+    CARD32 Mask = 0;
+
+    RHDFUNC(rhdPtr);
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	Addr = 0x1C;
+    else
+	Addr = 0x1730;
+
+    if (Crtc == atomCrtc2)
+	Mask = ~Mask;
+
+    BIOS_3 = RHDRegRead(rhdPtr, Addr);
+
+    if (BIOS_3 & ATOM_S3_CRT1_ACTIVE
+	&& ((BIOS_3 ^ Mask) & ATOM_S3_CRT1_CRTC_ACTIVE))
+	return atomCRT1;
+    else if (BIOS_3 & ATOM_S3_LCD1_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_LCD1_CRTC_ACTIVE))
+	return atomLCD1;
+    else if (BIOS_3 & ATOM_S3_DFP1_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_DFP1_CRTC_ACTIVE))
+	return atomDFP1;
+    else if (BIOS_3 & ATOM_S3_CRT2_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_CRT2_CRTC_ACTIVE))
+	return atomCRT2;
+    else if (BIOS_3 & ATOM_S3_LCD2_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_LCD2_CRTC_ACTIVE))
+	return atomLCD2;
+    else if (BIOS_3 & ATOM_S3_TV2_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_TV2_CRTC_ACTIVE))
+	return atomTV2;
+    else if (BIOS_3 & ATOM_S3_DFP2_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_DFP2_CRTC_ACTIVE))
+	return atomDFP2;
+    else if (BIOS_3 & ATOM_S3_CV_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_CV_CRTC_ACTIVE))
+	return atomCV;
+    else
+	return atomNone;
+}
+
 struct rhdBiosScratchRegisters {
     CARD32 Scratch0;
     CARD32 Scratch3;
@@ -321,7 +368,7 @@ RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 {
     struct rhdBiosScratchRegisters *regs;
     CARD32 S0Addr, S3Addr;
-    
+
     RHDFUNC(rhdPtr);
 
     if (!(regs = (struct rhdBiosScratchRegisters *)xalloc(sizeof(struct rhdBiosScratchRegisters))))
