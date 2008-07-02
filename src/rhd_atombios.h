@@ -507,6 +507,8 @@ extern Bool rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc id,
 				    struct atomCrtcSourceConfig *config);
 extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput *Output);
+extern Bool rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice device,
+						struct rhdConnector **Connector, struct rhdOutput **Output);
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);

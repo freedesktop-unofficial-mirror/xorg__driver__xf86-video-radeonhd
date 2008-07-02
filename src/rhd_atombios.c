@@ -3674,7 +3674,7 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 /*
  *
  */
-rhdConnectorType
+static rhdConnectorType
 rhdAtomGetConnectorID(atomBiosHandlePtr handle, rhdConnectorType connector, int num)
 {
     RHDFUNC(handle);
@@ -4238,6 +4238,83 @@ rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput 
     Output->OutputDriverPrivate->Device = dev;
 
     return TRUE;
+}
+
+/*
+ * This is ugly and needs to be replaced.
+ */
+Bool
+rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice device,
+				    struct rhdConnector **Connector, struct rhdOutput **Output)
+{
+    int i;
+
+    *Connector = NULL;
+    *Output = NULL;
+
+    for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
+	enum atomDevice dev = atomNone;
+	struct atomConnectorInfoPrivate *cip;
+	int j = 0;
+
+	*Connector = rhdPtr->Connector[i];
+
+	if (!(*Connector))
+	    break;
+
+	cip = (*Connector)->ConnectorDriverPrivate;
+	while ((dev = cip->Devices[j++]) != atomNone && dev != device) { ErrorF(">> %i\n",dev);}
+	if (dev == atomNone)
+	    continue;
+
+	for (j = 0; j < MAX_OUTPUTS_PER_CONNECTOR; j++) {
+	    if (!(*Connector)->Output[j])
+		continue;
+	    switch (device) {
+		case atomNone:
+		    return FALSE;
+		case atomCRT1:
+		case atomCRT2:
+		    switch ((*Connector)->Output[j]->Id) {
+			case RHD_OUTPUT_DACA:
+			case RHD_OUTPUT_DACB:
+			    *Output = (*Connector)->Output[j];
+			    return TRUE;
+			default:
+			    continue;
+		    }
+		case atomLCD1:
+		case atomLCD2:
+		    *Output = (*Connector)->Output[j];
+		    return TRUE;
+		case atomTV1:
+		case atomTV2:
+		case atomCV:
+		    switch ((*Connector)->Type) {
+			case RHD_CONNECTOR_TV:
+			    *Output = (*Connector)->Output[j];
+			    return TRUE;
+			default:
+			    return FALSE;
+		    }
+		case atomDFP1:
+		case atomDFP2:
+		case atomDFP3:
+		    switch ((*Connector)->Output[j]->Id) {
+			case RHD_OUTPUT_TMDSA:
+			case RHD_OUTPUT_LVTMA:
+			case RHD_OUTPUT_KLDSKP_LVTMA:
+			case RHD_OUTPUT_UNIPHYA:
+			case RHD_OUTPUT_UNIPHYB:
+			    *Output = (*Connector)->Output[j];
+			    return TRUE;
+			default:
+			    return FALSE;
+		    }
+	    }
+	}
+    }
+    return FALSE;
 }
 
 /*
