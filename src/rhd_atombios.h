@@ -469,6 +469,16 @@ struct atomCrtcOverscan {
     unsigned short ovscnBottom;
 };
 
+enum atomBlankAction {
+    atomBlankOn,
+    atomBlankOff
+};
+
+struct atomCrtcBlank {
+    enum atomBlankAction Action;
+    unsigned short r, g, b;
+};
+
 struct atomOutputPrivate {
     enum atomDevice Device;
 };
@@ -518,6 +528,10 @@ extern Bool rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice d
 						struct rhdConnector **Connector, struct rhdOutput **Output);
 extern Bool rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id,
 				   struct atomCrtcOverscan *config);
+struct atomCodeTableVersion rhdAtomSetCRTCOverscanVersion(atomBiosHandlePtr handle);
+extern Bool rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlank *config);
+extern struct atomCodeTableVersion rhdAtomBlankCRTCVersion(atomBiosHandlePtr handle);
+
 
 
 #if 0
