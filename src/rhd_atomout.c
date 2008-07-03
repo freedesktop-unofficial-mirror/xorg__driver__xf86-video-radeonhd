@@ -266,7 +266,6 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
     RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
-    data.Address = NULL;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
 
@@ -380,7 +379,7 @@ rhdAtomOutputRestore(struct rhdOutput *Output)
      RHDPtr rhdPtr = RHDPTRI(Output);
      union AtomBiosArg data;
 
-     data.Address = Private->Save;
+     data.Address = &Private->Save;
      RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
      RHDRestoreBiosScratchRegisters(rhdPtr, Private->BiosScratch);
 }

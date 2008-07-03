@@ -189,7 +189,7 @@ typedef union AtomBiosArg
     enum RHD_CHIPSETS		chipset;
     struct AtomGoldenSettings	GoldenSettings;
     unsigned char*		EDIDBlock;
-    void                       *Address;
+    void                       **Address;
     struct {
 	unsigned char *loc;
 	unsigned short size;

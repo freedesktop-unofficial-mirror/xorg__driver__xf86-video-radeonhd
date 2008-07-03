@@ -4507,7 +4507,7 @@ atomSetRegisterListLocation(atomBiosHandlePtr handle, AtomBiosRequestID func, At
 static AtomBiosResult
 atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
 {
-    struct atomRegisterSaveList *List = data->Address;
+    struct atomRegisterSaveList *List = *(data->Address);
     int i;
 
     if (!List)
@@ -4516,7 +4516,7 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
     for (i = 0; i < List->Last; i++) {
 	switch ( List->RegisterList[i].Type) {
 	    case atomRegisterMMIO:
-		DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, (*List)->RegisterList[i].Value));
 		RHDRegWrite(handle, List->RegisterList[i].Address, List->RegisterList[i].Value);
 		break;
 	    case atomRegisterMC:
@@ -4537,7 +4537,8 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
 #else
 		{
 		    PCITAG tag = RHDPTRI(handle)->PciTag;
-		    pciWriteLong(tag, List->RegisterList[i].Address, List->RegisterList[i].Value);
+		    pciWriteLong(tag, List->RegisterList[i].Address,
+				 List->RegisterList[i].Value);
 		}
 #endif
 		break;
@@ -4546,6 +4547,7 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
 
     /* deallocate list */
     xfree(List);
+    *(data->Address) = NULL;
 
     return ATOM_SUCCESS;
 }
