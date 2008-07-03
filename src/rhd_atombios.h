@@ -462,6 +462,13 @@ struct atomPixelClockConfig {
     } u;
 };
 
+struct atomCrtcOverscan {
+    unsigned short ovscnLeft;
+    unsigned short ovscnRight;
+    unsigned short ovscnTop;
+    unsigned short ovscnBottom;
+};
+
 struct atomOutputPrivate {
     enum atomDevice Device;
 };
@@ -509,6 +516,9 @@ extern struct atomCodeTableVersion rhdAtomSelectCrtcSourceVersion(atomBiosHandle
 extern Bool rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput *Output);
 extern Bool rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice device,
 						struct rhdConnector **Connector, struct rhdOutput **Output);
+extern Bool rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id,
+				   struct atomCrtcOverscan *config);
+
 
 #if 0
 Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
