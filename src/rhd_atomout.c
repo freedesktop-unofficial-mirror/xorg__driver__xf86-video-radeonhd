@@ -424,13 +424,11 @@ static void
 rhdAtomOutputDestroy(struct rhdOutput *Output)
 {
     RHDFUNC(Output);
+    if (((struct rhdAtomOutputPrivate *)(Output->Private))->Save)
+	xfree(((struct rhdAtomOutputPrivate *)(Output->Private))->Save);
+    if (Output->Private)
+	xfree(Output->Private);
 
-    if (!Output->Private)
-	return;
-
-    xfree(Output->Private);
-    xfree(Output->Name);
-    xfree(Output->Save);
     Output->Private = NULL;
 }
 
@@ -564,6 +562,8 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     Output->Sense = NULL;
     Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
     Output->Private = Private;
+    Output->OutputDriverPrivate = NULL;
+    
     EncoderConfig = &Private->EncoderConfig;
     Private->PixelClock = 0;
 
