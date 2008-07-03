@@ -23,7 +23,7 @@
  */
 
 #ifndef _RHD_CRTC_H
-#define _RHD_CRTC_H
+# define _RHD_CRTC_H
 
 struct rhdFMTDither {
     Bool LVDS24Bit;
@@ -113,5 +113,23 @@ struct rhdCrtc {
 
 void RHDCrtcsInit(RHDPtr rhdPtr);
 void RHDCrtcsDestroy(RHDPtr rhdPtr);
+
+/*
+ * Calculate overscan values for scaler.
+ */
+struct rhdScalerOverscan
+{
+    int OverscanTop;
+    int OverscanBottom;
+    int OverscanLeft;
+    int OverscanRight;
+    enum rhdCrtcScaleType Type;
+};
+
+extern struct rhdScalerOverscan
+rhdCalculateOverscan(DisplayModePtr Mode,
+		     DisplayModePtr ScaledToMode,
+		     enum rhdCrtcScaleType Type);
+
 
 #endif /* _RHD_CRTC_H */
