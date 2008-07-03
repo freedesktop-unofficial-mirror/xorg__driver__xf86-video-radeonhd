@@ -1908,6 +1908,65 @@ rhdAtomSetCRTCTimingsVersion(atomBiosHandlePtr handle)
 
 }
 
+/*
+ *
+ */
+Bool
+rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcOverscan *config)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	SET_CRTC_OVERSCAN_PARAMETERS  ovscn;
+	SET_CRTC_OVERSCAN_PS_ALLOCATION ovscn_a;
+    } ps;
+
+    RHDFUNC(handle);
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, SetCRTC_OverScan);
+    data.exec.pspace = &ps;
+
+    switch(id) {
+	case atomCrtc1:
+	    ps.ovscn.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.ovscn.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+    ps.ovscn.usOverscanRight = config->ovscnRight;
+    ps.ovscn.usOverscanLeft = config->ovscnLeft;
+    ps.ovscn.usOverscanBottom = config->ovscnBottom;
+    ps.ovscn.usOverscanTop = config->ovscnTop;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "CallingSetCRTC_OverScan\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomSetCRTCOverscanVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, SetCRTC_OverScan);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+
+    DEBUG_VERSION(index, handle, version);
+    return version;
+
+}
+
+/*
+ *
+ */
 static int
 atomGetDevice(atomBiosHandlePtr handle, enum atomDevice Device)
 {
