@@ -257,19 +257,10 @@ DxFBSet(struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width, CARD16 Height,
     Crtc->Offset = Offset;
 }
 
-struct ScalerOverscan
+struct rhdScalerOverscan
+rhdCalculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, enum rhdCrtcScaleType Type)
 {
-    int OverscanTop;
-    int OverscanBottom;
-    int OverscanLeft;
-    int OverscanRight;
-    enum rhdCrtcScaleType Type;
-};
-
-static struct ScalerOverscan
-calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, enum rhdCrtcScaleType Type)
-{
-    struct ScalerOverscan Overscan;
+    struct rhdScalerOverscan Overscan;
     int tmp;
 
     Overscan.OverscanTop = Overscan.OverscanBottom = Overscan.OverscanLeft = Overscan.OverscanRight = 0;
@@ -467,7 +458,7 @@ static ModeStatus
 DxScaleValid(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	     DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
-    struct ScalerOverscan Overscan;
+    struct rhdScalerOverscan Overscan;
 
     /* D1_MODE_VIEWPORT_WIDTH: 14bits */
     if (Mode->CrtcHDisplay >= 0x4000)
@@ -477,7 +468,7 @@ DxScaleValid(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     if (Mode->CrtcVDisplay >= 0x4000)
 	return MODE_BAD_VVALUE;
 
-    Overscan = calculateOverscan(Mode, ScaledToMode, Type);
+    Overscan = rhdCalculateOverscan(Mode, ScaledToMode, Type);
 
     if (Overscan.OverscanLeft >= 4096 || Overscan.OverscanRight >= 4096)
 	return MODE_HBLANK_WIDE;
@@ -502,7 +493,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
     CARD16 RegOff;
-    struct ScalerOverscan Overscan;
+    struct rhdScalerOverscan Overscan;
 
     RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s viewport: %ix%i\n", __func__, Crtc->Name,
 	     Mode->CrtcHDisplay, Mode->CrtcVDisplay);
@@ -512,7 +503,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     else
 	RegOff = D2_REG_OFFSET;
 
-    Overscan = calculateOverscan(Mode, ScaledToMode, Type);
+    Overscan = rhdCalculateOverscan(Mode, ScaledToMode, Type);
     Type = Overscan.Type;
 
     /* D1Mode registers */
