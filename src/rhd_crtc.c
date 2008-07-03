@@ -823,7 +823,7 @@ FMTSave(struct rhdCrtc *Crtc)
 	FMTStore = (struct rhdFMTStore *) xnfcalloc(sizeof (struct rhdFMTStore),1);
     else
 	FMTStore = Crtc->FMTStore;
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = FMT1_REG_OFFSET;
     else
@@ -848,7 +848,7 @@ FBSave(struct rhdCrtc *Crtc)
     if (!Crtc->FBStore)
 	Store = xnfcalloc(1, sizeof(struct rhdCrtcFBStore));
     else
-	Store = Crtc->FBStore;
+	Store = (struct rhdCrtcFBStore *)Crtc->FBStore;
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
@@ -949,7 +949,7 @@ ModeSave(struct rhdCrtc *Crtc)
 	Store = xnfcalloc(1, sizeof(struct rhdCrtcModeStore));
     else
 	Store = Crtc->ModeStore;
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -1040,7 +1040,7 @@ FMTRestore(struct rhdCrtc *Crtc)
 static void
 FBRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcFBStore *Store = Crtc->FBStore;
+    struct rhdCrtcFBStore *Store = (struct rhdCrtcFBStore *)Crtc->FBStore;
     CARD32 RegOff;
 
     if (!Store) {
@@ -1048,7 +1048,7 @@ FBRestore(struct rhdCrtc *Crtc)
 		   __func__);
 	return;
     }
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -1089,7 +1089,7 @@ FBRestore(struct rhdCrtc *Crtc)
 static void
 LUTRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcLUTStore *Store = Crtc->LUTStore;
+    struct rhdCrtcLUTStore *Store = (struct rhdCrtcLUTStore *)Crtc->LUTStore;
     CARD32 RegOff;
 
     if (!Store) {
@@ -1097,7 +1097,7 @@ LUTRestore(struct rhdCrtc *Crtc)
 		   __func__);
 	return;
     }
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -1113,7 +1113,7 @@ LUTRestore(struct rhdCrtc *Crtc)
 static void
 ScaleRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcScaleStore *Store = Crtc->ScaleStore;
+    struct rhdCrtcScaleStore *Store = (struct rhdCrtcScaleStore *)Crtc->ScaleStore;
     CARD32 RegOff;
 
     if (!Store) {
@@ -1121,7 +1121,7 @@ ScaleRestore(struct rhdCrtc *Crtc)
 		   __func__);
 	return;
     }
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -1154,7 +1154,7 @@ ScaleRestore(struct rhdCrtc *Crtc)
 static void
 ModeRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcModeStore *Store = Crtc->ModeStore;
+    struct rhdCrtcModeStore *Store = (struct rhdCrtcModeStore *)Crtc->ModeStore;
     CARD32 RegOff;
 
     if (!Store) {
@@ -1162,7 +1162,7 @@ ModeRestore(struct rhdCrtc *Crtc)
 		   __func__);
 	return;
     }
-    
+
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
@@ -1215,13 +1215,13 @@ DxRestore(struct rhdCrtc *Crtc)
 {
 
     RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
-    
+
     if (Crtc->FMTRestore)
 	Crtc->FMTRestore(Crtc);
 
     if (Crtc->FBRestore)
 	Crtc->FBRestore(Crtc);
-    
+
     if (Crtc->LUTRestore)
 	Crtc->LUTRestore(Crtc);
 
@@ -1380,7 +1380,7 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->LUTStore = NULL;
     Crtc->ScaleStore = NULL;
     Crtc->ModeStore = NULL;
-    
+
     Crtc->FBValid = DxFBValid;
     Crtc->FBSet = DxFBSet;
     Crtc->ModeValid = DxModeValid;

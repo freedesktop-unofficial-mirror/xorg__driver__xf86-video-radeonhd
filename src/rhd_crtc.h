@@ -74,7 +74,7 @@ struct rhdCrtc {
     void (*FMTSave)(struct rhdCrtc *Crtc);
     void (*FMTRestore)(struct rhdCrtc *Crtc);
 
-    struct rhdCrtcFBStore *FBStore;
+    void *FBStore;
     ModeStatus (*FBValid) (struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height,
 			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
     void (*FBSet) (struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width,
@@ -82,13 +82,13 @@ struct rhdCrtc {
     void (*FBSave) (struct rhdCrtc *Crtc);
     void (*FBRestore) (struct rhdCrtc *Crtc);
 
-    struct rhdCrtcModeStore *ModeStore;
+    void *ModeStore;
     ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSave) (struct rhdCrtc *Crtc);
     void (*ModeRestore) (struct rhdCrtc *Crtc);
 
-    struct rhdCrtcScaleStore *ScaleStore;
+    void *ScaleStore;
     ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSet) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSave) (struct rhdCrtc *Crtc);
@@ -98,7 +98,7 @@ struct rhdCrtc {
 
     /* callback for pll setting lives here */
     /* callback for lut setting lives here */
-    struct rhdCrtcLUTStore *LUTStore;
+    void *LUTStore;
     void (*LUTSelect) (struct rhdCrtc *Crtc, struct rhdLUT *LUT);
     void (*LUTSave) (struct rhdCrtc *Crtc);
     void (*LUTRestore) (struct rhdCrtc *Crtc);
