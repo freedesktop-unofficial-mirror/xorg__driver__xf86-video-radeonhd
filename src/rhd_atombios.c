@@ -1942,7 +1942,7 @@ rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCr
     xf86DrvMsg(handle->scrnIndex, X_INFO, "CallingSetCRTC_OverScan\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
-	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Successful\n");
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "Set CRTC_OverScan Successful\n");
 	return TRUE;
     }
     xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Failed\n");
@@ -1961,7 +1961,68 @@ rhdAtomSetCRTCOverscanVersion(atomBiosHandlePtr handle)
 
     DEBUG_VERSION(index, handle, version);
     return version;
+}
 
+/*
+ *
+ */
+Bool
+rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlank *config)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	BLANK_CRTC_PARAMETERS blank;
+	BLANK_CRTC_PS_ALLOCATION blank_a;
+    } ps;
+
+    RHDFUNC(handle);
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, BlankCRTC);
+    data.exec.pspace = &ps;
+
+    switch(id) {
+	case atomCrtc1:
+	    ps.blank.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.blank.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+    switch (config->Action) {
+	case atomBlankOn:
+	    ps.blank.ucBlanking = ATOM_BLANKING;
+	    break;
+	case atomBlankOff:
+	    ps.blank.ucBlanking = ATOM_BLANKING_OFF;
+	    break;
+    }
+    ps.blank.usBlackColorRCr = config->r;
+    ps.blank.usBlackColorGY = config->g;
+    ps.blank.usBlackColorBCb = config->b;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling BlankCRTC\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "BlankCRTC Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomBlankCRTCVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, BlankCRTC);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+
+    DEBUG_VERSION(index, handle, version);
+    return version;
 }
 
 /*
