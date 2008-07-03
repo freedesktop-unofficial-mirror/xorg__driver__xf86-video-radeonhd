@@ -353,7 +353,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		ERROR_MSG("rhdAtomEncoderControl(atomEncoderOff)");
 	    break;
     }
-    data.Address = &Private->Save;
+    data.Address = NULL;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
 
