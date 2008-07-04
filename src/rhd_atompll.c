@@ -62,95 +62,6 @@ struct atomPLLPrivate {
  *
  */
 static void
-rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
-{
-    RHDPtr rhdPtr = RHDPTRI(PLL);
-    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
-    CARD32 Crtc1Cntl, Crtc2Cntl;
-    enum atomCrtc owner;
-    struct rhdConnector *Connector;
-    struct rhdOutput *Output;
-
-
-    Crtc1Cntl = RHDRegRead(PLL, PCLK_CRTC1_CNTL);
-    Crtc2Cntl = RHDRegRead(PLL, PCLK_CRTC2_CNTL);
-
-    if (PllCntl & 0x2)
-	PLL->StoreActive = FALSE;
-    else
-	PLL->StoreActive = TRUE;
-
-    if ((Crtc1Cntl & 0x00010000) == OwnerVal)
-	owner = atomCrtc1;
-    else if ((Crtc2Cntl & 0x00010000) == OwnerVal)
-	owner = atomCrtc2;
-    else {
-	owner = atomCrtc1; /* whatever... */
-	PLL->StoreActive = FALSE;
-    }
-
-    Private->StoreCrtc = owner;
-    Private->StoreDevice = RHDGetDeviceOnCrtc(rhdPtr, owner);
-
-    if (Private->StoreDevice != atomNone) {
-	rhdAtomFindOutputConnectorForDevice(rhdPtr, Private->StoreDevice, &Connector, &Output);
-	Private->StoreConnectorType = Connector->Type;
-	Private->StoreOutputType = Output->Id;
-    }
-
-    RHDDebug(PLL->scrnIndex, "Saving PLL %i on CRTC: %i %s active\n",
-	     (PLL->Id == PLL_ID_PLL1) ? 1 : 2,
-	     (owner == atomCrtc1) ? 1 : 2,
-	     (PLL->StoreActive) ? "" : "not");
-
-    PLL->Stored = TRUE;
-}
-
-/*
- *
- */
-static void
-rhdAtomPLL1Save(struct rhdPLL *PLL)
-{
-    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
-    CARD32 PllCntl;
-
-    RHDFUNC(PLL);
-
-    PLL->StoreRefDiv   = RHDRegRead(PLL, EXT1_PPLL_REF_DIV) & 0x1FF;
-    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x3FF;
-    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x7;
-    PLL->StorePostDiv  = RHDRegRead(PLL, EXT1_PPLL_POST_DIV) & 0x3F;
-    PllCntl = RHDRegRead(PLL, P1PLL_CNTL);
-
-    rhdAtomPLLSave(PLL, PllCntl, 0x00000000);
-}
-
-
-/*
- *
- */
-static void
-rhdAtomPLL2Save(struct rhdPLL *PLL)
-{
-    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
-    CARD32 PllCntl;
-
-    RHDFUNC(PLL);
-
-    PLL->StoreRefDiv   = RHDRegRead(PLL, EXT2_PPLL_REF_DIV) & 0x1FF;
-    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x3FF;
-    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
-    PLL->StorePostDiv  = RHDRegRead(PLL, EXT2_PPLL_POST_DIV) & 0x3F;
-    PllCntl = RHDRegRead(PLL, P2PLL_CNTL);
-
-    rhdAtomPLLSave(PLL, PllCntl, 0x00010000);
-}
-
-/*
- *
- */
-static void
 getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Config,
 			   enum rhdConnectorType ct, enum rhdOutputType ot, enum atomDevice device)
 {
@@ -219,6 +130,103 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
  *
  */
 static void
+rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
+{
+    RHDPtr rhdPtr = RHDPTRI(PLL);
+    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
+    CARD32 Crtc1Cntl, Crtc2Cntl;
+    enum atomCrtc owner;
+    struct rhdConnector *Connector;
+    struct rhdOutput *Output;
+
+
+    Crtc1Cntl = RHDRegRead(PLL, PCLK_CRTC1_CNTL);
+    Crtc2Cntl = RHDRegRead(PLL, PCLK_CRTC2_CNTL);
+
+    if (PllCntl & 0x2)
+	PLL->StoreActive = FALSE;
+    else
+	PLL->StoreActive = TRUE;
+
+    if ((Crtc1Cntl & 0x00010000) == OwnerVal)
+	owner = atomCrtc1;
+    else if ((Crtc2Cntl & 0x00010000) == OwnerVal)
+	owner = atomCrtc2;
+    else {
+	owner = atomCrtc1; /* whatever... */
+	PLL->StoreActive = FALSE;
+    }
+
+    Private->StoreCrtc = owner;
+    Private->StoreDevice = RHDGetDeviceOnCrtc(rhdPtr, owner);
+
+    if (Private->StoreDevice != atomNone) {
+	rhdAtomFindOutputConnectorForDevice(rhdPtr, Private->StoreDevice, &Connector, &Output);
+	Private->StoreConnectorType = Connector->Type;
+	Private->StoreOutputType = Output->Id;
+    } else
+	PLL->StoreActive = FALSE;
+
+    RHDDebug(PLL->scrnIndex, "Saving PLL %i on CRTC: %i %s active\n",
+	     (PLL->Id == PLL_ID_PLL1) ? 1 : 2,
+	     (owner == atomCrtc1) ? 1 : 2,
+	     (PLL->StoreActive) ? "" : "not");
+
+    PLL->Stored = TRUE;
+
+    /* Set parameters found at startup for sutdownInactive(). This is somewhat ugly... */
+    Private->Config.Crtc = Private->StoreCrtc;
+    Private->Config.Enable = PLL->StoreActive;
+    if (Private->StoreDevice != atomNone)
+	getSetPixelClockParameters(PLL, &Private->Config, Private->StoreConnectorType,
+				   Private->StoreOutputType, Private->StoreDevice);
+}
+
+/*
+ *
+ */
+static void
+rhdAtomPLL1Save(struct rhdPLL *PLL)
+{
+    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
+    CARD32 PllCntl;
+
+    RHDFUNC(PLL);
+
+    PLL->StoreRefDiv   = RHDRegRead(PLL, EXT1_PPLL_REF_DIV) & 0x1FF;
+    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x3FF;
+    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x7;
+    PLL->StorePostDiv  = RHDRegRead(PLL, EXT1_PPLL_POST_DIV) & 0x3F;
+    PllCntl = RHDRegRead(PLL, P1PLL_CNTL);
+
+    rhdAtomPLLSave(PLL, PllCntl, 0x00000000);
+}
+
+
+/*
+ *
+ */
+static void
+rhdAtomPLL2Save(struct rhdPLL *PLL)
+{
+    struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
+    CARD32 PllCntl;
+
+    RHDFUNC(PLL);
+
+    PLL->StoreRefDiv   = RHDRegRead(PLL, EXT2_PPLL_REF_DIV) & 0x1FF;
+    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x3FF;
+    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
+    PLL->StorePostDiv  = RHDRegRead(PLL, EXT2_PPLL_POST_DIV) & 0x3F;
+    PllCntl = RHDRegRead(PLL, P2PLL_CNTL);
+
+    rhdAtomPLLSave(PLL, PllCntl, 0x00010000);
+}
+
+/*
+ *
+ */
+static void
 rhdAtomPLLRestore(struct rhdPLL *PLL)
 {
     RHDPtr rhdPtr = RHDPTRI(PLL);
@@ -235,6 +243,8 @@ rhdAtomPLLRestore(struct rhdPLL *PLL)
     Config.PixelClock = PLL->StoreActive
 	? ((PLL->StoreFBDiv * PLL->RefClock) / (PLL->StorePostDiv * PLL->StoreRefDiv * 10))
 	: 0;
+
+    Config.Enable = PLL->StoreActive;
     Config.RefDiv = PLL->StoreRefDiv;
     Config.FbDiv = PLL->StoreFBDiv;
     Config.PostDiv = PLL->StorePostDiv;
@@ -275,6 +285,7 @@ rhdAtomPLLPower(struct rhdPLL *PLL, int Power)
 	    break;
 	case RHD_POWER_RESET:
 	case RHD_POWER_SHUTDOWN:
+	    return;
 	    config->Enable = FALSE;
 	default:
 	    break;
@@ -294,8 +305,10 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
     struct rhdCrtc *Crtc = NULL;
 
     RHDFUNC(PLL);
-
-    Private->Config.PixelClock = PixelClock / 10;
+    RHDDebug(rhdPtr->scrnIndex, "%s: %i kHz RefDiv: %x FeedbackDiv: %x PostDiv: %x\n",
+	     __func__, PixelClock, ReferenceDivider, FeedbackDivider, PostDivider);
+    
+    Private->Config.PixelClock = PixelClock;
     Private->Config.RefDiv = ReferenceDivider;
     Private->Config.FbDiv = FeedbackDivider;
     Private->Config.PostDiv = PostDivider;
@@ -305,7 +318,7 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 	Crtc = rhdPtr->Crtc[0];
     } else if (rhdPtr->Crtc[1]->PLL == PLL) {
 	Private->Config.Crtc = atomCrtc2;
-	Crtc = rhdPtr->Crtc[0];
+	Crtc = rhdPtr->Crtc[1];
     } else
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Trying to set an unassigned PLL\n");
 
@@ -320,6 +333,8 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 				      Output->Connector->Type, Output->Id,
 				      Output->OutputDriverPrivate->Device);
     }
+    Private->Config.Enable = TRUE;
+    rhdAtomSetPixelClock(rhdPtr->atomBIOS, Private->Pxclk, &Private->Config);
 }
 
 /*
