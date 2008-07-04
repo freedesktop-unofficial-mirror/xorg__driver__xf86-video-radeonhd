@@ -2097,7 +2097,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 
     data.exec.index = GetIndexIntoMasterTable(COMMAND, SetPixelClock);
 
-    if (rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
+    if (!rhdAtomGetCommandTableRevisionSize(handle, data.exec.index, &version, NULL, NULL))
 	return FALSE;
     switch  (version) {
 	case 1:
@@ -2118,7 +2118,6 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    ps.pclk.ucPpll = ATOM_PPLL2;
 		    break;
 	    }
-	    ps.pclk.ucRefDivSrc = 0;
 	    switch (Config->Crtc) {
 		case atomCrtc1:
 		    ps.pclk.ucCRTC = ATOM_CRTC1;
@@ -2132,7 +2131,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 	    if (Config->Enable)
 		ps.pclk_v2.usPixelClock = Config->PixelClock / 10;
 	    else
-		ps.pclk.usPixelClock = 0;
+		ps.pclk_v2.usPixelClock = 0;
 	    ps.pclk_v2.usRefDiv = Config->RefDiv;
 	    ps.pclk_v2.usFbDiv = Config->FbDiv;
 	    ps.pclk_v2.ucPostDiv = Config->PostDiv;
@@ -2145,7 +2144,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    ps.pclk_v2.ucPpll = ATOM_PPLL2;
 		    break;
 	    }
-	    ps.pclk_v2.ucRefDivSrc = 0; /* See above... @@@ */
+	    ps.pclk_v2.ucRefDivSrc = 1; /* See above... @@@ */
 	    switch (Config->Crtc) {
 		case atomCrtc1:
 		    ps.pclk_v2.ucCRTC = ATOM_CRTC1;
@@ -2154,9 +2153,23 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    ps.pclk_v2.ucCRTC = ATOM_CRTC2;
 		    break;
 	    }
-	    ASSERTF(Config->u.v2.Device != atomNone, "Invalid Device Id\n");
-	    ps.pclk_v2.ucMiscInfo = (Config->u.v2.Force ? 1 : 0)
-		| (atomGetDevice(handle, Config->u.v2.Device) << MISC_DEVICE_INDEX_SHIFT);
+	    ASSERTF((!Config->Enable || Config->u.v2.Device != atomNone), "Invalid Device Id\n");
+	    ps.pclk_v2.ucMiscInfo = (Config->u.v2.Force ? 1 : 0);
+	    if (Config->u.v2.Device != atomNone)
+		ps.pclk_v2.ucMiscInfo |= (atomGetDevice(handle, Config->u.v2.Device)
+					  << MISC_DEVICE_INDEX_SHIFT);
+	    ErrorF("%s Device: %i PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x PLL: %i Crtc: %i"
+		   "MiscInfo: 0x%x\n",
+		   __func__,
+		   Config->u.v2.Device,
+		   ps.pclk_v2.usPixelClock,
+		   ps.pclk_v2.usRefDiv,
+		   ps.pclk_v2.usFbDiv,
+		   ps.pclk_v2.ucPostDiv,
+		   ps.pclk_v2.ucPpll,
+		   ps.pclk_v2.ucCRTC,
+		   ps.pclk_v2.ucMiscInfo
+		);
 	    break;
 	case 3:
 	    if (Config->Enable)
@@ -4384,7 +4397,7 @@ rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice device,
 	    break;
 
 	cip = (*Connector)->ConnectorDriverPrivate;
-	while ((dev = cip->Devices[j++]) != atomNone && dev != device) { ErrorF(">> %i\n",dev);}
+	while ((dev = cip->Devices[j++]) != atomNone && dev != device) {}
 	if (dev == atomNone)
 	    continue;
 

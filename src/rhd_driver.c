@@ -768,7 +768,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDVGAInit(rhdPtr);
     RHDMCInit(rhdPtr);
     RHDCrtcsInit(rhdPtr);
-/*     RHDPLLsInit(rhdPtr); */
+    /* RHDPLLsInit(rhdPtr); */
     RHDAtomPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
