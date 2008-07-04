@@ -88,11 +88,13 @@ rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
     enum atomDAC DAC;
     struct atomOutputPrivate *OutputDriverPrivate;
     Bool ret;
+    enum atomDevice Device;
 
     RHDFUNC(Output);
 
     OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
-    rhdAtomFindOutputDriverPrivate(Connector, Output);
+    Device = OutputDriverPrivate->Device;
+    xfree(OutputDriverPrivate);
 
     switch (Output->Id) {
 	case RHD_OUTPUT_DACA:
@@ -107,13 +109,12 @@ rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
 	    return FALSE;
     }
 
-    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, OutputDriverPrivate->Device, DAC);
-    xfree(OutputDriverPrivate);
+    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, Device, DAC);
 
     if (!ret)
 	return RHD_SENSED_NONE;
 
-    return rhdAtomBIOSScratchDACSenseResults(Output, DAC);
+    return rhdAtomBIOSScratchDACSenseResults(Output, DAC, Device);
 }
 
 static inline void
@@ -573,7 +574,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
     Output->Private = Private;
     Output->OutputDriverPrivate = NULL;
-    
+
     EncoderConfig = &Private->EncoderConfig;
     Private->PixelClock = 0;
 

@@ -26,7 +26,8 @@
 #ifndef RHD_BIOSSCRATCH_H_
 # define RHD_BIOSSCRATCH_H_
 
-extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC);
+extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output,
+							      enum atomDAC DAC, enum atomDevice Device);
 extern void RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
