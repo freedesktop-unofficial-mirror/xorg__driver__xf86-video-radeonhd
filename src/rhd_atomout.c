@@ -143,6 +143,7 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 		case atomDvoTV:
 		case atomDvoCV:
 		    EncoderConfig->u.dvo.u.TVMode = rhdPtr->tvMode;
+		    break;
 		case atomDvoCRT:
 		    EncoderConfig->u.dvo.digital = FALSE;
 		    break;
@@ -188,7 +189,11 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
 	    if (Output->Connector && PixelClock > 0) {
-		if (Output->Connector->Type == RHD_CONNECTOR_DVI)
+		if (Output->Connector->Type == RHD_CONNECTOR_DVI
+#if 0
+		    || Output->Connector->Type == RHD_CONNECTOR_HDMI_B
+#endif
+		    )
 		    Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
 	    } else
 		/* only get here for power down: thus power down both channels to be save */
@@ -202,6 +207,7 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 			EncoderConfig->u.lvds.LinkCnt = atomSingleLink;
 		    break;
 		case 2:
+		case 3:
 		    if (Private->RunDualLink)
 			EncoderConfig->u.lvds2.LinkCnt = atomDualLink;
 		    else
