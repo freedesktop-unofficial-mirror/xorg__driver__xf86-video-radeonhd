@@ -96,6 +96,7 @@ typedef struct _rhdRandrOutput {
     struct rhdConnector *Connector;
     struct rhdOutput    *Output;
     DisplayModePtr	ScaledToMode;
+    struct rhdCrtc      *Crtc;
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 #define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
@@ -351,13 +352,27 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     RHDPtr          rhdPtr = RHDPTR(crtc->scrn);
     ScrnInfoPtr     pScrn  = xf86Screens[rhdPtr->scrnIndex];
     struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
-
+    xf86CrtcConfigPtr xf86CrtcConfig = XF86_CRTC_CONFIG_PTR(crtc->scrn);
+    int i;
+    
     /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
     if (!Mode->name && crtc->mode.name)
 	Mode->name = xstrdup(crtc->mode.name);
 
     RHDDebug(rhdPtr->scrnIndex, "%s: %s : %s at %d/%d\n", __func__,
 	     Crtc->Name, Mode->name, x, y);
+
+    /*
+     * for AtomBIOS SetPixelClock we need information about the outputs.
+     * So find the output(s) matching this Crtc and assign the Crtc to it.
+     */
+    for (i = 0; i < xf86CrtcConfig->num_output; i++) {
+	if (xf86CrtcConfig->output[i]->crtc == crtc) {
+	    rhdRandrOutputPtr rout = xf86CrtcConfig->output[i]->driver_private;
+	    rout->Output->Crtc = Crtc;
+	}
+    }
+
     if (rhdPtr->verbosity >= 3) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "On Crtc %i Setting %3.1f Hz Mode: ",
 		   Crtc->Id, Mode->VRefresh);
@@ -613,7 +628,8 @@ rhdRROutputDpms(xf86OutputPtr       out,
 	rout->Output->Power(rout->Output, RHD_POWER_ON);
 	rout->Output->Active = TRUE;
 	ASSERT(Crtc);
-	rout->Output->Crtc = Crtc;
+	ASSERT(Crtc == rout->Output->Crtc);
+	rout->Crtc = Crtc;
 	break;
     case DPMSModeSuspend:
     case DPMSModeStandby:
@@ -626,7 +642,7 @@ rhdRROutputDpms(xf86OutputPtr       out,
 	}
 	rout->Output->Power(rout->Output, RHD_POWER_RESET);
 	rout->Output->Active = FALSE;
-	rout->Output->Crtc = NULL;
+	rout->Crtc = NULL;
 	break;
     case DPMSModeOff:
 	if (outUsedBy) {
@@ -638,7 +654,7 @@ rhdRROutputDpms(xf86OutputPtr       out,
 	}
 	rout->Output->Power(rout->Output, RHD_POWER_SHUTDOWN);
 	rout->Output->Active = FALSE;
-	rout->Output->Crtc = NULL;
+	rout->Crtc = NULL;
 	break;
     default:
 	ASSERT(!"Unknown DPMS mode");
@@ -795,7 +811,7 @@ rhdRROutputPrepare(xf86OutputPtr out)
 
     /* no active output == no mess */
     rout->Output->Power(rout->Output, RHD_POWER_RESET);
-    rout->Output->Crtc = NULL;
+    rout->Output->Crtc = rout->Crtc = NULL;
 }
 static void
 rhdRROutputModeSet(xf86OutputPtr  out,
@@ -815,12 +831,13 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     /* RandR might want to set up several outputs (RandR speech) with different
      * crtcs, while the outputs differ in fact only by the connector and thus
      * cannot be used by different crtcs */
-    if (rout->Output->Crtc && rout->Output->Crtc != Crtc)
+    if (rout->Crtc && rout->Crtc != Crtc)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
 		   "RandR: Output %s has already CRTC attached - "
 		   "assuming ouput/connector clash\n", rout->Name);
     /* Set up mode */
-    rout->Output->Crtc = Crtc;
+    rout->Crtc = Crtc;
+    ASSERT(Crtc == rout->Output->Crtc);
     rout->Output->Mode(rout->Output, Mode);
 }
 static void
@@ -880,6 +897,7 @@ rhdRROutputDetect(xf86OutputPtr output)
     /* Assume that a panel is always connected */
     if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
 	rout->Output->Connector = rout->Connector; /* @@@ */
+	rhdRandRSetOutputDriverPrivate(rout);
 	return XF86OutputStatusConnected;
     }
 
