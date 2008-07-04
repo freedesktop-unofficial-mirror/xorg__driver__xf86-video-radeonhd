@@ -897,7 +897,9 @@ rhdRROutputDetect(xf86OutputPtr output)
 		 */
 		if (rout->Output->SensedType != RHD_SENSED_NONE)
 		    return XF86OutputStatusDisconnected;
+
 		rhdRandRSetOutputDriverPrivate(rout);
+
 		if ((rout->Output->SensedType
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector)) != RHD_SENSED_NONE) {
@@ -912,18 +914,18 @@ rhdRROutputDetect(xf86OutputPtr output)
 		 * Check if there is another output attached to this connector
 		 * and use Sense() on that one to verify whether something
 		 * is attached to this one */
+
 		rhdRandRSetOutputDriverPrivate(rout);
+
 		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 		    rhdRandrOutputPtr o =
 			(rhdRandrOutputPtr) (*ro)->driver_private;
-		    if (!o->Output->OutputDriverPrivate && o != rout &&
-			o->Connector == rout->Connector &&
+		    if (o != rout && o->Connector == rout->Connector &&
 			o->Output->Sense) {
-			/* Yes, this looks wrong, but is correct */
-			o->Output->SensedType =
+                        /* Yes, this looks wrong, but is correct */
+			enum rhdSensedOutput SensedType =
 			    o->Output->Sense(o->Output, o->Connector);
-
-			if (o->Output->SensedType != RHD_SENSED_NONE) {
+			if (SensedType != RHD_SENSED_NONE) {
 			    RHDOutputPrintSensedType(o->Output);
 			    return XF86OutputStatusDisconnected;
 			}
