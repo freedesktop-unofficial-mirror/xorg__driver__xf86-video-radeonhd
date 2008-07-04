@@ -81,7 +81,7 @@ rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC, en
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 BIOS_0;
     Bool TV;
-    
+
     RHDFUNC(Output);
 
     if (rhdPtr->ChipSet < RHD_R600)
@@ -348,10 +348,11 @@ RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc)
     else
 	Addr = 0x1730;
 
-    if (Crtc == atomCrtc2)
+    if (Crtc == atomCrtc1)
 	Mask = ~Mask;
 
     BIOS_3 = RHDRegRead(rhdPtr, Addr);
+    RHDDebug(rhdPtr->scrnIndex, "%s: BIOS_3 = 0x%x\n",__func__,BIOS_3);
 
     if (BIOS_3 & ATOM_S3_CRT1_ACTIVE
 	&& ((BIOS_3 ^ Mask) & ATOM_S3_CRT1_CRTC_ACTIVE))

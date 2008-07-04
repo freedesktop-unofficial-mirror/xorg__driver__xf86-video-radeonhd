@@ -167,10 +167,11 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     } else
 	PLL->StoreActive = FALSE;
 
-    RHDDebug(PLL->scrnIndex, "Saving PLL %i on CRTC: %i %s active\n",
+    RHDDebug(PLL->scrnIndex, "Saving PLL %i on CRTC: %i %s active - device: 0x%x\n",
 	     (PLL->Id == PLL_ID_PLL1) ? 1 : 2,
 	     (owner == atomCrtc1) ? 1 : 2,
-	     (PLL->StoreActive) ? "" : "not");
+	     (PLL->StoreActive) ? "" : "not",
+	     Private->StoreDevice);
 
     PLL->Stored = TRUE;
 
@@ -194,10 +195,13 @@ rhdAtomPLL1Save(struct rhdPLL *PLL)
     RHDFUNC(PLL);
 
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT1_PPLL_REF_DIV) & 0x1FF;
-    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x3FF;
+    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
     Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x7;
     PLL->StorePostDiv  = RHDRegRead(PLL, EXT1_PPLL_POST_DIV) & 0x3F;
     PllCntl = RHDRegRead(PLL, P1PLL_CNTL);
+    RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL1\n",
+	     ((PLL->StoreFBDiv * PLL->RefClock * 10)
+	      / (PLL->StorePostDiv * PLL->StoreRefDiv)));
 
     rhdAtomPLLSave(PLL, PllCntl, 0x00000000);
 }
@@ -215,10 +219,13 @@ rhdAtomPLL2Save(struct rhdPLL *PLL)
     RHDFUNC(PLL);
 
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT2_PPLL_REF_DIV) & 0x1FF;
-    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x3FF;
+    PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
     Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
     PLL->StorePostDiv  = RHDRegRead(PLL, EXT2_PPLL_POST_DIV) & 0x3F;
     PllCntl = RHDRegRead(PLL, P2PLL_CNTL);
+    RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL1\n",
+	     ((PLL->StoreFBDiv * PLL->RefClock * 10)
+	      / (PLL->StorePostDiv * PLL->StoreRefDiv)));
 
     rhdAtomPLLSave(PLL, PllCntl, 0x00010000);
 }
@@ -241,7 +248,7 @@ rhdAtomPLLRestore(struct rhdPLL *PLL)
 	return;
     }
     Config.PixelClock = PLL->StoreActive
-	? ((PLL->StoreFBDiv * PLL->RefClock) / (PLL->StorePostDiv * PLL->StoreRefDiv * 10))
+	? ((PLL->StoreFBDiv * PLL->RefClock * 10) / (PLL->StorePostDiv * PLL->StoreRefDiv))
 	: 0;
 
     Config.Enable = PLL->StoreActive;
@@ -307,7 +314,7 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
     RHDFUNC(PLL);
     RHDDebug(rhdPtr->scrnIndex, "%s: %i kHz RefDiv: %x FeedbackDiv: %x PostDiv: %x\n",
 	     __func__, PixelClock, ReferenceDivider, FeedbackDivider, PostDivider);
-    
+
     Private->Config.PixelClock = PixelClock;
     Private->Config.RefDiv = ReferenceDivider;
     Private->Config.FbDiv = FeedbackDivider;
