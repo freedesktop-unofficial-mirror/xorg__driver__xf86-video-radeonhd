@@ -75,6 +75,9 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
 	    break;
 	case 3:
 	    switch (ct) {
+		case RHD_CONNECTOR_VGA:
+		    Config->u.v3.EncoderMode = atomNoEncoder;
+		    break;
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
 		    Config->u.v3.EncoderMode = atomDVI;
@@ -93,7 +96,7 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
 		    break;
 #endif
 		default:
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unknown connector type\n");
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unknown connector type: 0x%x\n",__func__,ct);
 	    }
 	    switch (ot) {
 		case RHD_OUTPUT_DACA:
@@ -119,6 +122,7 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
 		    break;
 	    }
 	    Config->u.v3.Force = TRUE;
+	    Config->u.v3.UsePpll = FALSE;
 	    break;
 	default:
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unsupported SelectPixelClock version; %i\n",Private->Version.cref);
@@ -403,10 +407,6 @@ RHDAtomPLLsInit(RHDPtr rhdPtr)
 	rhdPtr->PLLs[i] = PLL;
     }
 
-    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, GET_REF_CLOCK, &arg))
-	PLL->RefClock = arg.val;
-    else
-	PLL->RefClock = 0x2700;
 
     return TRUE;
 }

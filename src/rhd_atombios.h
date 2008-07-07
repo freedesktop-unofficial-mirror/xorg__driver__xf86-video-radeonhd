@@ -254,6 +254,7 @@ enum atomEncoder {
 };
 
 enum atomEncoderMode {
+    atomNoEncoder,
     atomDVI,
     atomDP,
     atomLVDS,
