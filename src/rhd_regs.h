@@ -100,6 +100,8 @@ enum {
 
     AGP_STATUS                     = 0x0F5C,
 
+    R7XX_MC_VM_FB_LOCATION	   = 0x2024,
+
     R6XX_MC_VM_FB_LOCATION	   = 0x2180,
     R6XX_HDP_NONSURFACE_BASE       = 0x2C04,
     R6XX_CONFIG_MEMSIZE            = 0x5428,
