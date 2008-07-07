@@ -282,7 +282,6 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x9446, RHD_RV770 ), /* K2 ATI FirePro Graphics Accelerator  */
     RHD_DEVICE_MATCH(  0x944E, RHD_RV770 ), /* RV770  */
     RHD_DEVICE_MATCH(  0x9456, RHD_RV770 ), /* Denali ATI FirePro Graphics Accelerator  */
-
     LIST_END
 };
 

@@ -209,6 +209,9 @@ rs780RestoreMC(RHDPtr rhdPtr)
 }
 #endif
 
+/*
+ *
+ */
 static void
 r7xxRestoreMC(RHDPtr rhdPtr)
 {
