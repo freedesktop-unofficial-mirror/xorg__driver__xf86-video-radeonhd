@@ -128,6 +128,20 @@ rs780SaveMC(RHDPtr rhdPtr)
  *
  */
 static void
+r7xxSaveMC(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+
+    RHDFUNC(rhdPtr);
+
+    MC->FbLocation = RHDRegRead(rhdPtr, R7XX_MC_VM_FB_LOCATION);
+    MC->HdpFbBase = RHDRegRead(rhdPtr, R6XX_HDP_NONSURFACE_BASE);
+}
+
+/*
+ *
+ */
+static void
 r5xxRestoreMC(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -197,6 +211,17 @@ rs780RestoreMC(RHDPtr rhdPtr)
 
     RHDWriteMC(rhdPtr, RS78_MC_FB_LOCATION, MC->FbLocation);
     /* RS780 uses the same register as R6xx */
+    RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->HdpFbBase);
+}
+
+static void
+r7xxRestoreMC(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+
+    RHDFUNC(rhdPtr);
+
+    RHDRegWrite(rhdPtr, R7XX_MC_VM_FB_LOCATION, MC->FbLocation);
     RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->HdpFbBase);
 }
 
@@ -335,6 +360,34 @@ rs780SetupMC(RHDPtr rhdPtr)
 	     fb_size,(unsigned int)fb_location_tmp);
     RHDWriteMC(rhdPtr, RS78_MC_FB_LOCATION, fb_location_tmp);
     /* RS780 uses the same register as R6xx */
+    RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
+}
+
+/*
+ *
+ */
+static void
+r7xxSetupMC(RHDPtr rhdPtr)
+{
+    CARD32 fb_location, fb_location_tmp, hdp_fbbase_tmp;
+    CARD16 fb_size;
+
+    RHDFUNC(rhdPtr);
+
+    fb_location = RHDRegRead(rhdPtr, R7XX_MC_VM_FB_LOCATION);
+    fb_size = (fb_location >> 16) - (fb_location & 0xFFFF);
+    fb_location_tmp = rhdPtr->FbIntAddress >> 24;
+    fb_location_tmp |= (fb_location_tmp + fb_size) << 16;
+    hdp_fbbase_tmp = (rhdPtr->FbIntAddress >> 8) & 0xff0000;
+
+    RHDDebug(rhdPtr->scrnIndex, "%s: fb_location: 0x%08X "
+	     "fb_offset: 0x%08X [fb_size: 0x%04X] -> fb_location: 0x%08X "
+	     "fb_offset: 0x%08X\n",
+	     __func__, (unsigned int)fb_location,
+	     RHDRegRead(rhdPtr,R6XX_HDP_NONSURFACE_BASE), fb_size,
+	     (unsigned int)fb_location_tmp, (unsigned int)hdp_fbbase_tmp);
+
+    RHDRegWrite(rhdPtr, R7XX_MC_VM_FB_LOCATION, fb_location_tmp);
     RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
 }
 
@@ -571,7 +624,12 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->MCIdle = rs780MCIdle;
     }
 #endif
-    else {
+    else if (rhdPtr->ChipSet == RHD_RV770) {
+	MC->SaveMC = r7xxSaveMC;
+	MC->RestoreMC = r7xxRestoreMC;
+	MC->SetupMC = r7xxSetupMC;
+	MC->MCIdle = r6xxMCIdle;
+    } else {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "I don't know anything about MC on this chipset\n");
 	xfree(MC);
 	return;
