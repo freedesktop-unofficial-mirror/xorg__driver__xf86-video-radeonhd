@@ -80,7 +80,7 @@ rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC, en
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 BIOS_0;
-    Bool TV;
+    Bool TV = FALSE;
 
     RHDFUNC(Output);
 

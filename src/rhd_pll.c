@@ -1402,7 +1402,7 @@ PLLCalculate(struct rhdPLL *PLL, CARD32 PixelClock,
 
     if (BestDiff != 0xFFFFFFFF) {
 	RHDDebug(PLL->scrnIndex, "PLL Calculation: %dkHz = "
-		   "(((0x%X / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
+		   "(((%i / 0x%X) * 0x%X) / 0x%X) (%dkHz off)\n",
 		   (int) PixelClock, (unsigned int) PLL->RefClock, *RefDivider,
 		   *FBDivider, *PostDivider, (int) BestDiff);
 	return TRUE;

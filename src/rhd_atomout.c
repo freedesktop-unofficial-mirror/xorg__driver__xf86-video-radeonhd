@@ -693,11 +693,11 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS,
 								   Private->EncoderId);
 	    Private->TransmitterId = atomTransmitterLVTMA;
-	    EncoderConfig->u.dig.Link = atomTransLinkB;
+	    EncoderConfig->u.dig.Link = atomTransLinkA;
 	    EncoderConfig->u.dig.Transmitter = atomTransmitterLVTMA;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->Link = atomTransLinkB;
+	    TransmitterConfig->Link = atomTransLinkA;
 	    TransmitterConfig->Encoder =  Private->TransmitterId;
 
 	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
@@ -721,6 +721,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkA;
 	    TransmitterConfig->Encoder =  Private->EncoderId;
+
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;
@@ -739,7 +740,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		LVDSInfoRetrieve(rhdPtr, Private);
 	    else
 		TMDSInfoRetrieve(rhdPtr, Private);
-	    break;
+
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
@@ -756,7 +757,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    break;
 #endif
 		default:
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unknown connector type\n");
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unknown connector type\n",__func__);
 		    xfree(Output);
 		    xfree(Private);
 		    return NULL;
@@ -774,6 +775,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkB;
 	    TransmitterConfig->Encoder =  Private->EncoderId;
+
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
 		data.val = 1;
@@ -787,6 +789,11 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    return NULL;
 		}
 	    }
+
+	    if (ConnectorType == RHD_CONNECTOR_PANEL)
+		LVDSInfoRetrieve(rhdPtr, Private);
+	    else
+		TMDSInfoRetrieve(rhdPtr, Private);
 
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
@@ -804,7 +811,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    break;
 #endif
 		default:
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unknown connector type\n");
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unknown connector type\n",__func__);
 		    xfree(Output);
 		    xfree(Private);
 		    return NULL;

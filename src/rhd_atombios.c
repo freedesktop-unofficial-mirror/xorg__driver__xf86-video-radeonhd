@@ -839,11 +839,11 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     /* INIT is only called by ASIC_Init, for our actions this is always the PXLCLK */
     switch (config->LinkCnt) {
 	case atomSingleLink:
-	    Transmitter.usPixelClock = config->PixelClock / 10;
+	    Transmitter.usPixelClock = config->PixelClock * 4 / 10;
 	    break;
 
 	case atomDualLink:
-	    Transmitter.usPixelClock = config->PixelClock / 20;
+	    Transmitter.usPixelClock = config->PixelClock * 2/ 10;
 	    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_8LANE_LINK;
 	    break;
     }
@@ -1495,6 +1495,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		case atomSDVO:
 		    dig->ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
 		    break;
+		case atomNoEncoder:
 		case atomTVComposite:
 		case atomTVSVideo:
 		case atomTVComponent:
@@ -1514,6 +1515,14 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		default:
 		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DIG unknown action\n",__func__);
 		    return FALSE;
+	    }
+	    switch (Config->u.dig.LinkCnt) {
+		case atomSingleLink:
+		    dig->ucLaneNum = 4;
+		    break;
+		case atomDualLink:
+		    dig->ucLaneNum = 8;
+		    break;
 	    }
 	    break;
 	case atomEncoderDVO:
@@ -2068,6 +2077,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 {
     AtomBiosArgRec data;
     CARD8 version;
+    Bool NeedMode = FALSE;
     union {
 	PIXEL_CLOCK_PARAMETERS  pclk;
 	PIXEL_CLOCK_PARAMETERS_V2  pclk_v2;
@@ -2134,12 +2144,13 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    break;
 	    }
 	    ASSERTF((!Config->Enable || Config->u.v2.Device != atomNone), "Invalid Device Id\n");
-	    ps.pclk_v2.ucMiscInfo = (Config->u.v2.Force ? 1 : 0);
+	    ps.pclk_v2.ucMiscInfo = 0;
+	    ps.pclk_v2.ucMiscInfo |= (Config->u.v2.Force ? MISC_FORCE_REPROG_PIXEL_CLOCK : 0);
 	    if (Config->u.v2.Device != atomNone)
 		ps.pclk_v2.ucMiscInfo |= (atomGetDevice(handle, Config->u.v2.Device)
 					  << MISC_DEVICE_INDEX_SHIFT);
-	    ErrorF("%s Device: %i PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x PLL: %i Crtc: %i"
-		   "MiscInfo: 0x%x\n",
+	    RHDDebug(handle->scrnIndex,"%s Device: %i PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x "
+		     "PLL: %i Crtc: %i MiscInfo: 0x%x\n",
 		   __func__,
 		   Config->u.v2.Device,
 		   ps.pclk_v2.usPixelClock,
@@ -2171,10 +2182,12 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 	    switch (Config->u.v3.OutputType) {
 		case atomOutputKldskpLvtma:
 		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_LVTMA;
+		    NeedMode = TRUE;
 		    break;
 		case atomOutputUniphyA:
 		case atomOutputUniphyB:
 		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_UNIPHY;
+		    NeedMode = TRUE;
 		    break;
 		case atomOutputDacA:
 		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DAC1;
@@ -2184,33 +2197,54 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		    break;
 		case atomOutputDvo:
 		    ps.pclk_v3.ucTransmitterId = ENCODER_OBJECT_ID_INTERNAL_KLDSCP_DVO1;
+		    NeedMode = TRUE;
 		    break;
 		case atomOutputTmdsa:
 		case atomOutputLvtma:
 		case atomOutputNone:
 		    return FALSE;
 	    }
-	    switch (Config->u.v3.EncoderMode) {
-		case atomDVI:
-		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DVI;
-		    break;
-		case atomDP:
-		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DP;
-		    break;
-		case atomLVDS:
-		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_LVDS;
-		    break;
-		case atomHDMI:
-		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_HDMI;
-		    break;
-		case atomSDVO:
-		    ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
-		    break;
-		default:
-		    return FALSE;
+	    if (NeedMode) {
+		switch (Config->u.v3.EncoderMode) {
+		    case atomNoEncoder:
+			ps.pclk_v3.ucEncoderMode = 0;
+		    case atomDVI:
+			ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DVI;
+			break;
+		    case atomDP:
+			ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_DP;
+			break;
+		    case atomLVDS:
+			ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_LVDS;
+			break;
+		    case atomHDMI:
+			ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_HDMI;
+			break;
+		    case atomSDVO:
+			ps.pclk_v3.ucEncoderMode = ATOM_ENCODER_MODE_SDVO;
+			break;
+		    default:
+			xf86DrvMsg(handle->scrnIndex, X_ERROR,"%s: invalid encoder type.\n",__func__);
+			return FALSE;
+		}
 	    }
-	    ps.pclk_v3.ucMiscInfo = (Config->u.v3.Force ? 0x1 : 0x0)
-		| (Config->u.v3.UsePpll ? 0x0 : 0x1) | (Config->Crtc == atomCrtc2 ? 0x1 << 2 : 0);
+	    ps.pclk_v3.ucMiscInfo = (Config->u.v3.Force ? PIXEL_CLOCK_MISC_FORCE_PROG_PPLL : 0x0)
+		| (Config->u.v3.UsePpll ?  PIXEL_CLOCK_MISC_USE_ENGINE_FOR_DISPCLK : 0x0)
+		| ((Config->Crtc == atomCrtc2) ? PIXEL_CLOCK_MISC_CRTC_SEL_CRTC2 : PIXEL_CLOCK_MISC_CRTC_SEL_CRTC1);
+
+	    RHDDebug(handle->scrnIndex,"%s PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x PLL: %i OutputType: %x "
+		   "EncoderMode: %x MiscInfo: 0x%x\n",
+		   __func__,
+		   ps.pclk_v3.usPixelClock,
+		   ps.pclk_v3.usRefDiv,
+		   ps.pclk_v3.usFbDiv,
+		   ps.pclk_v3.ucPostDiv,
+		   ps.pclk_v3.ucPpll,
+		   ps.pclk_v3.ucTransmitterId,
+		   ps.pclk_v3.ucEncoderMode,
+		   ps.pclk_v3.ucMiscInfo
+		);
+	    break;
 	default:
 	    return FALSE;
     }
@@ -2253,7 +2287,8 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 {
     AtomBiosArgRec data;
     CARD8 version;
-
+    Bool NeedMode = FALSE;
+    
     union
     {
 	SELECT_CRTC_SOURCE_PARAMETERS crtc;
@@ -2335,9 +2370,11 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 		    break;
 		case atomEncoderDVO:
 		    ps.crtc2.ucEncoderID = ASIC_INT_DVO_ENCODER_ID;
+		    NeedMode = TRUE;
 		    break;
 		case atomEncoderDIG1:
 		    ps.crtc2.ucEncoderID = ASIC_INT_DIG1_ENCODER_ID;
+		    NeedMode = TRUE;
 		    break;
 		case atomEncoderDIG2:
 		    ps.crtc2.ucEncoderID = ASIC_INT_DIG2_ENCODER_ID;
@@ -2350,32 +2387,37 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 		case atomEncoderLVDS:
 		    return FALSE;
 	    }
-	    switch (config->u.crtc2.Mode) {
-		case atomDVI:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DVI;
-		    break;
-		case atomDP:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DP;
-		    break;
-		case atomLVDS:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_LVDS;
-		    break;
-		case atomHDMI:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_HDMI;
-		    break;
-		case atomSDVO:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_SDVO;
-		    break;
-		case atomTVComposite:
-		case atomTVSVideo:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_TV;
-		    break;
-		case atomTVComponent:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CV;
-		    break;
-		case atomCRT:
-		    ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CRT;
-		    break;
+	    if (NeedMode) {
+		switch (config->u.crtc2.Mode) {
+		    case atomDVI:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DVI;
+			break;
+		    case atomDP:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_DP;
+			break;
+		    case atomLVDS:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_LVDS;
+			break;
+		    case atomHDMI:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_HDMI;
+			break;
+		    case atomSDVO:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_SDVO;
+			break;
+		    case atomTVComposite:
+		    case atomTVSVideo:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_TV;
+			break;
+		    case atomTVComponent:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CV;
+			break;
+		    case atomCRT:
+			ps.crtc2.ucEncodeMode = ATOM_ENCODER_MODE_CRT;
+			break;
+		    case atomNoEncoder:
+			xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: invalid encoder type.\n",__func__);
+			return FALSE;
+		}
 	    }
 	    break;
     }
