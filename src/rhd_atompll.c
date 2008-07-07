@@ -198,6 +198,7 @@ rhdAtomPLL1Save(struct rhdPLL *PLL)
 
     RHDFUNC(PLL);
 
+    PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P1PLL_INT_SS_CNTL);
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT1_PPLL_REF_DIV) & 0x1FF;
     PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
     Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x7;
@@ -222,6 +223,7 @@ rhdAtomPLL2Save(struct rhdPLL *PLL)
 
     RHDFUNC(PLL);
 
+    PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P2PLL_INT_SS_CNTL);
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT2_PPLL_REF_DIV) & 0x1FF;
     PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
     Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
@@ -268,7 +270,11 @@ rhdAtomPLLRestore(struct rhdPLL *PLL)
     RHDDebug(PLL->scrnIndex, "Restoring PixelClock %i with %i kHz, (%i * %i) / ( %i * %i )"
 	     " on CRTC %i device: %x\n",
 	     Private->Pxclk, Config.PixelClock, PLL->RefClock, PLL->StoreFBDiv, PLL->StorePostDiv,
-	     PLL->StoreRefDiv, Config.Crtc == atomCrtc1 ? 1 : 2, Config.u.v2.Device);
+	     PLL->StoreRefDiv, (Config.Crtc == atomCrtc1) ? 1 : 2, Config.u.v2.Device);
+
+    /* Restore spread spectrum: AtomBIOS doesn't handle this for us */
+    RHDRegWrite(PLL, (PLL->Id == PLL_ID_PLL1) ? P1PLL_INT_SS_CNTL : P2PLL_INT_SS_CNTL, PLL->StoreSpreadSpectrum);
+
     rhdAtomSetPixelClock(rhdPtr->atomBIOS, Private->Pxclk, &Config);
 }
 
@@ -344,6 +350,10 @@ rhdAtomPLLSet(struct rhdPLL *PLL, int PixelClock, CARD16 ReferenceDivider,
 				      Output->Connector->Type, Output->Id,
 				      Output->OutputDriverPrivate->Device);
     }
+
+    /* Disable spread spectrum. AtomBIOS doesn't do this for us */
+    RHDRegMask(PLL, (PLL->Id == PLL_ID_PLL1) ? P1PLL_INT_SS_CNTL : P2PLL_INT_SS_CNTL, 0, 0x00000001);
+
     Private->Config.Enable = TRUE;
     rhdAtomSetPixelClock(rhdPtr->atomBIOS, Private->Pxclk, &Private->Config);
 }
