@@ -44,6 +44,10 @@
 #include "rhd_crtc.h"
 #include "rhd_regs.h"
 
+#ifdef ATOM_BIOS
+#include "rhd_atombios.h"
+#include "rhd_biosscratch.h"
+#endif
 
 #define REG_DACA_OFFSET 0
 #define RV620_REG_DACA_OFFSET 0

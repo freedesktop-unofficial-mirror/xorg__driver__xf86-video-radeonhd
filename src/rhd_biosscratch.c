@@ -465,7 +465,7 @@ RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *re
     xfree(regs);
 }
 
-#endif
+#endif /* ATOM_BIOS */
 
 #if 0
 enum atomScratchInfo {

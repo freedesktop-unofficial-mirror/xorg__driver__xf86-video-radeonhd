@@ -43,8 +43,9 @@
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 #include "rhd_regs.h"
-#include "rhd_atombios.h"
-#include "rhd_biosscratch.h"
+#ifdef ATOM_BIOS
+# include "rhd_atombios.h"
+# include "rhd_biosscratch.h"
 
 struct atomPLLPrivate {
     enum atomPxclk Pxclk;
@@ -419,3 +420,5 @@ RHDAtomPLLsInit(RHDPtr rhdPtr)
 
     return TRUE;
 }
+
+#endif /* AtomBIOS */
