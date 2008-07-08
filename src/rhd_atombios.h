@@ -196,6 +196,9 @@ enum atomTransmitterAction {
     atomTransEnable,
     atomTransEnableOutput,
     atomTransDisableOutput,
+    atomTransLcdBlOff,
+    atomTransLcdBlOn,
+    atomTransLcdBlBrightness,
     atomTransSetup
 };
 

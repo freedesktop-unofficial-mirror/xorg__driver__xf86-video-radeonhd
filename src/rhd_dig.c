@@ -748,7 +748,7 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 	atc->Mode = atomDualLink;
     else
 	atc->Mode = atomSingleLink;
-    
+
     atc->PixelClock = Mode->SynthClock;
 
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
@@ -1253,6 +1253,7 @@ DigPropertyControl(struct rhdOutput *Output,
 
     switch(Property) {
 	case RHD_OUTPUT_COHERENT:
+	case RHD_OUTPUT_BACKLIGHT:
 	{
 	    if (!Private->Transmitter.Property)
 		return FALSE;
