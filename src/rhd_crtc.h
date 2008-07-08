@@ -112,6 +112,7 @@ struct rhdCrtc {
 };
 
 void RHDCrtcsInit(RHDPtr rhdPtr);
+void RHDAtomCrtcsInit(RHDPtr rhdPtr);
 void RHDCrtcsDestroy(RHDPtr rhdPtr);
 
 /*

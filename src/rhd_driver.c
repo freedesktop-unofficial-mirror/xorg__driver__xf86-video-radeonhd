@@ -744,6 +744,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDVGAInit(rhdPtr);
     RHDMCInit(rhdPtr);
     RHDCrtcsInit(rhdPtr);
+#if 1
+    RHDAtomCrtcsInit(rhdPtr);
+#endif
 #if 0
     RHDPLLsInit(rhdPtr);
 #else

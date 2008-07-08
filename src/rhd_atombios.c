@@ -22,6 +22,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+/* #define RHD_DEBUG */
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -1933,6 +1934,7 @@ rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCr
     RHDFUNC(handle);
 
     data.exec.index = GetIndexIntoMasterTable(COMMAND, SetCRTC_OverScan);
+    data.exec.dataSpace = NULL;
     data.exec.pspace = &ps;
 
     switch(id) {
@@ -1989,6 +1991,7 @@ rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlan
 
     data.exec.index = GetIndexIntoMasterTable(COMMAND, BlankCRTC);
     data.exec.pspace = &ps;
+    data.exec.dataSpace = NULL;
 
     switch(id) {
 	case atomCrtc1:
@@ -2288,7 +2291,7 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
     AtomBiosArgRec data;
     CARD8 version;
     Bool NeedMode = FALSE;
-    
+
     union
     {
 	SELECT_CRTC_SOURCE_PARAMETERS crtc;
@@ -4630,20 +4633,24 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
     for (i = 0; i < List->Last; i++) {
 	switch ( List->RegisterList[i].Type) {
 	    case atomRegisterMMIO:
-		DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, (*List)->RegisterList[i].Value));
+		DEBUGP(ErrorF("%s[%i]: MMIO(0x%4.4x) = 0x%4.4x\n",__func__, List->Last,
+			      List->RegisterList[i].Address, List->RegisterList[i].Value));
 		RHDRegWrite(handle, List->RegisterList[i].Address, List->RegisterList[i].Value);
 		break;
 	    case atomRegisterMC:
-		DEBUGP(ErrorF("%s: MC(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		DEBUGP(ErrorF("%s[%i]: MC(0x%4.4x) = 0x%4.4x\n",__func__, List->Last,
+			      List->RegisterList[i].Address, List->RegisterList[i].Value));
 		RHDWriteMC(handle,  List->RegisterList[i].Address | MC_IND_ALL | MC_IND_WR_EN,
 			   List->RegisterList[i].Value);
 		break;
 	    case atomRegisterPLL:
-		DEBUGP(ErrorF("%s: PLL(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		DEBUGP(ErrorF("%s[%i]: PLL(0x%4.4x) = 0x%4.4x\n",__func__, List->Last,
+			      List->RegisterList[i].Address, List->RegisterList[i].Value));
 		_RHDWritePLL(handle->scrnIndex, List->RegisterList[i].Address, List->RegisterList[i].Value);
 		break;
 	    case atomRegisterPCICFG:
-		DEBUGP(ErrorF("%s: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__, List->RegisterList[i].Address, List->RegisterList[i].Value));
+		DEBUGP(ErrorF("%s[%i]: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__,List->Last,
+			      List->RegisterList[i].Address, List->RegisterList[i].Value));
 #ifdef XSERVER_LIBPCIACCESS
 		pci_device_cfg_write(RHDPTRI(handle)->PciInfo,
 				     &List->RegisterList[i].Value,
@@ -4704,15 +4711,15 @@ atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 a
     switch (Type) {
 	case atomRegisterMMIO:
 	    val = RHDRegRead(handle, address);
-	    DEBUGP(ErrorF("%s: MMIO(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    DEBUGP(ErrorF("%s[%i]: MMIO(0x%4.4x) = 0x%4.4x\n",__func__,List->Last,address,val));
 	    break;
 	case atomRegisterMC:
 	    val = RHDReadMC(handle, address | MC_IND_ALL);
-	    DEBUGP(ErrorF("%s: MC(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    DEBUGP(ErrorF("%s[%i]: MC(0x%4.4x) = 0x%4.4x\n",__func__,List->Last,address,val));
 	    break;
 	case atomRegisterPLL:
 	    val = _RHDReadPLL(handle->scrnIndex, address);
-	    DEBUGP(ErrorF("%s: PLL(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    DEBUGP(ErrorF("%s[%i]: PLL(0x%4.4x) = 0x%4.4x\n",__func__,List->Last,address,val));
 	    break;
 	case atomRegisterPCICFG:
 #ifdef XSERVER_LIBPCIACCESS
@@ -4724,7 +4731,7 @@ atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 a
 		val =  pciReadLong(tag, address);
 	    }
 #endif
-	    DEBUGP(ErrorF("%s: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__,address,val));
+	    DEBUGP(ErrorF("%s[%i]: PCICFG(0x%4.4x) = 0x%4.4x\n",__func__,List->Last,address,val));
 	    break;
     }
     List->RegisterList[List->Last].Address = address;

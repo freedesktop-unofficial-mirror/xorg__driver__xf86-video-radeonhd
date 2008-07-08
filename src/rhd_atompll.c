@@ -367,7 +367,6 @@ RHDAtomPLLsInit(RHDPtr rhdPtr)
     struct rhdPLL *PLL;
     struct atomPLLPrivate *Private;
     CARD32 RefClock, IntMin, IntMax, PixMin, PixMax;
-    AtomBiosArgRec arg;
     int i;
 
     RHDFUNC(rhdPtr);
