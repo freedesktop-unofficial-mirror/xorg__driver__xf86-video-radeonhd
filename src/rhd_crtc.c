@@ -45,7 +45,6 @@
 #include "rhd_mc.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
-#endif
 
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
@@ -1444,3 +1443,4 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
 	xfree(Crtc);
     }
 }
+#endif /* ATOM_BIOS */

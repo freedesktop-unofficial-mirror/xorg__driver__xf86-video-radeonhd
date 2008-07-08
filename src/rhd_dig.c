@@ -44,6 +44,7 @@
 #include "rhd_card.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
+#include "rhd_biosscratch.h"
 #endif
 
 #define FMT2_OFFSET 0x800
@@ -800,8 +801,10 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
 
+#ifdef ATOM_BIOS
     RHDAtomUpdateBIOSScratchForOutput(Output);
-
+#endif
+    
     if (Private->RunDualLink)
 	atc->LinkCnt = atomDualLink;
     else
