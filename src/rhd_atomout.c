@@ -745,23 +745,27 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	case RHD_OUTPUT_LVTMA:
 	    if (OutputType == RHD_OUTPUT_LVTMA) {
 		if (ConnectorType == RHD_CONNECTOR_PANEL) {
+		    Private->OutputControlId = atomLCDOutput;
 		    LVDSInfoRetrieve(rhdPtr, Private);
 		    Private->RunDualLink = Private->DualLink;
 		    Private->EncoderId = atomEncoderLVDS;
-		} else
+		} else {
+		    TMDSInfoRetrieve(rhdPtr, Private);
+		    Private->OutputControlId = atomLVTMAOutput;
 		    Private->EncoderId = atomEncoderTMDS2;
-	    } else
-		    Private->EncoderId = atomEncoderTMDS1;
-
-		if (OutputType == RHD_CONNECTOR_DVI)
-		    Private->DualLink = TRUE;
-		else
-		    Private->DualLink = FALSE;
-
-	    if (OutputType == RHD_OUTPUT_LVTMA)
-		Private->OutputControlId = atomLVTMAOutput;
-	    else
+		}
+	    } else {
+		TMDSInfoRetrieve(rhdPtr, Private);
 		Private->OutputControlId = atomTMDSAOutput;
+		Private->EncoderId = atomEncoderTMDS1;
+	    }
+
+	    if (OutputType == RHD_CONNECTOR_DVI)
+		Private->DualLink = TRUE;
+	    else
+		Private->DualLink = FALSE;
+
+
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS, Private->EncoderId);
 	    switch (Private->EncoderVersion.cref) {
 		case 1:
