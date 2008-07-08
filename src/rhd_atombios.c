@@ -848,6 +848,15 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	case atomTransDisableOutput:
 	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_DISABLE_OUTPUT;
 	    break;
+	case atomTransLcdBlOff:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_LCD_BLOFF;
+	    break;
+	case atomTransLcdBlOn:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_LCD_BLON;
+	    break;
+	case atomTransLcdBlBrightness:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_BL_BRIGHTNESS_CONTROL;
+	    break;
 	case atomTransSetup:
 	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_SETUP;
 	    break;

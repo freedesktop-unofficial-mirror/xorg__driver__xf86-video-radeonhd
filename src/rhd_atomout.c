@@ -76,47 +76,16 @@ struct rhdAtomOutputPrivate {
     Bool   FPDI;
 
     Bool   Coherent;
+    DisplayModePtr Mode;
+
+    int    BlLevel;
 };
+
+#define ERROR_MSG(x) 	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: %s failed.\n", __func__, x)
 
 /*
  *
  */
-static enum rhdSensedOutput
-rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
-{
-    RHDPtr rhdPtr = RHDPTRI(Output);
-    enum atomDAC DAC;
-    struct atomOutputPrivate *OutputDriverPrivate;
-    Bool ret;
-    enum atomDevice Device;
-
-    RHDFUNC(Output);
-
-    OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
-    Device = OutputDriverPrivate->Device;
-    xfree(OutputDriverPrivate);
-
-    switch (Output->Id) {
-	case RHD_OUTPUT_DACA:
-	    RHDDebug(Output->scrnIndex, "Sensing DACA on Output %s\n",Output->Name);
-	    DAC = atomDACA;
-	    break;
-	case RHD_OUTPUT_DACB:
-	    RHDDebug(Output->scrnIndex, "Sensing DACB on Output %s\n",Output->Name);
-	    DAC = atomDACB;
-	    break;
-	default:
-	    return FALSE;
-    }
-
-    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, Device, DAC);
-
-    if (!ret)
-	return RHD_SENSED_NONE;
-
-    return rhdAtomBIOSScratchDACSenseResults(Output, DAC, Device);
-}
-
 static inline void
 rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 {
@@ -249,6 +218,87 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 /*
  *
  */
+static void
+atomSetBacklightFromBIOSScratch(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+
+    switch (Output->Id) {
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	case RHD_OUTPUT_UNIPHYA:
+	case RHD_OUTPUT_UNIPHYB:
+	    rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
+	    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
+					      atomTransLcdBlBrightness, &Private->TransmitterConfig))
+		ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnable)");
+	    break;
+	default:
+	    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputLcdBrightnessControl))
+		ERROR_MSG("rhdAtomOutputControl(atomOutputLcdBrightnessControl)");
+	    break;
+    }
+}
+
+/*
+ *
+ */
+static void
+atomSetBacklight(struct rhdOutput *Output, int value)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+
+    RHDFUNC(Output);
+
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlSet, &value);
+
+    atomSetBacklightFromBIOSScratch(Output);
+}
+
+/*
+ *
+ */
+static enum rhdSensedOutput
+rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    enum atomDAC DAC;
+    struct atomOutputPrivate *OutputDriverPrivate;
+    Bool ret;
+    enum atomDevice Device;
+
+    RHDFUNC(Output);
+
+    OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
+    Device = OutputDriverPrivate->Device;
+    xfree(OutputDriverPrivate);
+
+    switch (Output->Id) {
+	case RHD_OUTPUT_DACA:
+	    RHDDebug(Output->scrnIndex, "Sensing DACA on Output %s\n",Output->Name);
+	    DAC = atomDACA;
+	    break;
+	case RHD_OUTPUT_DACB:
+	    RHDDebug(Output->scrnIndex, "Sensing DACB on Output %s\n",Output->Name);
+	    DAC = atomDACB;
+	    break;
+	default:
+	    return FALSE;
+    }
+
+    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, Device, DAC);
+
+    if (!ret)
+	return RHD_SENSED_NONE;
+
+    return rhdAtomBIOSScratchDACSenseResults(Output, DAC, Device);
+}
+
+/*
+ *
+ */
 static inline void
 rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 {
@@ -260,6 +310,8 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     union AtomBiosArg data;
 
     RHDFUNC(Output);
+
+    Private->Mode = Mode;
 
     data.Address = &Private->Save;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
@@ -289,9 +341,6 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  *
  */
-#define ERROR_MSG(x) 	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: %s failed.\n", __func__, x)
-
-
 static inline void
 rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 {
@@ -399,6 +448,8 @@ rhdAtomOutputRestore(struct rhdOutput *Output)
      data.Address = &Private->Save;
      RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
      RHDRestoreBiosScratchRegisters(rhdPtr, Private->BiosScratch);
+     if (Output->Connector && Output->Connector->Type == RHD_CONNECTOR_PANEL)
+	 atomSetBacklightFromBIOSScratch(Output);
 }
 
 /*
@@ -507,6 +558,8 @@ LVDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
     }
     Private->Coherent = FALSE;
 
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &Private->BlLevel);
+
     return TRUE;
 }
 
@@ -521,7 +574,96 @@ TMDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
     Private->SpatialDither = FALSE;
     Private->GreyLevel = 0;
     Private->Coherent = FALSE;
+    Private->BlLevel = -1;
 
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+atomLVDSPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	    if (Private->BlLevel < 0)
+		return FALSE;
+	switch (Property) {
+	    case RHD_OUTPUT_BACKLIGHT:
+		    return TRUE;
+	    default:
+		return FALSE;
+	}
+	case rhdPropertyGet:
+	    if (Private->BlLevel < 0)
+		return FALSE;
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    val->integer = Private->BlLevel;
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    if (Private->BlLevel < 0)
+		return FALSE;
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    atomSetBacklight(Output, val->integer);
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+atomTMDSPropertyControl(struct rhdOutput *Output,
+	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
+{
+    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+
+    RHDFUNC(Output);
+    switch (Action) {
+	case rhdPropertyCheck:
+	switch (Property) {
+	    case RHD_OUTPUT_COHERENT:
+		    return TRUE;
+	    default:
+		return FALSE;
+	}
+	case rhdPropertyGet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    val->Bool =  Private->Coherent;
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertySet:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		    Private->Coherent = val->Bool;
+		    Output->Mode(Output, Private->Mode);
+		    Output->Power(Output, RHD_POWER_ON);
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+    }
     return TRUE;
 }
 
@@ -790,10 +932,13 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		}
 	    }
 
-	    if (ConnectorType == RHD_CONNECTOR_PANEL)
+	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
+		Output->Property = atomLVDSPropertyControl;
 		LVDSInfoRetrieve(rhdPtr, Private);
-	    else
+	    } else {
+		Output->Property = atomTMDSPropertyControl;
 		TMDSInfoRetrieve(rhdPtr, Private);
+	    }
 
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:

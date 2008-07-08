@@ -43,6 +43,7 @@
 
 #include "rhd.h"
 #include "rhd_atombios.h"
+#include "rhd_biosscratch.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_crtc.h"
@@ -313,6 +314,29 @@ rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc
 }
 
 /*
+ *
+ */
+void
+RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int *val)
+{
+    CARD32 Addr;
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	Addr = 0x18;
+    else
+	Addr = 0x172C;
+
+    switch (action) {
+	case rhdBIOSScratchBlGet:
+	    *val = (RHDRegRead(rhdPtr, Addr) >> 8) & 0xFF;
+	    break;
+	case rhdBIOSScratchBlSet:
+	    RHDRegMask(rhdPtr, Addr, (*val) << 8, 0xFF00);
+	    break;
+    }
+}
+
+/*
  * This function is public as it is used from within other outputs, too.
  */
 void
@@ -384,6 +408,7 @@ RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc)
 
 struct rhdBiosScratchRegisters {
     CARD32 Scratch0;
+    CARD32 Scratch2;
     CARD32 Scratch3;
 };
 
@@ -391,7 +416,7 @@ struct rhdBiosScratchRegisters *
 RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 {
     struct rhdBiosScratchRegisters *regs;
-    CARD32 S0Addr, S3Addr;
+    CARD32 S0Addr, S2Addr, S3Addr;
 
     RHDFUNC(rhdPtr);
 
@@ -400,12 +425,15 @@ RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 
     if (rhdPtr->ChipSet < RHD_R600) {
 	S0Addr = 0x10;
+	S2Addr = 0x18;
 	S3Addr = 0x1C;
     } else {
 	S0Addr = 0x1724;
+	S2Addr = 0x172C;
 	S3Addr = 0x1730;
     }
     regs->Scratch0 = RHDRegRead(rhdPtr, S0Addr);
+    regs->Scratch2 = RHDRegRead(rhdPtr, S2Addr);
     regs->Scratch3 = RHDRegRead(rhdPtr, S3Addr);
 
     return regs;
@@ -414,7 +442,7 @@ RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 void
 RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *regs)
 {
-    CARD32 S0Addr, S3Addr;
+    CARD32 S0Addr, S2Addr, S3Addr;
 
     RHDFUNC(rhdPtr);
 
@@ -423,12 +451,15 @@ RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *re
 
     if (rhdPtr->ChipSet < RHD_R600) {
 	S0Addr = 0x10;
+	S2Addr = 0x18;
 	S3Addr = 0x1C;
     } else {
 	S0Addr = 0x1724;
+	S2Addr = 0x172C;
 	S3Addr = 0x1730;
     }
     RHDRegWrite(rhdPtr, S0Addr, regs->Scratch0);
+    RHDRegWrite(rhdPtr, S2Addr, regs->Scratch2);
     RHDRegWrite(rhdPtr, S3Addr, regs->Scratch3);
 
     xfree(regs);
