@@ -980,4 +980,19 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     return Output;
 }
 
+/*
+ * This sets up AtomBIOS based BL control if we need to use a non-standard method to control BL.
+ */
+int
+RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    int BlLevel;
+
+    Output->Property = atomLVDSPropertyControl;
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
+
+    return BlLevel;
+}
+
 #endif /* ATOM_BIOS */
