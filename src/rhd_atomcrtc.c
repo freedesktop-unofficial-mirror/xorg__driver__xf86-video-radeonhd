@@ -47,6 +47,12 @@
 # define D1_REG_OFFSET 0x0000
 # define D2_REG_OFFSET 0x0800
 
+struct rhdCrtcScalePrivate {
+    void *RegList;
+    CARD32 StoreViewportSize;
+    CARD32 StoreViewportStart;
+};
+
 /*
  *
  */
@@ -62,12 +68,6 @@ rhdAtomCrtcRestore(struct rhdCrtc *Crtc, void *Store)
     data.Address = Store;
     RHDAtomBiosFunc(Crtc->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
 }
-
-struct rhdAtomScaleStore {
-    void *RegList;
-    CARD32 StoreViewportSize;
-    CARD32 StoreViewportStart;
-};
 
 /*
  *
@@ -101,8 +101,8 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     Overscan = rhdCalculateOverscan(Mode, ScaledToMode, Type);
     Type = Overscan.Type;
 
-    ASSERT(Crtc->ScaleStore);
-    data.Address = &(((struct rhdAtomScaleStore *)Crtc->ScaleStore)->RegList);
+    ASSERT(Crtc->ScalePriv);
+    data.Address = &(((struct rhdCrtcScalePrivate *)Crtc->ScalePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     AtomOverscan.ovscnLeft = Overscan.OverscanLeft;
@@ -147,24 +147,26 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 static void
 rhdAtomScaleSave(struct rhdCrtc *Crtc)
 {
-    struct rhdAtomScaleStore* ScaleStore;
+    struct rhdCrtcScalePrivate* ScalePriv;
     CARD32 RegOff = 0;
 
-    if (!Crtc->ScaleStore)
-	xfree(Crtc->ScaleStore);
+    RHDFUNC(Crtc);
 
-    if(!(ScaleStore = (struct rhdAtomScaleStore*)xnfcalloc(1, sizeof(struct rhdAtomScaleStore))))
-	return;
-    Crtc->ScaleStore = ScaleStore;
+    if (!Crtc->ScalePriv) {
+	if(!(ScalePriv = (struct rhdCrtcScalePrivate*)xnfcalloc(1, sizeof(struct rhdCrtcScalePrivate))))
+	    return;
+	Crtc->ScalePriv = ScalePriv;
+    } else
+	ScalePriv = Crtc->ScalePriv;
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
 	RegOff = D2_REG_OFFSET;
 
-    ScaleStore->StoreViewportSize  = RHDRegRead(Crtc, RegOff + D1MODE_VIEWPORT_SIZE);
-    ScaleStore->StoreViewportStart = RHDRegRead(Crtc, RegOff + D1MODE_VIEWPORT_START);
-    ScaleStore->RegList = NULL;
+    ScalePriv->StoreViewportSize  = RHDRegRead(Crtc, RegOff + D1MODE_VIEWPORT_SIZE);
+    ScalePriv->StoreViewportStart = RHDRegRead(Crtc, RegOff + D1MODE_VIEWPORT_START);
+    ScalePriv->RegList = NULL;
 }
 
 /*
@@ -173,28 +175,42 @@ rhdAtomScaleSave(struct rhdCrtc *Crtc)
 static void
 rhdAtomCrtcScaleRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdAtomScaleStore* ScaleStore;
+    struct rhdCrtcScalePrivate* ScalePriv;
     CARD32 RegOff = 0;
 
-    rhdAtomCrtcRestore(Crtc, &(((struct rhdAtomScaleStore*)Crtc->ScaleStore)->RegList));
+    RHDFUNC(Crtc);
+
+    rhdAtomCrtcRestore(Crtc, &(((struct rhdCrtcScalePrivate*)Crtc->ScalePriv)->RegList));
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
 	RegOff = D2_REG_OFFSET;
 
-    ScaleStore = (struct rhdAtomScaleStore*)Crtc->ScaleStore;
-    RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_SIZE, ScaleStore->StoreViewportSize);
-    RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_START, ScaleStore->StoreViewportStart);
-
-    xfree(Crtc->ScaleStore);
-    Crtc->ScaleStore = NULL;
+    ScalePriv = (struct rhdCrtcScalePrivate*)Crtc->ScalePriv;
+    RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_SIZE, ScalePriv->StoreViewportSize);
+    RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_START, ScalePriv->StoreViewportStart);
 }
 
 /*
  *
  */
-struct rhdAtomModeStore {
+static void
+rhdAtomCrtcScaleDestroy(struct rhdCrtc *Crtc)
+{
+    RHDFUNC(Crtc);
+
+    if (Crtc->ScalePriv) {
+	xfree(Crtc->ScalePriv->RegList);
+	xfree(Crtc->ScalePriv);
+	Crtc->ScalePriv = NULL;
+    }
+}
+
+/*
+ *
+ */
+struct rhdCrtcModePrivate {
     void *RegList;
     CARD32 StoreModeDataFormat;
 };
@@ -209,8 +225,8 @@ rhdAtomModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 
     RHDFUNC(rhdPtr);
 
-    ASSERT(Crtc->ModeStore);
-    data.Address = &(((struct rhdAtomModeStore *)Crtc->ModeStore)->RegList);
+    ASSERT(Crtc->ModePriv);
+    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     if (!rhdAtomSetCRTCTimings(rhdPtr->atomBIOS,
@@ -238,55 +254,7 @@ rhdAtomModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
  *
  */
 static void
-rhdAtomModeSave(struct rhdCrtc *Crtc)
-{
-    struct rhdAtomModeStore* ModeStore;
-    CARD32 RegOff = 0;
-
-    if (Crtc->ModeStore)
-	xfree(Crtc->ModeStore);
-
-    if(!(ModeStore = (struct rhdAtomModeStore*)xnfcalloc(1, sizeof(struct rhdAtomModeStore))))
-	return;
-	Crtc->ModeStore = ModeStore;
-
-    if (Crtc->Id == RHD_CRTC_1)
-	RegOff = D1_REG_OFFSET;
-    else
-	RegOff = D2_REG_OFFSET;
-
-    ModeStore->StoreModeDataFormat  = RHDRegRead(Crtc, RegOff + D1MODE_DATA_FORMAT);
-}
-
-/*
- *
- */
-static void
-rhdAtomCrtcModeRestore(struct rhdCrtc *Crtc)
-{
-    struct rhdAtomModeStore* ModeStore;
-    CARD32 RegOff = 0;
-
-    if (Crtc->Id == RHD_CRTC_1)
-	RegOff = D1_REG_OFFSET;
-    else
-	RegOff = D2_REG_OFFSET;
-
-    ModeStore = (struct rhdAtomModeStore *)Crtc->ModeStore;
-
-    rhdAtomCrtcRestore(Crtc, &ModeStore->RegList);
-
-   RHDRegWrite(Crtc, RegOff + D1MODE_DATA_FORMAT, ModeStore->StoreModeDataFormat);
-
-   xfree(Crtc->ModeStore);
-   Crtc->ModeStore = 0;
-}
-
-/*
- *
- */
-static void
-atomCrtcPower(struct rhdCrtc *Crtc, int Power)
+rhdAtomCrtcPower(struct rhdCrtc *Crtc, int Power)
 {
     RHDPtr rhdPtr = RHDPTRI(Crtc);
     enum atomCrtc AtomCrtc = atomCrtc1;
@@ -302,7 +270,7 @@ atomCrtcPower(struct rhdCrtc *Crtc, int Power)
 	    AtomCrtc = atomCrtc2;
 	    break;
     }
-    data.Address = &(((struct rhdAtomModeStore *)Crtc->ModeStore)->RegList);
+    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     /*
@@ -329,7 +297,7 @@ atomCrtcPower(struct rhdCrtc *Crtc, int Power)
  *
  */
 static void
-atomCrtcBlank(struct rhdCrtc *Crtc, Bool Blank)
+rhdAtomCrtcBlank(struct rhdCrtc *Crtc, Bool Blank)
 {
     RHDPtr rhdPtr = RHDPTRI(Crtc);
     enum atomCrtc AtomCrtc = atomCrtc1;
@@ -353,13 +321,74 @@ atomCrtcBlank(struct rhdCrtc *Crtc, Bool Blank)
 
     Config.r = Config.g = Config.b = 0;
 
-    data.Address = &(((struct rhdAtomModeStore *)Crtc->ModeStore)->RegList);
+    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     rhdAtomBlankCRTC(rhdPtr->atomBIOS, AtomCrtc , &Config);
 
     data.Address = NULL;
     RHDAtomBiosFunc(Crtc->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
+}
+
+/*
+ *
+ */
+static void
+rhdAtomModeSave(struct rhdCrtc *Crtc)
+{
+    struct rhdCrtcModePrivate* ModePriv;
+    CARD32 RegOff = 0;
+
+    if (!Crtc->ModePriv) {
+	if(!(ModePriv = (struct rhdCrtcModePrivate*)xnfcalloc(1, sizeof(struct rhdCrtcModePrivate))))
+	    return;
+	Crtc->ModePriv = ModePriv;
+    } else
+	ModePriv = Crtc->ModePriv;
+
+    if (Crtc->Id == RHD_CRTC_1)
+	RegOff = D1_REG_OFFSET;
+    else
+	RegOff = D2_REG_OFFSET;
+
+    ModePriv->StoreModeDataFormat  = RHDRegRead(Crtc, RegOff + D1MODE_DATA_FORMAT);
+    ModePriv->RegList = NULL;
+}
+
+/*
+ *
+ */
+static void
+rhdAtomModeRestore(struct rhdCrtc *Crtc)
+{
+    struct rhdCrtcModePrivate* ModePriv;
+    CARD32 RegOff = 0;
+
+    if (Crtc->Id == RHD_CRTC_1)
+	RegOff = D1_REG_OFFSET;
+    else
+	RegOff = D2_REG_OFFSET;
+
+    ModePriv = (struct rhdCrtcModePrivate *)Crtc->ModePriv;
+
+    rhdAtomCrtcRestore(Crtc, &ModePriv->RegList);
+
+   RHDRegWrite(Crtc, RegOff + D1MODE_DATA_FORMAT, ModePriv->StoreModeDataFormat);
+}
+
+/*
+ *
+ */
+static void
+rhdAtomModeDestroy(struct rhdCrtc *Crtc)
+{
+    RHDFUNC(Crtc);
+
+    if (Crtc->ModePriv) {
+	xfree(Crtc->ModePriv->RegList);
+	xfree(Crtc->ModePriv);
+	Crtc->ModePriv = NULL;
+    }
 }
 
 /*
@@ -391,10 +420,11 @@ RHDAtomCrtcsInit(RHDPtr rhdPtr)
 	}
 
 	/* We don't have to deal with FMT as this is handled in the SelectCrtcSource table */
-	Crtc->FMTStore = NULL;
+	Crtc->FMTPriv = NULL;
 	Crtc->FMTModeSet = NULL;
 	Crtc->FMTSave = NULL;
 	Crtc->FMTRestore = NULL;
+	Crtc->FMTDestroy = NULL;
 
 	/* EnableGraphSurfaces is only a BIOS internal table. So use the hardcoded path.
 	Crtc->FBValid = atomFBValid;
@@ -409,6 +439,7 @@ RHDAtomCrtcsInit(RHDPtr rhdPtr)
 	Crtc->ScaleSet = rhdAtomScaleSet;
 	Crtc->ScaleSave = rhdAtomScaleSave;
 	Crtc->ScaleRestore = rhdAtomCrtcScaleRestore;
+	Crtc->ScaleDestroy = rhdAtomCrtcScaleDestroy;
 
 	/* No such AtomBIOS table */
 	/* Crtc->FrameSet = atomViewPortStart; */
@@ -416,10 +447,11 @@ RHDAtomCrtcsInit(RHDPtr rhdPtr)
 	/* Crtc->ModeValid: From rhd_crtc.c */
 	Crtc->ModeSet = rhdAtomModeSet;
 	Crtc->ModeSave = rhdAtomModeSave;
-	Crtc->ModeRestore = rhdAtomCrtcModeRestore;
+	Crtc->ModeRestore = rhdAtomModeRestore;
+	Crtc->ModeDestroy = rhdAtomModeDestroy;
 
-	Crtc->Power = atomCrtcPower;
-	Crtc->Blank = atomCrtcBlank;
+	Crtc->Power = rhdAtomCrtcPower;
+	Crtc->Blank = rhdAtomCrtcBlank;
     }
 }
 
