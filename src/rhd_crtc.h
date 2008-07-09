@@ -69,44 +69,48 @@ struct rhdCrtc {
 
     DisplayModePtr ScaledToMode; /* usually a fixed mode from one of the monitors */
 
-    struct rhdFMTStore *FMTStore;
+    struct rhdCrtcFMTPrivate *FMTPriv;
     void (*FMTModeSet)(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither);
     void (*FMTSave)(struct rhdCrtc *Crtc);
     void (*FMTRestore)(struct rhdCrtc *Crtc);
+    void (*FMTDestroy) (struct rhdCrtc *Crtc);
 
-    void *FBStore;
+    struct rhdCrtcFBPrivate *FBPriv;
     ModeStatus (*FBValid) (struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height,
 			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
     void (*FBSet) (struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width,
 		   CARD16 Height, int bpp, CARD32 Offset);
     void (*FBSave) (struct rhdCrtc *Crtc);
     void (*FBRestore) (struct rhdCrtc *Crtc);
+    void (*FBDestroy) (struct rhdCrtc *Crtc);
 
-    void *ModeStore;
+    struct rhdCrtcModePrivate *ModePriv;
     ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSave) (struct rhdCrtc *Crtc);
     void (*ModeRestore) (struct rhdCrtc *Crtc);
+    void (*ModeDestroy) (struct rhdCrtc *Crtc);
 
-    void *ScaleStore;
+    struct rhdCrtcScalePrivate *ScalePriv;
     ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSet) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSave) (struct rhdCrtc *Crtc);
     void (*ScaleRestore) (struct rhdCrtc *Crtc);
+    void (*ScaleDestroy) (struct rhdCrtc *Crtc);
 
     void (*FrameSet) (struct rhdCrtc *Crtc, CARD16 X, CARD16 Y);
 
     /* callback for pll setting lives here */
     /* callback for lut setting lives here */
-    void *LUTStore;
+    struct rhdCrtcLUTPrivate *LUTPriv;
     void (*LUTSelect) (struct rhdCrtc *Crtc, struct rhdLUT *LUT);
     void (*LUTSave) (struct rhdCrtc *Crtc);
     void (*LUTRestore) (struct rhdCrtc *Crtc);
+    void (*LUTDestroy) (struct rhdCrtc *Crtc);
 
     void (*Power) (struct rhdCrtc *Crtc, int Power);
     void (*Blank) (struct rhdCrtc *Crtc, Bool Blank);
 
-    struct rhdCrtcStore *Store;
     void (*Save) (struct rhdCrtc *Crtc);
     void (*Restore) (struct rhdCrtc *Crtc);
 };
