@@ -744,10 +744,24 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     atc->coherent = Private->Coherent;
 
-    if (Private->RunDualLink)
+    if (Private->RunDualLink) {
 	atc->mode = atomDVI_2Link;
-    else
+
+	if (atc->link == atomTransLinkA)
+	    atc->link = atomTransLinkAB;
+	else if (atc->link == atomTransLinkB)
+	    atc->link = atomTransLinkBA;
+
+    } else {
 	atc->mode = atomDVI_1Link;
+
+	if (atc->link == atomTransLinkAB)
+	    atc->link = atomTransLinkA;
+	else if (atc->link == atomTransLinkBA)
+	    atc->link = atomTransLinkB;
+
+    }
+
     atc->pixelClock = Mode->SynthClock;
 
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,

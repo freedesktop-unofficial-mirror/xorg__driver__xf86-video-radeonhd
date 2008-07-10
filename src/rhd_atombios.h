@@ -197,7 +197,9 @@ enum atomTransmitterAction {
 
 enum atomTransmitterLink {
     atomTransLinkA,
-    atomTransLinkB
+    atomTransLinkAB,
+    atomTransLinkB,
+    atomTransLinkBA
 };
 
 struct atomTransmitterConfig

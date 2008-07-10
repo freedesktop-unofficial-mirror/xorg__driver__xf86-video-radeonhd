@@ -781,8 +781,16 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA;
 		    break;
 
+		case atomTransLinkAB:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA_B;
+		    break;
+
 		case atomTransLinkB:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB;
+		    break;
+
+		case atomTransLinkBA:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB_A;
 		    break;
 	    }
 	    switch (config->encoder) {
