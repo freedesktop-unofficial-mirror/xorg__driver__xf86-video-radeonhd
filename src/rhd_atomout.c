@@ -206,10 +206,17 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 
 	    if (Private->RunDualLink) {
 		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomDualLink;
-		TransmitterConfig->Link = atomTransLinkAB;
-	    } else
+		if (TransmitterConfig->Link == atomTransLinkA)
+		    TransmitterConfig->Link = atomTransLinkAB;
+		else if (TransmitterConfig->Link == atomTransLinkB)
+		    TransmitterConfig->Link = atomTransLinkBA;
+	    } else {
 		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomSingleLink;
-
+		if (TransmitterConfig->Link == atomTransLinkAB)
+		    TransmitterConfig->Link = atomTransLinkA;
+		else if (TransmitterConfig->Link == atomTransLinkBA)
+		    TransmitterConfig->Link = atomTransLinkB;
+	    }
  	    TransmitterConfig->Coherent = Private->Coherent;
 	    break;
     }
