@@ -1489,11 +1489,16 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	    dig->ucConfig = 0;
 	    switch (Config->u.dig.Link) {
 		case atomTransLinkA:
-		case atomTransLinkAB:
 		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKA;
+		    break;
+		case atomTransLinkAB:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKA_B;
 		    break;
 		case atomTransLinkB:
 		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB;
+		    break;
+		case atomTransLinkBA:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB_A;
 		    break;
 	    }
 	    if (EncoderId != atomEncoderExternal) {

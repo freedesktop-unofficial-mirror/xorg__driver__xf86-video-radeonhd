@@ -762,6 +762,7 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
     RHDFUNC(Output);
 
     atc->Coherent = Private->Coherent;
+    atc->PixelClock = Mode->SynthClock;
 
     if (Private->RunDualLink) {
 	atc->Mode = atomDualLink;
