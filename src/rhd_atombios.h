@@ -207,8 +207,9 @@ enum atomTransmitterAction {
 
 enum atomTransmitterLink {
     atomTransLinkA,
+    atomTransLinkAB,
     atomTransLinkB,
-    atomTransLinkAB
+    atomTransLinkBA
 };
 
 enum atomEncoder {

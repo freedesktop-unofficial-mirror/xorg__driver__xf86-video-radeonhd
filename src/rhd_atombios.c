@@ -873,11 +873,16 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	case atomTransmitterPCIEPHY:
 	    switch (config->Link) {
 		case atomTransLinkA:
-		case atomTransLinkAB:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA;
+		    break;
+		case atomTransLinkAB:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKA_B;
 		    break;
 		case atomTransLinkB:
 		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB;
+		    break;
+		case atomTransLinkBA:
+		    Transmitter.ucConfig |= ATOM_TRANSMITTER_CONFIG_LINKB_A;
 		    break;
 	    }
 	    switch (config->Encoder) {
@@ -1475,11 +1480,16 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	    dig->ucConfig = 0;
 	    switch (Config->u.dig.Link) {
 		case atomTransLinkA:
-		case atomTransLinkAB:
 		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKA;
+		    break;
+		case atomTransLinkAB:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKA_B;
 		    break;
 		case atomTransLinkB:
 		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB;
+		    break;
+		case atomTransLinkBA:
+		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB_A;
 		    break;
 	    }
 	    if (EncoderId != atomEncoderExternal) {
