@@ -164,17 +164,18 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	    vap_cntl |= (2 << R300_PVS_NUM_FPUS_SHIFT);
 	else if ((info->ChipSet == RHD_RV530) ||
 		 (info->ChipSet == RHD_RV560) ||
+		 (info->ChipSet == RHD_RV570) ||
 		 (info->ChipSet == RHD_M56) ||
 		 (info->ChipSet == RHD_M58) ||
 		 (info->ChipSet == RHD_M66))
 	    vap_cntl |= (5 << R300_PVS_NUM_FPUS_SHIFT);
 #ifndef RHD_DRIVER
-	else if (info->ChipSet == CHIP_FAMILY_R420)
+	else if ((info->ChipSet == CHIP_FAMILY_RV410) ||
+		 (info->ChipSet == CHIP_FAMILY_R420))
 	  vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);
 #endif
 	else if ((info->ChipSet == RHD_R520) ||
 		 (info->ChipSet == RHD_R580) ||
-		 (info->ChipSet == RHD_RV570) ||
 		 (info->ChipSet == RHD_M68))
 	    vap_cntl |= (8 << R300_PVS_NUM_FPUS_SHIFT);
 	else
