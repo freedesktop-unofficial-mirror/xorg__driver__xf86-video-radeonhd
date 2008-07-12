@@ -268,7 +268,7 @@ DxFBSave(struct rhdCrtc *Crtc)
     if (!Crtc->FBPriv)
 	FBPriv = xnfcalloc(1, sizeof(struct rhdCrtcFBPrivate));
     else
-	FBPriv = (struct rhdCrtcFBPrivate *)Crtc->FBPriv;
+	FBPriv = Crtc->FBPriv;
 
     if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
@@ -301,7 +301,7 @@ DxFBSave(struct rhdCrtc *Crtc)
 static void
 DxFBRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcFBPrivate *FBPriv = (struct rhdCrtcFBPrivate *)Crtc->FBPriv;
+    struct rhdCrtcFBPrivate *FBPriv = Crtc->FBPriv;
     CARD32 RegOff;
 
     if (!FBPriv) {
@@ -534,7 +534,7 @@ DxModeSave(struct rhdCrtc *Crtc)
 static void
 DxModeRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcModePrivate *ModePriv = (struct rhdCrtcModePrivate *)Crtc->ModePriv;
+    struct rhdCrtcModePrivate *ModePriv = Crtc->ModePriv;
     CARD32 RegOff;
 
     if (!ModePriv) {
@@ -860,7 +860,7 @@ DxScaleSave(struct rhdCrtc *Crtc)
 static void
 DxScaleRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcScalePrivate *ScalePriv = (struct rhdCrtcScalePrivate *)Crtc->ScalePriv;
+    struct rhdCrtcScalePrivate *ScalePriv = Crtc->ScalePriv;
     CARD32 RegOff;
 
     if (!ScalePriv) {
@@ -962,7 +962,7 @@ DxLUTSave(struct rhdCrtc *Crtc)
 static void
 DxLUTRestore(struct rhdCrtc *Crtc)
 {
-    struct rhdCrtcLUTPrivate *LUTPriv = (struct rhdCrtcLUTPrivate *)Crtc->LUTPriv;
+    struct rhdCrtcLUTPrivate *LUTPriv = Crtc->LUTPriv;
     CARD32 RegOff;
 
     if (!LUTPriv) {
@@ -1289,7 +1289,7 @@ DxFMTSave(struct rhdCrtc *Crtc)
     RHDFUNC(Crtc);
 
     if (!Crtc->FMTPriv)
-	FMTPrivate = (struct rhdCrtcFMTPrivate *) xnfcalloc(sizeof (struct rhdCrtcFMTPrivate),1);
+	FMTPrivate = xnfcalloc(sizeof (struct rhdCrtcFMTPrivate),1);
     else
 	FMTPrivate = Crtc->FMTPriv;
 
@@ -1492,7 +1492,7 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
 {
     struct rhdCrtc *Crtc;
     int i;
-    
+
     RHDFUNC(rhdPtr);
 
     for (i = 0; i < 2; i++) {
@@ -1500,19 +1500,19 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
 	if (Crtc) {
 	    if (Crtc->FMTDestroy)
 		Crtc->FMTDestroy(Crtc);
-	    
+
 	    if (Crtc->LUTDestroy)
 		Crtc->LUTDestroy(Crtc);
-	    
+
 	    if (Crtc->FBDestroy)
 		Crtc->FBDestroy(Crtc);
-	    
+
 	    if (Crtc->ScaleDestroy)
 		Crtc->ScaleDestroy(Crtc);
-	    
+
 	    if (Crtc->ModeDestroy)
 		Crtc->ModeDestroy(Crtc);
-	    
+
 	    xfree(Crtc);
 	    rhdPtr->Crtc[i] = NULL;
 	}
