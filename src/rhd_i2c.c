@@ -219,8 +219,10 @@ enum rv620I2CBits {
     RV62_GENERIC_I2C_INDEX    = (0xf << 16),
     RV62_GENERIC_I2C_INDEX_WRITE      = (0x1 << 31),
     /* GENERIC_I2C_PIN_SELECTION */
-    RV62_GENERIC_I2C_SCL_PIN_SEL      = (0x7f << 0),
-    RV62_GENERIC_I2C_SDA_PIN_SEL      = (0x7f << 8)
+    RV62_GENERIC_I2C_SCL_PIN_SEL_SHIFT = 0,
+    RV62_GENERIC_I2C_SCL_PIN_SEL      = (0x7f << RV62_GENERIC_I2C_SCL_PIN_SEL_SHIFT),
+    RV62_GENERIC_I2C_SDA_PIN_SEL_SHIFT = 8,
+    RV62_GENERIC_I2C_SDA_PIN_SEL      = (0x7f << RV62_GENERIC_I2C_SDA_PIN_SEL_SHIFT)
 };
 
 /* R5xx */
@@ -792,6 +794,44 @@ rhdRV620I2CStatus(I2CBusPtr I2CPtr)
     return TRUE; /* 1 */
 }
 
+/*
+ *
+ */
+int
+getDDCLineFromGPIO(CARD32 gpio, int shift)
+{
+    switch (gpio) {
+    case 0x1f90:
+	switch (shift) {
+	    case 0:
+		return 1; /* ddc1 clk */
+	    case 8:
+		return 0; /* ddc1 data */
+	}
+	break;
+    case 0x1f94: /* ddc2 */
+	switch (shift) {
+	    case 0:
+		return 3; /* ddc2 clk */
+	    case 8:
+		return 2; /* ddc2 data */
+	}
+	break;
+    case 0x1f98: /* ddc3 */
+	switch (shift) {
+	    case 0:
+		return 5; /* ddc3 clk */
+	    case 8:
+		return 4; /* ddc3 data */
+	}
+	break;
+    }
+    return -1;
+}
+
+/*
+ *
+ */
 static  Bool
 rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
@@ -799,17 +839,19 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 #ifdef ATOM_BIOS
     RHDPtr rhdPtr = RHDPTRI(I2CPtr);
     AtomBiosArgRec data;
+
+    RHDFUNC(I2CPtr);
+
+    if (line > 3)
+	return FALSE;
+    {
+#if 0
     int i = 0;
     struct atomGPIOTable {
 	unsigned char line;
 	unsigned char pad;
 	unsigned short reg_7d9c;
     } *table;
-
-    RHDFUNC(I2CPtr);
-
-    if (line > 3)
-	return FALSE;
 
     data.val = 0x36;
     if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
@@ -831,7 +873,39 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	    }
 	    i++;
 	}
+#else
+	int scl  = -1, sda = -1;
+
+	if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
+			    rhdPtr->atomBIOS,
+			    ATOM_GPIO_I2C_CLK_MASK,
+			    &data) == ATOM_SUCCESS) {
+	    CARD32 gpio = data.val;
+	    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
+				rhdPtr->atomBIOS,
+				ATOM_GPIO_I2C_CLK_MASK_SHIFT,
+				&data) == ATOM_SUCCESS) {
+		scl = getDDCLineFromGPIO(gpio, data.val);
+		if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
+				    rhdPtr->atomBIOS,
+				    ATOM_GPIO_I2C_DATA_MASK,
+				    &data) == ATOM_SUCCESS) {
+		    gpio = data.val;
+		    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
+					rhdPtr->atomBIOS,
+					ATOM_GPIO_I2C_DATA_MASK,
+					&data) == ATOM_SUCCESS) {
+			sda = getDDCLineFromGPIO(gpio, data.val);
+			if (scl >= 0 && sda >= 0)
+			    reg_7d9c = (scl << RV62_GENERIC_I2C_SCL_PIN_SEL_SHIFT)
+				| (sda << RV62_GENERIC_I2C_SDA_PIN_SEL_SHIFT);
+		    }
+		}
+	    }
+	}
+#endif
     }
+
     if (!reg_7d9c)
 #endif
     {
