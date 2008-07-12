@@ -453,6 +453,8 @@ struct RHDDevice {
     { 0x1002, 0x9612, 2, RHD_RV620},
     { 0x1002, 0x9613, 2, RHD_RV620},
     { 0x1002, 0x9614, 2, RHD_RV620},
+    { 0x1002, 0x9440, 2, RHD_RV620},
+    { 0x1002, 0x9442, 2, RHD_RV620},
     { 0, 0, 0, 0 }
 };
 
@@ -1893,42 +1895,92 @@ RV620I2CStatus(void *map)
 /*
  *
  */
+enum {
+    rhdDdc1data = 0,
+    rhdDdc2data = 2,
+    rhdDdc3data = 4,
+    rhdVIP_DOUT_scl = 0x41,
+    rhdDvoData12 = 0x28,
+    rhdDdc1clk = 1,
+    rhdDdc2clk = 3,
+    rhdDdc3clk = 5,
+    rhdVIP_DOUTvipclk = 0x42,
+    rhdDvoData13 = 0x29
+};
+
+static int
+getDDCLineFromGPIO(CARD32 gpio, int shift)
+{
+    switch (gpio) {
+    case 0x1f90:
+	switch (shift) {
+	    case 0:
+		return rhdDdc1clk; /* ddc1 clk */
+	    case 8:
+		return rhdDdc1data; /* ddc1 data */
+	}
+	break;
+    case 0x1f94: /* ddc2 */
+	switch (shift) {
+	    case 0:
+		return rhdDdc2clk; /* ddc2 clk */
+	    case 8:
+		return rhdDdc2data; /* ddc2 data */
+	}
+	break;
+    case 0x1f98: /* ddc3 */
+	switch (shift) {
+	    case 0:
+		return rhdDdc3clk; /* ddc3 clk */
+	    case 8:
+		return rhdDdc3data; /* ddc3 data */
+	}
+    case 0x1f88: /* ddc4 */
+	switch (shift) {
+	    case 0:
+		return rhdVIP_DOUTvipclk; /* ddc4 clk */
+	    case 8:
+		return rhdVIP_DOUT_scl; /* ddc4 data */
+	}
+	break;
+    case 0x1fda: /* ddc5 */
+	switch (shift) {
+	    case 0:
+		return rhdDvoData13; /* ddc5 clk */
+	    case 8:
+		return rhdDvoData12; /* ddc5 data */
+	}
+	break;
+    }
+    return -1;
+}
+
+/*
+ *
+ */
 static  Bool
 RV620I2CSetupStatus(void *map, int line, int prescale)
 {
 /*     CARD32 reg_7d9c[] = { 0x1, 0x0203,  0x0405, 0x0607 }; */
-    CARD32 reg_7d9c;
-    unsigned char *table;
-    short size = 0;
-    int i = 0;
+    CARD32 gpio, shift, sda, scl;
 
     if (line > 3)
 	return FALSE;
 
-    table = AtomBiosGetDataFromCodeTable(command_table, 0x36, &size);
+    gpio = AtomData.GPIO_I2C_Info->asGPIO_Info[line].usDataMaskRegisterIndex;
+    shift = AtomData.GPIO_I2C_Info->asGPIO_Info[line].ucDataMaskShift;
+    sda = getDDCLineFromGPIO(gpio, shift);
 
-    if (!table)
-	return FALSE;
+    gpio = AtomData.GPIO_I2C_Info->asGPIO_Info[line].usClkMaskRegisterIndex;
+    shift = AtomData.GPIO_I2C_Info->asGPIO_Info[line].ucClkMaskShift;
+    scl = getDDCLineFromGPIO(gpio, shift);
 
-    while (i < size) {
-	if (table[i] == line) {
-	    reg_7d9c = table[i + 3] << 8 | table[i + 2];
-#ifdef DEBUG
-	    fprintf(stderr, "Line[%i] = 0x%4.4x\n",line, reg_7d9c);
-#endif
-	    break;
-	}
-	i += 4;
-    }
-    if (i >= size)
-	return FALSE;
+    /* Don't understand this yet */
+    if (gpio == 0x1fda)
+	gpio = 0x1f90;
 
-    RegWrite(map, 0x7e40, 0);
-    RegWrite(map, 0x7e50, 0);
-    RegWrite(map, 0x7e60, 0);
-    RegWrite(map, 0x7e20, 0);
-
-    RegWrite(map, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c);
+    RegWrite(map, gpio << 2, 0);
+    RegWrite(map, RV62_GENERIC_I2C_PIN_SELECTION, scl | (sda << 8));
     RegMask(map, RV62_GENERIC_I2C_SPEED,
 	    (prescale & 0xffff) << 16 | 0x02, 0xffff00ff);
     RegWrite(map, RV62_GENERIC_I2C_SETUP, 0x30000000);
