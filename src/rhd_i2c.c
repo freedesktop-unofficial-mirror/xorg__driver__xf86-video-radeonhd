@@ -812,9 +812,13 @@ enum {
     rhdDdc1data = 0,
     rhdDdc2data = 2,
     rhdDdc3data = 4,
+    rhdVIP_DOUT_scl = 0x41,
+    rhdDvoData12 = 0x28,
     rhdDdc1clk = 1,
     rhdDdc2clk = 3,
-    rhdDdc3clk = 5
+    rhdDdc3clk = 5,
+    rhdVIP_DOUTvipclk = 0x42,
+    rhdDvoData13 = 0x29
 };
 
 static int
@@ -844,6 +848,21 @@ getDDCLineFromGPIO(CARD32 gpio, int shift)
 	    case 8:
 		return rhdDdc3data; /* ddc3 data */
 	}
+    case 0x1f88: /* ddc4 */
+	switch (shift) {
+	    case 0:
+		return rhdVIP_DOUTvipclk; /* ddc4 clk */
+	    case 8:
+		return rhdVIP_DOUT_scl; /* ddc4 data */
+	}
+	break;
+    case 0x1fda: /* ddc5 */
+	switch (shift) {
+	    case 0:
+		return rhdDvoData13; /* ddc5 clk */
+	    case 8:
+		return rhdDvoData12; /* ddc5 data */
+	}
 	break;
     }
     return -1;
@@ -859,53 +878,14 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 #ifdef ATOM_BIOS
     RHDPtr rhdPtr = RHDPTRI(I2CPtr);
     AtomBiosArgRec data;
+    CARD32 scl_reg;
 
     RHDFUNC(I2CPtr);
 
     if (line > 3)
 	return FALSE;
     {
-#if 0
-    int i = 0;
-    struct atomGPIOTable {
-	unsigned char line;
-	unsigned char pad;
-	unsigned short reg_7d9c;
-    } *table;
-
-    data.val = 0x36;
-    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
-			rhdPtr->atomBIOS,
-			ATOMBIOS_GET_CODE_DATA_TABLE,
-			&data) == ATOM_SUCCESS) {
-	table = (struct atomGPIOTable *)data.CommandDataTable.loc;
-
-	if (rhdPtr->ChipSet < RHD_RV770) {
-	    while (i * sizeof(struct atomGPIOTable) < data.CommandDataTable.size) {
-
-		if (table[i].line == line) {
-
-		reg_7d9c = table[i].reg_7d9c;
-
-		xf86DrvMsg(I2CPtr->scrnIndex, X_INFO,
-			   "DDC Line[%i] = 0x%8.8x SDL: 0x%2.2x SDA: 0x%2.2x\n",line, reg_7d9c,
-			   reg_7d9c & 0x7F, (reg_7d9c >> 8) & 0x7F) ;
-
-		break;
-		}
-		i++;
-	    }
-	} else {
-	    i = line * sizeof (struct atomGPIOTable);
-	    reg_7d9c = table[i].reg_7d9c;
-
-	    xf86DrvMsg(I2CPtr->scrnIndex, X_INFO,
-		       "DDC Line[%i] = 0x%8.8x SDL: 0x%2.2x SDA: 0x%2.2x\n",line, reg_7d9c,
-		       reg_7d9c & 0x7F, (reg_7d9c >> 8) & 0x7F) ;
-	}
-    }
-#else
-	int scl  = -1, sda = -1;
+	int sda = -1, scl = -1;
 
 	data.val = line & 0x0f;
 	if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
@@ -913,6 +893,7 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 			    ATOM_GPIO_I2C_CLK_MASK,
 			    &data) == ATOM_SUCCESS) {
 	    CARD32 gpio = data.val;
+	    scl_reg = gpio;
 	    data.val = line & 0x0f;
 	    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
 				rhdPtr->atomBIOS,
@@ -938,13 +919,13 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 		}
 	    }
 	}
-#endif
     }
 
     if (!reg_7d9c)
 #endif
     {
 	CARD32 regList7d9c[] = { 0x0001,0x0203, 0x0405 };
+	CARD32 gpioClkReg[] = { 0x1f90, 0x1f94, 0x1f98 };
 
 	if (line > 2)
 	    return FALSE;
@@ -953,12 +934,14 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	xf86DrvMsg(I2CPtr->scrnIndex, X_INFO,
 		   "DDC Line[%i] = 0x%8.8x SDL: 0x%2.2x SDA: 0x%2.2x\n",line, reg_7d9c,
 		   reg_7d9c & 0x7F, (reg_7d9c >> 8) & 0x7F) ;
+	scl_reg = gpioClkReg[line];
     }
 
-    RHDRegWrite(I2CPtr, 0x7e40, 0);
-    RHDRegWrite(I2CPtr, 0x7e50, 0);
-    RHDRegWrite(I2CPtr, 0x7e60, 0);
-    RHDRegWrite(I2CPtr, 0x7e20, 0);
+    /* Don't understand this yet */
+    if (scl_reg == 0x1fda)
+	scl_reg = 0x1f90;
+
+    RHDRegWrite(I2CPtr, scl_reg << 2, 0);
 
     RHDRegWrite(I2CPtr, RV62_GENERIC_I2C_PIN_SELECTION, reg_7d9c);
     RHDRegMask(I2CPtr, RV62_GENERIC_I2C_SPEED,
