@@ -102,7 +102,7 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     Type = Overscan.Type;
 
     ASSERT(Crtc->ScalePriv);
-    data.Address = &(((struct rhdCrtcScalePrivate *)Crtc->ScalePriv)->RegList);
+    data.Address = &((Crtc->ScalePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     AtomOverscan.ovscnLeft = Overscan.OverscanLeft;
@@ -226,7 +226,7 @@ rhdAtomModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
     RHDFUNC(rhdPtr);
 
     ASSERT(Crtc->ModePriv);
-    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
+    data.Address = &((Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     if (!rhdAtomSetCRTCTimings(rhdPtr->atomBIOS,
@@ -270,7 +270,7 @@ rhdAtomCrtcPower(struct rhdCrtc *Crtc, int Power)
 	    AtomCrtc = atomCrtc2;
 	    break;
     }
-    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
+    data.Address = &((Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     /*
@@ -321,7 +321,7 @@ rhdAtomCrtcBlank(struct rhdCrtc *Crtc, Bool Blank)
 
     Config.r = Config.g = Config.b = 0;
 
-    data.Address = &(((struct rhdCrtcModePrivate *)Crtc->ModePriv)->RegList);
+    data.Address = &((Crtc->ModePriv)->RegList);
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     rhdAtomBlankCRTC(rhdPtr->atomBIOS, AtomCrtc , &Config);
@@ -369,7 +369,7 @@ rhdAtomModeRestore(struct rhdCrtc *Crtc)
     else
 	RegOff = D2_REG_OFFSET;
 
-    ModePriv = (struct rhdCrtcModePrivate *)Crtc->ModePriv;
+    ModePriv = Crtc->ModePriv;
 
     rhdAtomCrtcRestore(Crtc, &ModePriv->RegList);
 
