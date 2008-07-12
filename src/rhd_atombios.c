@@ -215,6 +215,12 @@ struct atomBIOSRequests {
      "LVDS 24Bit",				MSG_FORMAT_HEX},
     {ATOM_GPIO_I2C_CLK_MASK,		rhdAtomGPIOI2CInfoQuery,
      "GPIO_I2C_Clk_Mask",			MSG_FORMAT_HEX},
+    {ATOM_GPIO_I2C_CLK_MASK_SHIFT,	rhdAtomGPIOI2CInfoQuery,
+     "GPIO_I2C_Clk_Mask_Shift",			MSG_FORMAT_HEX},
+    {ATOM_GPIO_I2C_DATA_MASK,		rhdAtomGPIOI2CInfoQuery,
+     "GPIO_I2C_Data_Mask",			MSG_FORMAT_HEX},
+    {ATOM_GPIO_I2C_DATA_MASK_SHIFT,	rhdAtomGPIOI2CInfoQuery,
+     "GPIO_I2C_Data_Mask_Shift",		MSG_FORMAT_HEX},
     {ATOM_DAC1_BG_ADJ,		rhdAtomCompassionateDataQuery,
      "DAC1 BG Adjustment",			MSG_FORMAT_HEX},
     {ATOM_DAC1_DAC_ADJ,		rhdAtomCompassionateDataQuery,
@@ -3267,19 +3273,34 @@ rhdAtomGPIOI2CInfoQuery(atomBiosHandlePtr handle,
 	return ATOM_FAILED;
     }
 
-    switch (func) {
-	case ATOM_GPIO_I2C_CLK_MASK:
-	    if ((sizeof(ATOM_COMMON_TABLE_HEADER)
-		 + (*val * sizeof(ATOM_GPIO_I2C_ASSIGMENT))) > size) {
-		xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: GPIO_I2C Device "
-			   "num %lu exeeds table size %u\n",__func__,
-			   (unsigned long)val,
-			   size);
-		return ATOM_FAILED;
-	    }
+    if ((sizeof(ATOM_COMMON_TABLE_HEADER)
+	 + (*val * sizeof(ATOM_GPIO_I2C_ASSIGMENT))) > size) {
+	xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: GPIO_I2C Device "
+		   "num %lu exeeds table size %u\n",__func__,
+		   (unsigned long)val,
+		   size);
+	return ATOM_FAILED;
+    }
 
+    switch (func) {
+	case ATOM_GPIO_I2C_DATA_MASK:
+	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
+		.usDataMaskRegisterIndex;
+	    break;
+
+	case ATOM_GPIO_I2C_DATA_MASK_SHIFT:
+	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
+		.ucDataMaskShift;
+	    break;
+
+	case ATOM_GPIO_I2C_CLK_MASK:
 	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
 		.usClkMaskRegisterIndex;
+	    break;
+
+	case ATOM_GPIO_I2C_CLK_MASK_SHIFT:
+	    *val = atomDataPtr->GPIO_I2C_Info->asGPIO_Info[*val]
+		.ucClkMaskShift;
 	    break;
 
 	default:

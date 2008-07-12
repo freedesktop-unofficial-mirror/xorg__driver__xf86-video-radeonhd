@@ -43,10 +43,10 @@
 
 #include "rhd.h"
 #include "rhd_atombios.h"
-#include "rhd_biosscratch.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_crtc.h"
+#include "rhd_biosscratch.h"
 
 #ifdef ATOM_BIOS
 # include "rhd_atomwrapper.h"
