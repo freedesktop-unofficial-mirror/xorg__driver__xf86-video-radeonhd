@@ -488,6 +488,18 @@ rs780MCIdle(RHDPtr rhdPtr)
 /*
  *
  */
+static Bool
+r7xxMCIdle(RHDPtr rhdPtr)
+{
+    RHDFUNC(rhdPtr);
+
+    usleep(50000);
+    return TRUE;
+}
+
+/*
+ *
+ */
 Bool
 RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
 {
@@ -628,7 +640,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->SaveMC = r7xxSaveMC;
 	MC->RestoreMC = r7xxRestoreMC;
 	MC->SetupMC = r7xxSetupMC;
-	MC->MCIdle = r6xxMCIdle;
+	MC->MCIdle = r7xxMCIdle;
     } else {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "I don't know anything about MC on this chipset\n");
 	xfree(MC);
