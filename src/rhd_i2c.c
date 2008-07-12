@@ -931,6 +931,9 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	    return FALSE;
 
 	reg_7d9c = regList7d9c[line];
+	RHDDebug(I2CPtr->scrnIndex,
+		 "DDC Line[%i] = 0x%8.8x SDL: 0x%2.2x SDA: 0x%2.2x\n",line, reg_7d9c,
+		 reg_7d9c & 0x7F, (reg_7d9c >> 8) & 0x7F) ;
 	scl_reg = gpioClkReg[line];
     }
 
