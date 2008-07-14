@@ -222,6 +222,9 @@ typedef struct RHDRec {
     RHDOpt		tvModeName;
     RHDOpt		scaleTypeOpt;
     RHDOpt		unverifiedFeatures;
+    Bool		enableAudio;
+    Bool		enableHDMI_TMDSA;
+    Bool		enableHDMI_TMDSB;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
@@ -269,6 +272,7 @@ typedef struct RHDRec {
     struct rhdVGA      *VGA; /* VGA compatibility HW */
     struct rhdCrtc     *Crtc[2];
     struct rhdPLL      *PLLs[2]; /* Pixelclock PLLs */
+    struct rhdAudio    *Audio;
 
     struct rhdLUTStore  *LUTStore;
     struct rhdLUT       *LUT[2];

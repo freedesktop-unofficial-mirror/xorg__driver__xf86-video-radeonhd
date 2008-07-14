@@ -70,6 +70,7 @@
 # include "rhd_lut.h"
 # include "rhd_mc.h"
 # include "rhd_card.h"
+# include "rhd_audio.h"
 
 /*
  * Driver internal
@@ -379,6 +380,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     Crtc->FrameSet(Crtc, x, y);
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
+    RHDAudioSetClock(rhdPtr, Crtc->PLL);
     Crtc->LUTSelect(Crtc, Crtc->LUT);
 }
 static void

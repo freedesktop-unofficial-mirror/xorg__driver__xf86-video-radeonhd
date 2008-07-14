@@ -42,6 +42,7 @@
 #include "rhd_output.h"
 #include "rhd_regs.h"
 #include "rhd_card.h"
+#include "rhd_hdmi.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #endif
@@ -106,6 +107,7 @@ struct DIGPrivate
     Bool Coherent;
     Bool RunDualLink;
     DisplayModePtr Mode;
+    struct rhdHdmi *Hdmi;
 
     /* LVDS */
     Bool FPDI;
@@ -1238,6 +1240,7 @@ DigPower(struct rhdOutput *Output, int Power)
 	case RHD_POWER_ON:
 	    Encoder->Power(Output, Power);
 	    Transmitter->Power(Output, Power);
+	    RHDHdmiEnable(Private->Hdmi, Private->EncoderMode == TMDS_HDMI);
 	    return;
 	case RHD_POWER_RESET:
 	    Transmitter->Power(Output, Power);
@@ -1247,6 +1250,7 @@ DigPower(struct rhdOutput *Output, int Power)
 	default:
 	    Transmitter->Power(Output, Power);
 	    Encoder->Power(Output, Power);
+	    RHDHdmiEnable(Private->Hdmi, FALSE);
 	    return;
     }
 }
@@ -1315,6 +1319,7 @@ DigSave(struct rhdOutput *Output)
 
     Encoder->Save(Output);
     Transmitter->Save(Output);
+    RHDHdmiSave(Private->Hdmi);
 }
 
 /*
@@ -1331,6 +1336,7 @@ DigRestore(struct rhdOutput *Output)
 
     Encoder->Restore(Output);
     Transmitter->Restore(Output);
+    RHDHdmiRestore(Private->Hdmi);
 }
 
 /*
@@ -1347,6 +1353,7 @@ DigDestroy(struct rhdOutput *Output)
 
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
+    RHDHdmiDestroy(Private->Hdmi);
 
     xfree(Private);
     Output->Private = NULL;
@@ -1510,6 +1517,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Private->Encoder.Save = EncoderSave;
     Private->Encoder.Restore = EncoderRestore;
     Private->Encoder.Destroy = EncoderDestroy;
+    Private->Hdmi = RHDHdmiInit(rhdPtr, HDMI_DIG);
 
     switch (ConnectorType) {
 	case RHD_CONNECTOR_PANEL:
@@ -1522,7 +1530,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    break;
 	case RHD_CONNECTOR_DVI_SINGLE:
 	    Private->RunDualLink = FALSE;
-	    Private->EncoderMode = TMDS_DVI;  /* currently also HDMI */
+	    if(rhdPtr->enableHDMI_TMDSA)
+		Private->EncoderMode = TMDS_HDMI;
+	    else
+		Private->EncoderMode = TMDS_DVI;
 	    break;
     }
 

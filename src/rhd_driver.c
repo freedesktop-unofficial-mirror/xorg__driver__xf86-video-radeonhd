@@ -111,6 +111,7 @@
 #include "rhd_shadow.h"
 #include "rhd_card.h"
 #include "rhd_randr.h"
+#include "rhd_audio.h"
 #include "r5xx_accel.h"
 
 #ifdef USE_DRI
@@ -238,7 +239,9 @@ typedef enum {
     OPTION_DRI,
     OPTION_TV_MODE,
     OPTION_SCALE_TYPE,
-    OPTION_UNVERIFIED_FEAT
+    OPTION_UNVERIFIED_FEAT,
+    OPTION_AUDIO,
+    OPTION_HDMI
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -258,6 +261,8 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN,  {0}, FALSE },
+    { OPTION_AUDIO,		   "Audio",	           OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_HDMI,		   "HDMI",	           OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -329,6 +334,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDMCDestroy(rhdPtr);
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
+    RHDAudioDestroy(rhdPtr);
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
@@ -753,6 +759,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDMCInit(rhdPtr);
     RHDCrtcsInit(rhdPtr);
     RHDPLLsInit(rhdPtr);
+    RHDAudioInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
 
@@ -1058,6 +1065,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* fix viewport */
     RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
+
+    /* enable/disable audio */
+    RHDAudioSetEnable(rhdPtr, rhdPtr->enableAudio);
 
     /* Initialise cursor functions */
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
@@ -2108,6 +2118,7 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 		    Crtc->ScaleSet(Crtc, RHD_CRTC_SCALE_TYPE_NONE, mode, NULL);
 	    }
 	    RHDPLLSet(Crtc->PLL, mode->Clock);
+	    RHDAudioSetClock(rhdPtr, Crtc->PLL);
 	    Crtc->LUTSelect(Crtc, Crtc->LUT);
 	    RHDOutputsMode(rhdPtr, Crtc, mode);
 	}
@@ -2147,6 +2158,7 @@ rhdSave(RHDPtr rhdPtr)
     RHDOutputsSave(rhdPtr);
 
     RHDPLLsSave(rhdPtr);
+    RHDAudioSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 
     rhdPtr->Crtc[0]->Save(rhdPtr->Crtc[0]);
@@ -2170,6 +2182,7 @@ rhdRestore(RHDPtr rhdPtr)
 	rhdRestoreCursor(pScrn);
 
     RHDPLLsRestore(rhdPtr);
+    RHDAudioRestore(rhdPtr);
     RHDLUTsRestore(rhdPtr);
 
     RHDVGARestore(rhdPtr);
@@ -2425,6 +2438,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     RHDOpt hpd;
+    RHDOpt audio;
+    RHDOpt hdmi;
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -2455,6 +2470,10 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		       &rhdPtr->scaleTypeOpt, "default");
     RhdGetOptValBool   (rhdPtr->Options, OPTION_UNVERIFIED_FEAT,
 			&rhdPtr->unverifiedFeatures, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_AUDIO,
+			&audio, FALSE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,
+			&hdmi, "none");
 
     rhdAccelOptionsHandle(pScrn);
 
@@ -2474,6 +2493,23 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 	"!!! Option HPD is set !!!\n"
 	"     This shall only be used to work around broken connector tables.\n"
 	"     Please report your findings to radeonhd@opensuse.org\n");
+
+ 
+    rhdPtr->enableAudio = audio.val.bool;
+ 
+    rhdPtr->enableHDMI_TMDSA = FALSE;
+    rhdPtr->enableHDMI_TMDSB = FALSE;
+    if (strcasecmp(hdmi.val.string, "both") == 0) {
+	rhdPtr->enableHDMI_TMDSA = TRUE;
+	rhdPtr->enableHDMI_TMDSB = TRUE;
+    } else if (strcasecmp(hdmi.val.string, "tmdsa") == 0) {
+	rhdPtr->enableHDMI_TMDSA = TRUE;
+    } else if (strcasecmp(hdmi.val.string, "tmdsb") == 0) {
+	rhdPtr->enableHDMI_TMDSB = TRUE;
+    } else if (strcasecmp(hdmi.val.string, "none") != 0) {
+	xf86DrvMsgVerb(rhdPtr->scrnIndex, X_ERROR, 0,
+		       "Unknown HDMI Option \"%s\"", hdmi.val.string);
+    }
 }
 
 /*

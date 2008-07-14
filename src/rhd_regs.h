@@ -96,6 +96,15 @@ enum {
     PCLK_CRTC1_CNTL                = 0x0480,
     PCLK_CRTC2_CNTL                = 0x0484,
 
+    /* these regs were reverse enginered, 
+     * so the chance is high that the naming is wrong 
+     * R6xx+ ??? */
+    AUDIO_PLL1_MUL		   = 0x0514,
+    AUDIO_PLL1_DIV		   = 0x0518,
+    AUDIO_PLL2_MUL		   = 0x0524,
+    AUDIO_PLL2_DIV		   = 0x0528,
+    AUDIO_CLK_SRCSEL		   = 0x0534,
+
     DCCG_DISP_CLK_SRCSEL           = 0x0538, /* rv620+ */
 
     SRBM_STATUS                    = 0x0E50,
@@ -260,6 +269,16 @@ enum {
     D2SCL_UPDATE                   = 0x6DCC,
     D2SCL_DITHER                   = 0x6DD4, /* guess */
     D2SCL_FLIP_CONTROL             = 0x6DD8, /* guess */
+
+    /* Audio, reverse enginered */
+    AUDIO_ENABLE		   = 0x7300,
+    AUDIO_UNKNOWN_0		   = 0x7344,
+    AUDIO_UNKNOWN_1		   = 0x7398,
+
+    /* HDMI */
+    HDMI_TMDS			   = 0x7400,
+    HDMI_LVTMA			   = 0x7700,
+    HDMI_DIG			   = 0x7800,
 
     /* R500 DAC A */
     DACA_ENABLE                    = 0x7800,
@@ -1030,5 +1049,30 @@ enum AGP_STATUS_BITS {
     AGPv3_8X_MODE        = 0x02
 };
 
+enum {
+    /* HDMI registers */
+    HDMI_ENABLE           = 0x00,
+    HDMI_CNTL             = 0x08,
+    HDMI_UNKNOWN_0        = 0x0C,
+    HDMI_UNKNOWN_1        = 0x10,
+    HDMI_UNKNOWN_2        = 0x14,
+    HDMI_UNKNOWN_3        = 0x18,
+    HDMI_UNKNOWN_4        = 0x28,
+    HDMI_VIDEOINFOFRAME_0 = 0x54,
+    HDMI_VIDEOINFOFRAME_1 = 0x58,
+    HDMI_VIDEOINFOFRAME_2 = 0x5c,
+    HDMI_VIDEOINFOFRAME_3 = 0x60,
+    HDMI_UNKNOWN_5        = 0xac,
+    HDMI_UNKNOWN_6        = 0xb0,
+    HDMI_UNKNOWN_7        = 0xb4,
+    HDMI_UNKNOWN_8        = 0xb8,
+    HDMI_UNKNOWN_9        = 0xbc,
+    HDMI_UNKNOWN_A        = 0xc0,
+    HDMI_AUDIOINFOFRAME_0 = 0xcc,
+    HDMI_AUDIOINFOFRAME_1 = 0xd0,
+    HDMI_UNKNOWN_B        = 0xd4,
+    HDMI_UNKNOWN_C        = 0xd8,
+    HDMI_UNKNOWN_D        = 0xdc
+};
 
 #endif /* _RHD_REGS_H */
