@@ -98,6 +98,8 @@ enum {
 
     DCCG_DISP_CLK_SRCSEL           = 0x0538, /* rv620+ */
 
+    SRBM_STATUS                    = 0x0E50,
+
     AGP_STATUS                     = 0x0F5C,
 
     R7XX_MC_VM_FB_LOCATION	   = 0x2024,
