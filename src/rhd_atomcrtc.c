@@ -89,7 +89,7 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	     Mode->CrtcHDisplay, Mode->CrtcVDisplay);
 
     /* D1Mode registers */
-        if (Crtc->Id == RHD_CRTC_1)
+    if (Crtc->Id == RHD_CRTC_1)
 	RegOff = D1_REG_OFFSET;
     else
 	RegOff = D2_REG_OFFSET;
