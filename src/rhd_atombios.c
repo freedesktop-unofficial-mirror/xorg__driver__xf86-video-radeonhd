@@ -1749,6 +1749,70 @@ rhdAtomEncoderControlVersion(atomBiosHandlePtr handle, enum atomEncoder EncoderI
  *
  */
 Bool
+rhdAtomUpdateCRTC_DoubleBufferRegisters(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
+					enum atomCrtcAction Action)
+{
+    AtomBiosArgRec data;
+    union
+    {
+	ENABLE_CRTC_PARAMETERS crtc;
+	ENABLE_CRTC_PS_ALLOCATION crtc_a;
+    } ps;
+
+    RHDFUNC(handle);
+
+    switch (CrtcId) {
+	case atomCrtc1:
+	    ps.crtc.ucCRTC = ATOM_CRTC1;
+	    break;
+	case atomCrtc2:
+	    ps.crtc.ucCRTC = ATOM_CRTC2;
+	    break;
+    }
+
+    switch (Action) {
+	case atomCrtcEnable:
+	    ps.crtc.ucEnable = ATOM_ENABLE;
+	    break;
+	case atomCrtcDisable:
+	    ps.crtc.ucEnable = ATOM_DISABLE;
+	    break;
+    }
+
+    data.exec.index = GetIndexIntoMasterTable(COMMAND, UpdateCRTC_DoubleBufferRegisters);
+
+    data.exec.dataSpace = NULL;
+    data.exec.pspace = &ps;
+
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling UpdateCRTC_DoubleBufferRegisters\n");
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "UpdateCRTC_DoubleBufferRegisters Successful\n");
+	return TRUE;
+    }
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "UpdateCRTC_DoubleBufferRegisters Failed\n");
+    return FALSE;
+}
+
+/*
+ *
+ */
+struct atomCodeTableVersion
+rhdAtomUpdateCRTC_DoubleBufferRegistersVersion(atomBiosHandlePtr handle)
+{
+    struct atomCodeTableVersion version;
+    int index = GetIndexIntoMasterTable(COMMAND, UpdateCRTC_DoubleBufferRegisters);
+    rhdAtomGetCommandTableRevisionSize(handle, index, &version.cref, &version.fref, NULL);
+
+    DEBUG_VERSION(index, handle, version);
+
+    return version;
+}
+
+/*
+ *
+ */
+Bool
 rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 		  enum atomCrtcAction Action)
 {

@@ -512,6 +512,9 @@ extern Bool rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder id,
 				  enum atomEncoderAction action, struct atomEncoderConfig *config);
 struct atomCodeTableVersion rhdAtomEncoderControlVersion(atomBiosHandlePtr handle,
 enum atomEncoder id);
+extern Bool rhdAtomUpdateCRTC_DoubleBufferRegisters(atomBiosHandlePtr handle, enum atomCrtc id,
+			      enum atomCrtcAction action);
+extern struct atomCodeTableVersion rhdAtomUpdateCRTC_DoubleBufferRegistersVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc id,
 			      enum atomCrtcAction action);
 extern struct atomCodeTableVersion rhdAtomEnableCrtcVersion(atomBiosHandlePtr handle);
