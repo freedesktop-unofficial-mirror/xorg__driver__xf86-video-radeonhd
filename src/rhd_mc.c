@@ -482,7 +482,7 @@ r6xxMCIdle(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
-    if (!(RHDRegRead(rhdPtr, R6_MCLK_PWRMGT_CNTL) & R6_MC_BUSY))
+    if (!(RHDRegRead(rhdPtr, SRBM_STATUS) & 0x3f00))
 	return TRUE;
     return FALSE;
 }
@@ -498,18 +498,6 @@ rs780MCIdle(RHDPtr rhdPtr)
     if (RHDReadMC(rhdPtr, RS78_MC_SYSTEM_STATUS) & RS78_MC_SEQUENCER_IDLE)
 	return TRUE;
     return FALSE;
-}
-
-/*
- *
- */
-static Bool
-r7xxMCIdle(RHDPtr rhdPtr)
-{
-    RHDFUNC(rhdPtr);
-
-    usleep(50000);
-    return TRUE;
 }
 
 /*
@@ -729,7 +717,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->SaveMC = r7xxSaveMC;
 	MC->RestoreMC = r7xxRestoreMC;
 	MC->SetupMC = r7xxSetupMC;
-	MC->MCIdle = r7xxMCIdle;
+	MC->MCIdle = r6xxMCIdle;
     } else {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "I don't know anything about MC on this chipset\n");
 	xfree(MC);
