@@ -37,6 +37,14 @@
 
 #include "rhd.h"
 #include "rhd_regs.h"
+#include "r5xx_accel.h"
+
+Bool
+RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
+static void
+RHDMCPrepareForUpdate(RHDPtr rhdPtr);
+static void
+RHDMCFinishUpdate(RHDPtr rhdPtr);
 
 struct rhdMC {
     CARD32 FbLocation;
@@ -48,6 +56,8 @@ struct rhdMC {
     Bool (*MCIdle)(RHDPtr rhdPtr);
 
     Bool RV515Variant;
+
+    CARD32 d1_vga, d2_vga, d1_crtc, d2_crtc;
 };
 
 /*
@@ -398,12 +408,17 @@ void
 RHDMCSetup(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
-
     RHDFUNC(rhdPtr);
+
     if (!MC)
 	return;
 
+    RHDMCPrepareForUpdate(rhdPtr);
+
     MC->SetupMC(rhdPtr);
+
+    RHDMCFinishUpdate(rhdPtr);
+
 }
 
 /*
@@ -538,7 +553,81 @@ RHDRestoreMC(RHDPtr rhdPtr)
 		   "%s: trying to restore uninitialized values.\n",__func__);
 	return;
     }
+
+    RHDMCPrepareForUpdate(rhdPtr);
+
     MC->RestoreMC(rhdPtr);
+
+    RHDMCFinishUpdate(rhdPtr);
+
+}
+
+/*
+ * make sure the hw is in a state such that we can update the MC
+ */
+static void
+RHDMCPrepareForUpdate(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+
+    RHDFUNC(rhdPtr);
+    if (!MC)
+	return;
+
+    /* if accel, idle engine */
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DIdle(pScrn);
+
+    /* disable vga */
+    MC->d1_vga = RHDRegRead(rhdPtr, D1VGA_CONTROL);
+    RHDRegWrite(rhdPtr, D1VGA_CONTROL, MC->d1_vga & ~D1VGA_MODE_ENABLE);
+    MC->d2_vga = RHDRegRead(rhdPtr, D2VGA_CONTROL);
+    RHDRegWrite(rhdPtr, D2VGA_CONTROL, MC->d2_vga & ~D2VGA_MODE_ENABLE);
+
+    /* Stop display & memory access */
+    MC->d1_crtc = RHDRegRead(rhdPtr, D1CRTC_CONTROL);
+    RHDRegWrite(rhdPtr, D1CRTC_CONTROL, MC->d1_crtc & ~1);
+    MC->d2_crtc = RHDRegRead(rhdPtr, D2CRTC_CONTROL);
+    RHDRegWrite(rhdPtr, D2CRTC_CONTROL, MC->d2_crtc & ~1);
+    (void)RHDRegRead(rhdPtr, D2CRTC_CONTROL);
+
+    usleep(10000);
+
+    if (!RHDMCIdle(rhdPtr, 1000000))
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "MC not idle\n");
+
+}
+
+static void
+RHDMCFinishUpdate(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    ScrnInfoPtr pScrn = xf86Screens[rhdPtr->scrnIndex];
+
+    RHDFUNC(rhdPtr);
+    if (!MC)
+	return;
+
+    usleep(10000);
+
+    if (!RHDMCIdle(rhdPtr, 1000000))
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "MC not idle\n");
+
+    /* restore vga */
+    RHDRegWrite(rhdPtr, D1VGA_CONTROL, MC->d1_vga);
+    RHDRegWrite(rhdPtr, D2VGA_CONTROL, MC->d2_vga);
+
+    /* restore display & memory access */
+    RHDRegWrite(rhdPtr, D1CRTC_CONTROL, MC->d1_crtc);
+    RHDRegWrite(rhdPtr, D2CRTC_CONTROL, MC->d2_crtc);
+
+    usleep(10000);
+
+    /* if accel, reset engine */
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DSetup(pScrn);
+
 }
 
 /*
