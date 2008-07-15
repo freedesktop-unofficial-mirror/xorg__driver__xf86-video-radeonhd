@@ -37,7 +37,7 @@
 
 #include "rhd.h"
 #include "rhd_regs.h"
-#include "r5xx_accel.h"
+#include "radeon_accel.h"
 
 Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
 
@@ -51,6 +51,7 @@ struct rhdMC {
     Bool (*MCIdle)(RHDPtr rhdPtr);
 
     Bool RV515Variant;
+
 };
 
 /*
@@ -416,6 +417,7 @@ RHDMCSetup(RHDPtr rhdPtr)
     ASSERT(RHDMCIdle(rhdPtr, 1));
 
     MC->SetupMC(rhdPtr);
+
 }
 
 /*
