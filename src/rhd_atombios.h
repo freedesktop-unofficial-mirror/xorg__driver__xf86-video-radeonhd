@@ -448,12 +448,6 @@ struct atomCrtcBlank {
     unsigned short r, g, b;
 };
 
-struct atomOutputPrivate {
-    void (*Destroy) (struct rhdOutput *Output);
-    struct rhdOutputDevices *OutputDevices;
-    enum atomDevice Device;
-};
-
 extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
 extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);

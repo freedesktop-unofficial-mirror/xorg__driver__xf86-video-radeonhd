@@ -44,7 +44,6 @@
 #include "rhd_card.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
-#include "rhd_biosscratch.h"
 #endif
 
 struct DDIAPrivate
@@ -218,10 +217,6 @@ DDIAPower(struct rhdOutput *Output, int Power)
 {
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
-
-#ifdef ATOM_BIOS
-    RHDAtomUpdateBIOSScratchForOutput(Output);
-#endif
 
     switch (Power) {
 	case RHD_POWER_ON:

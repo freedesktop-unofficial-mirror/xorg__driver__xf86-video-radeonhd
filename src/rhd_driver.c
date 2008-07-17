@@ -100,7 +100,7 @@
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
-#include "rhd_atomout.h"
+#include "rhd_biosscratch.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
 #include "rhd_mc.h"

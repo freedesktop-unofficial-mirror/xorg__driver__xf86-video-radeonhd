@@ -372,7 +372,6 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 	    return;
     }
     rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
-    RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
@@ -392,7 +391,6 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
     data.Address = &Private->Save;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
-    RHDAtomUpdateBIOSScratchForOutput(Output);
     rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
 
     switch (Power) {
@@ -523,21 +521,6 @@ rhdAtomOutputModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     return MODE_OK;
 }
 
-
-/*
- *
- */
-static void
-rhdAtomOutputDestroy(struct rhdOutput *Output)
-{
-    RHDFUNC(Output);
-    if (((struct rhdAtomOutputPrivate *)(Output->Private))->Save)
-	xfree(((struct rhdAtomOutputPrivate *)(Output->Private))->Save);
-    if (Output->Private)
-	xfree(Output->Private);
-    Output->Private = NULL;
-    xfree(Output->Name);
-}
 
 /*
  *
@@ -704,6 +687,21 @@ atomTMDSPropertyControl(struct rhdOutput *Output,
 	    break;
     }
     return TRUE;
+}
+
+/*
+ *
+ */
+static void
+rhdAtomOutputDestroy(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+    if (((struct rhdAtomOutputPrivate *)(Output->Private))->Save)
+	xfree(((struct rhdAtomOutputPrivate *)(Output->Private))->Save);
+    if (Output->Private)
+	xfree(Output->Private);
+    Output->Private = NULL;
+    xfree(Output->Name);
 }
 
 /*
@@ -1038,70 +1036,6 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output)
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
 
     return BlLevel;
-}
-
-/*
- * This destroys the privates again. It is implemented as an output destroy wrapper.
- */
-static void
-rhdAtomDestroyOutputDriverPrivate(struct rhdOutput *Output)
-{
-    RHDFUNC(Output);
-
-    if (Output->OutputDriverPrivate) {
-	void (*Destroy) (struct rhdOutput *Output) = Output->OutputDriverPrivate->Destroy;
-
-	xfree(Output->OutputDriverPrivate->OutputDevices);
-	xfree(Output->OutputDriverPrivate);
-	Output->OutputDriverPrivate = NULL;
-	if (Destroy)
-	    Destroy(Output);
-    }
-}
-
-/*
- * This sets up the AtomBIOS driver output private.
- * It allocates the data structure and sets up the list of devices
- * including the connector they are associated with.
- */
-Bool
-rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct rhdOutput *Output)
-{
-    struct rhdOutputDevices *od = NULL;
-    struct atomOutputPrivate *OutputDriverPrivate;
-    int i = 0, cnt = 0;
-
-    RHDFUNC(Output);
-
-    if (!Devices) {
-	RHDDebug(Output->scrnIndex, "%s: Device list doesn't exist.\n");
-	return FALSE;
-    }
-
-    while (Devices[i].DeviceId != atomNone) {
-	if (Devices[i].OutputType == Output->Id) {
-	    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
-		return FALSE;
-	    od[cnt].DeviceId = Devices[i].DeviceId;
-	    od[cnt].ConnectorType = Devices[i].ConnectorType;
-	    cnt++;
-	}
-	i++;
-    }
-    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
-	return FALSE;
-    od[cnt].DeviceId = atomNone;
-
-    if (!(OutputDriverPrivate = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate)))) {
-	xfree(od);
-	return FALSE;
-    }
-    OutputDriverPrivate->OutputDevices = od;
-    OutputDriverPrivate->Destroy = Output->Destroy;
-    Output->Destroy = rhdAtomDestroyOutputDriverPrivate;
-    Output->OutputDriverPrivate = OutputDriverPrivate;
-
-    return TRUE;
 }
 
 /*

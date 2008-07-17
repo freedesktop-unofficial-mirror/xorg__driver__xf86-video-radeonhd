@@ -28,6 +28,20 @@
 
 # ifdef ATOM_BIOS
 
+struct BIOSScratchOutputPrivate {
+    void (*Mode) (struct rhdOutput *Output, DisplayModePtr Mode);
+    void (*Power) (struct rhdOutput *Output, int Power);
+    void (*Destroy) (struct rhdOutput *Output);
+    struct rhdOutputDevices *OutputDevices;
+    enum atomDevice Device;
+};
+
+struct rhdAtomOutputDeviceList {
+    enum atomDevice DeviceId;
+    enum rhdOutputType OutputType;
+    enum rhdConnectorType ConnectorType;
+};
+
 enum rhdBIOSScratchBlAction {
     rhdBIOSScratchBlGet,
     rhdBIOSScratchBlSet
@@ -39,7 +53,8 @@ extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr
 extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters * regs);
 extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int *val);
 
-extern enum atomDevice RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
+extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
+					    struct rhdOutput *Output);
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 
 # endif /* ATOM_BIOS */
