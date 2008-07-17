@@ -47,7 +47,6 @@ extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devi
 					    struct rhdOutput *Output);
 extern Bool rhdFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
 						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
-extern enum atomDevice rhdAtomSetDeviceForOutput(struct rhdOutput *Output);
 
 
 #endif
