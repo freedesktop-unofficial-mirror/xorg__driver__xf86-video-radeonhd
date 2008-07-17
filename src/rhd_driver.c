@@ -2120,8 +2120,8 @@ rhdSave(RHDPtr rhdPtr)
     RHDPLLsSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 
-    rhdPtr->Crtc[0]->Save(rhdPtr->Crtc[0]);
-    rhdPtr->Crtc[1]->Save(rhdPtr->Crtc[1]);
+    RHDCrtcSave(rhdPtr->Crtc[0]);
+    RHDCrtcSave(rhdPtr->Crtc[1]);
     rhdSaveCursor(pScrn);
 }
 
@@ -2145,8 +2145,8 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDVGARestore(rhdPtr);
 
-    rhdPtr->Crtc[0]->Restore(rhdPtr->Crtc[0]);
-    rhdPtr->Crtc[1]->Restore(rhdPtr->Crtc[1]);
+    RHDCrtcRestore(rhdPtr->Crtc[0]);
+    RHDCrtcRestore(rhdPtr->Crtc[1]);
 
     RHDOutputsRestore(rhdPtr);
 }
