@@ -338,6 +338,63 @@ RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int
 }
 
 /*
+ * This function finds the AtomBIOS device ID of the device that we currently
+ * want to drive with a specific output. It contains a logic to deal with CRTC vs. TV
+ * on DACs.
+ * This function preferrably gets called from within the function that also updates
+ * the BIOS scratch registers.
+ */
+static enum atomDevice
+rhdAtomSetDeviceForOutput(struct rhdOutput *Output)
+{
+    int i = 0;
+
+    RHDFUNC(Output);
+
+    if (!Output->Connector) {
+	RHDDebug(Output->scrnIndex,"%s: No connector assigned to output %s\n",__func__,Output->Name);
+	return atomNone;
+    }
+
+    if (!Output->OutputDriverPrivate) {
+	RHDDebug(Output->scrnIndex,"%s: Output %s has no DriverPrivate\n",__func__,Output->Name);
+	return atomNone;
+    }
+
+    while (Output->OutputDriverPrivate->OutputDevices[i].DeviceId != atomNone) {
+	if (Output->OutputDriverPrivate->OutputDevices[i].ConnectorType == Output->Connector->Type){
+	    switch (Output->OutputDriverPrivate->OutputDevices[i].DeviceId) {
+		case atomCrtc1:
+		case atomCrtc2:
+		    if (Output->SensedType == RHD_SENSED_VGA)
+			break;
+		    i++;
+		    continue;
+		case atomTV1:
+		case atomTV2:
+		    if (Output->SensedType == RHD_SENSED_TV_SVIDEO
+			|| Output->SensedType == RHD_SENSED_TV_COMPOSITE)
+			break;
+		    i++;
+		    continue;
+		case atomCV:
+		    if (Output->SensedType == RHD_SENSED_TV_COMPONENT)
+			break;
+		    i++;
+		    continue;
+		default:
+		    break;
+	    }
+	    Output->OutputDriverPrivate->Device = Output->OutputDriverPrivate->OutputDevices[i].DeviceId;
+
+	    return Output->OutputDriverPrivate->Device;
+	}
+	i++;
+    }
+    return atomNone;
+}
+
+/*
  * This function is public as it is used from within other outputs, too.
  */
 enum atomDevice
