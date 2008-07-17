@@ -541,15 +541,6 @@ struct atomCodeTableVersion rhdAtomSetCRTCOverscanVersion(atomBiosHandlePtr hand
 extern Bool rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlank *config);
 extern struct atomCodeTableVersion rhdAtomBlankCRTCVersion(atomBiosHandlePtr handle);
 
-/* @@@ */
-extern struct atomOutputPrivate *rhdAtomFindOutputDriverPrivate(struct rhdConnector *Connector, struct rhdOutput *Output);
-/* @@@ */
-extern Bool rhdAtomFindOutputConnectorForDevice(RHDPtr rhdPtr, enum atomDevice device,
-						struct rhdConnector **Connector, struct rhdOutput **Output);
-
-#if 0
-Bool rhdSetPixelClock(atomBiosHandlePtr handle, enum atomPllID id, struct atomPixelClockConfig config);
-#endif
 # endif
 
 #endif /*  RHD_ATOMBIOS_H_ */
