@@ -1664,11 +1664,6 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	     * and thus two different devices
 	     */
 	    if (Output->SensedType == RHD_SENSED_NONE) {
-#ifdef ATOM_BIOS
-		if (Output->OutputDriverPrivate)
-		    xfree(Output->OutputDriverPrivate);
-		Output->OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
-#endif
 		/* Do this before sensing as AtomBIOS sense needs this info */
 		if ((Output->SensedType = Output->Sense(Output, Connector)) != RHD_SENSED_NONE) {
 		    RHDOutputPrintSensedType(Output);
@@ -1685,9 +1680,6 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	    Output = Connector->Output[i];
 	    if (Output && !Output->Sense) {
 		Output->Connector = Connector;
-#ifdef ATOM_BIOS
-		Output->OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
-#endif
 		break;
 	    }
 	}

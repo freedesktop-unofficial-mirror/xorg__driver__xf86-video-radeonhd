@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,36 +23,31 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _RHD_CARD_H
-#define _RHD_CARD_H
+#ifndef _RHD_ATOMOUT_H
+# define _RHD_ATOMOUT_H
 
-/* Four bytes in TYPE/DDC layout: see rhd_connector.h */
-struct rhdConnectorInfo {
-    rhdConnectorType Type;
-    char *Name;
-    rhdDDC DDC;
-    rhdHPD HPD;
-    rhdOutputType Output[MAX_OUTPUTS_PER_CONNECTOR];
+extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output);
+
+struct rhdAtomOutputDeviceList {
+    enum atomDevice DeviceId;
+    enum rhdOutputType OutputType;
+    enum rhdConnectorType ConnectorType;
 };
 
-/* Some card specific flags, where and when needed */
-enum rhdCardFlag {
-    RHD_CARD_FLAG_NONE  = 0,
-    RHD_CARD_FLAG_DMS59 = 1, /* DMS59 connector is only reported as two DVI-I */
-    RHD_CARD_FLAG_HPDSWAP = 2, /* some cards have broken connector tables */
-    RHD_CARD_FLAG_HPDOFF = 4 /* some have *very* broken connector tables */
+
+struct rhdOutputDevices
+{
+    enum atomDevice DeviceId;
+    enum rhdConnectorType ConnectorType;
 };
 
-struct rhdCard {
-    CARD16 device;
-    CARD16 card_vendor;
-    CARD16 card_device;
-    char *name;
-    enum rhdCardFlag flags;
 
-    struct rhdConnectorInfo ConnectorInfo[RHD_CONNECTORS_MAX];
-};
+extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output);
+extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
+					    struct rhdOutput *Output);
+extern Bool rhdFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
+						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
+extern enum atomDevice rhdAtomSetDeviceForOutput(struct rhdOutput *Output);
 
-void RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp);
 
-#endif /* _RHD_CARD_H */
+#endif

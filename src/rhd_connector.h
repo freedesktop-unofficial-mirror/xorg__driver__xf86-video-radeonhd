@@ -78,8 +78,6 @@ struct rhdConnector {
 
     /* Point back to our Outputs, so we can handle sensing better */
     struct rhdOutput *Output[MAX_OUTPUTS_PER_CONNECTOR];
-    /* Driver Private data */
-    rhdConnectorDriverPrivate *ConnectorDriverPrivate;
 };
 
 Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);

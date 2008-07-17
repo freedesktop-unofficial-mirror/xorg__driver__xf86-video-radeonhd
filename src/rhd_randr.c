@@ -874,16 +874,6 @@ rhdRROutputCommit(xf86OutputPtr out)
     RHDDebugRandrState(rhdPtr, rout->Name);
 }
 
-static void rhdRandRSetOutputDriverPrivate(rhdRandrOutputPtr rout)
-{
-#ifdef ATOM_BIOS
-    if (rout->Output->OutputDriverPrivate)
-	xfree(rout->Output->OutputDriverPrivate);
-    rout->Output->OutputDriverPrivate
-	= rhdAtomFindOutputDriverPrivate(rout->Connector, rout->Output);
-#endif
-}
-
 /* Probe for a connected output. */
 static xf86OutputStatus
 rhdRROutputDetect(xf86OutputPtr output)
@@ -897,7 +887,6 @@ rhdRROutputDetect(xf86OutputPtr output)
     /* Assume that a panel is always connected */
     if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
 	rout->Output->Connector = rout->Connector; /* @@@ */
-	rhdRandRSetOutputDriverPrivate(rout);
 	return XF86OutputStatusConnected;
     }
 
@@ -916,8 +905,6 @@ rhdRROutputDetect(xf86OutputPtr output)
 		if (rout->Output->SensedType != RHD_SENSED_NONE)
 		    return XF86OutputStatusDisconnected;
 
-		rhdRandRSetOutputDriverPrivate(rout);
-
 		if ((rout->Output->SensedType
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector)) != RHD_SENSED_NONE) {
@@ -932,8 +919,6 @@ rhdRROutputDetect(xf86OutputPtr output)
 		 * Check if there is another output attached to this connector
 		 * and use Sense() on that one to verify whether something
 		 * is attached to this one */
-
-		rhdRandRSetOutputDriverPrivate(rout);
 
 		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 		    rhdRandrOutputPtr o =
@@ -969,14 +954,12 @@ rhdRROutputDetect(xf86OutputPtr output)
 		    rout->Output->SensedType = rout->Output->Sense(rout->Output,
 								   rout->Connector);
 		    if (rout->Output->SensedType != RHD_SENSED_NONE) {
-			rhdRandRSetOutputDriverPrivate(rout);
 			rout->Output->Connector = rout->Connector; /* @@@ */
 			RHDOutputPrintSensedType(rout->Output);
 			return XF86OutputStatusConnected;
 		    }
 		}
 	    }
-	    rhdRandRSetOutputDriverPrivate(rout);
 	    return XF86OutputStatusDisconnected;
 	}
     } else {
@@ -990,16 +973,13 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    rout->Output->SensedType
 		= rout->Output->Sense(rout->Output, rout->Connector);
 	    if (rout->Output->SensedType != RHD_SENSED_NONE) {
-		rhdRandRSetOutputDriverPrivate(rout);
 		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    RHDOutputPrintSensedType(rout->Output);
 		    return XF86OutputStatusConnected;
 	    } else {
-		rhdRandRSetOutputDriverPrivate(rout);
 		return XF86OutputStatusDisconnected;
 	    }
 	}
-	rhdRandRSetOutputDriverPrivate(rout);
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
 	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0)) {
