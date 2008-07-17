@@ -292,6 +292,33 @@ Use of this option is considered deprecated. The
 .B AccelMethod
 option is considered to be more flexible.
 .TP
+.BI "Option \*qScaleType\*q \*q" none|center|scale|scale_keep_aspect_ratio|default \*q
+Sets the scaling mode for laptop flat panels when used together with an external
+screen. The scaling engine is capable of scaling both up and down.
+.br
+.B \*qnone\*q
+means to not scale at all, ie. the image will be displayed in the top left
+corner of the panel if the resolution of the external display is lower than
+the panel resolution.
+.br
+.B \*qcenter\*q
+means not to scale but center the image on the panel ie. apply a black frame 
+around the image on the panel in case the panel resolution is lower than the 
+one of the external display.
+.br
+.B \*qscale\*q
+means to always scale to the the resolution of the external display filling
+the entire panel.
+.br
+.B \*qscale_keep_aspect_ration\*q
+scales the panel display but keeps the aspect ration of the external display, 
+which means if the external display has a different aspect ration than the 
+panel it black borders will be added to the top and bottom or left and right.
+.br
+.B \*qdefault\*q
+sets the default behavior which is th keep the aspect ration.
+.br
+.TP
 .BI "Option \*qRRUseXF86Edid\*q \*q" boolean \*q
 .IR "RandR modesetting only" .
 .br
