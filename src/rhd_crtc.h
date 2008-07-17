@@ -69,13 +69,13 @@ struct rhdCrtc {
 
     DisplayModePtr ScaledToMode; /* usually a fixed mode from one of the monitors */
 
-    struct rhdCrtcFMTPrivate *FMTPriv;
+    struct rhdCrtcFMTPrivate *FMTPriv;  /* each CRTC subsystem may define this independently */
     void (*FMTModeSet)(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither);
     void (*FMTSave)(struct rhdCrtc *Crtc);
     void (*FMTRestore)(struct rhdCrtc *Crtc);
     void (*FMTDestroy) (struct rhdCrtc *Crtc);
 
-    struct rhdCrtcFBPrivate *FBPriv;
+    struct rhdCrtcFBPrivate *FBPriv;  /* each CRTC subsystem may define this independently */
     ModeStatus (*FBValid) (struct rhdCrtc *Crtc, CARD16 Width, CARD16 Height,
 			   int bpp, CARD32 Offset, CARD32 Size, CARD32 *pPitch);
     void (*FBSet) (struct rhdCrtc *Crtc, CARD16 Pitch, CARD16 Width,
@@ -84,14 +84,14 @@ struct rhdCrtc {
     void (*FBRestore) (struct rhdCrtc *Crtc);
     void (*FBDestroy) (struct rhdCrtc *Crtc);
 
-    struct rhdCrtcModePrivate *ModePriv;
+    struct rhdCrtcModePrivate *ModePriv;  /* each CRTC subsystem may define this independently */
     ModeStatus (*ModeValid) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSet) (struct rhdCrtc *Crtc, DisplayModePtr Mode);
     void (*ModeSave) (struct rhdCrtc *Crtc);
     void (*ModeRestore) (struct rhdCrtc *Crtc);
     void (*ModeDestroy) (struct rhdCrtc *Crtc);
 
-    struct rhdCrtcScalePrivate *ScalePriv;
+    struct rhdCrtcScalePrivate *ScalePriv;  /* each CRTC subsystem may define this independently */
     ModeStatus (*ScaleValid) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSet) (struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type, DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     void (*ScaleSave) (struct rhdCrtc *Crtc);
@@ -102,7 +102,7 @@ struct rhdCrtc {
 
     /* callback for pll setting lives here */
     /* callback for lut setting lives here */
-    struct rhdCrtcLUTPrivate *LUTPriv;
+    struct rhdCrtcLUTPrivate *LUTPriv;  /* each CRTC subsystem may define this independently */
     void (*LUTSelect) (struct rhdCrtc *Crtc, struct rhdLUT *LUT);
     void (*LUTSave) (struct rhdCrtc *Crtc);
     void (*LUTRestore) (struct rhdCrtc *Crtc);
@@ -110,14 +110,13 @@ struct rhdCrtc {
 
     void (*Power) (struct rhdCrtc *Crtc, int Power);
     void (*Blank) (struct rhdCrtc *Crtc, Bool Blank);
-
-    void (*Save) (struct rhdCrtc *Crtc);
-    void (*Restore) (struct rhdCrtc *Crtc);
 };
 
 void RHDCrtcsInit(RHDPtr rhdPtr);
 void RHDAtomCrtcsInit(RHDPtr rhdPtr);
 void RHDCrtcsDestroy(RHDPtr rhdPtr);
+void RHDCrtcSave(struct rhdCrtc *Crtc);
+void RHDCrtcRestore(struct rhdCrtc *Crtc);
 
 /*
  * Calculate overscan values for scaler.

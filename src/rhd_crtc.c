@@ -1179,55 +1179,6 @@ D2Blank(struct rhdCrtc *Crtc, Bool Blank)
  *
  */
 static void
-DxSave(struct rhdCrtc *Crtc)
-{
-    RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
-
-    if (Crtc->FMTSave)
-	Crtc->FMTSave(Crtc);
-
-    if (Crtc->FBSave)
-	Crtc->FBSave(Crtc);
-
-    if (Crtc->LUTSave)
-	Crtc->LUTSave(Crtc);
-
-    if (Crtc->ScaleSave)
-	Crtc->ScaleSave(Crtc);
-
-    if (Crtc->ModeSave)
-	Crtc->ModeSave(Crtc);
-}
-
-/*
- *
- */
-static void
-DxRestore(struct rhdCrtc *Crtc)
-{
-
-    RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
-
-    if (Crtc->FMTRestore)
-	Crtc->FMTRestore(Crtc);
-
-    if (Crtc->FBRestore)
-	Crtc->FBRestore(Crtc);
-
-    if (Crtc->LUTRestore)
-	Crtc->LUTRestore(Crtc);
-
-    if (Crtc->ScaleRestore)
-	Crtc->ScaleRestore(Crtc);
-
-    if (Crtc->ModeRestore)
-	Crtc->ModeRestore(Crtc);
-}
-
-/*
- *
- */
-static void
 DxFMTSet(struct rhdCrtc *Crtc, struct rhdFMTDither *FMTDither)
 {
     CARD32 RegOff;
@@ -1428,8 +1379,6 @@ RHDCrtcsInit(RHDPtr rhdPtr)
 
     Crtc->Power = D1Power;
     Crtc->Blank = D1Blank;
-    Crtc->Save = DxSave;
-    Crtc->Restore = DxRestore;
 
     rhdPtr->Crtc[0] = Crtc;
 
@@ -1478,8 +1427,6 @@ RHDCrtcsInit(RHDPtr rhdPtr)
 
     Crtc->Power = D2Power;
     Crtc->Blank = D2Blank;
-    Crtc->Save = DxSave;
-    Crtc->Restore = DxRestore;
 
     rhdPtr->Crtc[1] = Crtc;
 }
@@ -1517,4 +1464,54 @@ RHDCrtcsDestroy(RHDPtr rhdPtr)
 	    rhdPtr->Crtc[i] = NULL;
 	}
     }
+}
+
+
+/*
+ *
+ */
+void
+RHDCrtcSave(struct rhdCrtc *Crtc)
+{
+    RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
+
+    if (Crtc->FMTSave)
+	Crtc->FMTSave(Crtc);
+
+    if (Crtc->FBSave)
+	Crtc->FBSave(Crtc);
+
+    if (Crtc->LUTSave)
+	Crtc->LUTSave(Crtc);
+
+    if (Crtc->ScaleSave)
+	Crtc->ScaleSave(Crtc);
+
+    if (Crtc->ModeSave)
+	Crtc->ModeSave(Crtc);
+}
+
+/*
+ *
+ */
+void
+RHDCrtcRestore(struct rhdCrtc *Crtc)
+{
+
+    RHDDebug(Crtc->scrnIndex, "%s: %s\n", __func__, Crtc->Name);
+
+    if (Crtc->FMTRestore)
+	Crtc->FMTRestore(Crtc);
+
+    if (Crtc->FBRestore)
+	Crtc->FBRestore(Crtc);
+
+    if (Crtc->LUTRestore)
+	Crtc->LUTRestore(Crtc);
+
+    if (Crtc->ScaleRestore)
+	Crtc->ScaleRestore(Crtc);
+
+    if (Crtc->ModeRestore)
+	Crtc->ModeRestore(Crtc);
 }
