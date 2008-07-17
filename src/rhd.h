@@ -168,7 +168,7 @@ enum {
     RHD_PCI_CAPID_PCIE   = 0x10
 };
 
-typedef struct atomOutputPrivate rhdOutputDriverPrivate;
+typedef struct BIOSScratchOutputPrivate rhdOutputDriverPrivate;
 typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBiosHandle *atomBiosHandlePtr;
 typedef struct _rhdShadowRec *rhdShadowPtr;

@@ -45,7 +45,6 @@
 #include "rhd_regs.h"
 #ifdef ATOM_BIOS
 # include "rhd_atombios.h"
-# include "rhd_biosscratch.h"
 #endif
 
 #define REG_DACA_OFFSET 0
@@ -444,8 +443,6 @@ DACPower(struct rhdOutput *Output, CARD16 offset, int Power)
 
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
-
-    RHDAtomUpdateBIOSScratchForOutput(Output);
 
     switch (Power) {
     case RHD_POWER_ON:

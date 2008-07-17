@@ -50,7 +50,6 @@
 #include "rhd_card.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
-#include "rhd_biosscratch.h"
 #endif
 
 /*
@@ -481,10 +480,6 @@ LVDSPower(struct rhdOutput *Output, int Power)
 {
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
-
-#ifdef ATOM_BIOS
-    RHDAtomUpdateBIOSScratchForOutput(Output);
-#endif
 
     switch (Power) {
     case RHD_POWER_ON:
@@ -1130,8 +1125,6 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
-
-    RHDAtomUpdateBIOSScratchForOutput(Output);
 
     RHDRegMask(Output, LVTMA_MODE, 0x00000001, 0x00000001); /* select TMDS */
 

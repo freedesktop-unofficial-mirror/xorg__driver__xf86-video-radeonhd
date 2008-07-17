@@ -46,7 +46,7 @@
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
-#include "rhd_atomout.h"
+#include "rhd_biosscratch.h"
 #include "rhd_monitor.h"
 #include "rhd_card.h"
 #include "rhd_regs.h"

@@ -345,7 +345,7 @@ RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int
  * the BIOS scratch registers.
  */
 static enum atomDevice
-rhdAtomSetDeviceForOutput(struct rhdOutput *Output)
+rhdBIOSScratchSetDeviceForOutput(struct rhdOutput *Output)
 {
     int i = 0;
 
@@ -397,8 +397,8 @@ rhdAtomSetDeviceForOutput(struct rhdOutput *Output)
 /*
  * This function is public as it is used from within other outputs, too.
  */
-enum atomDevice
-RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
+static enum atomDevice
+rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdOutputDevices *devList;
@@ -415,7 +415,7 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 
     if (Output->Connector) {
 	/* connected - enable */
-	Device = rhdAtomSetDeviceForOutput(Output);
+	Device = rhdBIOSScratchSetDeviceForOutput(Output);
 
 	ASSERT(Device != atomNone);
 
@@ -444,6 +444,94 @@ RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
     }
 
     return Device;
+}
+
+/*
+ *
+ */
+static void
+rhdBIOSScratchPower(struct rhdOutput *Output, int Power)
+{
+    rhdBIOSScratchUpdateBIOSScratchForOutput(Output);
+    Output->OutputDriverPrivate->Power(Output, Power);
+}
+
+/*
+ *
+ */
+static void
+rhdBIOSScratchMode(struct rhdOutput *Output, DisplayModePtr Mode)
+{
+    rhdBIOSScratchUpdateBIOSScratchForOutput(Output);
+    Output->OutputDriverPrivate->Mode(Output, Mode);
+}
+
+/*
+ * This destroys the privates again. It is implemented as an output destroy wrapper.
+ */
+static void
+rhdBIOSScratchDestroyOutputDriverPrivate(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+
+    if (Output->OutputDriverPrivate) {
+	void (*Destroy) (struct rhdOutput *Output) = Output->OutputDriverPrivate->Destroy;
+
+	xfree(Output->OutputDriverPrivate->OutputDevices);
+	xfree(Output->OutputDriverPrivate);
+	Output->OutputDriverPrivate = NULL;
+	if (Destroy)
+	    Destroy(Output);
+    }
+}
+
+/*
+ * This sets up the AtomBIOS driver output private.
+ * It allocates the data structure and sets up the list of devices
+ * including the connector they are associated with.
+ */
+Bool
+rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct rhdOutput *Output)
+{
+    struct rhdOutputDevices *od = NULL;
+    struct BIOSScratchOutputPrivate *OutputDriverPrivate;
+    int i = 0, cnt = 0;
+
+    RHDFUNC(Output);
+
+    if (!Devices) {
+	RHDDebug(Output->scrnIndex, "%s: Device list doesn't exist.\n");
+	return FALSE;
+    }
+
+    while (Devices[i].DeviceId != atomNone) {
+	if (Devices[i].OutputType == Output->Id) {
+	    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
+		return FALSE;
+	    od[cnt].DeviceId = Devices[i].DeviceId;
+	    od[cnt].ConnectorType = Devices[i].ConnectorType;
+	    cnt++;
+	}
+	i++;
+    }
+    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
+	return FALSE;
+    od[cnt].DeviceId = atomNone;
+
+    if (!(OutputDriverPrivate = (struct BIOSScratchOutputPrivate *)xalloc(sizeof(struct BIOSScratchOutputPrivate)))) {
+	xfree(od);
+	return FALSE;
+    }
+    OutputDriverPrivate->OutputDevices = od;
+    OutputDriverPrivate->Destroy = Output->Destroy;
+    Output->Destroy = rhdBIOSScratchDestroyOutputDriverPrivate;
+    OutputDriverPrivate->Power = Output->Power;
+    Output->Power = rhdBIOSScratchPower;
+    OutputDriverPrivate->Mode = Output->Mode;
+    Output->Mode = rhdBIOSScratchMode;
+    Output->OutputDriverPrivate = OutputDriverPrivate;
+
+    return TRUE;
 }
 
 /*
