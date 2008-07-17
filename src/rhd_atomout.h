@@ -28,14 +28,4 @@
 
 extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output);
 
-struct rhdOutputDevices
-{
-    enum atomDevice DeviceId;
-    enum rhdConnectorType ConnectorType;
-};
-
-extern Bool rhdFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
-						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
-
-
 #endif

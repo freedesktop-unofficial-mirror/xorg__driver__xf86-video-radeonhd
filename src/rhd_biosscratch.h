@@ -47,14 +47,16 @@ enum rhdBIOSScratchBlAction {
     rhdBIOSScratchBlSet
 };
 
-extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output,
-							      enum atomDAC DAC, enum atomDevice Device);
+extern enum rhdSensedOutput rhdBIOSScratchDACSense(struct rhdOutput *Output, struct rhdConnector *Connector);
 extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
 extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters * regs);
 extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int *val);
 
 extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
 					    struct rhdOutput *Output);
+extern Bool RHDFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
+						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
+
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 
 # endif /* ATOM_BIOS */

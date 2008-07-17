@@ -45,7 +45,6 @@
 #include "rhd_regs.h"
 #ifdef ATOM_BIOS
 # include "rhd_atombios.h"
-# include "rhd_atomout.h"
 # include "rhd_biosscratch.h"
 
 struct atomPLLPrivate {
@@ -166,7 +165,7 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     Private->StoreDevice = RHDGetDeviceOnCrtc(rhdPtr, owner);
 
     if (Private->StoreDevice != atomNone) 
-	rhdFindConnectorAndOutputTypesForDevice(rhdPtr, Private->StoreDevice,
+	RHDFindConnectorAndOutputTypesForDevice(rhdPtr, Private->StoreDevice,
 						&Private->StoreOutputType, &Private->StoreConnectorType);
     else
 	PLL->StoreActive = FALSE;
