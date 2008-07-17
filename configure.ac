@@ -17,6 +17,8 @@ AM_MAINTAINER_MODE
 # Program checks.
 AC_DISABLE_STATIC
 AC_PROG_CC
+dnl Define SED var without requiring AC_PROG_SED (new in autoconf-2.59b)
+m4_ifdef([AC_PROG_SED], [AC_PROG_SED], [AC_SUBST([SED], [${SED-sed}])])
 CXX=no
 F77=no
 AC_PROG_LIBTOOL
