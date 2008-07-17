@@ -42,11 +42,5 @@ extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction
 extern enum atomDevice RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 
-# endif
-#if 0
-extern void rhdAtomBIOSScratchUpdateAttachedState(RHDPtr rhdPtr, enum atomDevice dev, Bool attached);
-extern void rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on);
-extern void rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc Crtc);
-#endif
-
-#endif
+# endif /* ATOM_BIOS */
+#endif /* RHD_BIOSSCRATCH_H_ */
