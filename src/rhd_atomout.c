@@ -43,6 +43,7 @@
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 #include "rhd_atombios.h"
+#include "rhd_atomout.h"
 #include "rhd_biosscratch.h"
 
 #ifdef ATOM_BIOS
@@ -272,35 +273,66 @@ rhdAtomDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     enum atomDAC DAC;
-    struct atomOutputPrivate *OutputDriverPrivate;
     Bool ret;
+    Bool TV;
     enum atomDevice Device;
+    enum rhdSensedOutput retVal;
+    int i = 0;
 
     RHDFUNC(Output);
 
-    OutputDriverPrivate = rhdAtomFindOutputDriverPrivate(Connector, Output);
-    Device = OutputDriverPrivate->Device;
-    xfree(OutputDriverPrivate);
-
-    switch (Output->Id) {
-	case RHD_OUTPUT_DACA:
-	    RHDDebug(Output->scrnIndex, "Sensing DACA on Output %s\n",Output->Name);
-	    DAC = atomDACA;
-	    break;
-	case RHD_OUTPUT_DACB:
-	    RHDDebug(Output->scrnIndex, "Sensing DACB on Output %s\n",Output->Name);
-	    DAC = atomDACB;
-	    break;
-	default:
-	    return FALSE;
-    }
-
-    ret = AtomDACLoadDetection(rhdPtr->atomBIOS, Device, DAC);
-
-    if (!ret)
+    if (!Output->OutputDriverPrivate)
 	return RHD_SENSED_NONE;
 
-    return rhdAtomBIOSScratchDACSenseResults(Output, DAC, Device);
+    switch (Connector->Type) {
+	case RHD_CONNECTOR_DVI:
+	case RHD_CONNECTOR_DVI_SINGLE:
+	case RHD_CONNECTOR_VGA:
+	    TV = FALSE;
+	    break;
+	default:
+	    TV = TRUE;
+    }
+
+    while ((Device = Output->OutputDriverPrivate->OutputDevices[i++].DeviceId) != atomNone) {
+	switch (Device) {
+	    case atomCRT1:
+	    case atomCRT2:
+		if (TV)
+		    continue;
+		break;
+	    case atomTV1:
+	    case atomTV2:
+	    case atomCV:
+		if (!TV)
+		    continue;
+		break;
+	    default: /* should not get here */
+		return RHD_SENSED_NONE;
+	}
+
+	switch (Output->Id) {
+	    case RHD_OUTPUT_DACA:
+		RHDDebug(Output->scrnIndex, "Sensing DACA on Output %s\n",Output->Name);
+		DAC = atomDACA;
+		break;
+	    case RHD_OUTPUT_DACB:
+		RHDDebug(Output->scrnIndex, "Sensing DACB on Output %s\n",Output->Name);
+		DAC = atomDACB;
+		break;
+	    default:
+		return FALSE;
+	}
+
+	ret = AtomDACLoadDetection(rhdPtr->atomBIOS, Device, DAC);
+
+	if (!ret)
+	    continue;
+
+	if ((retVal =  rhdAtomBIOSScratchDACSenseResults(Output, DAC, Device)) != RHD_SENSED_NONE)
+	    return retVal;
+    }
+    return RHD_SENSED_NONE;
 }
 
 /*
@@ -1000,10 +1032,166 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output)
     RHDPtr rhdPtr = RHDPTRI(Output);
     int BlLevel;
 
+    RHDFUNC(Output);
+
     Output->Property = atomLVDSPropertyControl;
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
 
     return BlLevel;
+}
+
+/*
+ * This destroys the privates again. It is implemented as an output destroy wrapper.
+ */
+static void
+rhdAtomDestroyOutputDriverPrivate(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+
+    if (Output->OutputDriverPrivate) {
+	void (*Destroy) (struct rhdOutput *Output) = Output->OutputDriverPrivate->Destroy;
+
+	xfree(Output->OutputDriverPrivate->OutputDevices);
+	xfree(Output->OutputDriverPrivate);
+	Output->OutputDriverPrivate = NULL;
+	if (Destroy)
+	    Destroy(Output);
+    }
+}
+
+/*
+ * This sets up the AtomBIOS driver output private.
+ * It allocates the data structure and sets up the list of devices
+ * including the connector they are associated with.
+ */
+Bool
+rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct rhdOutput *Output)
+{
+    struct rhdOutputDevices *od = NULL;
+    struct atomOutputPrivate *OutputDriverPrivate;
+    int i = 0, cnt = 0;
+
+    RHDFUNC(Output);
+
+    if (!Devices) {
+	RHDDebug(Output->scrnIndex, "%s: Device list doesn't exist.\n");
+	return FALSE;
+    }
+
+    while (Devices[i].DeviceId != atomNone) {
+	if (Devices[i].OutputType == Output->Id) {
+	    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
+		return FALSE;
+	    od[cnt].DeviceId = Devices[i].DeviceId;
+	    od[cnt].ConnectorType = Devices[i].ConnectorType;
+	    cnt++;
+	}
+	i++;
+    }
+    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
+	return FALSE;
+    od[cnt].DeviceId = atomNone;
+
+    if (!(OutputDriverPrivate = (struct atomOutputPrivate *)xalloc(sizeof(struct atomOutputPrivate)))) {
+	xfree(od);
+	return FALSE;
+    }
+    OutputDriverPrivate->OutputDevices = od;
+    OutputDriverPrivate->Destroy = Output->Destroy;
+    Output->Destroy = rhdAtomDestroyOutputDriverPrivate;
+    Output->OutputDriverPrivate = OutputDriverPrivate;
+
+    return TRUE;
+}
+
+/*
+ * This function finds the AtomBIOS device ID of the device that we currently
+ * want to drive with a specific output. It contains a logic to deal with CRTC vs. TV
+ * on DACs.
+ * This function preferrably gets called from within the function that also updates
+ * the BIOS scratch registers.
+ */
+enum atomDevice
+rhdAtomSetDeviceForOutput(struct rhdOutput *Output)
+{
+    int i = 0;
+
+    RHDFUNC(Output);
+
+    if (!Output->Connector) {
+	RHDDebug(Output->scrnIndex,"%s: No connector assigned to output %s\n",__func__,Output->Name);
+	return atomNone;
+    }
+
+    if (!Output->OutputDriverPrivate) {
+	RHDDebug(Output->scrnIndex,"%s: Output %s has no DriverPrivate\n",__func__,Output->Name);
+	return atomNone;
+    }
+
+    while (Output->OutputDriverPrivate->OutputDevices[i].DeviceId != atomNone) {
+	if (Output->OutputDriverPrivate->OutputDevices[i].ConnectorType == Output->Connector->Type){
+	    switch (Output->OutputDriverPrivate->OutputDevices[i].DeviceId) {
+		case atomCrtc1:
+		case atomCrtc2:
+		    if (Output->SensedType == RHD_SENSED_VGA)
+			break;
+		    i++;
+		    continue;
+		case atomTV1:
+		case atomTV2:
+		    if (Output->SensedType == RHD_SENSED_TV_SVIDEO
+			|| Output->SensedType == RHD_SENSED_TV_COMPOSITE)
+			break;
+		    i++;
+		    continue;
+		case atomCV:
+		    if (Output->SensedType == RHD_SENSED_TV_COMPONENT)
+			break;
+		    i++;
+		    continue;
+		default:
+		    break;
+	    }
+	    Output->OutputDriverPrivate->Device = Output->OutputDriverPrivate->OutputDevices[i].DeviceId;
+
+	    return Output->OutputDriverPrivate->Device;
+	}
+	i++;
+    }
+    return atomNone;
+}
+
+/*
+ * Find the connector and output type for a specific atom device.
+ * This information is kept in the output lists.
+ */
+Bool
+rhdFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device, enum rhdOutputType *ot, enum rhdConnectorType *ct)
+{
+    struct rhdOutput *Output;
+
+    *ot = RHD_OUTPUT_NONE;
+    *ct = RHD_CONNECTOR_NONE;
+
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+	struct rhdOutputDevices *DeviceList;
+	int i = 0;
+
+	if (!Output->OutputDriverPrivate)
+	    continue;
+
+	DeviceList = Output->OutputDriverPrivate->OutputDevices;
+	while (DeviceList[i].DeviceId != atomNone) {
+	    if (DeviceList[i].DeviceId == Device) {
+		*ot = Output->Id;
+		*ct = DeviceList[i].ConnectorType;
+		return TRUE;
+	    }
+	    i++;
+	}
+    }
+
+    return FALSE;
 }
 
 #endif /* ATOM_BIOS */

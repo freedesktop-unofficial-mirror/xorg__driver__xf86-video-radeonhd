@@ -113,6 +113,4 @@ struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD
 struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType);
 struct rhdOutput *RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType, rhdOutputType OutputType);
 
-extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output);
-
 #endif /* _RHD_OUTPUT_H */

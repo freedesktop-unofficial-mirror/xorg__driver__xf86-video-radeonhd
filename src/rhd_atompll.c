@@ -45,6 +45,7 @@
 #include "rhd_regs.h"
 #ifdef ATOM_BIOS
 # include "rhd_atombios.h"
+# include "rhd_atomout.h"
 # include "rhd_biosscratch.h"
 
 struct atomPLLPrivate {
@@ -70,6 +71,8 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
     struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
 
     switch (Private->Version.cref) {
+	case 1:
+	    break;
 	case 2:
 	    Config->u.v2.Device = device;
 	    Config->u.v2.Force = TRUE;
@@ -126,7 +129,7 @@ getSetPixelClockParameters(struct rhdPLL *PLL, struct atomPixelClockConfig *Conf
 	    Config->u.v3.UsePpll = FALSE;
 	    break;
 	default:
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unsupported SelectPixelClock version; %i\n",Private->Version.cref);
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Unsupported SelectPixelClock version: %i\n",Private->Version.cref);
 	    break;
     }
 }
@@ -141,9 +144,6 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     struct atomPLLPrivate *Private = (struct atomPLLPrivate *)PLL->Private;
     CARD32 Crtc1Cntl, Crtc2Cntl;
     enum atomCrtc owner;
-    struct rhdConnector *Connector;
-    struct rhdOutput *Output;
-
 
     Crtc1Cntl = RHDRegRead(PLL, PCLK_CRTC1_CNTL);
     Crtc2Cntl = RHDRegRead(PLL, PCLK_CRTC2_CNTL);
@@ -165,11 +165,10 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     Private->StoreCrtc = owner;
     Private->StoreDevice = RHDGetDeviceOnCrtc(rhdPtr, owner);
 
-    if (Private->StoreDevice != atomNone) {
-	rhdAtomFindOutputConnectorForDevice(rhdPtr, Private->StoreDevice, &Connector, &Output);
-	Private->StoreConnectorType = Connector->Type;
-	Private->StoreOutputType = Output->Id;
-    } else
+    if (Private->StoreDevice != atomNone) 
+	rhdFindConnectorAndOutputTypesForDevice(rhdPtr, Private->StoreDevice,
+						&Private->StoreOutputType, &Private->StoreConnectorType);
+    else
 	PLL->StoreActive = FALSE;
 
     RHDDebug(PLL->scrnIndex, "Saving PLL %i on CRTC: %i %s active - device: 0x%x\n",
@@ -180,7 +179,7 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
 
     PLL->Stored = TRUE;
 
-    /* Set parameters found at startup for sutdownInactive(). This is somewhat ugly... */
+    /* Set parameters found at startup for shutdownInactive(). This is somewhat ugly... */
     Private->Config.Crtc = Private->StoreCrtc;
     Private->Config.Enable = PLL->StoreActive;
     if (Private->StoreDevice != atomNone)

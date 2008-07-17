@@ -35,11 +35,12 @@ enum rhdBIOSScratchBlAction {
 
 extern enum rhdSensedOutput rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output,
 							      enum atomDAC DAC, enum atomDevice Device);
-extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
 extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters * regs);
-extern void RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
 extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int *val);
+
+extern enum atomDevice RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output);
+extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 
 # endif
 #if 0

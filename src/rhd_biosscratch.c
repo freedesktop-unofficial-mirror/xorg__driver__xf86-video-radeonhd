@@ -42,13 +42,14 @@
 #endif
 
 #include "rhd.h"
-#include "rhd_atombios.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_crtc.h"
-#include "rhd_biosscratch.h"
 
 #ifdef ATOM_BIOS
+# include "rhd_atombios.h"
+# include "rhd_atomout.h"
+# include "rhd_biosscratch.h"
 # include "rhd_atomwrapper.h"
 # include "xf86int10.h"
 # ifdef ATOM_BIOS_PARSER
@@ -339,25 +340,58 @@ RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int
 /*
  * This function is public as it is used from within other outputs, too.
  */
-void
+enum atomDevice
 RHDAtomUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdOutputDevices *devList;
+    enum atomDevice Device;
+    int i = 0;
 
     RHDFUNC(Output);
 
-    if (!Output->OutputDriverPrivate)
-	return;
+    if (!Output->OutputDriverPrivate) {
+	RHDDebug(Output->scrnIndex,"%s: no output driver private present\n",__func__);
+	return atomNone;
+    }
+    devList = Output->OutputDriverPrivate->OutputDevices;
 
-    if (Output->Crtc)
-	rhdAtomBIOSScratchSetCrtcState(rhdPtr, Output->OutputDriverPrivate->Device,
-				       Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
-    rhdAtomBIOSScratchUpdateOnState(rhdPtr, Output->OutputDriverPrivate->Device,
-				    Output->Active);
-    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr,  Output->OutputDriverPrivate->Device,
-					  Output->Connector != NULL);
+    if (Output->Connector) {
+	/* connected - enable */
+	Device = rhdAtomSetDeviceForOutput(Output);
+
+	ASSERT(Device != atomNone);
+
+	if (Output->Crtc)
+	    rhdAtomBIOSScratchSetCrtcState(rhdPtr, Device,
+					   Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
+	rhdAtomBIOSScratchUpdateOnState(rhdPtr, Device, Output->Active);
+	rhdAtomBIOSScratchUpdateAttachedState(rhdPtr, Device, TRUE);
+
+	while (devList[i].DeviceId != atomNone) {
+	    if (devList[i].DeviceId != Device)
+		rhdAtomBIOSScratchUpdateOnState(rhdPtr, devList[i].DeviceId, FALSE);
+	        i++;
+	}
+
+    } else {
+	/* not connected - just disable everything */
+	Device = atomNone;
+	Output->OutputDriverPrivate->Device = Device;
+
+	while (devList[i].DeviceId != atomNone) {
+	    rhdAtomBIOSScratchUpdateOnState(rhdPtr, devList[i].DeviceId, FALSE);
+	    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr, devList[i].DeviceId, FALSE);
+	    i++;
+	}
+    }
+
+    return Device;
 }
 
+/*
+ *
+ */
 enum atomDevice
 RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc)
 {
