@@ -41,10 +41,8 @@
 # work in the xf86-video-radeonhd build system. For non-recursive make,
 # you can probably make things a little bit simpler.
 #
-# KNOWN BUGS:
-#  * Uses hyphenated ("git-foo-bar") program names, which git upstream
-#    have declared deprecated.
-#
+# Requires git >= 1.3.0 for the 'git foo' (with space) syntax,
+#      and git >= 1.4   for some specific commands.
 
 # Help messages
 USAGE="[<option>...]"
@@ -60,6 +58,7 @@ Options:
 
 # The caller may have set these for us
 SED="${SED-sed}"
+GIT="${GIT-git}"
 
 # Initialize
 working_dir=`pwd`
@@ -155,29 +154,26 @@ cat<<EOF
 
 EOF
 
-# Detect git tools (should work with old and new git versions)
+# Detect git tool (should work with old and new git versions)
 git_found=yes
-for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index git
-do
-    if [ x`which $git_tool 2>/dev/null` = "x" ]; then
-        git_found="'$git_tool' not found"
-        break
-    fi
-done
+if [ "x$GIT" = "xgit" ] && [ x`which $GIT 2>/dev/null` = "x" ]; then
+    git_found="'$GIT' not found"
+    break
+fi
 # If git_found=yes, we can now use $() substitutions (as git does). Hooray!
 
 # Determine git specific defines
 unset git_errors ||:
 if [ "x$git_found" = "xyes" ]; then
-    git_version=`git --version`
+    git_version=`$GIT --version`
     if [ "x$git_version" = "x" ]; then
-        git_errors="${git_errors+${git_errors}; }error running 'git --version'"
+        git_errors="${git_errors+${git_errors}; }error running '$GIT --version'"
     fi
 fi
 
 git_repo=no
 # "git-rev-parse --git-dir" since git-0.99.7
-git_repo_dir="$(git-rev-parse --git-dir 2> /dev/null || true)"
+git_repo_dir="$($GIT rev-parse --git-dir 2> /dev/null || true)"
 abs_repo_dir="$(cd "$git_repo_dir" && pwd)"
 # Only accept the found git repo iff it is in our top srcdir, as determined
 # by comparing absolute pathnames creaged by running pwd in the respective dir.
@@ -185,12 +181,12 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
     git_repo=yes
     if [ "x$git_found" = "xyes" ]; then
         # git-1.4 and probably earlier understand "git-rev-parse HEAD"
-        git_shaid=`git-rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
+        git_shaid=`$GIT rev-parse HEAD | $SED -n 's/^\(.\{8\}\).*/\1/p'`
         if [ "x$git_shaid" = "x" ]; then
-            git_errors="${git_errors+${git_errors}; }error running 'git-rev-parse HEAD'"
+            git_errors="${git_errors+${git_errors}; }error running '$GIT rev-parse HEAD'"
         fi
         # git-1.4 and probably earlier understand "git-symbolic-ref HEAD"
-        git_branch=`git-symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
+        git_branch=`$GIT symbolic-ref HEAD | $SED -n 's|^refs/heads/||p'`
         if [ "x$git_branch" = "x" ]; then
             # This happens, is OK, and "(no branch)" is what "git branch" prints.
             git_branch="(no branch)"
@@ -198,7 +194,7 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
         git_dirty=yes
         # git-1.4 does not understand "git-diff-files --quiet"
         # git-1.4 does not understand "git-diff-index --cached --quiet HEAD"
-        if [ "x$(git-diff-files)" = "x" ] && [ "x$(git-diff-index --cached HEAD)" = "x" ]; then
+        if [ "x$($GIT diff-files)" = "x" ] && [ "x$($GIT diff-index --cached HEAD)" = "x" ]; then
             git_dirty=no
         fi
     fi
