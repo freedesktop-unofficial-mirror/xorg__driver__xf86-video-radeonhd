@@ -100,6 +100,7 @@
 #include "rhd_atombios.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
+#include "rhd_atomout.h"
 #include "rhd_pll.h"
 #include "rhd_vga.h"
 #include "rhd_mc.h"
@@ -760,7 +761,25 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   "Card information has invalid connector information\n");
 	goto error1;
     }
+#ifdef ATOM_BIOS
+    {
+	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
+	AtomBiosArgRec data;
 
+	data.chipset = rhdPtr->ChipSet;
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOMBIOS_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
+	    OutputDeviceList = data.OutputDeviceList;
+
+	if (OutputDeviceList) {
+	    struct rhdOutput *Output;
+
+	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
+		rhdAtomSetupOutputDriverPrivate(OutputDeviceList, Output);
+	    xfree(OutputDeviceList);
+	}
+    }
+#endif
     /*
      * Set this here as we might need it for the validation of a fixed mode in
      * rhdModeLayoutSelect(). Later it is used for Virtual selection and mode

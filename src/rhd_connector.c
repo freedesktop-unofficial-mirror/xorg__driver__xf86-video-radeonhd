@@ -214,7 +214,6 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     struct rhdConnector *Connector;
     struct rhdOutput *Output;
     struct rhdCsState *csstate = NULL;
-    struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
     int i, j, k, l, hpd;
     Bool InfoAllocated = FALSE;
 
@@ -246,16 +245,6 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	    return FALSE;
 	}
     }
-#ifdef ATOM_BIOS
-    {
-	AtomBiosArgRec data;
-
-	data.chipset = rhdPtr->ChipSet;
-	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    ATOMBIOS_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
-	    OutputDeviceList = data.OutputDeviceList;
-    }
-#endif
     /* Init HPD */
     rhdPtr->HPD = xnfcalloc(sizeof(struct rhdHPD), 1);
     RHDHPDSave(rhdPtr);
@@ -381,9 +370,6 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	    }
 
 	    if (Output) {
-#ifdef ATOM_BIOS
-		rhdAtomSetupOutputDriverPrivate(OutputDeviceList, Output);
-#endif
 		xf86DrvMsg(rhdPtr->scrnIndex, X_PROBED,
 			   "Attaching Output %s to Connector %s\n",
 			   Output->Name, Connector->Name);
@@ -409,8 +395,6 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	/* Don't free the Privates as they are hooked into the rhdConnector structures !!! */
 	xfree(ConnectorInfo);
     }
-    if (OutputDeviceList)
-	xfree(OutputDeviceList);
 
     RHDHPDRestore(rhdPtr);
 
