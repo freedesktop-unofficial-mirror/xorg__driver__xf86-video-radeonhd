@@ -898,7 +898,7 @@ rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 		    data.val = line & 0x0f;
 		    if (RHDAtomBiosFunc(I2CPtr->scrnIndex,
 					rhdPtr->atomBIOS,
-					ATOM_GPIO_I2C_DATA_MASK,
+					ATOM_GPIO_I2C_DATA_MASK_SHIFT,
 					&data) == ATOM_SUCCESS) {
 			sda = getDDCLineFromGPIO(gpio, data.val);
 			if (scl >= 0 && sda >= 0)
