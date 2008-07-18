@@ -334,7 +334,7 @@ RHDIdentify(int flags)
 	    "\tM71   : Mobility Radeon HD 2300.\n"
 	    "\tM72   : Mobility Radeon HD 2400; Radeon E2400.\n"
 	    "\tM74   : Mobility Radeon HD 2400 XT.\n"
-	    "\tM76   : Mobility Radeon HD 2600.\n"
+	    "\tM76   : Mobility Radeon HD 2600;\n"
 	    "\t\t(Gemini ATI) Mobility Radeon HD 2600 XT.\n"
 	    "\tM82   : Mobility Radeon HD 3400.\n");
     xf86Msg(X_NONE,
