@@ -149,11 +149,17 @@ Mobility Radeon HD 2400; Radeon E2400
 Mobility Radeon HD 2400 XT
 .TP 8
 .B M76
-Mobility Radeon HD 2600;
+Mobility Radeon HD 2600
 (Gemini ATI) Mobility Radeon HD 2600 XT
 .TP 8
 .B M82
 Mobility Radeon HD 3400
+.TP 8
+.B M86
+Mobility Radeon HD 3650, HD 3670, Mobility FireGL V5700
+.TP 8
+.B M88
+Mobility Radeon HD 3850, HD 3850 X2, HD 3870, HD3870 X2
 .TP 8
 .B RS600
 Radeon Xpress 1200, Xpress 1250
@@ -161,11 +167,14 @@ Radeon Xpress 1200, Xpress 1250
 .B RS690
 Radeon X1200, X1250, X1270
 .TP 8
+.B RS740
+RS740, RS740M
+.TP 8
 .B RS780
-Radeon HD 3200 Series
+Radeon HD 3100/3200/3300 Series
 .TP 8
 .B RV770
-Radeon HD 4800 Series
+Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
 .\" END_DEVICE_LIST marker - do not delete
 .PD
 .\"
