@@ -504,7 +504,7 @@ RADEONAllocateMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (info->exa) {
+    if (info->xaa) {
 	FBLinearPtr linear = *mem_struct;
 	int cpp = pScrn->bitsPerPixel >> 3;
 
@@ -566,7 +566,7 @@ RADEONFreeMemory(
     }
 #endif /* USE_EXA */
 #ifdef USE_XAA
-    if (info->exa) {
+    if (info->xaa) {
 	FBLinearPtr linear = mem_struct;
 
 	if (linear != NULL)
