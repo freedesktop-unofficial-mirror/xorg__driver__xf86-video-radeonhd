@@ -397,6 +397,8 @@ RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int
 {
     CARD32 Addr;
 
+    RHDFUNC(rhdPtr);
+
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x18;
     else
@@ -405,8 +407,10 @@ RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int
     switch (action) {
 	case rhdBIOSScratchBlGet:
 	    *val = (RHDRegRead(rhdPtr, Addr) >> 8) & 0xFF;
+	    RHDDebug(rhdPtr->scrnIndex, "Get BL level: 0x%x\n",*val);
 	    break;
 	case rhdBIOSScratchBlSet:
+	    RHDDebug(rhdPtr->scrnIndex, "Set BL level: 0x%x\n",*val);
 	    RHDRegMask(rhdPtr, Addr, (*val) << 8, 0xFF00);
 	    break;
     }
