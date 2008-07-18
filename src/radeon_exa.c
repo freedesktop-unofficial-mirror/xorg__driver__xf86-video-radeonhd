@@ -35,7 +35,6 @@
 
 #include "rhd.h"
 #include "radeon_accel.h"
-#include "radeon_exa.h"
 #include "rhd_dri.h"
 #include "rhd_cp.h"
 
