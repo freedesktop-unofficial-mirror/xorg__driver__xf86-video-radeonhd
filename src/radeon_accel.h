@@ -133,4 +133,19 @@ extern void RADEONWaitForIdleMMIO(ScrnInfoPtr pScrn);
 extern void RADEONWaitForIdleCP(ScrnInfoPtr pScrn);
 #endif
 
+# ifdef USE_EXA
+/* radeon_exa.c */
+extern Bool RADEONSetupMemEXA(ScreenPtr pScreen);
+extern Bool RADEON_EXAInit(ScreenPtr pScreen);
+extern void RADEONCloseEXA(ScreenPtr pScreen);
+
+# endif /* USE_EXA */
+# ifdef USE_XAA
+
+extern Bool RADEONSetupMemXAA(int scrnIndex, ScreenPtr pScreen);
+extern Bool RADEON_XAAInit(ScreenPtr pScreen);
+extern void RADEONCloseXAA(ScreenPtr pScreen);
+
+# endif /* USE_XAA */
+
 #endif /*  _RADEON_ACCEL_H */

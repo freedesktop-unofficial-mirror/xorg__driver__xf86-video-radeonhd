@@ -115,8 +115,6 @@
 #include "r5xx_accel.h"
 #endif
 #include "radeon_accel.h"
-#include "radeon_xaa.h"
-#include "radeon_exa.h"
 
 #ifdef USE_DRI
 #include "rhd_dri.h"

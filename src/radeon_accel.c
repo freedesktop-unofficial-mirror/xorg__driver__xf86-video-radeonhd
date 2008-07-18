@@ -62,8 +62,6 @@
 #include "rhd_cp.h"
 
 #include "radeon_accel.h"
-#include "radeon_xaa.h"
-#include "radeon_exa.h"
 
 #include "radeon_reg.h"
 #ifdef USE_DRI
