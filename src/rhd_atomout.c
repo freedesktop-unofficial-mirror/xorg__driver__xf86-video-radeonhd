@@ -903,14 +903,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		}
 	    }
 
-	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
-		Output->Property = atomLVDSPropertyControl;
-		LVDSInfoRetrieve(rhdPtr, Private);
-	    } else {
-		Output->Property = atomTMDSPropertyControl;
-		TMDSInfoRetrieve(rhdPtr, Private);
-	    }
-
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
@@ -939,6 +931,14 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    xfree(Private);
 	    return NULL;
     }
+    if (ConnectorType == RHD_CONNECTOR_PANEL) {
+	Output->Property = atomLVDSPropertyControl;
+	LVDSInfoRetrieve(rhdPtr, Private);
+    } else {
+	Output->Property = atomTMDSPropertyControl;
+	TMDSInfoRetrieve(rhdPtr, Private);
+    }
+
 
     Output->Mode = rhdAtomOutputSet;
     Output->Power = rhdAtomOutputPower;
