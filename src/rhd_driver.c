@@ -1102,6 +1102,29 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     return TRUE;
 }
 
+void
+RHDAllIdle(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+    struct rhdCrtc *Crtc;
+
+    /* stop scanout */
+    for (i = 0; i < 2; i++) {
+	Crtc = rhdPtr->Crtc[i];
+	if (pScrn->scrnIndex == Crtc->scrnIndex)
+	    Crtc->Power(Crtc, RHD_POWER_RESET);
+    }
+
+    /* TODO: Invalidate the cached acceleration registers */
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+	R5xx2DIdle(pScrn);
+
+    if (!RHDMCIdle(rhdPtr, 1000))
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
+}
+
+
 /* Mandatory */
 static Bool
 RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
@@ -1110,27 +1133,13 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     if(pScrn->vtSema) {
-	struct rhdCrtc *Crtc;
-	int i;
 
 #ifdef USE_DRI
 	if (rhdPtr->dri)
 	    RHDDRICloseScreen(pScreen);
 #endif
 
-	/* stop scanout */
-	for (i = 0; i < 2; i++) {
-	    Crtc = rhdPtr->Crtc[i];
-	    if (scrnIndex == Crtc->scrnIndex)
-		Crtc->Power(Crtc, RHD_POWER_RESET);
-	}
-
-	/* TODO: Invalidate the cached acceleration registers */
-	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
-	    R5xx2DIdle(pScrn);
-
-	if (!RHDMCIdle(rhdPtr, 1000))
-	    xf86DrvMsg(scrnIndex, X_WARNING, "MC not idle\n");
+	RHDAllIdle(pScrn);
 
 	rhdRestore(rhdPtr);
     }
@@ -1210,8 +1219,6 @@ RHDLeaveVT(int scrnIndex, int flags)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct rhdCrtc *Crtc;
-    int i;
 
     RHDFUNC(rhdPtr);
 
@@ -1220,19 +1227,7 @@ RHDLeaveVT(int scrnIndex, int flags)
 	RHDDRILeaveVT(pScrn->pScreen);
 #endif
 
-    /* stop scanout */
-    for (i = 0; i < 2; i++) {
-	Crtc = rhdPtr->Crtc[i];
-	if (scrnIndex == Crtc->scrnIndex)
-	    Crtc->Power(Crtc, RHD_POWER_RESET);
-    }
-
-    /* TODO: Invalidate the cached acceleration registers */
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
-	R5xx2DIdle(pScrn);
-
-    if (!RHDMCIdle(rhdPtr, 1000))
-	xf86DrvMsg(scrnIndex, X_WARNING, "MC not idle\n");
+    RHDAllIdle(pScrn);
 
     rhdRestore(rhdPtr);
 }
