@@ -93,25 +93,6 @@ enum RHD_CHIPSETS {
     RHD_CHIP_END
 };
 
-enum RHD_FAMILIES {
-    RHD_FAMILY_UNKNOWN = 0,
-    RHD_FAMILY_RV515,
-    RHD_FAMILY_R520,
-    RHD_FAMILY_RV530,
-    RHD_FAMILY_RV560,
-    RHD_FAMILY_RV570,
-    RHD_FAMILY_R580,
-    RHD_FAMILY_RS690,
-    RHD_FAMILY_R600,
-    RHD_FAMILY_RV610,
-    RHD_FAMILY_RV630,
-    RHD_FAMILY_RV670,
-    RHD_FAMILY_RV620,
-    RHD_FAMILY_RV635,
-    RHD_FAMILY_RS780,
-    RHD_FAMILY_RV770
-};
-
 enum RHD_HPD_USAGE {
     RHD_HPD_USAGE_AUTO = 0,
     RHD_HPD_USAGE_OFF,
@@ -355,7 +336,6 @@ extern void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
 extern unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name);
 
 /* rhd_id.c */
-enum RHD_FAMILIES RHDFamily(enum RHD_CHIPSETS chipset);
 Bool RHDIsIGP(enum RHD_CHIPSETS chipset);
 
 /* rhd_helper.c */

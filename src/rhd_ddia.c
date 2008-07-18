@@ -340,7 +340,7 @@ RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
      * This needs to be handled separately
      * for now we only deal with it here.
      */
-    if (RHDFamily(rhdPtr->ChipSet) != RHD_FAMILY_RS690)
+    if (rhdPtr->ChipSet < RHD_RS600 || rhdPtr->ChipSet >= RHD_RS740)
 	return FALSE;
 
     Output = xnfcalloc(sizeof(struct rhdOutput), 1);
