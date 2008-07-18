@@ -333,23 +333,24 @@ typedef struct RHDRec {
 
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
-unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
-Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector);
-CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
+extern unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
+extern Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector);
+extern void RHDAllIdle(ScrnInfoPtr pScrn);
+extern CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
 #define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
-void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
+extern void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
 #define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
-void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
+extern void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 #define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
-CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
+extern CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
 #define RHDReadMC(ptr,addr) _RHDReadMC((ptr)->scrnIndex,(addr))
-void _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data);
+extern void _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data);
 #define RHDWriteMC(ptr,addr,value) _RHDWriteMC((ptr)->scrnIndex,(addr),(value))
-CARD32 _RHDReadPLL(int scrnIndex, CARD16 offset);
+extern CARD32 _RHDReadPLL(int scrnIndex, CARD16 offset);
 #define RHDReadPLL(ptr, off) _RHDReadPLL((ptr)->scrnIndex,(off))
-void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
+extern void _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data);
 #define RHDWritePLL(ptr, off, value) _RHDWritePLL((ptr)->scrnIndex,(off),(value))
-unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name);
+extern unsigned int RHDAllocFb(RHDPtr rhdPtr, unsigned int size, const char *name);
 
 /* rhd_id.c */
 enum RHD_FAMILIES RHDFamily(enum RHD_CHIPSETS chipset);

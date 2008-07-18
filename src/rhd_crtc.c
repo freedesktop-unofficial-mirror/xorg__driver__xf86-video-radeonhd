@@ -1037,6 +1037,7 @@ D1CRTCDisable(struct rhdCrtc *Crtc)
 	int i;
 
 	RHDRegMask(Crtc, D1CRTC_CONTROL, 0, 0x00000301);
+	(void)RHDRegRead(Crtc, D1CRTC_CONTROL);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
 	    if (!(RHDRegRead(Crtc, D1CRTC_CONTROL) & 0x00010000)) {
@@ -1061,6 +1062,7 @@ D2CRTCDisable(struct rhdCrtc *Crtc)
 	int i;
 
 	RHDRegMask(Crtc, D2CRTC_CONTROL, 0, 0x00000301);
+	(void)RHDRegRead(Crtc, D2CRTC_CONTROL);
 
 	for (i = 0; i < CRTC_SYNC_WAIT; i++)
 	    if (!(RHDRegRead(Crtc, D2CRTC_CONTROL) & 0x00010000)) {
