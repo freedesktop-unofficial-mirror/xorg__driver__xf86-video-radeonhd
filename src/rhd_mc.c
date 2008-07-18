@@ -51,7 +51,6 @@ struct rhdMC {
     Bool (*MCIdle)(RHDPtr rhdPtr);
 
     Bool RV515Variant;
-
 };
 
 /*

@@ -1190,6 +1190,7 @@ RHDAllIdle(ScrnInfoPtr pScrn)
 
     if (!RHDMCIdle(rhdPtr, 1000))
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
+
 }
 
 
