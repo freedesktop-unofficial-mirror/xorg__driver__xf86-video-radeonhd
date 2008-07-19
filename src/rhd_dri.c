@@ -86,7 +86,7 @@
 #define RHD_DEFAULT_GART_SIZE       16	/* MB (must be 2^n and > 4MB) */
 #define RHD_DEFAULT_RING_SIZE       2	/* MB (must be page aligned) */
 #define RHD_DEFAULT_BUFFER_SIZE     2	/* MB (must be page aligned) */
-#define RHD_DEFAULT_CP_TIMEOUT      10000  /* usecs */
+#define RHD_DEFAULT_CP_TIMEOUT      100000  /* usecs */
 #define RHD_DEFAULT_PCI_APER_SIZE   32	/* in MB */
 
 #define RADEON_MAX_DRAWABLES        256
@@ -118,15 +118,6 @@ struct rhdDri {
      * Need to save/restore/update GEN_INT_CNTL (interrupts) on drm init.
      * AGP_BASE, MC_FB_LOCATION, MC_AGP_LOCATION are (partially) handled
      * in _mc.c */
-
-#if 0
-    /* TODO: color tiling
-     * discuss: should front buffer ever be tiled?
-     * should xv surfaces ever be tiled?
-     * should anything else ever *not* be tiled?) */
-    Bool              allowColorTiling;
-    Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
-#endif
 
     int               pixel_code;
 
@@ -193,16 +184,7 @@ struct rhdDri {
     int               pciGartSize;
     CARD32            pciGartOffset;
     void             *pciGartBackup;
-
-    // FIXME: probably belongs to 2D accel
-#if 0
-    // RADEON_RE_TOP_LEFT, RADEON_RE_WIDTH_HEIGHT, RADEON_AUX_SC_CNTL no longer exist (RADEONCP_REFRESH)
-    /* Saved scissor values */
-    CARD32            re_top_left;
-    CARD32            re_width_height;
-    CARD32            aux_sc_cntl;
-#endif
-} ;
+};
 
 
 static size_t radeon_drm_page_size;
@@ -913,7 +895,8 @@ static void RHDDRICPStart(ScrnInfoPtr pScrn)
     /* Start the CP, no matter which acceleration type is used */
     int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
     if (_ret)
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: CP start %d\n", __FUNCTION__, _ret);
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: CP start %d\n", __func__, _ret);
 }
 
 
@@ -1061,7 +1044,7 @@ static Bool RHDDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
 /* PreInit */
 Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 {
-    RHDPtr         rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdDri *info;
 
     if (!rhdPtr->useDRI.val.bool) {
@@ -1175,16 +1158,7 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
     int            size, depth_size;
     unsigned int   old_freeoffset, old_freesize;
 
-    size = pScrn->displayWidth * bytesPerPixel;
-#if 0
-    /* Need to adjust screen size for 16 line tiles, and then make it align to
-     * the buffer alignment requirement.
-     */
-    if (info->allowColorTiling)
-	size *= RADEON_ALIGN(pScrn->virtualY, 16);
-    else
-#endif
-	size *= pScrn->virtualY;
+    size = pScrn->displayWidth * bytesPerPixel * pScrn->virtualY;
 
     old_freeoffset = rhdPtr->FbFreeStart;
     old_freesize   = rhdPtr->FbFreeSize;
@@ -1416,12 +1390,18 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
      * because *DRIKernelInit requires that the hardware lock is held by
      * the X server, and the first time the hardware lock is grabbed is
      * in DRIFinishScreenInit. */
-    if (!DRIFinishScreenInit(pScreen))
+    if (!DRIFinishScreenInit(pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: DRIFinishScreenInit Failed.\n", __func__);
 	return RHDDRICloseScreen(pScreen);
+    }
 
     /* Initialize the kernel data structures */
-    if (!RHDDRIKernelInit(rhdPtr, pScreen))
+    if (!RHDDRIKernelInit(rhdPtr, pScreen)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: RHDDRIKernelInit Failed.\n", __func__);
 	return RHDDRICloseScreen(pScreen);
+    }
 
     /* Initialize the vertex buffers list */
     if (!RHDDRIBufInit(rhdPtr, pScreen))
@@ -1488,17 +1468,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
      * Probably should be in _driver.c anyway. */
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering enabled\n");
 
-#if 0
-    /* we might already be in tiled mode, tell drm about it */
-    if (info->directRenderingEnabled && info->tilingEnabled) {
-	if (RHDDRISetParam(pScrn, RADEON_SETPARAM_SWITCH_TILING, (info->tilingEnabled ? 1 : 0)) < 0)
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "[drm] failed changing tiling status\n");
-    }
-#endif
-
     /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if (rhdPtr->ChipSet < RHD_R600 &&
+    if ((rhdPtr->ChipSet < RHD_R600) &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
 	R5xx2DStart(pScrn);
@@ -1524,7 +1495,7 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     if ( (ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_RESUME)) )
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: CP resume %d\n", __FUNCTION__, ret);
+		   "%s: CP resume %d\n", __func__, ret);
 
     /* TODO: maybe using CP_INIT instead of CP_RESUME is enough, so we wouldn't
      * need an additional copy of the GART table in main memory. OTOH the table
@@ -1540,7 +1511,7 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
     RHDDRISetVBlankInterrupt(pScrn, info->have3Dwindows);
 
     /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if (rhdPtr->ChipSet < RHD_R600 &&
+    if ((rhdPtr->ChipSet < RHD_R600) &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
 	R5xx2DStart(pScrn);
