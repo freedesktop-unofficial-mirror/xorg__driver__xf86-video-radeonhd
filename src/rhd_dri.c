@@ -814,7 +814,7 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     /* DRM_RADEON_CP_INIT does an engine reset, which resets some engine
      * registers back to their default values, so we need to restore
      * those engine register here. */
-//    RADEONEngineRestore(pScrn);
+//    R5xx2DSetup(pScrn);
 
     return TRUE;
 }
@@ -1501,7 +1501,7 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DInit(pScrn);
+	R5xx2DStart(pScrn);
 
     return TRUE;
 }
@@ -1543,7 +1543,7 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DInit(pScrn);
+	R5xx2DStart(pScrn);
 
     DRIUnlock(pScrn->pScreen);
 }

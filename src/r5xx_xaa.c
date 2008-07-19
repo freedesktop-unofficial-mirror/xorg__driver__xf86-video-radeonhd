@@ -78,6 +78,34 @@
 
 extern struct R5xxRop R5xxRops[];
 
+struct R5xxXaaPrivate {
+    int scrnIndex;
+
+    CARD32 dst_pitch_offset; /* Base value for R5XX_DST_PITCH_OFFSET */
+    CARD32 control; /* Base value for R5XX_DP_GUI_MASTER_CNTL */
+    CARD32 control_saved;
+
+    int xdir;
+    int ydir;
+
+    int trans_color;
+
+    int scanline_x;
+    int scanline_y;
+    int scanline_w;
+    CARD32 scanline_h; /* R5xx */
+    CARD32 scanline_words; /* R5xx */
+    int scanline_bpp; /* Only used for ImageWrite -- R5xx */
+    int scanline_fg;
+    int scanline_bg;
+    int scanline_hpass;
+    int scanline_x1clip;
+    int scanline_x2clip;
+
+    CARD8 *Buffer;
+    CARD8 *BufferHook[1];
+};
+
 /* Set up for transparency
  *
  * Mmmm, Seems as though the transparency compare is opposite to r128.
@@ -101,7 +129,7 @@ R5xxXAASetTransparency(ScrnInfoPtr pScrn, int trans_color)
 static void
 R5xxXAASetClippingRectangle(ScrnInfoPtr pScrn, int xa, int ya, int xb, int yb)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     unsigned long tmp1, tmp2;
 
     if (xa < 0) {
@@ -133,13 +161,13 @@ R5xxXAASetClippingRectangle(ScrnInfoPtr pScrn, int xa, int ya, int xb, int yb)
 
     R5xxFIFOWait(pScrn->scrnIndex, 3);
 
-    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, TwoDInfo->control_saved |
+    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, XaaPrivate->control_saved |
 		  R5XX_GMC_DST_CLIPPING);
     RHDRegWrite(pScrn, R5XX_SC_TOP_LEFT, tmp1);
     RHDRegWrite(pScrn, R5XX_SC_BOTTOM_RIGHT, tmp2);
 
-    if (TwoDInfo->trans_color != -1)
-	R5xxXAASetTransparency(pScrn, TwoDInfo->trans_color);
+    if (XaaPrivate->trans_color != -1)
+	R5xxXAASetTransparency(pScrn, XaaPrivate->trans_color);
 }
 
 /*
@@ -148,16 +176,16 @@ R5xxXAASetClippingRectangle(ScrnInfoPtr pScrn, int xa, int ya, int xb, int yb)
 static void
 R5xxXAADisableClipping(ScrnInfoPtr pScrn)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
     R5xxFIFOWait(pScrn->scrnIndex, 3);
 
-    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, TwoDInfo->control_saved);
+    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, XaaPrivate->control_saved);
     RHDRegWrite(pScrn, R5XX_SC_TOP_LEFT, 0);
     RHDRegWrite(pScrn, R5XX_SC_BOTTOM_RIGHT,
 		  R5XX_DEFAULT_SC_RIGHT_MAX | R5XX_DEFAULT_SC_BOTTOM_MAX);
-    if (TwoDInfo->trans_color != -1)
-	R5xxXAASetTransparency(pScrn, TwoDInfo->trans_color);
+    if (XaaPrivate->trans_color != -1)
+	R5xxXAASetTransparency(pScrn, XaaPrivate->trans_color);
 }
 
 /*
@@ -167,14 +195,14 @@ static void
 R5xxXAASetupForSolidFill(ScrnInfoPtr pScrn,
 			 int color, int rop, unsigned int planemask)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     CARD32 control;
 
-    control = TwoDInfo->control | R5xxRops[rop].pattern;
+    control = XaaPrivate->control | R5xxRops[rop].pattern;
     control |= R5XX_GMC_BRUSH_SOLID_COLOR | R5XX_GMC_SRC_DATATYPE_COLOR;
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
     R5xxFIFOWait(pScrn->scrnIndex, 4);
 
@@ -191,11 +219,11 @@ R5xxXAASetupForSolidFill(ScrnInfoPtr pScrn,
 static void
 R5xxXAASubsequentSolidFillRect(ScrnInfoPtr pScrn, int x, int y, int w, int h)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
     R5xxFIFOWait(pScrn->scrnIndex, 3);
 
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (y << 16) | x);
     RHDRegWrite(pScrn, R5XX_DST_WIDTH_HEIGHT, (w << 16) | h);
 }
@@ -207,14 +235,14 @@ static void
 R5xxXAASetupForSolidLine(ScrnInfoPtr pScrn,
 			 int color, int rop, unsigned int planemask)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
-    CARD32 control = TwoDInfo->control;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
+    CARD32 control = XaaPrivate->control;
 
     control |= R5XX_GMC_BRUSH_SOLID_COLOR |
 	R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].pattern;
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
     R5xxFIFOWait(pScrn->scrnIndex, 4);
 
@@ -231,7 +259,7 @@ static void
 R5xxXAASubsequentSolidHorVertLine(ScrnInfoPtr pScrn,
 				  int x, int y, int len, int dir)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     int w = 1, h = 1;
 
     if (dir == DEGREES_0)
@@ -243,7 +271,7 @@ R5xxXAASubsequentSolidHorVertLine(ScrnInfoPtr pScrn,
 
     RHDRegWrite(pScrn, R5XX_DP_CNTL,
 		R5XX_DST_X_LEFT_TO_RIGHT | R5XX_DST_Y_TOP_TO_BOTTOM);
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (y << 16) | x);
     RHDRegWrite(pScrn, R5XX_DST_WIDTH_HEIGHT, (w << 16) | h);
 }
@@ -259,14 +287,14 @@ static void
 R5xxXAASubsequentSolidTwoPointLine(ScrnInfoPtr pScrn, int xa, int ya,
 				   int xb, int yb, int flags)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
     if (!(flags & OMIT_LAST))
 	R5xxXAASubsequentSolidHorVertLine(pScrn, xb, yb, 1, DEGREES_0);
 
     R5xxFIFOWait(pScrn->scrnIndex, 3);
 
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_DST_LINE_START, (ya << 16) | xa);
     RHDRegWrite(pScrn, R5XX_DST_LINE_END, (yb << 16) | xb);
 }
@@ -278,19 +306,19 @@ static void
 R5xxXAASetupForScreenToScreenCopy(ScrnInfoPtr pScrn, int xdir, int ydir, int rop,
 				  unsigned int planemask, int trans_color)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     CARD32 control;
 
-    TwoDInfo->xdir = xdir;
-    TwoDInfo->ydir = ydir;
+    XaaPrivate->xdir = xdir;
+    XaaPrivate->ydir = ydir;
 
-    control = TwoDInfo->control;
+    control = XaaPrivate->control;
     control |= R5XX_GMC_BRUSH_NONE | R5XX_GMC_SRC_DATATYPE_COLOR |
 	R5xxRops[rop].rop | R5XX_DP_SRC_SOURCE_MEMORY |
 	R5XX_GMC_SRC_PITCH_OFFSET_CNTL;
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
     R5xxFIFOWait(pScrn->scrnIndex, 3);
 
@@ -300,7 +328,7 @@ R5xxXAASetupForScreenToScreenCopy(ScrnInfoPtr pScrn, int xdir, int ydir, int rop
 		((xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
 		 (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0)));
 
-    TwoDInfo->trans_color = trans_color;
+    XaaPrivate->trans_color = trans_color;
     if (trans_color != -1)
 	R5xxXAASetTransparency(pScrn, trans_color);
 }
@@ -312,22 +340,22 @@ static void
 R5xxXAASubsequentScreenToScreenCopy(ScrnInfoPtr pScrn, int xa, int ya,
 				    int xb, int yb, int w, int h)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
-    if (TwoDInfo->xdir < 0) {
+    if (XaaPrivate->xdir < 0) {
 	xa += w - 1;
 	xb += w - 1;
     }
 
-    if (TwoDInfo->ydir < 0) {
+    if (XaaPrivate->ydir < 0) {
 	ya += h - 1;
 	yb += h - 1;
     }
 
     R5xxFIFOWait(pScrn->scrnIndex, 5);
 
-    RHDRegWrite(pScrn, R5XX_SRC_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_SRC_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_SRC_Y_X, (ya << 16) | xa);
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (yb << 16) | xb);
     RHDRegWrite(pScrn, R5XX_DST_HEIGHT_WIDTH, (h << 16) | w);
@@ -344,7 +372,7 @@ static void
 R5xxXAASetupForMono8x8PatternFill(ScrnInfoPtr pScrn, int patternx, int patterny,
 				  int fg, int bg, int rop, unsigned int planemask)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     CARD32 control;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
@@ -356,7 +384,7 @@ R5xxXAASetupForMono8x8PatternFill(ScrnInfoPtr pScrn, int patternx, int patterny,
     patterny = CARD32SWAP(patterny);
 #endif
 
-    control = TwoDInfo->control | R5xxRops[rop].pattern;
+    control = XaaPrivate->control | R5xxRops[rop].pattern;
     if (bg != -1)
 	control |= R5XX_GMC_BRUSH_8X8_MONO_FG_BG;
     else
@@ -366,12 +394,12 @@ R5xxXAASetupForMono8x8PatternFill(ScrnInfoPtr pScrn, int patternx, int patterny,
 #endif
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
     if (bg != -1)
-	R5xxFIFOWait(pScrn->scrnIndex, 5);
-    else
 	R5xxFIFOWait(pScrn->scrnIndex, 6);
+    else
+	R5xxFIFOWait(pScrn->scrnIndex, 5);
 
     RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, control);
     RHDRegWrite(pScrn, R5XX_DP_WRITE_MASK, planemask);
@@ -391,11 +419,11 @@ R5xxXAASubsequentMono8x8PatternFillRect(ScrnInfoPtr pScrn,
 					int patternx, int patterny,
 					int x, int y, int w, int h)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
     R5xxFIFOWait(pScrn->scrnIndex, 4);
 
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_BRUSH_Y_X, (patterny << 8) | patternx);
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (y << 16) | x);
     RHDRegWrite(pScrn, R5XX_DST_HEIGHT_WIDTH, (h << 16) | w);
@@ -405,15 +433,16 @@ R5xxXAASubsequentMono8x8PatternFillRect(ScrnInfoPtr pScrn,
  * Because of how the scratch buffer is initialized, this is really a
  * mainstore-to-screen color expansion.  Transparency is supported when
  * `bg == -1'.
+ * We always need to provide the bg here, otherwise the engine locks.
  */
 static void
 R5xxXAASetupForScanlineCPUToScreenColorExpandFill(ScrnInfoPtr pScrn, int fg, int bg,
 						  int rop, unsigned int planemask)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
-    CARD32 control = TwoDInfo->control;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
+    CARD32 control = XaaPrivate->control;
 
-    TwoDInfo->scanline_bpp = 0;
+    XaaPrivate->scanline_bpp = 0;
 
     control |= R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
 	R5xxRops[rop].rop | R5XX_DP_SRC_SOURCE_HOST_DATA;
@@ -430,27 +459,19 @@ R5xxXAASetupForScanlineCPUToScreenColorExpandFill(ScrnInfoPtr pScrn, int fg, int
 #endif
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
-    if (bg != -1)
-	R5xxFIFOWait(pScrn->scrnIndex, 4);
-    else
-	R5xxFIFOWait(pScrn->scrnIndex, 3);
+    R5xxFIFOWait(pScrn->scrnIndex, 4);
 #else
-    if (bg != -1)
-	R5xxFIFOWait(pScrn->scrnIndex, 5);
-    else
-	R5xxFIFOWait(pScrn->scrnIndex, 4);
+    R5xxFIFOWait(pScrn->scrnIndex, 5);
 
     RHDRegWrite(pScrn, R5XX_RBBM_GUICNTL, R5XX_HOST_DATA_SWAP_NONE);
 #endif
     RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, control);
     RHDRegWrite(pScrn, R5XX_DP_WRITE_MASK, planemask);
     RHDRegWrite(pScrn, R5XX_DP_SRC_FRGD_CLR, fg);
-
-    if (bg != -1)
-	RHDRegWrite(pScrn, R5XX_DP_SRC_BKGD_CLR, bg);
+    RHDRegWrite(pScrn, R5XX_DP_SRC_BKGD_CLR, bg);
 }
 
 /* Subsequent XAA indirect CPU-to-screen color expansion.  This is only
@@ -460,14 +481,14 @@ static void
 R5xxXAASubsequentScanlineCPUToScreenColorExpandFill(ScrnInfoPtr pScrn, int x, int y,
 						    int w, int h, int skipleft)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
-    TwoDInfo->scanline_h = h;
-    TwoDInfo->scanline_words = (w + 31) >> 5;
+    XaaPrivate->scanline_h = h;
+    XaaPrivate->scanline_words = (w + 31) >> 5;
 
     R5xxFIFOWait(pScrn->scrnIndex, 5);
 
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_SC_TOP_LEFT, (y << 16) | ((x + skipleft) & 0xffff));
     RHDRegWrite(pScrn, R5XX_SC_BOTTOM_RIGHT, ((y + h) << 16) | ((x + w) & 0xffff));
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (y << 16) | (x & 0xffff));
@@ -481,41 +502,38 @@ R5xxXAASubsequentScanlineCPUToScreenColorExpandFill(ScrnInfoPtr pScrn, int x, in
 static void
 R5xxXAASubsequentScanline(ScrnInfoPtr pScrn, int bufno)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
-    CARD32 *p = (CARD32 *) TwoDInfo->Buffer;
-    int i, left = TwoDInfo->scanline_words;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
+    CARD32 *p = (CARD32 *) XaaPrivate->BufferHook[bufno];
+    int i, remainder, left = XaaPrivate->scanline_words;
+    CARD16 Reg;
 
-    TwoDInfo->scanline_h--;
+    XaaPrivate->scanline_h--;
 
-    while (left) {
-	write_mem_barrier();
-	if (TwoDInfo->scanline_h == 0) {
-	    /* Last scanline - finish write to DATA_LAST */
-	    if (left <= 9) {
-		R5xxFIFOWait(pScrn->scrnIndex, left);
-		for (i = 4 * (9 - left); i < 36; i += 4)
-		    RHDRegWrite(pScrn, R5XX_HOST_DATA0 + i, *p++);
-		left = 0;
-	    } else {
-		R5xxFIFOWait(pScrn->scrnIndex, 8);
-		for (i = 0; i < 32; i += 4)
-		    RHDRegWrite(pScrn, R5XX_HOST_DATA0 + i, *p++);
-		left -= 8;
-	    }
-	} else {
-	    if (left <= 8) {
-		R5xxFIFOWait(pScrn->scrnIndex, left);
-		for (i = 8 - left; i < 8; i++)
-		    RHDRegWrite(pScrn, R5XX_HOST_DATA0 + 4 * i, *p++);
-		left = 0;
-	    } else {
-		R5xxFIFOWait(pScrn->scrnIndex, 8);
-		for (i = 0; i < 8; i++)
-		    RHDRegWrite(pScrn, R5XX_HOST_DATA0 + 4 * i, *p++);
-		left -= 8;
-	    }
-	}
+    if (XaaPrivate->scanline_h)
+	remainder = 8;
+    else
+	remainder = 9;
+
+    while (left > remainder) {
+	Reg = R5XX_HOST_DATA0;
+
+	R5xxFIFOWait(pScrn->scrnIndex, 8);
+	for (i = 0; i < 8; i++, Reg += 4)
+	    RHDRegWrite(pScrn, Reg, *p++);
+
+	left -= 8;
     }
+
+    if (XaaPrivate->scanline_h)
+	Reg = R5XX_HOST_DATA7;
+    else
+	Reg = R5XX_HOST_DATA_LAST; /* Last scanline - finish write to DATA_LAST */
+
+    Reg -= 4 * (left - 1);
+
+    R5xxFIFOWait(pScrn->scrnIndex, left);
+    for (i = 0; i < left; i++, Reg += 4)
+        RHDRegWrite(pScrn, Reg, *p++);
 }
 
 /*
@@ -525,20 +543,17 @@ static void
 R5xxXAASetupForScanlineImageWrite(ScrnInfoPtr pScrn, int rop, unsigned int planemask,
 				  int trans_color, int bpp, int depth)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
-    CARD32 control = TwoDInfo->control;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
+    CARD32 control = XaaPrivate->control;
 
-    ErrorF("%s(rop = %d, planemask = 0x%08X, trans_color = %d, bpp = %d, depth = %d)\n",
-	   __func__, rop, planemask, trans_color, bpp, depth);
-
-    TwoDInfo->scanline_bpp = bpp;
+    XaaPrivate->scanline_bpp = bpp;
 
     control |= R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
 	R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].rop |
 	R5XX_GMC_BYTE_MSB_TO_LSB | R5XX_DP_SRC_SOURCE_HOST_DATA;
 
     /* Save for later clipping */
-    TwoDInfo->control_saved = control;
+    XaaPrivate->control_saved = control;
 
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
     R5xxFIFOWait(pScrn->scrnIndex, 2);
@@ -555,7 +570,7 @@ R5xxXAASetupForScanlineImageWrite(ScrnInfoPtr pScrn, int rop, unsigned int plane
     RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, control);
     RHDRegWrite(pScrn, R5XX_DP_WRITE_MASK, planemask);
 
-    TwoDInfo->trans_color = trans_color;
+    XaaPrivate->trans_color = trans_color;
     if (trans_color != -1)
 	R5xxXAASetTransparency(pScrn, trans_color);
 }
@@ -567,22 +582,19 @@ static void
 R5xxXAASubsequentScanlineImageWriteRect(ScrnInfoPtr pScrn, int x, int y,
 					int w, int h, int skipleft)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     int shift = 0; /* 32bpp */
-
-    ErrorF("%s(x = %d, y = %d, w = %d, h = %d, skipleft = %d)\n",
-	   __func__, x, y, w, h, skipleft);
 
     if (pScrn->bitsPerPixel == 8)
 	shift = 3;
     else if (pScrn->bitsPerPixel == 16)
 	shift = 1;
 
-    TwoDInfo->scanline_h = h;
-    TwoDInfo->scanline_words  = (w * TwoDInfo->scanline_bpp + 31) >> 5;
+    XaaPrivate->scanline_h = h;
+    XaaPrivate->scanline_words  = (w * XaaPrivate->scanline_bpp + 31) >> 5;
 
     R5xxFIFOWait(pScrn->scrnIndex, 5);
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, TwoDInfo->dst_pitch_offset);
+    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, XaaPrivate->dst_pitch_offset);
     RHDRegWrite(pScrn, R5XX_SC_TOP_LEFT, (y << 16) | ((x + skipleft) & 0xffff));
     RHDRegWrite(pScrn, R5XX_SC_BOTTOM_RIGHT, ((y + h) << 16) | ((x + w) & 0xffff));
     RHDRegWrite(pScrn, R5XX_DST_Y_X, (y << 16) | (x & 0xffff));
@@ -596,7 +608,9 @@ R5xxXAASubsequentScanlineImageWriteRect(ScrnInfoPtr pScrn, int x, int y,
 static void
 R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
+
+    RHDFUNC(pScrn);
 
     XAAInfo->Flags = PIXMAP_CACHE | OFFSCREEN_PIXMAPS | LINEAR_FRAMEBUFFER;
 
@@ -637,19 +651,6 @@ R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo
     XAAInfo->SubsequentSolidHorVertLine = R5xxXAASubsequentSolidHorVertLine;
     XAAInfo->SubsequentSolidTwoPointLine = R5xxXAASubsequentSolidTwoPointLine;
 
-#if 0 /* Disabled on RV200 and newer because it does not pass XTest */
-    XAAInfo->SetupForDashedLine = R5xxXAASetupForDashedLine;
-    XAAInfo->SubsequentDashedTwoPointLine = R5xxXAASubsequentDashedTwoPointLine;
-    XAAInfo->DashPatternMaxLength = 32;
-    /* ROP3 doesn't seem to work properly for dashedline with GXinvert */
-    XAAInfo->DashedLineFlags = LINE_PATTERN_LSBFIRST_LSBJUSTIFIED |
-	LINE_PATTERN_POWER_OF_2_ONLY | LINE_LIMIT_COORDS | ROP_NEEDS_SOURCE;
-    XAAInfo->DashedLineLimits.x1 = 0;
-    XAAInfo->DashedLineLimits.y1 = 0;
-    XAAInfo->DashedLineLimits.x2 = pScrn->virtualX - 1;
-    XAAInfo->DashedLineLimits.y2 = pScrn->virtualY - 1;
-#endif
-
     /* Screen-to-screen Copy */
     XAAInfo->ScreenToScreenCopyFlags = 0;
     XAAInfo->SetupForScreenToScreenCopy = R5xxXAASetupForScreenToScreenCopy;
@@ -666,6 +667,11 @@ R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo
     XAAInfo->SetupForMono8x8PatternFill = R5xxXAASetupForMono8x8PatternFill;
     XAAInfo->SubsequentMono8x8PatternFillRect = R5xxXAASubsequentMono8x8PatternFillRect;
 
+    if (!XaaPrivate->Buffer)
+	XaaPrivate->Buffer = xnfcalloc(1, ((pScrn->virtualX + 31) / 32 * 4) +
+				       (pScrn->virtualX * (pScrn->bitsPerPixel / 8)));
+    XaaPrivate->BufferHook[0] = XaaPrivate->Buffer;
+
     /* Indirect CPU-To-Screen Color Expand
      *
      * R5XX gets upset, when using HOST provided data without a source rop.
@@ -674,7 +680,7 @@ R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo
     XAAInfo->ScanlineCPUToScreenColorExpandFillFlags =
 	LEFT_EDGE_CLIPPING | ROP_NEEDS_SOURCE | LEFT_EDGE_CLIPPING_NEGATIVE_X;
     XAAInfo->NumScanlineColorExpandBuffers = 1;
-    XAAInfo->ScanlineColorExpandBuffers = (CARD8 **) &TwoDInfo->Buffer;
+    XAAInfo->ScanlineColorExpandBuffers = XaaPrivate->BufferHook;
     XAAInfo->SetupForScanlineCPUToScreenColorExpandFill = R5xxXAASetupForScanlineCPUToScreenColorExpandFill;
     XAAInfo->SubsequentScanlineCPUToScreenColorExpandFill = R5xxXAASubsequentScanlineCPUToScreenColorExpandFill;
     XAAInfo->SubsequentColorExpandScanline = R5xxXAASubsequentScanline;
@@ -689,7 +695,7 @@ R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo
 	ROP_NEEDS_SOURCE |
 	SCANLINE_PAD_DWORD | LEFT_EDGE_CLIPPING | LEFT_EDGE_CLIPPING_NEGATIVE_X;
     XAAInfo->NumScanlineImageWriteBuffers = 1;
-    XAAInfo->ScanlineImageWriteBuffers = (CARD8 **) &TwoDInfo->Buffer;
+    XAAInfo->ScanlineImageWriteBuffers = XaaPrivate->BufferHook;
     XAAInfo->SetupForScanlineImageWrite = R5xxXAASetupForScanlineImageWrite;
     XAAInfo->SubsequentScanlineImageWriteRect = R5xxXAASubsequentScanlineImageWriteRect;
     XAAInfo->SubsequentImageWriteScanline = R5xxXAASubsequentScanline;
@@ -733,21 +739,61 @@ R5xxXAAFBInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 /*
  *
  */
+static void
+R5xxXaaPrivateInit(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct R5xxXaaPrivate *XaaPrivate = xnfcalloc(1, sizeof(struct R5xxXaaPrivate));
+
+    XaaPrivate->scrnIndex = pScrn->scrnIndex;
+
+    XaaPrivate->control = (R5xx2DDatatypeGet(pScrn) << R5XX_GMC_DST_DATATYPE_SHIFT) |
+	R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_DST_PITCH_OFFSET_CNTL;
+
+    XaaPrivate->dst_pitch_offset =
+	(((pScrn->displayWidth * (pScrn->bitsPerPixel / 8)) / 64) << 22) |
+	((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10);
+
+    rhdPtr->TwoDPrivate = XaaPrivate;
+}
+
+/*
+ *
+ */
+static void
+R5xxXaaPrivateDestroy(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct R5xxXaaPrivate *XaaPrivate = rhdPtr->TwoDPrivate;
+
+    if (!XaaPrivate)
+	return;
+
+    if (XaaPrivate->Buffer)
+	xfree(XaaPrivate->Buffer);
+
+    xfree(XaaPrivate);
+    rhdPtr->TwoDPrivate = NULL;
+}
+
+/*
+ *
+ */
 Bool
 R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     XAAInfoRecPtr XAAInfo;
 
-    R5xx2DInit(pScrn);
-
     XAAInfo = XAACreateInfoRec();
     if (!XAAInfo) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "%s: XAACreateInfoRec failed.\n", __func__);
-	R5xx2DDestroy(pScrn);
 	return FALSE;
     }
+
+    /* need to do this before FunctionsInit */
+    R5xxXaaPrivateInit(pScrn);
 
     R5xxXAAFunctionsInit(pScrn, pScreen, XAAInfo);
 
@@ -757,10 +803,13 @@ R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: XAAInit failed.\n",
 		   __func__);
 	XAADestroyInfoRec(XAAInfo);
-	R5xx2DDestroy(pScrn);
+	R5xxXaaPrivateDestroy(pScrn);
 	return FALSE;
     }
+
     rhdPtr->XAAInfo = XAAInfo;
+
+    R5xx2DStart(pScrn);
 
     return TRUE;
 }
@@ -773,11 +822,10 @@ R5xxXAADestroy(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if (!rhdPtr->XAAInfo)
-	return;
+    if (rhdPtr->XAAInfo) {
+	XAADestroyInfoRec(rhdPtr->XAAInfo);
+	rhdPtr->XAAInfo = NULL;
+    }
 
-    XAADestroyInfoRec(rhdPtr->XAAInfo);
-    rhdPtr->XAAInfo = NULL;
-
-    R5xx2DDestroy(pScrn);
+    R5xxXaaPrivateDestroy(pScrn);
 }

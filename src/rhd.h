@@ -290,7 +290,7 @@ typedef struct RHDRec {
 #ifdef USE_EXA
     struct _ExaDriver  *EXAInfo;
 #endif
-    void               *TwoDInfo;
+    void               *TwoDPrivate;
 
     /* RandR compatibility layer */
     struct rhdRandr    *randr;

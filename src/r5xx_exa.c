@@ -36,7 +36,6 @@
 #endif
 
 #include "xf86.h"
-#include "exa.h"
 
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
@@ -48,7 +47,44 @@
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
 
+#include "exa.h"
+
 extern struct R5xxRop R5xxRops[];
+
+struct R5xxExaPrivate {
+    int scrnIndex;
+
+    int xdir;
+    int ydir;
+
+    int exaSyncMarker;
+    int exaMarkerSynced;
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+    unsigned long swapper_surfaces[3];
+#endif /* X_BYTE_ORDER */
+};
+
+/*
+ * Helpers.
+ */
+inline CARD8
+R5xxEXADatatypeGet(int bitsPerPixel)
+{
+    switch (bitsPerPixel) {
+    case 8:
+	return R5XX_DATATYPE_CI8;
+    case 16:
+	return R5XX_DATATYPE_RGB565;
+    case 32:
+	return R5XX_DATATYPE_ARGB8888;
+    default:
+	return 0;
+    }
+}
+
+#define R5XX_EXA_PITCH_CHECK(pitch) (((pitch) >= 0x4000) || ((pitch) & 0x003F))
+#define R5XX_EXA_OFFSET_CHECK(offset) ((offset) & 0xFFF)
+#define RHDPTRE(p) (RHDPTR(xf86Screens[(p)->myNum]))
 
 /*
  *
@@ -56,11 +92,11 @@ extern struct R5xxRop R5xxRops[];
 static int
 R5xxEXAMarkSync(ScreenPtr pScreen)
 {
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(xf86Screens[pScreen->myNum])->TwoDInfo;
+    struct R5xxExaPrivate *ExaPrivate = RHDPTR(xf86Screens[pScreen->myNum])->TwoDPrivate;
 
-    TwoDInfo->exaSyncMarker++;
+    ExaPrivate->exaSyncMarker++;
 
-    return TwoDInfo->exaSyncMarker;
+    return ExaPrivate->exaSyncMarker;
 }
 
 /*
@@ -70,11 +106,11 @@ static void
 R5xxEXASync(ScreenPtr pScreen, int marker)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxExaPrivate *ExaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
-    if (TwoDInfo->exaMarkerSynced != marker) {
+    if (ExaPrivate->exaMarkerSynced != marker) {
 	R5xx2DIdle(pScrn);
-	TwoDInfo->exaMarkerSynced = marker;
+	ExaPrivate->exaMarkerSynced = marker;
     }
 }
 
@@ -84,50 +120,41 @@ R5xxEXASync(ScreenPtr pScreen, int marker)
 static Bool
 R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTRE(pPix->drawable.pScreen);
     CARD32 datatype, pitch, offset;
 
-    switch (pPix->drawable.bitsPerPixel) {
-    case 8:
-	datatype = R5XX_DATATYPE_CI8;
-	break;
-    case 16:
-	datatype = R5XX_DATATYPE_RGB565;
-	break;
-    case 32:
-	datatype = R5XX_DATATYPE_ARGB8888;
-	break;
-    default:
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
+    datatype = R5xxEXADatatypeGet(pPix->drawable.bitsPerPixel);
+    if (!datatype) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
 		   __func__, pPix->drawable.bitsPerPixel);
 	return FALSE;
     }
 
     pitch = exaGetPixmapPitch(pPix);
-    if ((pitch >= 0x4000) || (pitch & 0x003F)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid pitch: %d\n",
+    if (R5XX_EXA_PITCH_CHECK(pitch)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid pitch: %d\n",
 		   __func__, (unsigned int) pitch);
 	return FALSE;
     }
 
     offset = exaGetPixmapOffset(pPix);
-    if (offset & 0x0FFF) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid offset: %d\n",
+    if (R5XX_EXA_OFFSET_CHECK(offset)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid offset: %d\n",
 		   __func__, (unsigned int) offset);
 	return FALSE;
     }
-    offset += RHDPTR(pScrn)->FbIntAddress + RHDPTR(pScrn)->FbScanoutStart;
+    offset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxFIFOWait(pScrn->scrnIndex, 5);
-    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
+    R5xxFIFOWait(rhdPtr->scrnIndex, 5);
+    RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
 		R5XX_GMC_BRUSH_SOLID_COLOR | (datatype << 8) |
 		R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[alu].pattern |
 		R5XX_GMC_CLR_CMP_CNTL_DIS);
-    RHDRegWrite(pScrn, R5XX_DP_BRUSH_FRGD_CLR, fg);
-    RHDRegWrite(pScrn, R5XX_DP_WRITE_MASK, pm);
-    RHDRegWrite(pScrn, R5XX_DP_CNTL,
+    RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_FRGD_CLR, fg);
+    RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, pm);
+    RHDRegWrite(rhdPtr, R5XX_DP_CNTL,
 		R5XX_DST_X_LEFT_TO_RIGHT | R5XX_DST_Y_TOP_TO_BOTTOM);
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, (pitch << 16) | (offset >> 10));
+    RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, (pitch << 16) | (offset >> 10));
 
     return TRUE;
 }
@@ -138,11 +165,11 @@ R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 static void
 R5xxEXASolid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTRE(pPix->drawable.pScreen);
 
-    R5xxFIFOWait(pScrn->scrnIndex, 2);
-    RHDRegWrite(pScrn, R5XX_DST_Y_X, (y1 << 16) | x1);
-    RHDRegWrite(pScrn, R5XX_DST_HEIGHT_WIDTH, ((y2 - y1) << 16) | (x2 - x1));
+    R5xxFIFOWait(rhdPtr->scrnIndex, 2);
+    RHDRegWrite(rhdPtr, R5XX_DST_Y_X, (y1 << 16) | x1);
+    RHDRegWrite(rhdPtr, R5XX_DST_HEIGHT_WIDTH, ((y2 - y1) << 16) | (x2 - x1));
 }
 
 /*
@@ -161,72 +188,62 @@ static Bool
 R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
 		   Pixel planemask)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct R5xx2DInfo *TwoDInfo = rhdPtr->TwoDInfo;
+    RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
+    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
     CARD32 datatype, srcpitch, srcoffset, dstpitch, dstoffset;
 
-    TwoDInfo->xdir = xdir;
-    TwoDInfo->ydir = ydir;
+    ExaPrivate->xdir = xdir;
+    ExaPrivate->ydir = ydir;
 
-    switch (pDst->drawable.bitsPerPixel) {
-    case 8:
-	datatype = R5XX_DATATYPE_CI8;
-	break;
-    case 16:
-	datatype = R5XX_DATATYPE_RGB565;
-	break;
-    case 32:
-	datatype = R5XX_DATATYPE_ARGB8888;
-	break;
-    default:
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
+    datatype = R5xxEXADatatypeGet(pDst->drawable.bitsPerPixel);
+    if (!datatype) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
 		   __func__, pDst->drawable.bitsPerPixel);
 	return FALSE;
     }
 
     srcpitch = exaGetPixmapPitch(pSrc);
-    if ((srcpitch >= 0x4000) || (srcpitch & 0x003F)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid source pitch: %d\n",
+    if (R5XX_EXA_PITCH_CHECK(srcpitch)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid source pitch: %d\n",
 		   __func__, (unsigned int) srcpitch);
 	return FALSE;
     }
 
     srcoffset = exaGetPixmapOffset(pSrc);
-    if (srcoffset & 0x0FFF) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid source offset: %d\n",
+    if (R5XX_EXA_OFFSET_CHECK(srcoffset)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid source offset: %d\n",
 		   __func__, (unsigned int) srcoffset);
 	return FALSE;
     }
     srcoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
     dstpitch = exaGetPixmapPitch(pDst);
-    if ((dstpitch >= 0x4000) || (dstpitch & 0x003F)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid destination pitch: %d\n",
+    if (R5XX_EXA_PITCH_CHECK(dstpitch)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid destination pitch: %d\n",
 		   __func__, (unsigned int) dstpitch);
 	return FALSE;
     }
 
     dstoffset = exaGetPixmapOffset(pDst);
-    if (dstoffset & 0x0FFF) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s: Invalid destination offset: %d\n",
+    if (R5XX_EXA_OFFSET_CHECK(dstoffset)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid destination offset: %d\n",
 		   __func__, (unsigned int) dstoffset);
 	return FALSE;
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxFIFOWait(pScrn->scrnIndex, 5);
-    RHDRegWrite(pScrn, R5XX_DP_GUI_MASTER_CNTL,
+    R5xxFIFOWait(rhdPtr->scrnIndex, 5);
+    RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL,
 		R5XX_GMC_DST_PITCH_OFFSET_CNTL | R5XX_GMC_SRC_PITCH_OFFSET_CNTL |
 		R5XX_GMC_BRUSH_NONE | (datatype << 8) |
 		R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].rop |
 		R5XX_DP_SRC_SOURCE_MEMORY | R5XX_GMC_CLR_CMP_CNTL_DIS);
-    RHDRegWrite(pScrn, R5XX_DP_WRITE_MASK, planemask);
-    RHDRegWrite(pScrn, R5XX_DP_CNTL,
+    RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, planemask);
+    RHDRegWrite(rhdPtr, R5XX_DP_CNTL,
 		((xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
 		 (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0)));
-    RHDRegWrite(pScrn, R5XX_DST_PITCH_OFFSET, (dstpitch << 16) | (dstoffset >> 10));
-    RHDRegWrite(pScrn, R5XX_SRC_PITCH_OFFSET, (srcpitch << 16) | (srcoffset >> 10));
+    RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, (dstpitch << 16) | (dstoffset >> 10));
+    RHDRegWrite(rhdPtr, R5XX_SRC_PITCH_OFFSET, (srcpitch << 16) | (srcoffset >> 10));
 
     return TRUE;
 }
@@ -237,23 +254,23 @@ R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
 void
 R5xxEXACopy(PixmapPtr pDst, int srcX, int srcY, int dstX, int dstY, int w, int h)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
+    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
 
-    if (TwoDInfo->xdir < 0) {
+    if (ExaPrivate->xdir < 0) {
 	srcX += w - 1;
 	dstX += w - 1;
     }
-    if (TwoDInfo->ydir < 0) {
+    if (ExaPrivate->ydir < 0) {
 	srcY += h - 1;
 	dstY += h - 1;
     }
 
-    R5xxFIFOWait(pScrn->scrnIndex, 3);
+    R5xxFIFOWait(rhdPtr->scrnIndex, 3);
 
-    RHDRegWrite(pScrn, R5XX_SRC_Y_X, (srcY << 16) | srcX);
-    RHDRegWrite(pScrn, R5XX_DST_Y_X, (dstY << 16) | dstX);
-    RHDRegWrite(pScrn, R5XX_DST_HEIGHT_WIDTH, (h  << 16) | w);
+    RHDRegWrite(rhdPtr, R5XX_SRC_Y_X, (srcY << 16) | srcX);
+    RHDRegWrite(rhdPtr, R5XX_DST_Y_X, (dstY << 16) | dstX);
+    RHDRegWrite(rhdPtr, R5XX_DST_HEIGHT_WIDTH, (h  << 16) | w);
 }
 
 /*
@@ -272,7 +289,7 @@ static Bool
 R5xxEXAUploadToScreen(PixmapPtr pDst, int x, int y, int w, int h,
 		      char *src, int src_pitch)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[pDst->drawable.pScreen->myNum]);
+    RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
     CARD8 *dst = ((CARD8 *) rhdPtr->FbBase) +
 	rhdPtr->FbScanoutStart + exaGetPixmapOffset(pDst);
     int dst_pitch = exaGetPixmapPitch(pDst);
@@ -302,7 +319,7 @@ static Bool
 R5xxEXADownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 			  char *dst, int dst_pitch)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[pSrc->drawable.pScreen->myNum]);
+    RHDPtr rhdPtr = RHDPTRE(pSrc->drawable.pScreen);
     CARD8 *src = ((CARD8 *) rhdPtr->FbBase) +
 	rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc);
     int	src_pitch = exaGetPixmapPitch(pSrc);
@@ -332,7 +349,7 @@ static Bool
 R5xxEXAPrepareAccess(PixmapPtr pPix, int index)
 {
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    struct R5xxExaPrivate *ExaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     CARD32 offset = exaGetPixmapOffset(pPix);
     int soff;
     CARD32 size, flags;
@@ -368,7 +385,7 @@ R5xxEXAPrepareAccess(PixmapPtr pPix, int index)
     RHDRegWrite(pScrn, R5XX_SURFACE0_INFO + soff, flags);
     RHDRegWrite(pScrn, R5XX_SURFACE0_LOWER_BOUND + soff, offset);
     RHDRegWrite(pScrn, R5XX_SURFACE0_UPPER_BOUND + soff, offset + size - 1);
-    TwoDInfo->swapper_surfaces[index] = offset;
+    ExaPrivate->swapper_surfaces[index] = offset;
     return TRUE;
 }
 
@@ -378,8 +395,8 @@ R5xxEXAPrepareAccess(PixmapPtr pPix, int index)
 static void
 R5xxEXAFinishAccess(PixmapPtr pPix, int index)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
-    struct R5xx2DInfo *TwoDInfo = RHDPTR(pScrn)->TwoDInfo;
+    RHDPtr rhdPtr = RHDPTRE(pPix->drawable.pScreen);
+    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
     CARD32 offset = exaGetPixmapOffset(pPix);
     int soff;
 
@@ -387,14 +404,14 @@ R5xxEXAFinishAccess(PixmapPtr pPix, int index)
     if (offset == 0)
         return;
 
-    if (TwoDInfo->swapper_surfaces[index] == 0)
+    if (ExaPrivate->swapper_surfaces[index] == 0)
         return;
 
     soff = (index + 1) * 0x10;
-    RHDRegWrite(pScrn, R5XX_SURFACE0_INFO + soff, 0);
-    RHDRegWrite(pScrn, R5XX_SURFACE0_LOWER_BOUND + soff, 0);
-    RHDRegWrite(pScrn, R5XX_SURFACE0_UPPER_BOUND + soff, 0);
-    TwoDInfo->swapper_surfaces[index] = 0;
+    RHDRegWrite(rhdPtr, R5XX_SURFACE0_INFO + soff, 0);
+    RHDRegWrite(rhdPtr, R5XX_SURFACE0_LOWER_BOUND + soff, 0);
+    RHDRegWrite(rhdPtr, R5XX_SURFACE0_UPPER_BOUND + soff, 0);
+    ExaPrivate->swapper_surfaces[index] = 0;
 }
 
 #endif /* X_BYTE_ORDER == X_BIG_ENDIAN */
@@ -407,10 +424,9 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     ExaDriverRec *EXAInfo;
+    struct R5xxExaPrivate *ExaPrivate;
 
     RHDFUNC(pScrn);
-
-    R5xx2DInit(pScrn);
 
     EXAInfo = exaDriverAlloc();
     if (EXAInfo == NULL)
@@ -457,9 +473,18 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 	xfree(EXAInfo);
 	return FALSE;
     }
-    exaMarkSync(pScreen);
 
     RHDPTR(pScrn)->EXAInfo = EXAInfo;
+
+    ExaPrivate = xnfcalloc(1, sizeof(struct R5xxExaPrivate));
+    ExaPrivate->scrnIndex = pScrn->scrnIndex;
+
+    rhdPtr->TwoDPrivate = ExaPrivate;
+
+    exaMarkSync(pScreen);
+
+    /* start the engine already */
+    R5xx2DStart(pScrn);
 
     return TRUE;
 }
@@ -481,11 +506,13 @@ R5xxEXADestroy(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if (!rhdPtr->EXAInfo)
-	return;
+    if (rhdPtr->EXAInfo) {
+	xfree(rhdPtr->EXAInfo);
+	rhdPtr->EXAInfo = NULL;
+    }
 
-    xfree(rhdPtr->EXAInfo);
-    rhdPtr->EXAInfo = NULL;
-
-    R5xx2DDestroy(pScrn);
+    if (rhdPtr->TwoDPrivate) {
+	xfree(rhdPtr->TwoDPrivate);
+	rhdPtr->TwoDPrivate = NULL;
+    }
 }

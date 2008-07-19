@@ -37,42 +37,18 @@ struct R5xxRop {
     CARD32 pattern;
 };
 
-struct R5xx2DInfo {
-    int scrnIndex;
-
-    CARD32 dst_pitch_offset; /* Base value for R5XX_DST_PITCH_OFFSET */
-    CARD32 control; /* Base value for R5XX_DP_GUI_MASTER_CNTL */
-    CARD32 control_saved;
-    CARD32 surface_cntl;
-
-    int xdir;
-    int ydir;
-    int trans_color;
-    int scanline_bpp;
-    int scanline_h;
-    int scanline_words;
-
-    CARD8 *Buffer;
-
-#ifdef USE_EXA
-    int exaSyncMarker;
-    int exaMarkerSynced;
-#if X_BYTE_ORDER == X_BIG_ENDIAN
-    unsigned long swapper_surfaces[3];
-#endif /* X_BYTE_ORDER */
-#endif /* USE_EXA */
-};
-
 void R5xxFIFOWait(int scrnIndex, CARD32 required);
 void R5xx2DIdle(ScrnInfoPtr pScrn);
 void R5xx2DSetup(ScrnInfoPtr pScrn); /* to be called after VT switch and such */
-void R5xx2DInit(ScrnInfoPtr pScrn);
-void R5xx2DDestroy(ScrnInfoPtr pScrn);
+void R5xx2DStart(ScrnInfoPtr pScrn);
 
 Bool R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 		   CARD32 Offset, CARD32 Size, CARD32 Pitch);
 
-/* XAA specific -- #ifdef this? */
+/* Helper from r5xx_accel.c */
+CARD8 R5xx2DDatatypeGet(ScrnInfoPtr pScrn);
+
+/* XAA specific */
 Bool R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
 void R5xxXAADestroy(ScrnInfoPtr pScrn);
 

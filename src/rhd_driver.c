@@ -1036,7 +1036,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 #ifdef USE_EXA
     else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
  	if (rhdPtr->ChipSet < RHD_R600)
- 	    R5xxEXAInit(pScrn, pScreen);
+	    R5xxEXAInit(pScrn, pScreen);
     }
 #endif /* USE_EXA */
 
@@ -1117,7 +1117,7 @@ RHDAllIdle(ScrnInfoPtr pScrn)
     }
 
     /* TODO: Invalidate the cached acceleration registers */
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DIdle(pScrn);
 
     if (!RHDMCIdle(rhdPtr, 1000))
@@ -1159,8 +1159,6 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 		R5xxXAADestroy(pScrn);
 	}
 
-    /* nothing for XAA: handled in FreeRec */
-
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
 
@@ -1187,7 +1185,7 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DIdle(pScrn);
 
     if (rhdPtr->randr)
@@ -1202,7 +1200,7 @@ RHDEnterVT(int scrnIndex, int flags)
     /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DSetup(pScrn);
 
 #ifdef USE_DRI
@@ -1240,7 +1238,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
     RHDFUNC(rhdPtr);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DIdle(pScrn);
 
     if (rhdPtr->randr)
