@@ -39,6 +39,11 @@ struct R5xxRop {
 
 void R5xxFIFOWait(int scrnIndex, CARD32 required);
 void R5xx2DIdle(ScrnInfoPtr pScrn);
+
+void R5xxEngineSync(int scrnIndex);
+void R5xxDstCacheFlush(int scrnIndex);
+void R5xxZCacheFlush(int scrnIndex);
+
 void R5xx2DSetup(ScrnInfoPtr pScrn); /* to be called after VT switch and such */
 void R5xx2DStart(ScrnInfoPtr pScrn);
 

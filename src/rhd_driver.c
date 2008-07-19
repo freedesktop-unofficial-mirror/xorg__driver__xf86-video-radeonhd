@@ -1029,6 +1029,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* initialise command submission backend */
     RHDCSInit(pScrn);
     RHDCSStart(rhdPtr->CS);
+    R5xxEngineSync(pScrn->scrnIndex);
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))

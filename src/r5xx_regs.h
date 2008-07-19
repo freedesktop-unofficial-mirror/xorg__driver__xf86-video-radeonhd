@@ -52,6 +52,9 @@
 #define R5XX_DATATYPE_AYUV_444	14
 #define R5XX_DATATYPE_ARGB4444	15
 
+#define R5XX_BUS_CNTL			  0x0030
+#	define R5XX_BUS_MASTER_DIS	  (1 << 6)
+
 #define R5XX_RBBM_SOFT_RESET              0x00f0
 #       define R5XX_SOFT_RESET_CP         (1 <<  0)
 #       define R5XX_SOFT_RESET_HI         (1 <<  1)
@@ -65,6 +68,62 @@
 #define R5XX_HOST_PATH_CNTL               0x0130
 #       define R5XX_HDP_SOFT_RESET        (1 << 26)
 #       define R5XX_HDP_APER_CNTL         (1 << 23)
+
+#define R5XX_CP_RB_BASE                   0x0700
+#define R5XX_CP_RB_CNTL                   0x0704
+#	define R5XX_BUF_SWAP_32BIT	  (2 << 16)
+#	define R5XX_RB_NO_UPDATE	  (1 << 27)
+#       define R5XX_RB_RPTR_WR_ENA        (1 << 31)
+
+#define R5XX_CP_RB_RPTR_ADDR              0x070c
+#define R5XX_CP_RB_RPTR                   0x0710
+#define R5XX_CP_RB_WPTR                   0x0714
+#define R5XX_CP_RB_WPTR_DELAY             0x0718
+#       define R5XX_PRE_WRITE_TIMER_SHIFT    0
+#       define R5XX_PRE_WRITE_LIMIT_SHIFT    23
+
+#define R5XX_CP_RB_RPTR_WR                0x071C
+
+#define R5XX_CP_IB_BASE                   0x0738
+#define R5XX_CP_IB_BUFSZ                  0x073c
+
+#define R5XX_CP_CSQ_CNTL                  0x0740
+#       define R5XX_CSQ_CNT_PRIMARY_MASK  (0xff << 0)
+#       define R5XX_CSQ_PRIDIS_INDDIS     (0    << 28)
+#       define R5XX_CSQ_PRIPIO_INDDIS     (1    << 28)
+#       define R5XX_CSQ_PRIBM_INDDIS      (2    << 28)
+#       define R5XX_CSQ_PRIPIO_INDBM      (3    << 28)
+#       define R5XX_CSQ_PRIBM_INDBM       (4    << 28)
+#       define R5XX_CSQ_PRIPIO_INDPIO     (15   << 28)
+
+#define R5XX_CP_CSQ_MODE                  0x0744
+
+#define R5XX_CP_STAT 0x07C0
+/*
+ * [ 0]    MRU_BUSY
+ * [ 1]    MWU_BUSY
+ * [ 2]    RSIU_BUSY
+ * [ 3]    RCIU_BUSY
+ * [ 8: 4]
+ * [ 9]    CSF_PRIMARY_BUSY
+ * [10]    CSF_INDIRECT_BUSY
+ * [11]    CSQ_PRIMARY_BUSY
+ * [12]    CSQ_INDIRECT_BUSY
+ * [13]    CSI_BUSY
+ * [14]    CSF_INDIRECT2_BUSY
+ * [15]    CSQ_INDIRECT2_BUSY
+ * [27:16]
+ * [28]    GUIDMA_BUSY
+ * [29]    VIDDMA_BUSY
+ * [30]    CMDSTRM_BUSY
+ * [31]    CP_BUSY
+ */
+
+#define R5XX_CP_ME_CNTL			  0x07D0
+#define R5XX_CP_ME_RAM_ADDR		  0x07D4
+#define R5XX_CP_ME_RAM_RADDR		  0x07D8
+#define R5XX_CP_ME_RAM_DATAH		  0x07DC
+#define R5XX_CP_ME_RAM_DATAL		  0x07E0
 
 #define R5XX_SURFACE_CNTL                 0x0b00
 #       define R5XX_SURF_TRANSLATION_DIS  (1 << 8)
@@ -234,9 +293,19 @@
 #       define R5XX_DSTCACHE_FLUSH_ALL    (R5XX_DSTCACHE_FLUSH_2D | R5XX_DSTCACHE_FREE_2D)
 #       define R5XX_DSTCACHE_BUSY         (1 << 31)
 
-#define R5XX_WAIT_UNTIL			  0x1720
+#define R5XX_WAIT_UNTIL                   0x1720
+#       define R5XX_WAIT_CRTC_PFLIP       (1 << 0)
 #       define R5XX_WAIT_2D_IDLECLEAN     (1 << 16)
 #       define R5XX_WAIT_3D_IDLECLEAN     (1 << 17)
+#       define R5XX_WAIT_HOST_IDLECLEAN   (1 << 18)
+
+#define R5XX_ISYNC_CNTL                   0x1724
+#	define R5XX_ISYNC_ANY2D_IDLE3D	  (1 << 0)
+#	define R5XX_ISYNC_ANY3D_IDLE2D	  (1 << 1)
+#	define R5XX_ISYNC_TRIG2D_IDLE3D	  (1 << 2)
+#	define R5XX_ISYNC_TRIG3D_IDLE2D	  (1 << 3)
+#	define R5XX_ISYNC_WAIT_IDLEGUI	  (1 << 4)
+#	define R5XX_ISYNC_CPSCRATCH_IDLEGUI	(1 << 5)
 
 #define R5XX_RBBM_GUICNTL                 0x172c
 #       define R5XX_HOST_DATA_SWAP_NONE   (0 << 0)
@@ -254,6 +323,34 @@
 #define R5XX_HOST_DATA7                   0x17dc
 #define R5XX_HOST_DATA_LAST               0x17e0
 
+#define R5XX_RB3D_ZCACHE_MODE             0x3250
+
+#define R5XX_RB3D_ZCACHE_CTLSTAT          0x3254
+#       define R5XX_RB3D_ZC_FLUSH            (1 << 0)
+#       define R5XX_RB3D_ZC_FREE             (1 << 1)
+#       define R5XX_RB3D_ZC_FLUSH_ALL        0x3
+
+#define R5XX_RB3D_DSTCACHE_MODE           0x3258
+# define R5XX_RB3D_DC_CACHE_ENABLE            (0)
+# define R5XX_RB3D_DC_2D_CACHE_DISABLE        (1)
+# define R5XX_RB3D_DC_3D_CACHE_DISABLE        (2)
+# define R5XX_RB3D_DC_CACHE_DISABLE           (3)
+# define R5XX_RB3D_DC_2D_CACHE_LINESIZE_128   (1 << 2)
+# define R5XX_RB3D_DC_3D_CACHE_LINESIZE_128   (2 << 2)
+# define R5XX_RB3D_DC_2D_CACHE_AUTOFLUSH      (1 << 8)
+# define R5XX_RB3D_DC_3D_CACHE_AUTOFLUSH      (2 << 8)
+# define R200_RB3D_DC_2D_CACHE_AUTOFREE       (1 << 10)
+# define R200_RB3D_DC_3D_CACHE_AUTOFREE       (2 << 10)
+# define R5XX_RB3D_DC_FORCE_RMW               (1 << 16)
+# define R5XX_RB3D_DC_DISABLE_RI_FILL         (1 << 24)
+# define R5XX_RB3D_DC_DISABLE_RI_READ         (1 << 25)
+
+#define R5XX_RB3D_DSTCACHE_CTLSTAT        0x325C
+#       define R5XX_RB3D_DC_FLUSH         (3 << 0)
+#       define R5XX_RB3D_DC_FREE          (3 << 2)
+#       define R5XX_RB3D_DC_FLUSH_ALL     0xf
+#       define R5XX_RB3D_DC_BUSY          (1 << 31)
+
 #define R5XX_RB2D_DSTCACHE_MODE		           0x3428
 #       define R5XX_RB2D_DC_AUTOFLUSH_ENABLE       (1 << 8)
 #       define R5XX_RB2D_DC_DISABLE_IGNORE_PE      (1 << 17)
@@ -269,5 +366,10 @@
 #       define R5XX_TILE_SIZE_32                        (2 << 4)
 #       define R5XX_SUBPIXEL_1_12                       (0 << 16)
 #       define R5XX_SUBPIXEL_1_16                       (1 << 16)
+
+#define R5XX_SC_SCISSOR0				0x43e0
+#define R5XX_SC_SCISSOR1				0x43e4
+#       define R5XX_SCISSOR_X_SHIFT                     0
+#       define R5XX_SCISSOR_Y_SHIFT                     13
 
 #endif /* _R5XX_2DREGS_H */

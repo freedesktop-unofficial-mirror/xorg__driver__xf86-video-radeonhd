@@ -179,6 +179,270 @@ CSMMIOInit(struct RhdCS *CS)
 
 #endif /* BUILD_CS_MMIO */
 
+#ifdef USE_DRI
+
+/*
+ *
+ * DRM CP Backend.
+ *
+ */
+
+#include "xf86drm.h"
+#include "radeon_drm.h"
+
+#define R5XX_IDLE_RETRY 16 /* Fall out of idle loops after this count */
+
+/* from rhd_dri.c */
+extern int RHDDRMFDGet(int scrnIndex);
+extern drmBufPtr RHDDRMCPBuffer(int scrnIndex);
+
+struct RhdDRMCP {
+    int DrmFd;
+    drmBufPtr DrmBuffer;
+};
+
+/*
+ * Flush the indirect buffer to the kernel for submission to the card
+ */
+static void
+DRMCPFlush(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    struct drm_radeon_indirect indirect;
+
+    if (!CP->DrmBuffer)
+	return;
+
+    indirect.idx = CP->DrmBuffer->idx;
+    indirect.start = CS->Flushed * 4;
+    indirect.end = CS->Wptr * 4;
+    indirect.discard = 0;
+
+    drmCommandWriteRead(CP->DrmFd, DRM_RADEON_INDIRECT,
+			&indirect, sizeof(struct drm_radeon_indirect));
+
+    /* make sure we are quadword aligned */
+    if (CS->Wptr & 1)
+	CS->Wptr++;
+
+    CS->Flushed = CS->Wptr;
+#ifdef RHD_CS_DEBUG
+    CS->Grabbed = 0;
+#endif
+}
+
+/*
+ *
+ */
+static void
+DRMCPBufferDiscard(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    struct drm_radeon_indirect indirect;
+
+    indirect.idx = CP->DrmBuffer->idx;
+    indirect.start = CS->Flushed * 4;
+    indirect.end = CS->Wptr * 4;
+    indirect.discard = 1;
+
+    drmCommandWriteRead(CP->DrmFd, DRM_RADEON_INDIRECT,
+			&indirect, sizeof(struct drm_radeon_indirect));
+}
+
+/*
+ *
+ */
+static void
+DRMCPStart(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    int ret;
+
+    ret = drmCommandNone(CP->DrmFd, DRM_RADEON_CP_START);
+    if (ret)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s: DRM CP START returned %d\n", __func__, ret);
+
+    /* Move the responsibility of checking for a buffer away from the Grab,
+       to provide symmetry with the Stop. */
+    if (CP->DrmBuffer) {
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s: stale buffer present!\n", __func__);
+	DRMCPBufferDiscard(CS);
+    }
+
+    CP->DrmBuffer = RHDDRMCPBuffer(CS->scrnIndex);
+    CS->Buffer = CP->DrmBuffer->address;
+}
+
+/*
+ *
+ */
+static void
+DRMCPStop(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    struct drm_radeon_cp_stop stop;
+    int ret, i;
+
+    /* flush and discard the indirect buffer */
+    if (CP->DrmBuffer)
+	DRMCPBufferDiscard(CS);
+    CP->DrmBuffer = NULL;
+    CS->Buffer = NULL;
+
+    /* now stop the CP itself */
+    stop.flush = 0; /* pointless in drm */
+    stop.idle = 1;
+    for (i = 0; i < R5XX_IDLE_RETRY; i++) {
+	ret = drmCommandWrite(CP->DrmFd, DRM_RADEON_CP_STOP,
+			      &stop, sizeof(struct drm_radeon_cp_stop));
+	if (!ret)
+	    return;
+	else if (ret != -16) {
+	    xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		       "%s Stop/Idle failed: %d\n", __func__, ret);
+	    return;
+	}
+    }
+
+    stop.idle = 0;
+    if (drmCommandWrite(CP->DrmFd, DRM_RADEON_CP_STOP,
+			&stop, sizeof(struct drm_radeon_cp_stop)))
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s Stop failed: %d\n", __func__, ret);
+}
+
+/*
+ *
+ */
+static void
+DRMCPReset(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    int ret;
+
+    ret = drmCommandNone(CP->DrmFd, DRM_RADEON_CP_RESET);
+    if (ret)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: Reset failed %d\n", __func__, ret);
+
+    ret = drmCommandNone(CP->DrmFd, DRM_RADEON_CP_START);
+    if (ret)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: Start failed %d\n", __func__, ret);
+}
+
+/*
+ *
+ */
+static void
+DRMCPIdle(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+    int i, ret;
+
+    /* The DRM CP IDLE call does quite a lot more than just wait for the CP
+     * going idle. It waits on the RBBM as well. This number needs to be huge,
+     * as the DRM cluelessly uses loops instead of usecs, and this is therefor
+     * decreasing rapidly with CPU advancement. */
+    for (i = 0; i < 2000000; i++) {
+	ret = drmCommandNone(CP->DrmFd, DRM_RADEON_CP_IDLE);
+	if (!ret)
+	    return;
+	else if (ret != -16) {
+	    xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: DRM CP IDLE returned %d\n", __func__, ret);
+	    return;
+	} else
+	    xf86DrvMsg(CS->scrnIndex, X_WARNING, "%s: DRM CP IDLE returned BUSY!\n", __func__);
+    }
+
+    xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: Failed!\n", __func__);
+}
+
+/*
+ *
+ */
+static void
+DRMCPGrab(struct RhdCS *CS, CARD32 Count)
+{
+    struct RhdDRMCP *CP = CS->Private;
+
+    if (!CP->DrmBuffer || ((CS->Size - CS->Wptr) < Count)) {
+	if (CP->DrmBuffer)
+	    DRMCPBufferDiscard(CS);
+
+	CP->DrmBuffer =  RHDDRMCPBuffer(CS->scrnIndex);
+	CS->Buffer = CP->DrmBuffer->address;
+	CS->Flushed = 0;
+	CS->Wptr = 0;
+#ifdef RHD_CS_DEBUG
+	CS->Grabbed = 0;
+#endif
+    }
+}
+
+/*
+ *
+ */
+static void
+DRMCPDestroy(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP = CS->Private;
+
+    if (!CP) {
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s: Out of order: already destroyed.\n", __func__);
+	return;
+    }
+
+    if (CP->DrmBuffer)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s: Shouldn't you call Stop first?\n", __func__);
+
+    xfree(CP);
+    CS->Private = NULL;
+    CS->Destroy = NULL;
+}
+
+/*
+ *
+ */
+static Bool
+CSDRMCPInit(struct RhdCS *CS)
+{
+    struct RhdDRMCP *CP;
+    int DrmFd = RHDDRMFDGet(CS->scrnIndex);
+
+    if (DrmFd < 0)
+	return FALSE;
+
+    xf86DrvMsg(CS->scrnIndex, X_INFO,
+	       "Using DRM Command Processor (indirect) for acceleration.\n");
+
+    CP = xnfcalloc(1, sizeof(struct RhdDRMCP));
+    CP->DrmFd = DrmFd;
+
+    CS->Private = CP;
+
+    CS->Type = RHD_CS_CPDMA;
+
+    CS->Size = (64 << 10) / 4;
+    CS->Mask = 0xFFFFFFFF;
+
+    CS->Grab = DRMCPGrab;
+    CS->Flush = DRMCPFlush;
+    /* The DRILeaveServer call flushes all the time for us */
+    CS->AdvanceFlush = FALSE;
+    CS->Idle = DRMCPIdle;
+    CS->Start = DRMCPStart;
+    CS->Reset = DRMCPReset;
+    CS->Stop = DRMCPStop;
+    CS->Destroy = DRMCPDestroy;
+
+    return TRUE;
+}
+
+#endif /* USE_DRI */
+
 /*
  *
  * Actual highlevel Command Submission.
@@ -340,7 +604,10 @@ RHDCSInit(ScrnInfoPtr pScrn)
 
     RHDPTR(pScrn)->CS = CS;
 
-    /* hook in drm CP backend here */
+#ifdef USE_DRI
+    if (CSDRMCPInit(CS))
+	return;
+#endif
     /* hook in direct CP backend here */
 
     CSMMIOInit(CS);

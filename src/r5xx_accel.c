@@ -135,6 +135,43 @@ R5xx2DFlush(int scrnIndex)
 }
 
 /*
+ * Used all over the place...
+ */
+void
+R5xxEngineSync(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+
+    RHDCSGrab(rhdPtr->CS, 2);
+    RHDCSRegWrite(rhdPtr->CS, R5XX_WAIT_UNTIL, R5XX_WAIT_HOST_IDLECLEAN |
+		  R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
+}
+
+/*
+ *
+ */
+void
+R5xxDstCacheFlush(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+
+    RHDCSGrab(rhdPtr->CS, 2);
+    RHDCSRegWrite(rhdPtr->CS, R5XX_RB3D_DSTCACHE_CTLSTAT, R5XX_RB3D_DC_FLUSH_ALL);
+}
+
+/*
+ *
+ */
+void
+R5xxZCacheFlush(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+
+    RHDCSGrab(rhdPtr->CS, 2);
+    RHDCSRegWrite(rhdPtr->CS, R5XX_RB3D_ZCACHE_CTLSTAT, R5XX_RB3D_ZC_FLUSH_ALL);
+}
+
+/*
  * Wait for the graphics engine to be completely idle: the FIFO has
  * drained, the Pixel Cache is flushed, and the engine is idle.  This is
  * a standard "sync" function that will make the hardware "quiescent".

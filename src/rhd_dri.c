@@ -75,6 +75,8 @@
 #include "rhd_regs.h"
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
+#include "r5xx_regs.h"
+#include "rhd_cs.h"
 #include "radeon_dri.h"
 
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
@@ -184,8 +186,9 @@ struct rhdDri {
     int               pciGartSize;
     CARD32            pciGartOffset;
     void             *pciGartBackup;
-};
 
+    CARD32         gartLocation;
+};
 
 static size_t radeon_drm_page_size;
 static char  *dri_driver_name  = "radeon";
@@ -342,6 +345,19 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
 {
 }
 
+/*
+ *
+ */
+static void
+RHDCSScissorsInit(struct RhdCS *CS)
+{
+    RHDCSGrab(CS, 4);
+    RHDCSRegWrite(CS, R5XX_SC_SCISSOR0,
+		  (0 << R5XX_SCISSOR_X_SHIFT) | (0 << R5XX_SCISSOR_Y_SHIFT));
+    RHDCSRegWrite(CS, R5XX_SC_SCISSOR1,
+		  (0x1FFF << R5XX_SCISSOR_X_SHIFT) | (0x1FFF << R5XX_SCISSOR_Y_SHIFT));
+}
+
 /* Called when the X server is woken up to allow the last client's
  * context to be saved and the X server's context to be loaded.  This is
  * not necessary for the Radeon since the client detects when it's
@@ -350,17 +366,26 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
  * can start/stop the engine. */
 static void RHDEnterServer(ScreenPtr pScreen)
 {
-#if 0
-    drm_radeon_sarea_t * pSAREAPriv;
-    RADEON_MARK_SYNC(info, pScrn);
+    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    drm_radeon_sarea_t *pSAREAPriv;
 
-// TODO: we'll probably need something like XInited3D or needCacheFlush in the cp module
-    pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
-    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
-	info->XInited3D = FALSE;
-	info->needCacheFlush = TRUE; /*(info->ChipFamily >= CHIP_FAMILY_R300)*/
-    }
+#ifdef USE_EXA
+    if (rhdPtr->EXAInfo)
+	exaMarkSync(pScrn->pScreen);
 #endif
+    if (rhdPtr->XAAInfo)
+	SET_SYNC_FLAG(rhdPtr->XAAInfo);
+
+    pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
+    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen))
+	if (rhdPtr->CS->Clean == RHD_CS_CLEAN_DIRTY) {
+	    R5xxDstCacheFlush(pScrn->scrnIndex);
+	    R5xxZCacheFlush(pScrn->scrnIndex);
+	    R5xxEngineSync(pScrn->scrnIndex);
+	    RHDCSScissorsInit(rhdPtr->CS);
+	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
+	}
 }
 
 /* Called when the X server goes to sleep to allow the X server's
@@ -371,13 +396,16 @@ static void RHDEnterServer(ScreenPtr pScreen)
  * can start/stop the engine. */
 static void RHDLeaveServer(ScreenPtr pScreen)
 {
-//    RING_LOCALS;
+    struct RhdCS *CS = RHDPTR(xf86Screens[pScreen->myNum])->CS;
 
-    // TODO: -> cp module
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
-//    RADEONCP_RELEASE(pScrn, info);
-
+    if (CS->Clean == RHD_CS_CLEAN_DONE) {
+	 R5xxDstCacheFlush(pScreen->myNum);
+	 R5xxEngineSync(pScreen->myNum);
+	 RHDCSFlush(CS); /* was a Release... */
+	 CS->Clean = RHD_CS_CLEAN_DIRTY;
+    }
 }
 
 /* Contexts can be swapped by the X server if necessary.  This callback
@@ -885,21 +913,6 @@ static void RHDDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 		   info->irq);
 }
 
-
-/* Start the CP */
-static void RHDDRICPStart(ScrnInfoPtr pScrn)
-{
-    RHDPtr         rhdPtr = RHDPTR(pScrn);
-    struct rhdDri *info   = rhdPtr->dri;
-
-    /* Start the CP, no matter which acceleration type is used */
-    int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
-    if (_ret)
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: CP start %d\n", __func__, _ret);
-}
-
-
 /*
  * Get the DRM version and do some basic useability checks of DRI
  */
@@ -1136,10 +1149,11 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
      * Same for 16bpp. */
     info->depthBits = pScrn->depth;
 
-    if (rhdPtr->AccelMethod != RHD_ACCEL_NONE) {
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		   "Disabled 2D acceleration because DRI is enabled (not implemented yet).\n");
-	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+    if ((rhdPtr->AccelMethod != RHD_ACCEL_EXA) &&
+	(rhdPtr->AccelMethod != RHD_ACCEL_XAA)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "DRI requires acceleration\n");
+	return FALSE;
     }
 
     return TRUE;
@@ -1413,9 +1427,6 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     /* Initialize kernel GART memory manager */
     RHDDRIGartHeapInit(info, pScreen);
 
-    /* Initialize and start the CP if required */
-    RHDDRICPStart(pScrn);
-
     /* Initialize the SAREA private data structure */
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
     memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
@@ -1468,12 +1479,6 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
      * Probably should be in _driver.c anyway. */
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering enabled\n");
 
-    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if ((rhdPtr->ChipSet < RHD_R600) &&
-	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
-	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DStart(pScrn);
-
     return TRUE;
 }
 
@@ -1505,55 +1510,11 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	memcpy((char *)rhdPtr->FbBase + info->pciGartOffset,
 	       info->pciGartBackup, info->pciGartSize);
 
-//    RHDAdjustMemMapRegisters(pScrn, info->ModeReg);
-//    RHDEngineRestore(pScrn);
-    RHDDRICPStart(pScrn);
+    RHDCSStart(rhdPtr->CS);
+    R5xxEngineSync(pScrn->scrnIndex);
     RHDDRISetVBlankInterrupt(pScrn, info->have3Dwindows);
 
-    /* We need to initialize the 2D engine for back-to-front blits on R5xx */
-    if ((rhdPtr->ChipSet < RHD_R600) &&
-	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
-	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DStart(pScrn);
-
     DRIUnlock(pScrn->pScreen);
-}
-
-static void
-RHDDRMStop(struct rhdDri *info)
-{
-    drm_radeon_cp_stop_t drmStop;
-    int                  i, ret;
-//    RING_LOCALS;
-
-    RHDFUNC(info);
-
-    /* If we've generated any CP commands, we must flush them to the
-     * kernel module now. */
-//    RADEONCP_RELEASE(pScrn, info);
-
-    drmStop.flush = 1;
-    drmStop.idle  = 1;
-
-    for (i = 0; i <= RHD_IDLE_RETRY; i++) {
-	ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
-			      sizeof(drm_radeon_cp_stop_t));
-	if (ret == 0) {
-	    RHDDebug(info->scrnIndex, "DRMStop #%d succeeded\n", i+1);
-	    return;
-	} else if (ret != -16 /* -EBUSY, unwrapped */) {
-	    xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop #%d failed: %d\n", i, ret);
-	    return;
-	}
-	drmStop.flush = 0;
-    }
-
-    RHDDebug(info->scrnIndex, "DRMStop idle failed\n");
-    drmStop.idle = 0;
-    ret = drmCommandWrite(info->drmFD, DRM_RADEON_CP_STOP, &drmStop,
-			  sizeof(drm_radeon_cp_stop_t));
-    if (ret)
-	xf86DrvMsg(info->scrnIndex, X_ERROR, "DRMStop failed: %d\n", ret);
 }
 
 /* Stop all before vt switch / suspend */
@@ -1567,7 +1528,10 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
     DRILock(pScrn->pScreen, 0);
-    RHDDRMStop(info);
+
+    R5xxDstCacheFlush(rhdPtr->scrnIndex);
+    R5xxEngineSync(rhdPtr->scrnIndex);
+    RHDCSStop(rhdPtr->CS);
 
     /* Backup the PCIE GART TABLE from fb memory */
     if (info->pciGartBackup)
@@ -1598,7 +1562,11 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 
     RHDFUNC(pScrn);
 
-    RHDDRMStop(info);
+    if (rhdPtr->CS) {
+	R5xxDstCacheFlush(rhdPtr->scrnIndex);
+	R5xxEngineSync(rhdPtr->scrnIndex);
+	RHDCSStop(rhdPtr->CS);
+    }
 
     if (info->irq) {
 	RHDDRISetVBlankInterrupt (pScrn, FALSE);
@@ -1785,3 +1753,61 @@ static int RHDDRISetParam(ScrnInfoPtr pScrn, unsigned int param, int64_t value)
     return ret;
 }
 
+/*
+ *
+ */
+int
+RHDDRMFDGet(int scrnIndex)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+
+    if (!Dri)
+	return -1;
+    else
+	return Dri->drmFD;
+}
+
+/*
+ * Get an indirect buffer for the CP 2D acceleration commands
+ */
+drmBufPtr
+RHDDRMCPBuffer(int scrnIndex)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+    drmDMAReq dma;
+    drmBufPtr buf = NULL;
+    int indx = 0;
+    int size = 0;
+    int i;
+
+    /* This is the X server's context */
+    dma.context = 0x00000001;
+    dma.send_count    = 0;
+    dma.send_list     = NULL;
+    dma.send_sizes    = NULL;
+    dma.flags         = 0;
+    dma.request_count = 1;
+    dma.request_size  = 64 << 10;
+    dma.request_list  = &indx;
+    dma.request_sizes = &size;
+    dma.granted_count = 0;
+
+    for (i = 0; i < R5XX_LOOP_COUNT; i++) {
+	int ret = drmDMA(Dri->drmFD, &dma);
+	if (!ret) {
+	    buf = &Dri->buffers->list[indx];
+	    /* RHDDebug(scrnIndex, "%s: index %d, addr %p\n",  __func__, buf->idx, buf->address); */
+	    return buf;
+	} else if (ret != -16)
+	    xf86DrvMsg(scrnIndex, X_ERROR, "%s: drmDMA returned %d\n",
+		       __func__, ret);
+    }
+
+    /* There is nothing we can do here... If we fail, we either failed to set
+     * up the buffers correctly, or we passed the wrong info here, or we didn't
+     * free the buffers correctly. No engine reset will save us, ever. We
+     * should just return, and let the X server segfault itself. */
+    xf86DrvMsg(scrnIndex, X_ERROR,
+	       "%s: throwing in the towel: SIGSEGV ahead!\n", __func__);
+    return NULL;
+}
