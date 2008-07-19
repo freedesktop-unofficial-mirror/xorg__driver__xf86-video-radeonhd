@@ -44,6 +44,7 @@
 #endif
 
 #include "rhd.h"
+#include "rhd_cs.h"
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
 
@@ -121,6 +122,7 @@ static Bool
 R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 {
     RHDPtr rhdPtr = RHDPTRE(pPix->drawable.pScreen);
+    struct RhdCS *CS = rhdPtr->CS;
     CARD32 datatype, pitch, offset;
 
     datatype = R5xxEXADatatypeGet(pPix->drawable.bitsPerPixel);
@@ -145,16 +147,19 @@ R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     }
     offset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxFIFOWait(rhdPtr->scrnIndex, 5);
-    RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
-		R5XX_GMC_BRUSH_SOLID_COLOR | (datatype << 8) |
-		R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[alu].pattern |
-		R5XX_GMC_CLR_CMP_CNTL_DIS);
-    RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_FRGD_CLR, fg);
-    RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, pm);
-    RHDRegWrite(rhdPtr, R5XX_DP_CNTL,
-		R5XX_DST_X_LEFT_TO_RIGHT | R5XX_DST_Y_TOP_TO_BOTTOM);
-    RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, (pitch << 16) | (offset >> 10));
+    RHDCSGrab(CS, 2 * 5);
+
+    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
+		  R5XX_GMC_BRUSH_SOLID_COLOR | (datatype << 8) |
+		  R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[alu].pattern |
+		  R5XX_GMC_CLR_CMP_CNTL_DIS);
+    RHDCSRegWrite(CS, R5XX_DP_BRUSH_FRGD_CLR, fg);
+    RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK, pm);
+    RHDCSRegWrite(CS, R5XX_DP_CNTL,
+		  R5XX_DST_X_LEFT_TO_RIGHT | R5XX_DST_Y_TOP_TO_BOTTOM);
+    RHDCSRegWrite(CS, R5XX_DST_PITCH_OFFSET, (pitch << 16) | (offset >> 10));
+
+    RHDCSAdvance(CS);
 
     return TRUE;
 }
@@ -165,11 +170,14 @@ R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 static void
 R5xxEXASolid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTRE(pPix->drawable.pScreen);
+    struct RhdCS *CS = RHDPTRE(pPix->drawable.pScreen)->CS;
 
-    R5xxFIFOWait(rhdPtr->scrnIndex, 2);
-    RHDRegWrite(rhdPtr, R5XX_DST_Y_X, (y1 << 16) | x1);
-    RHDRegWrite(rhdPtr, R5XX_DST_HEIGHT_WIDTH, ((y2 - y1) << 16) | (x2 - x1));
+    RHDCSGrab(CS, 2 * 2);
+
+    RHDCSRegWrite(CS, R5XX_DST_Y_X, (y1 << 16) | x1);
+    RHDCSRegWrite(CS, R5XX_DST_HEIGHT_WIDTH, ((y2 - y1) << 16) | (x2 - x1));
+
+    RHDCSAdvance(CS);
 }
 
 /*
@@ -189,6 +197,7 @@ R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
 		   Pixel planemask)
 {
     RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
+    struct RhdCS *CS = rhdPtr->CS;
     struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
     CARD32 datatype, srcpitch, srcoffset, dstpitch, dstoffset;
 
@@ -232,18 +241,21 @@ R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxFIFOWait(rhdPtr->scrnIndex, 5);
-    RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL,
-		R5XX_GMC_DST_PITCH_OFFSET_CNTL | R5XX_GMC_SRC_PITCH_OFFSET_CNTL |
-		R5XX_GMC_BRUSH_NONE | (datatype << 8) |
-		R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].rop |
-		R5XX_DP_SRC_SOURCE_MEMORY | R5XX_GMC_CLR_CMP_CNTL_DIS);
-    RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, planemask);
-    RHDRegWrite(rhdPtr, R5XX_DP_CNTL,
-		((xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
-		 (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0)));
-    RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, (dstpitch << 16) | (dstoffset >> 10));
-    RHDRegWrite(rhdPtr, R5XX_SRC_PITCH_OFFSET, (srcpitch << 16) | (srcoffset >> 10));
+    RHDCSGrab(CS, 2 * 5);
+
+    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL,
+		  R5XX_GMC_DST_PITCH_OFFSET_CNTL | R5XX_GMC_SRC_PITCH_OFFSET_CNTL |
+		  R5XX_GMC_BRUSH_NONE | (datatype << 8) |
+		  R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].rop |
+		  R5XX_DP_SRC_SOURCE_MEMORY | R5XX_GMC_CLR_CMP_CNTL_DIS);
+    RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK, planemask);
+    RHDCSRegWrite(CS, R5XX_DP_CNTL,
+		  ((xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
+		   (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0)));
+    RHDCSRegWrite(CS, R5XX_DST_PITCH_OFFSET, (dstpitch << 16) | (dstoffset >> 10));
+    RHDCSRegWrite(CS, R5XX_SRC_PITCH_OFFSET, (srcpitch << 16) | (srcoffset >> 10));
+
+    RHDCSAdvance(CS);
 
     return TRUE;
 }
@@ -255,6 +267,7 @@ void
 R5xxEXACopy(PixmapPtr pDst, int srcX, int srcY, int dstX, int dstY, int w, int h)
 {
     RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
+    struct RhdCS *CS = rhdPtr->CS;
     struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
 
     if (ExaPrivate->xdir < 0) {
@@ -266,11 +279,13 @@ R5xxEXACopy(PixmapPtr pDst, int srcX, int srcY, int dstX, int dstY, int w, int h
 	dstY += h - 1;
     }
 
-    R5xxFIFOWait(rhdPtr->scrnIndex, 3);
+    RHDCSGrab(CS, 2 * 3);
 
-    RHDRegWrite(rhdPtr, R5XX_SRC_Y_X, (srcY << 16) | srcX);
-    RHDRegWrite(rhdPtr, R5XX_DST_Y_X, (dstY << 16) | dstX);
-    RHDRegWrite(rhdPtr, R5XX_DST_HEIGHT_WIDTH, (h  << 16) | w);
+    RHDCSRegWrite(CS, R5XX_SRC_Y_X, (srcY << 16) | srcX);
+    RHDCSRegWrite(CS, R5XX_DST_Y_X, (dstY << 16) | dstX);
+    RHDCSRegWrite(CS, R5XX_DST_HEIGHT_WIDTH, (h << 16) | w);
+
+    RHDCSAdvance(CS);
 }
 
 /*

@@ -286,6 +286,8 @@ typedef struct RHDRec {
     enum RHD_TV_MODE   tvMode;
     rhdShadowPtr       shadowPtr;
 
+    struct RhdCS       *CS;
+
     struct _XAAInfoRec *XAAInfo;
 #ifdef USE_EXA
     struct _ExaDriver  *EXAInfo;
@@ -299,7 +301,6 @@ typedef struct RHDRec {
 
     /* DRI */
     struct rhdDri      *dri;
-
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

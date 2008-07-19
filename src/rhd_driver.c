@@ -111,6 +111,7 @@
 #include "rhd_shadow.h"
 #include "rhd_card.h"
 #include "rhd_randr.h"
+#include "rhd_cs.h"
 #include "r5xx_accel.h"
 
 #ifdef USE_DRI
@@ -1024,6 +1025,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (rhdPtr->dri)
 	RHDDRIFinishScreenInit(pScreen);
 #endif
+
+    /* initialise command submission backend */
+    RHDCSInit(pScrn);
+    RHDCSStart(rhdPtr->CS);
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))

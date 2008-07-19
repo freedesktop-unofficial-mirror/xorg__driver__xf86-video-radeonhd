@@ -53,6 +53,8 @@ radeonhd_drv_la_SOURCES = \
 	rhd_vga.h \
 	rhd_shadow.h \
 	rhd_mc.h \
+	rhd_cs.c \
+	rhd_cs.h \
 	r5xx_accel.c \
 	r5xx_accel.h \
 	r5xx_xaa.c \

@@ -69,6 +69,7 @@
 #include "xf86.h"
 
 #include "rhd.h"
+#include "rhd_cs.h"
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
 
@@ -142,7 +143,12 @@ static Bool
 R5xx2DIdleLocal(int scrnIndex)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    struct RhdCS *CS = RHDPTR(pScrn)->CS;
     int i;
+
+    /* first make sure that our command submission backend is quiescent */
+    RHDCSFlush(CS);
+    RHDCSIdle(CS);
 
     /* wait for fifo to clear */
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
@@ -318,10 +324,13 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
 static void
 R5xx2DResetFull(ScrnInfoPtr pScrn)
 {
-    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s!!!!!\n", __func__);
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s!!!!!\n", __func__);
 
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);
+    RHDCSReset(rhdPtr->CS);
 }
 
 /*
