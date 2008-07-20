@@ -354,7 +354,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
     xf86CrtcConfigPtr xf86CrtcConfig = XF86_CRTC_CONFIG_PTR(crtc->scrn);
     int i;
-    
+
     /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
     if (!Mode->name && crtc->mode.name)
 	Mode->name = xstrdup(crtc->mode.name);
@@ -1511,11 +1511,8 @@ RHDRandrModeInit(ScrnInfoPtr pScrn)
     Bool ret;
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-<<<<<<< HEAD:src/rhd_randr.c
-=======
     RHDFUNC(rhdPtr);
 
->>>>>>> edb7245... MC: Make sure MC engine is all idle before setting up the MC.:src/rhd_randr.c
     /* Stop crap from being shown: gets reenabled through SaveScreen */
     rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
     rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
