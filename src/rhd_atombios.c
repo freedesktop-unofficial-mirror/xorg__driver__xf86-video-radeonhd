@@ -231,7 +231,7 @@ struct atomBIOSRequests {
     {ATOM_ANALOG_TV_SUPPORTED_MODES, rhdAtomAnalogTVInfoQuery,
      "Analog TV Supported Modes",		MSG_FORMAT_HEX},
     {ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS, rhdAtomGetConditionalGoldenSetting,
-     "Conditional Golden Settings",		MSG_FORMAT_NONE},
+     "Conditional Golden Setting",		MSG_FORMAT_NONE},
     {ATOM_GET_PCIENB_CFG_REG7, rhdAtomIntegratedSystemInfoQuery,
      "PCIE NB Cfg7Reg",				MSG_FORMAT_HEX},
     {ATOM_GET_CAPABILITY_FLAG, rhdAtomIntegratedSystemInfoQuery,

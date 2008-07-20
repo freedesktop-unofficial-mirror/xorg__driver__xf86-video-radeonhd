@@ -475,7 +475,8 @@ DxScaleValid(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     if (Overscan.OverscanTop >= 4096 || Overscan.OverscanBottom >= 4096)
 	return MODE_VBLANK_WIDE;
 
-    if (Type == RHD_CRTC_SCALE_TYPE_SCALE
+    if ((Type == RHD_CRTC_SCALE_TYPE_SCALE
+	 || Type == RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO)
 	&& (Mode->Flags & V_INTERLACE))
 	return MODE_NO_INTERLACE;
 
