@@ -75,6 +75,7 @@ SymTabRec RHDChipsets[] = {
     { RHD_M88,   "M88" },
     { RHD_R680,  "R680"  },
     { RHD_RV620, "RV620" },
+    { RHD_M82,   "M82"   },
     { RHD_RV635, "RV635" },
     { RHD_M86,   "M86"   },
     { RHD_RS780, "RS780" },
@@ -334,7 +335,7 @@ RHDIdentify(int flags)
 	    "\tM71   : Mobility Radeon HD 2300.\n"
 	    "\tM72   : Mobility Radeon HD 2400; Radeon E2400.\n"
 	    "\tM74   : Mobility Radeon HD 2400 XT.\n"
-	    "\tM76   : Mobility Radeon HD 2600;\n"
+	    "\tM76   : Mobility Radeon HD 2600.\n"
 	    "\t\t(Gemini ATI) Mobility Radeon HD 2600 XT.\n"
 	    "\tM82   : Mobility Radeon HD 3400.\n");
     xf86Msg(X_NONE,

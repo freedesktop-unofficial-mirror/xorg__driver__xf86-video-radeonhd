@@ -772,8 +772,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     Status = RHDRRModeFixup(out->scrn, DisplayedMode, Crtc, rout->Connector,
 			    rout->Output, NULL, Scaled);
     if (Status != MODE_OK) {
-	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: %s\n", __func__,
-		 Mode->name, RHDModeStatusToString(Status));
+	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: [0x%x] %s\n", __func__,
+		 Mode->name, Status, RHDModeStatusToString(Status));
 	return FALSE;
     }
     return TRUE;

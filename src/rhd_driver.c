@@ -1446,8 +1446,8 @@ rhdMapMMIO(RHDPtr rhdPtr)
     if (!rhdPtr->MMIOBase)
         return FALSE;
 
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped IO at %p (size 0x%08X)\n",
-	       rhdPtr->MMIOBase, rhdPtr->MMIOMapSize);
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped IO @ 0x%x to %p (size 0x%08X)\n",
+	       rhdPtr->MMIOPCIAddress, rhdPtr->MMIOBase, rhdPtr->MMIOMapSize);
 
     return TRUE;
 }
@@ -1596,8 +1596,8 @@ rhdMapFB(RHDPtr rhdPtr)
     if (!rhdPtr->FbBase)
         return FALSE;
 
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB at %p (size 0x%08X)\n",
-	       rhdPtr->FbBase, rhdPtr->FbMapSize);
+    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapped FB @ 0x%x to %p (size 0x%08X)\n",
+	       rhdPtr->FbPhysAddress, rhdPtr->FbBase, rhdPtr->FbMapSize);
     return TRUE;
 }
 

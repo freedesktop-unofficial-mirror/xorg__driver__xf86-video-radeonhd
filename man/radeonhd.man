@@ -149,7 +149,7 @@ Mobility Radeon HD 2400; Radeon E2400
 Mobility Radeon HD 2400 XT
 .TP 8
 .B M76
-Mobility Radeon HD 2600;
+Mobility Radeon HD 2600
 (Gemini ATI) Mobility Radeon HD 2600 XT
 .TP 8
 .B M82
