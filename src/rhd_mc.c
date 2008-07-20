@@ -503,10 +503,14 @@ rs780MCIdle(RHDPtr rhdPtr)
 Bool
 RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
 {
+    struct rhdMC *MC = rhdPtr->MC;
     RHDFUNC(rhdPtr);
 
+    if (!MC)
+	return;
+
     do {
-	if (rhdPtr->MC->MCIdle(rhdPtr))
+	if (MC->MCIdle(rhdPtr))
 	    return TRUE;
 	usleep(10);
     } while (count--);
@@ -589,10 +593,6 @@ RHDMCInit(RHDPtr rhdPtr)
 
     RHDDebug(rhdPtr->scrnIndex, "MC FB Address: 0x%08X.\n",
 	     rhdPtr->FbIntAddress);
-
-    /* we know nothing about RS600, yet */
-    if (rhdPtr->ChipSet == RHD_RS600)
-	return;
 
     MC = xnfcalloc(1, sizeof(struct rhdMC));
     MC->Stored = FALSE;
