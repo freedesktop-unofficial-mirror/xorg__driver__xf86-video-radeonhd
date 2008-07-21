@@ -2144,6 +2144,9 @@ rhdAtomParseGPIOLutForHPD(atomBiosHandlePtr handle,
 		    case 16:
 			*HPD = RHD_HPD_2;
 			return;
+		    case 24:
+			*HPD = RHD_HPD_3;
+			return;
 		}
 	    }
 	}

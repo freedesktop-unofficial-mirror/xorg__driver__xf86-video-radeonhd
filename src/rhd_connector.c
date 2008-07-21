@@ -311,6 +311,10 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 	    Connector->HPDMask = 0x00010000;
 	    Connector->HPDCheck = RHDHPDCheck;
 	    break;
+	case RHD_HPD_3:
+	    Connector->HPDMask = 0x01000000;
+	    Connector->HPDCheck = RHDHPDCheck;
+	    break;
 	default:
 	    Connector->HPDCheck = NULL;
 	    break;
@@ -435,11 +439,11 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
 
     const char *hpd_name_normal[] =
-	{ "RHD_HPD_NONE", "RHD_HPD_0", "RHD_HPD_1", "RHD_HPD_2" };
+	{ "RHD_HPD_NONE", "RHD_HPD_0", "RHD_HPD_1", "RHD_HPD_2", "RHD_HPD_3" };
     const char *hpd_name_off[] =
-	{ "RHD_HPD_NONE", "RHD_HPD_NONE /*0*/", "RHD_HPD_NONE /*1*/", "RHD_HPD_NONE /*2*/" };
+	{ "RHD_HPD_NONE", "RHD_HPD_NONE /*0*/", "RHD_HPD_NONE /*1*/", "RHD_HPD_NONE /*2*/", "RHD_HPD_NONE /*3*/" };
     const char *hpd_name_swapped[] =
-	{ "RHD_HPD_NONE", "RHD_HPD_1 /*swapped*/", "RHD_HPD_0 /*swapped*/", "RHD_HPD_2" };
+	{ "RHD_HPD_NONE", "RHD_HPD_1 /*swapped*/", "RHD_HPD_0 /*swapped*/", "RHD_HPD_2", "RHD_HPD_3" };
 
     const char *output_name[] =
 	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",

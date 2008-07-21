@@ -54,7 +54,8 @@ typedef enum _rhdHPD {
     RHD_HPD_NONE  = 0,
     RHD_HPD_0,
     RHD_HPD_1,
-    RHD_HPD_2
+    RHD_HPD_2,
+    RHD_HPD_3
 } rhdHPD;
 
 #define MAX_OUTPUTS_PER_CONNECTOR 2
