@@ -957,7 +957,7 @@ rhdRV620Transaction(I2CDevPtr i2cDevPtr, Bool Write, I2CByte *Buffer, int count)
 
 #define MAX 8
 
-    while (count > 0) {
+    while (count > 0 || (Write && Start)) {
 	int num;
 	int idx = 0;
 	CARD32 data = 0;
@@ -1038,7 +1038,7 @@ rhdRV620WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte
 
     rhdRV620I2CSetupStatus(I2CPtr, line, prescale);
 
-    if (nWrite)
+    if (nWrite || !nRead)
 	if (!rhdRV620Transaction(i2cDevPtr, TRUE, WriteBuffer, nWrite))
 	    return FALSE;
     if (nRead)
