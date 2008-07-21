@@ -270,13 +270,13 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     CARD32 value = 0;
     AtomBiosArgRec data;
     RHDPtr rhdPtr = RHDPTRI(Output);
-
+    Bool doCoherent = Private->Coherent;
     RHDFUNC(Output);
 
     /* set coherent / not coherent mode; whatever that is */
     if (Output->Connector->Type != RHD_CONNECTOR_PANEL)
 	RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
-		   Private->Coherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
+		   doCoherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
 
     Private->Mode = Mode;
 #ifdef ATOM_BIOS
@@ -286,7 +286,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     /* Set up magic value that's used for list lookup */
     value = ((Mode->SynthClock / 10 / ((Private->RunDualLink) ? 2 : 1)) & 0xffff)
 	| (Private->EncoderMode << 16)
-	| ((Private->Coherent ? 0x2 : 0) << 24);
+	| ((doCoherent ? 0x2 : 0) << 24);
 
     RHDDebug(Output->scrnIndex, "%s: GetConditionalGoldenSettings for: %x\n", __func__, value);
 
@@ -295,7 +295,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOMBIOS_GET_CODE_DATA_TABLE,
 			&data) == ATOM_SUCCESS) {
 	AtomBiosArgRec data1;
-	CARD32 *d_p;
+	CARD32 *d_p = NULL;
 
 	data1.GoldenSettings.BIOSPtr = data.CommandDataTable.loc;
 	data1.GoldenSettings.End = data1.GoldenSettings.BIOSPtr + data.CommandDataTable.size;
@@ -305,7 +305,25 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS, &data1) == ATOM_SUCCESS) {
 	    d_p = (CARD32*)data1.GoldenSettings.BIOSPtr;
+	} else {
+	    /* nothing found, now try toggling the coherent setting */
+	    doCoherent = !doCoherent;
+	    value = (value & ~(0x2 << 24)) | ((doCoherent ? 0x2 : 0) << 24);
+	    data1.GoldenSettings.value = value;
 
+	    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_GET_CONDITIONAL_GOLDEN_SETTINGS, &data1) == ATOM_SUCCESS) {
+		d_p = (CARD32*)data1.GoldenSettings.BIOSPtr;
+		/* set coherent / not coherent mode; whatever that is */
+		xf86DrvMsg(Output->scrnIndex, X_INFO, "%s: %soherent Mode not supported, switching to %soherent.\n",
+			   __func__, doCoherent ? "Inc" : "C", doCoherent ? "C" : "Inc");
+		if (Output->Connector->Type != RHD_CONNECTOR_PANEL)
+		    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
+			       doCoherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
+	    } else
+		doCoherent = Private->Coherent; /* reset old value if nothing found either */
+	}
+	if (d_p) {
 	    RHDDebug(Output->scrnIndex, "TransmitterAdjust: 0x%8.8x\n",d_p[0]);
 	    RHDRegWrite(Output, RV620_LVTMA_TRANSMITTER_ADJUST, d_p[0]);
 
