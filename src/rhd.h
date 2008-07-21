@@ -128,7 +128,7 @@ union rhdPropertyData
     Bool Bool;
 };
 
-#define RHD_CONNECTORS_MAX 4
+#define RHD_CONNECTORS_MAX 6
 
 /* Just define where which PCI BAR lives for now. Will deal with different
  * locations as soon as cards with a different BAR layout arrives.
