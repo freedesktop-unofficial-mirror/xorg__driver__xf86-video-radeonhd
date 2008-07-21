@@ -506,6 +506,11 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     Overscan = calculateOverscan(Mode, ScaledToMode, Type);
     Type = Overscan.Type;
 
+    RHDDebug(Crtc->scrnIndex, "FUNCTION: %s: %s viewport: %ix%i - OverScan: T: %i B: %i R: %i L: %i\n",
+	     __func__, Crtc->Name, Mode->CrtcHDisplay, Mode->CrtcVDisplay,
+	     Overscan.OverscanTop, Overscan.OverscanBottom,
+	     Overscan.OverscanLeft, Overscan.OverscanRight);
+
     /* D1Mode registers */
     RHDRegWrite(Crtc, RegOff + D1MODE_VIEWPORT_SIZE,
 		Mode->CrtcVDisplay | (Mode->CrtcHDisplay << 16));
