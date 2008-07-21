@@ -94,31 +94,7 @@ struct RhdCS {
 /*
  * CS Calls and macros.
  */
-#ifndef RHD_CS_DEBUG
-void RHDCSGrab(struct RhdCS *CS, int Count);
-#else
-void _RHDCSGrab(struct RhdCS *CS, int Count, const char *func);
-
-#define RHDCSGrab(CS, Count) _RHDCSGrab((CS), (Count), __func__)
-#endif
-
-static inline void
-RHDCSWrite(struct RhdCS *CS, CARD32 Value)
-{
-    CS->Buffer[CS->Wptr] = Value;
-    CS->Wptr = (CS->Wptr + 1) & CS->Mask;
-}
-
-static inline void
-RHDCSRegWrite(struct RhdCS *CS, CARD16 Reg, CARD32 Value)
-{
-    CS->Buffer[CS->Wptr] = CP_PACKET0(Reg, 1);
-    CS->Buffer[(CS->Wptr + 1) & CS->Mask] = Value;
-    CS->Wptr = (CS->Wptr + 2) & CS->Mask;
-}
-
 void RHDCSFlush(struct RhdCS *CS);
-void RHDCSAdvance(struct RhdCS *CS);
 void RHDCSIdle(struct RhdCS *CS);
 void RHDCSStart(struct RhdCS *CS);
 void RHDCSReset(struct RhdCS *CS);
@@ -126,5 +102,52 @@ void RHDCSStop(struct RhdCS *CS);
 
 void RHDCSInit(ScrnInfoPtr pScrn);
 void RHDCSDestroy(ScrnInfoPtr pScrn);
+
+/*
+ * I seriously dislike big macros. They make code unreadable and they invite
+ * others to make it even more unreadable. But i also cannot deny the numbers
+ * from the benchmarks.
+ */
+#define _RHDCSGrab(CS, Count) \
+do { \
+    if (CS->Clean == RHD_CS_CLEAN_QUEUED) \
+	CS->Clean = RHD_CS_CLEAN_DONE; \
+    CS->Grab(CS, Count); \
+} while (0)
+
+#ifdef RHD_CS_DEBUG
+#define RHDCSGrab(CS, Count)
+do { \
+   if ((CS)->Wptr != (((CS)->Flushed + (CS)->Grabbed) & (CS)->Mask)) \
+	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \
+		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (%s -> %s)\n", \
+		   __func__, (unsigned int) (CS)->Wptr, (unsigned int) (CS)->Flushed, \
+		   (unsigned int) (CS)->Grabbed, (CS)->Func, __func__); \
+    _RHDCSGrab((CS), (Count)); \
+    (CS)->Grabbed += (Count); \
+    (CS)->Func = __func__; \
+} while (0)
+#else
+#define RHDCSGrab(CS, Count) _RHDCSGrab((CS), (Count))
+#endif
+
+#define RHDCSWrite(CS, Value) \
+do { \
+    (CS)->Buffer[(CS)->Wptr] = (Value); \
+    (CS)->Wptr = ((CS)->Wptr + 1) & (CS)->Mask; \
+} while (0)
+
+#define RHDCSRegWrite(CS, Reg, Value) \
+do { \
+    (CS)->Buffer[(CS)->Wptr] = CP_PACKET0((Reg), 1); \
+    (CS)->Buffer[((CS)->Wptr + 1) & (CS)->Mask] = (Value); \
+    (CS)->Wptr = ((CS)->Wptr + 2) & (CS)->Mask; \
+} while (0)
+
+#define RHDCSAdvance(CS) \
+do { \
+    if ((CS)->AdvanceFlush) \
+	RHDCSFlush((CS)); \
+} while (0)
 
 #endif /* _HAVE_RHD_CS_ */

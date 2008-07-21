@@ -457,35 +457,6 @@ CSDRMCPInit(struct RhdCS *CS)
  *
  */
 void
-#ifndef RHD_CS_DEBUG
-RHDCSGrab(struct RhdCS *CS, int Count)
-#else
-_RHDCSGrab(struct RhdCS *CS, int Count, const char *func)
-#endif
-{
-#ifdef RHD_CS_DEBUG
-    if (CS->Wptr != ((CS->Flushed + CS->Grabbed) & CS->Mask))
-	xf86DrvMsg(CS->scrnIndex, X_ERROR,
-		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (%s -> %s)\n",
-		   __func__, (unsigned int) CS->Wptr, (unsigned int) CS->Flushed,
-		   (unsigned int) CS->Grabbed, CS->Func, func);
-#endif
-
-    CS->Grab(CS, Count);
-
-#ifdef RHD_CS_DEBUG
-    CS->Grabbed += Count;
-    CS->Func = func;
-#endif
-
-    if (CS->Clean == RHD_CS_CLEAN_QUEUED)
-	CS->Clean = RHD_CS_CLEAN_DONE;
-}
-
-/*
- *
- */
-void
 RHDCSFlush(struct RhdCS *CS)
 {
 #ifdef RHD_CS_DEBUG
@@ -498,16 +469,6 @@ RHDCSFlush(struct RhdCS *CS)
 
     if (CS->Flushed != CS->Wptr)
 	CS->Flush(CS);
-}
-
-/*
- *
- */
-void
-RHDCSAdvance(struct RhdCS *CS)
-{
-    if (CS->AdvanceFlush)
-	RHDCSFlush(CS);
 }
 
 /*
