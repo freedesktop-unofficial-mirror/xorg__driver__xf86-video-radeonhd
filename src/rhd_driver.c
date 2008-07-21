@@ -2256,7 +2256,7 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
     CARD32 ret;
 
-    if (rhdPtr->ChipSet < RHD_RS690) {
+    if (rhdPtr->ChipSet < RHD_RS600) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
 	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
@@ -2295,7 +2295,7 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
     RHDDebug(scrnIndex,"%s(0x%08X, 0x%08X)\n",__func__,(unsigned int)addr,
 	     (unsigned int)data);
 
-    if (rhdPtr->ChipSet < RHD_RS690) {
+    if (rhdPtr->ChipSet < RHD_RS600) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr | MC_IND_WR_EN);
 	_RHDRegWrite(scrnIndex, MC_IND_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
