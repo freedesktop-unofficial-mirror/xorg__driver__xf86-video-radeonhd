@@ -711,7 +711,9 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     if (rout->ScaledToMode) {
 	DisplayModePtr tmp = RHDModeCopy(rout->ScaledToMode);
 	/* validate against CRTC. */
-	if (RHDValidateScaledToMode(Crtc, tmp)!= MODE_OK) {
+	if ((Status = RHDValidateScaledToMode(Crtc, tmp))!= MODE_OK) {
+	    RHDDebug(rhdPtr->scrnIndex, "%s: %s ScaledToMode INVALID: [0x%x] %s\n", __func__,
+		     tmp->name, Status, RHDModeStatusToString(Status));
 	    xfree(tmp);
 	    return FALSE; /* failing here doesn't help */
 	}
