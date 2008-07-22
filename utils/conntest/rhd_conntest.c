@@ -436,15 +436,22 @@ struct RHDDevice {
     { 0x1002, 0x958C, 2, RHD_R600},
     { 0x1002, 0x958D, 2, RHD_R600},
     { 0x1002, 0x958E, 2, RHD_R600},
+    { 0x1002, 0x958F, 2, RHD_R600},
     { 0x1002, 0x9590, 2, RHD_RV620},
+    { 0x1002, 0x9591, 2, RHD_RV620},
+    { 0x1002, 0x9593, 2, RHD_RV620},
+    { 0x1002, 0x9594, 2, RHD_RV620},
     { 0x1002, 0x9596, 2, RHD_RV620},
-    { 0x1002, 0x9595, 2, RHD_RV620},
+    { 0x1002, 0x9597, 2, RHD_RV620},
     { 0x1002, 0x9598, 2, RHD_RV620},
     { 0x1002, 0x9599, 2, RHD_RV620},
+    { 0x1002, 0x959B, 2, RHD_RV620},
+    { 0x1002, 0x95C0, 2, RHD_RV620},
     { 0x1002, 0x95C2, 2, RHD_RV620},
     { 0x1002, 0x95C4, 2, RHD_RV620},
     { 0x1002, 0x95C5, 2, RHD_RV620},
     { 0x1002, 0x95C7, 2, RHD_RV620},
+    { 0x1002, 0x95CC, 2, RHD_RV620},
     { 0x1002, 0x95CD, 2, RHD_RV620},
     { 0x1002, 0x95CE, 2, RHD_RV620},
     { 0x1002, 0x95CF, 2, RHD_RV620},
@@ -454,7 +461,10 @@ struct RHDDevice {
     { 0x1002, 0x9613, 2, RHD_RV620},
     { 0x1002, 0x9614, 2, RHD_RV620},
     { 0x1002, 0x9440, 2, RHD_RV620},
-    { 0x1002, 0x9442, 2, RHD_RV620},
+    { 0x1002, 0x9444, 2, RHD_RV620},
+    { 0x1002, 0x9446, 2, RHD_RV620},
+    { 0x1002, 0x944E, 2, RHD_RV620},
+    { 0x1002, 0x9456, 2, RHD_RV620},
     { 0, 0, 0, 0 }
 };
 
@@ -599,9 +609,12 @@ HPDReport(void *map)
 	if (HPD & 0x100)
 	    printf(" RHD_HPD_1");
 
-	if ((ChipType == RHD_R600) && (HPD & 0x00010000))
+	if ((ChipType >= RHD_R600) && (HPD & 0x00010000))
 	    printf(" RHD_HPD_2");
-    }
+
+    	if ((ChipType >= RHD_R600) && (HPD & 0x01000000))
+	    printf(" RHD_HPD_3");
+}
     printf("\n");
 }
 

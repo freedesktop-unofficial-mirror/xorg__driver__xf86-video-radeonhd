@@ -254,17 +254,17 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x958E, RHD_RV630 ), /* ATI Radeon HD 2600 LE */
     RHD_DEVICE_MATCH(  0x958F, RHD_M76   ), /* ATI Mobility FireGL Graphics Processor */
     RHD_DEVICE_MATCH(  0x9590, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x9591, RHD_M86   ), /* Mobility Radeon HD 3650 */
+    RHD_DEVICE_MATCH(  0x9593, RHD_M86   ), /* Mobility Radeon HD 3670 */
+    RHD_DEVICE_MATCH(  0x9595, RHD_M86   ), /* Mobility FireGL V5700 */
     RHD_DEVICE_MATCH(  0x9596, RHD_RV635 ), /* ATI Radeon HD 3650 AGP */
     RHD_DEVICE_MATCH(  0x9597, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
     RHD_DEVICE_MATCH(  0x9598, RHD_RV635 ), /* ATI Radeon HD 3670 */
     RHD_DEVICE_MATCH(  0x9599, RHD_RV635 ), /* ATI Radeon HD 3600 Series */
+    RHD_DEVICE_MATCH(  0x959B, RHD_M86   ), /* Mobility FireGL Graphics Processor */
     RHD_DEVICE_MATCH(  0x95C0, RHD_RV620 ), /* ATI Radeon HD 3470 */
     RHD_DEVICE_MATCH(  0x95C2, RHD_M82   ), /* ATI Mobility Radeon HD 3430 (M82) */
     RHD_DEVICE_MATCH(  0x95C4, RHD_M82   ), /* Mobility Radeon HD 3400 Series (M82)  */
-    RHD_DEVICE_MATCH(  0x9591, RHD_M86   ), /* Mobility Radeon HD 3650 */
-    RHD_DEVICE_MATCH(  0x9593, RHD_M86   ), /* Mobility Radeon HD 3670 */
-    RHD_DEVICE_MATCH(  0x9595, RHD_M86   ), /* Mobility FireGL V5700 */
-    RHD_DEVICE_MATCH(  0x959B, RHD_M86   ), /* Mobility FireGL Graphics Processor */
     RHD_DEVICE_MATCH(  0x95C5, RHD_RV620 ), /* ATI Radeon HD 3450 */
     RHD_DEVICE_MATCH(  0x95C7, RHD_RV620 ), /* ATI Radeon HD 3430 */
     RHD_DEVICE_MATCH(  0x95CC, RHD_RV620 ), /* Fire PRO Professional Graphics ASIC  */
