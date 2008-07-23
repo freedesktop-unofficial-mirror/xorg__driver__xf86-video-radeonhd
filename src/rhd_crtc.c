@@ -44,7 +44,7 @@
 #include "rhd_modes.h"
 #include "rhd_mc.h"
 #ifdef ATOM_BIOS
-#include "rhd_atombios.h"
+# include "rhd_atombios.h"
 #endif
 #define D1_REG_OFFSET 0x0000
 #define D2_REG_OFFSET 0x0800
@@ -746,37 +746,6 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     RHDRegWrite(Crtc, RegOff + D1MODE_EXT_OVERSCAN_TOP_BOTTOM,
 		(Overscan.OverscanTop << 16) | Overscan.OverscanBottom);
 
-#ifdef ATOM_BIOS
-    {
-	RHDPtr rhdPtr = RHDPTRI(Crtc);
-	enum atomScaler scaler  = 0;
-	enum atomScaleMode mode = 0;
-
-	switch (Crtc->Id) {
-	    case  RHD_CRTC_1:
-		scaler = atomScaler1;
-		break;
-	    case RHD_CRTC_2:
-		scaler = atomScaler2;
-		break;
-	}
-	switch (Type) {
-	    case RHD_CRTC_SCALE_TYPE_NONE:
-		mode = atomScaleDisable;
-		break;
-	    case RHD_CRTC_SCALE_TYPE_CENTER:
-		mode = atomScaleCenter;
-		break;
-	    case RHD_CRTC_SCALE_TYPE_SCALE:
-	case RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO: /* scaled to fullscreen */
-		mode = atomScaleExpand;
-		break;
-	}
-	rhdAtomSetScaler(rhdPtr->atomBIOS, scaler, mode);
-	if (Type == RHD_CRTC_SCALE_TYPE_SCALE_KEEP_ASPECT_RATIO)
-	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 1);
-    }
-#else
     switch (Type) {
 	case RHD_CRTC_SCALE_TYPE_NONE:  /* No scaling whatsoever */
 	    ErrorF("None\n");
@@ -812,7 +781,6 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00001010);
 	    break;
     }
-#endif
     RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
 			      ScaledToMode ? ScaledToMode : Mode);
 }
