@@ -56,6 +56,7 @@ extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devi
 					    struct rhdOutput *Output);
 extern Bool RHDFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
 						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
+extern void rhdAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on);
 
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 

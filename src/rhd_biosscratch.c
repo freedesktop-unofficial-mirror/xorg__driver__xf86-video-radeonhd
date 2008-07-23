@@ -331,6 +331,75 @@ rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
 /*
  *
  */
+void
+rhdAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on)
+{
+    CARD32 Addr;
+    CARD32 Mask = ATOM_S6_ACC_MODE | ATOM_S6_ACC_BLOCK_DISPLAY_SWITCH;
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	Addr = 0x10 + (6 << 2);
+    else
+	Addr = 0x1724 + (6 << 2);
+
+    RHDRegMask(rhdPtr, Addr, on ? Mask : 0, Mask);
+}
+
+/*
+ *
+ */
+static void
+rhdAtomBIOSScratchSetAcceleratorModeForDevice(RHDPtr rhdPtr,
+					      enum atomDevice Device, Bool on)
+{
+    CARD32 Addr;
+    CARD32 Mask;
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	Addr = 0x10 + (6 << 2);
+    else
+	Addr = 0x1724 + (6 << 2);
+
+    switch (Device) {
+	case atomCRT1:
+	    Mask = ATOM_S6_ACC_REQ_CRT1;
+	    break;
+	case atomLCD1:
+	    Mask = ATOM_S6_ACC_REQ_LCD1;
+	    break;
+	case atomTV1:
+	    Mask = ATOM_S6_ACC_REQ_TV1;
+	    break;
+	case atomDFP1:
+	    Mask = ATOM_S6_ACC_REQ_DFP1;
+	    break;
+	case atomCRT2:
+	    Mask = ATOM_S6_ACC_REQ_CRT2;
+	    break;
+	case atomLCD2:
+	    Mask = ATOM_S6_ACC_REQ_LCD2;
+	    break;
+	case atomTV2:
+	    Mask = ATOM_S6_ACC_REQ_TV2;
+	    break;
+	case atomDFP2:
+	    Mask = ATOM_S6_ACC_REQ_DFP2;
+	    break;
+	case  atomCV:
+	    Mask = ATOM_S6_ACC_REQ_CV;
+	    break;
+	case atomDFP3:
+	    Mask = ATOM_S6_ACC_REQ_DFP3;
+	    break;
+	case atomNone:
+	    return;
+    }
+    RHDRegMask(rhdPtr, Addr, on ? Mask : 0, Mask);
+}
+
+/*
+ *
+ */
 static void
 rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc Crtc)
 {
@@ -502,6 +571,7 @@ rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 	    rhdAtomBIOSScratchSetCrtcState(rhdPtr, Device,
 					   Output->Crtc->Id == 1 ? atomCrtc2 : atomCrtc1);
 	rhdAtomBIOSScratchUpdateOnState(rhdPtr, Device, Output->Active);
+	rhdAtomBIOSScratchSetAcceleratorModeForDevice(rhdPtr, Device, Output->Active);
 	rhdAtomBIOSScratchUpdateAttachedState(rhdPtr, Device, TRUE);
 
 	while (devList[i].DeviceId != atomNone) {
@@ -517,6 +587,8 @@ rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 
 	while (devList[i].DeviceId != atomNone) {
 	    rhdAtomBIOSScratchUpdateOnState(rhdPtr, devList[i].DeviceId, FALSE);
+	    rhdAtomBIOSScratchSetAcceleratorModeForDevice(rhdPtr,
+							  devList[i].DeviceId, FALSE);
 	    rhdAtomBIOSScratchUpdateAttachedState(rhdPtr, devList[i].DeviceId, FALSE);
 	    i++;
 	}
@@ -701,13 +773,14 @@ struct rhdBiosScratchRegisters {
     CARD32 Scratch0;
     CARD32 Scratch2;
     CARD32 Scratch3;
+    CARD32 Scratch6;
 };
 
 struct rhdBiosScratchRegisters *
 RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 {
     struct rhdBiosScratchRegisters *regs;
-    CARD32 S0Addr, S2Addr, S3Addr;
+    CARD32 S0Addr, S2Addr, S3Addr, S6Addr;
 
     RHDFUNC(rhdPtr);
 
@@ -718,14 +791,17 @@ RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 	S0Addr = 0x10;
 	S2Addr = 0x18;
 	S3Addr = 0x1C;
+	S6Addr = 0x10 + (6 << 2);
     } else {
 	S0Addr = 0x1724;
 	S2Addr = 0x172C;
 	S3Addr = 0x1730;
+	S6Addr = 0x1724 + (6 << 2);
     }
     regs->Scratch0 = RHDRegRead(rhdPtr, S0Addr);
     regs->Scratch2 = RHDRegRead(rhdPtr, S2Addr);
     regs->Scratch3 = RHDRegRead(rhdPtr, S3Addr);
+    regs->Scratch6 = RHDRegRead(rhdPtr, S6Addr);
 
     return regs;
 }
@@ -733,7 +809,7 @@ RHDSaveBiosScratchRegisters(RHDPtr rhdPtr)
 void
 RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *regs)
 {
-    CARD32 S0Addr, S2Addr, S3Addr;
+    CARD32 S0Addr, S2Addr, S3Addr, S6Addr;
 
     RHDFUNC(rhdPtr);
 
@@ -744,14 +820,17 @@ RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters *re
 	S0Addr = 0x10;
 	S2Addr = 0x18;
 	S3Addr = 0x1C;
+	S6Addr = 0x10 + (6 << 2);
     } else {
 	S0Addr = 0x1724;
 	S2Addr = 0x172C;
 	S3Addr = 0x1730;
+	S6Addr = 0x1724 + (6 << 2);
     }
     RHDRegWrite(rhdPtr, S0Addr, regs->Scratch0);
     RHDRegWrite(rhdPtr, S2Addr, regs->Scratch2);
     RHDRegWrite(rhdPtr, S3Addr, regs->Scratch3);
+    RHDRegWrite(rhdPtr, S6Addr, regs->Scratch6);
 
     xfree(regs);
 }
