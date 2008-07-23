@@ -47,20 +47,27 @@ enum rhdBIOSScratchBlAction {
     rhdBIOSScratchBlSet
 };
 
-extern enum rhdSensedOutput rhdBIOSScratchDACSense(struct rhdOutput *Output, struct rhdConnector *Connector);
-extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
-extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr, struct rhdBiosScratchRegisters * regs);
-extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action, int *val);
 
-extern Bool rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
+extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr);
+extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr,
+					   struct rhdBiosScratchRegisters * regs);
+
+
+extern enum rhdSensedOutput RHDBIOSScratchDACSense(struct rhdOutput *Output,
+						   struct rhdConnector *Connector);
+
+extern Bool RHDAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
 					    struct rhdOutput *Output);
 extern Bool RHDFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,
-						    enum rhdOutputType *ot, enum rhdConnectorType *ct);
-extern void rhdAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on);
-extern void RHDAtomBIOSScratchPMState(RHDPtr rhdPtr, struct rhdOutput *Output,
-				      int PowerManagementMode);
-
+						    enum rhdOutputType *ot,
+						    enum rhdConnectorType *ct);
 extern enum atomDevice RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc);
 
+extern void RHDAtomBIOSScratchBlLevel(RHDPtr rhdPtr, enum rhdBIOSScratchBlAction action,
+				      int *val);
+
+extern void RHDAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on);
+extern void RHDAtomBIOSScratchPMState(RHDPtr rhdPtr, struct rhdOutput *Output,
+				      int PowerManagementMode);
 # endif /* ATOM_BIOS */
 #endif /* RHD_BIOSSCRATCH_H_ */

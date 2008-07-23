@@ -799,7 +799,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    struct rhdOutput *Output;
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		rhdAtomSetupOutputDriverPrivate(OutputDeviceList, Output);
+		RHDAtomSetupOutputDriverPrivate(OutputDeviceList, Output);
 	    xfree(OutputDeviceList);
 	}
     }
@@ -1142,6 +1142,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	return FALSE;
     }
 
+    /* Set accelerator mode in the BIOSScratch registers */
+    RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
+
     /* now init the new mode */
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -1293,6 +1296,9 @@ RHDEnterVT(int scrnIndex, int flags)
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
 #endif
+
+    /* Set accelerator mode in the BIOSScratch registers */
+    RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
 
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -2286,7 +2292,7 @@ rhdSave(RHDPtr rhdPtr)
 
     RHDOutputsSave(rhdPtr);
     rhdPtr->BIOSScratch = RHDSaveBiosScratchRegisters(rhdPtr);
-    
+
     RHDPLLsSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 

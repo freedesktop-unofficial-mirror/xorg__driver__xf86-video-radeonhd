@@ -155,7 +155,7 @@ rhdAtomBIOSScratchDACSenseResults(struct rhdOutput *Output, enum atomDAC DAC, en
  *
  */
 enum rhdSensedOutput
-rhdBIOSScratchDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
+RHDBIOSScratchDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     enum atomDAC DAC;
@@ -335,7 +335,7 @@ rhdAtomBIOSScratchUpdateOnState(RHDPtr rhdPtr, enum atomDevice dev, Bool on)
  *
  */
 void
-rhdAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on)
+RHDAtomBIOSScratchSetAccelratorMode(RHDPtr rhdPtr, Bool on)
 {
     CARD32 Addr;
     CARD32 Mask = ATOM_S6_ACC_MODE | ATOM_S6_ACC_BLOCK_DISPLAY_SWITCH;
@@ -356,7 +356,7 @@ rhdAtomBIOSScratchSetAcceleratorModeForDevice(RHDPtr rhdPtr,
 					      enum atomDevice Device, Bool on)
 {
     CARD32 Addr;
-    CARD32 Mask;
+    CARD32 Mask = 0;
 
     if (rhdPtr->ChipSet < RHD_R600)
 	Addr = 0x10 + (6 << 2);
@@ -468,7 +468,7 @@ void
 RHDAtomBIOSScratchPMState(RHDPtr rhdPtr, struct rhdOutput *Output, int PowerManagementMode)
 {
     CARD32 Addr;
-    CARD32 Mask, Mask1;
+    CARD32 Mask = 0, Mask1;
     enum atomDevice Device = Output->OutputDriverPrivate->Device;
 
     if (rhdPtr->ChipSet < RHD_R600)
@@ -517,6 +517,7 @@ RHDAtomBIOSScratchPMState(RHDPtr rhdPtr, struct rhdOutput *Output, int PowerMana
 	case DPMSModeStandby:
 	case DPMSModeSuspend:
 	case DPMSModeOff:
+	default:
 	    Mask1 = Mask;
 	    break;
     }
@@ -708,7 +709,7 @@ rhdBIOSScratchDestroyOutputDriverPrivate(struct rhdOutput *Output)
  * including the connector they are associated with.
  */
 Bool
-rhdAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct rhdOutput *Output)
+RHDAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct rhdOutput *Output)
 {
     struct rhdOutputDevices *od = NULL;
     struct BIOSScratchOutputPrivate *OutputDriverPrivate;
