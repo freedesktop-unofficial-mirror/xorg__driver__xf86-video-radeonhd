@@ -545,7 +545,8 @@ R500PLL1Restore(struct rhdPLL *PLL)
 	R500PLL1SetLow(PLL, PLL->StoreRefDiv, PLL->StoreFBDiv,
 		       PLL->StorePostDiv, PLL->StoreControl);
 
-	if (RHDPTRI(PLL)->ChipSet != RHD_M54)
+	/* HotFix: always keep spread spectrum disabled on restore */
+	if (0 && RHDPTRI(PLL)->ChipSet != RHD_M54)
 	    RHDRegMask(PLL, P1PLL_INT_SS_CNTL,
 		       PLL->StoreSpreadSpectrum, 0x00000001);
     } else {
