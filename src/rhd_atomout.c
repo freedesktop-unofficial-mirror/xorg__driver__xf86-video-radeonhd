@@ -693,12 +693,12 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    xfree(Private);
 	    return NULL;
 	case RHD_OUTPUT_DACA:
-	    Output->Sense = rhdBIOSScratchDACSense;
+	    Output->Sense = RHDBIOSScratchDACSense;
 	    Private->EncoderId = atomEncoderDACA;
 	    Private->OutputControlId = atomDAC1Output;
 	    break;
 	case RHD_OUTPUT_DACB:
-	    Output->Sense = rhdBIOSScratchDACSense;
+	    Output->Sense = RHDBIOSScratchDACSense;
 	    Private->EncoderId = atomEncoderDACB;
 	    Private->OutputControlId = atomDAC2Output;
 	    break;
