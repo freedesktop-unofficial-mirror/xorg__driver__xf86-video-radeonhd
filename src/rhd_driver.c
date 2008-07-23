@@ -1408,8 +1408,10 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc1->Power(Crtc1, RHD_POWER_ON);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1)) {
 		    Output->Power(Output, RHD_POWER_ON);
+		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+		}
 
 	    Crtc1->Blank(Crtc1, FALSE);
 	}
@@ -1418,9 +1420,10 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc2->Power(Crtc2, RHD_POWER_ON);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2)) {
 		    Output->Power(Output, RHD_POWER_ON);
-
+		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+		}
 	    Crtc2->Blank(Crtc2, FALSE);
 	}
 	break;
@@ -1431,8 +1434,10 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc1->Blank(Crtc1, TRUE);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc1))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc1)) {
 		    Output->Power(Output, RHD_POWER_RESET);
+		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+		}
 
 	    Crtc1->Power(Crtc1, RHD_POWER_RESET);
 	}
@@ -1441,8 +1446,10 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    Crtc2->Blank(Crtc2, TRUE);
 
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
-		if (Output->Power && Output->Active && (Output->Crtc == Crtc2))
+		if (Output->Power && Output->Active && (Output->Crtc == Crtc2)) {
 		    Output->Power(Output, RHD_POWER_RESET);
+		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+		}
 
 	    Crtc2->Power(Crtc2, RHD_POWER_RESET);
 	}
