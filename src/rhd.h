@@ -317,6 +317,8 @@ typedef struct RHDRec {
     /* DRI */
     struct rhdDri      *dri;
 
+    /* BIOS Scratch registers */
+    struct rhdBiosScratchRegisters *BIOSScratch;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
