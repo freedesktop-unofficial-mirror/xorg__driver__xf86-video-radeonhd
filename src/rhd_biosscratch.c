@@ -41,6 +41,9 @@
 # include <stdio.h>
 #endif
 
+#define DPMS_SERVER
+#include "X11/extensions/dpms.h"
+
 #include "rhd.h"
 #include "rhd_connector.h"
 #include "rhd_output.h"
@@ -456,6 +459,69 @@ rhdAtomBIOSScratchSetCrtcState(RHDPtr rhdPtr, enum atomDevice dev, enum atomCrtc
 	BIOS_3 &= ~Mask;
 
     RHDRegWrite(rhdPtr, Addr, BIOS_3);
+}
+
+/*
+ *
+ */
+void
+RHDAtomBIOSScratchPMState(RHDPtr rhdPtr, struct rhdOutput *Output, int PowerManagementMode)
+{
+    CARD32 Addr;
+    CARD32 Mask, Mask1;
+    enum atomDevice Device = Output->OutputDriverPrivate->Device;
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	Addr = 0x10 + (2 << 2);
+    else
+	Addr = 0x1724 + (2 << 2);
+
+    switch (Device) {
+	case atomCRT1:
+	    Mask = ATOM_S2_CRT1_DPMS_STATE;
+	    break;
+	case atomLCD1:
+	    Mask = ATOM_S2_LCD1_DPMS_STATE;
+	    break;
+	case atomTV1:
+	    Mask = ATOM_S2_TV1_DPMS_STATE;
+	    break;
+	case atomDFP1:
+	    Mask = ATOM_S2_DFP1_DPMS_STATE;
+	    break;
+	case atomCRT2:
+	    Mask = ATOM_S2_CRT2_DPMS_STATE;
+	    break;
+	case atomLCD2:
+	    Mask = ATOM_S2_LCD2_DPMS_STATE;
+	    break;
+	case atomTV2:
+	    Mask = ATOM_S2_TV2_DPMS_STATE;
+	    break;
+	case atomDFP2:
+	    Mask = ATOM_S2_DFP2_DPMS_STATE;
+	    break;
+	case  atomCV:
+	    Mask = ATOM_S2_CV_DPMS_STATE;
+	    break;
+	case atomDFP3:
+	    Mask = ATOM_S2_DFP3_DPMS_STATE;
+	    break;
+	case atomNone:
+	    return;
+    }
+    switch (PowerManagementMode) {
+	case DPMSModeOn:
+	    Mask1 = 0;
+	    break;
+	case DPMSModeStandby:
+	case DPMSModeSuspend:
+	case DPMSModeOff:
+	    Mask1 = Mask;
+	    break;
+    }
+
+    RHDRegMask(rhdPtr, Addr, Mask1, Mask);
 }
 
 /*
