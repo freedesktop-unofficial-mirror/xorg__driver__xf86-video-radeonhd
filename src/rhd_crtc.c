@@ -42,6 +42,7 @@
 #include "rhd_lut.h"
 #include "rhd_regs.h"
 #include "rhd_modes.h"
+#include "rhd_mc.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #endif
@@ -492,6 +493,7 @@ static void
 DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
 {
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
     CARD16 RegOff;
     struct ScalerOverscan Overscan;
 
@@ -588,6 +590,8 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    break;
     }
 #endif
+    RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
+			      ScaledToMode ? ScaledToMode : Mode);
 }
 
 /*

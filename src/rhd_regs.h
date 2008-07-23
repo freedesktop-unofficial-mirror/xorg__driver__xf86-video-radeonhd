@@ -613,7 +613,8 @@ enum _r5xxMCRegs {
     R5XX_MC_STATUS                 = 0x0000,
     RV515_MC_FB_LOCATION	   = 0x0001,
     R5XX_MC_FB_LOCATION		   = 0x0004,
-    RV515_MC_STATUS                = 0x0008
+    RV515_MC_STATUS                = 0x0008,
+    RV515_MC_MISC_LAT_TIMER        = 0x0009
 };
 
 enum _r5xxRegs {
@@ -785,7 +786,19 @@ enum _rs690MCRegs {
     RS69_MC_MISC_UMA_CNTL	=	0x5f,
     RS69_MC_SYSTEM_STATUS 	=	0x90,  /* (RW) */
     RS69_MCCFG_FB_LOCATION		=	0x100,
-    RS69MCCFG_AGP_LOCATION		=	0x101
+    RS69MCCFG_AGP_LOCATION		=	0x101,
+    RS69_MC_INIT_MISC_LAT_TIMER         =       0x104
+};
+
+enum MC_MISC_LAT_TIMER_BITS {
+    MC_CPR_INIT_LAT_SHIFT    =  0,
+    MC_VF_INIT_LAT           =  4,
+    MC_DISP0R_INIT_LAT_SHIFT =  8,
+    MC_DISP1R_INIT_LAT_SHIFT = 12,
+    MC_FIXED_INIT_LAT_SHIFT  = 16,
+    MC_E2R_INIT_LAT_SHIFT    = 20,
+    SAME_PAGE_PRIO_SHIFT     = 24,
+    MC_GLOBW_INIT_LAT_SHIFT  = 28
 };
 
 enum RS69_MC_MISC_UMA_CNTL_BITS {

@@ -44,34 +44,19 @@ Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
 struct rhdMC {
     CARD32 FbLocation;
     CARD32 HdpFbBase;
+    CARD32 MiscLatencyTimer;
     Bool Stored;
     void (*SaveMC)(RHDPtr rhdPtr);
     void (*RestoreMC)(RHDPtr rhdPtr);
     void (*SetupMC)(RHDPtr rhdPtr);
     Bool (*MCIdle)(RHDPtr rhdPtr);
-
+    Bool (*TuneMCAccessForDisplay)(RHDPtr rhdPtr, int crtc,
+				   DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     Bool RV515Variant;
 };
 
 /*
  * Save MC_VM state.
- */
-static void
-r5xxSaveMC(RHDPtr rhdPtr)
-{
-    struct rhdMC *MC = rhdPtr->MC;
-
-    RHDFUNC(rhdPtr);
-
-    if (MC->RV515Variant)
-	MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_FB_LOCATION);
-    else
-	MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION);
-    MC->HdpFbBase = RHDRegRead(rhdPtr, HDP_FB_LOCATION);
-}
-
-/*
- *
  */
 static void
 rs600SaveMC(RHDPtr rhdPtr)
@@ -96,6 +81,7 @@ rs690SaveMC(RHDPtr rhdPtr)
 
     MC->FbLocation = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
     MC->HdpFbBase = RHDRegRead(rhdPtr, HDP_FB_LOCATION);
+    MC->MiscLatencyTimer = RHDReadMC(rhdPtr, RS69_MC_INIT_MISC_LAT_TIMER);
 }
 
 /*
@@ -151,10 +137,12 @@ r5xxRestoreMC(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    if (MC->RV515Variant)
+    if (MC->RV515Variant) {
 	RHDWriteMC(rhdPtr, MC_IND_ALL |  RV515_MC_FB_LOCATION,
 		   MC->FbLocation);
-    else
+	RHDWriteMC(rhdPtr, MC_IND_ALL |  RV515_MC_MISC_LAT_TIMER,
+		   MC->MiscLatencyTimer);
+    } else
 	RHDWriteMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION,
 		   MC->FbLocation);
     RHDRegWrite(rhdPtr, HDP_FB_LOCATION, MC->HdpFbBase);
@@ -186,6 +174,7 @@ rs690RestoreMC(RHDPtr rhdPtr)
 
     RHDWriteMC(rhdPtr,  RS69_MCCFG_FB_LOCATION, MC->FbLocation);
     RHDRegWrite(rhdPtr, HDP_FB_LOCATION, MC->HdpFbBase);
+    RHDWriteMC(rhdPtr,  RS69_MC_INIT_MISC_LAT_TIMER, MC->MiscLatencyTimer);
 }
 
 /*
@@ -508,7 +497,7 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
     RHDFUNC(rhdPtr);
 
     if (!MC)
-	return;
+	return TRUE;
 
     do {
 	if (MC->MCIdle(rhdPtr))
@@ -571,6 +560,72 @@ RHDRestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
+static void
+r5xxSaveMC(RHDPtr rhdPtr)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+
+    RHDFUNC(rhdPtr);
+
+    if (MC->RV515Variant) {
+	MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_FB_LOCATION);
+	MC->MiscLatencyTimer = RHDReadMC(rhdPtr, MC_IND_ALL | RV515_MC_MISC_LAT_TIMER);
+    } else
+	MC->FbLocation = RHDReadMC(rhdPtr, MC_IND_ALL | R5XX_MC_FB_LOCATION);
+    MC->HdpFbBase = RHDRegRead(rhdPtr, HDP_FB_LOCATION);
+}
+
+/*
+ *
+ */
+static void
+rv515TuneMCAccessForDisplay(RHDPtr rhdPtr, int crtc,
+				   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
+{
+    CARD32 value, setting = 0x1;
+
+    RHDFUNC(rhdPtr);
+
+    value = RHDReadMC(rhdPtr,  RV515_MC_MISC_LAT_TIMER);
+
+    value |= (setting << (crtc ? MC_DISP1R_INIT_LAT_SHIFT : MC_DISP0R_INIT_LAT_SHIFT));
+    RHDWriteMC(rhdPtr,  RV515_MC_MISC_LAT_TIMER, value);
+}
+
+/*
+ *
+ */
+static void
+rs690TuneMCAccessForDisplay(RHDPtr rhdPtr, int crtc,
+				   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
+{
+    CARD32 value, setting = 0x1;
+
+    RHDFUNC(rhdPtr);
+
+    value = RHDReadMC(rhdPtr,  RS69_MC_INIT_MISC_LAT_TIMER);
+    value |= setting << (crtc ? MC_DISP1R_INIT_LAT_SHIFT : MC_DISP0R_INIT_LAT_SHIFT);
+    RHDWriteMC(rhdPtr,  RS69_MC_INIT_MISC_LAT_TIMER, value);
+}
+
+/*
+ *
+ */
+void
+RHDTuneMCAccessForDisplay(RHDPtr rhdPtr, int crtc,
+				   DisplayModePtr Mode, DisplayModePtr ScaledToMode)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+
+    RHDFUNC(rhdPtr);
+
+    if (MC->TuneMCAccessForDisplay)
+	MC->TuneMCAccessForDisplay(rhdPtr, crtc, Mode, ScaledToMode);
+}
+
+/*
+ *
+ */
 void
 RHDMCInit(RHDPtr rhdPtr)
 {
@@ -615,7 +670,7 @@ RHDMCInit(RHDPtr rhdPtr)
 
 	    MC->RV515Variant = TRUE;
 	    MC->MCIdle = rv515MCIdle;
-
+	    MC->TuneMCAccessForDisplay = rv515TuneMCAccessForDisplay;
 	} else {
 
 	    MC->RV515Variant = FALSE;
@@ -633,6 +688,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->RestoreMC = rs690RestoreMC;
 	MC->SetupMC = rs690SetupMC;
 	MC->MCIdle = rs690MCIdle;
+	MC->TuneMCAccessForDisplay = rs690TuneMCAccessForDisplay;
     } else if (rhdPtr->ChipSet <= RHD_RS780) {
 	MC->SaveMC = r6xxSaveMC;
 	MC->RestoreMC = r6xxRestoreMC;
