@@ -317,6 +317,9 @@ typedef struct RHDRec {
     Bool             has_tcl;
     /* Xv */
     void *adaptor; /* XF86VideoAdaptorPtr */
+
+    /* BIOS Scratch registers */
+    struct rhdBiosScratchRegisters *BIOSScratch;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

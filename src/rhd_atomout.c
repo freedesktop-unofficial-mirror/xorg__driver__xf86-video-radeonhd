@@ -59,7 +59,6 @@ struct rhdAtomOutputPrivate {
     enum atomTransmitter TransmitterId;
 
     enum atomOutput OutputControlId;
-    struct rhdBiosScratchRegisters *BiosScratch;
 
     Bool   RunDualLink;
     int    PixelClock;
@@ -396,10 +395,6 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 static inline void
 rhdAtomOutputSave(struct rhdOutput *Output)
 {
-     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
-     RHDPtr rhdPtr = RHDPTRI(Output);
-
-     Private->BiosScratch = RHDSaveBiosScratchRegisters(rhdPtr);
 }
 
 /*
@@ -414,7 +409,6 @@ rhdAtomOutputRestore(struct rhdOutput *Output)
 
      data.Address = &Private->Save;
      RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
-     RHDRestoreBiosScratchRegisters(rhdPtr, Private->BiosScratch);
      if (Output->Connector && Output->Connector->Type == RHD_CONNECTOR_PANEL)
 	 atomSetBacklightFromBIOSScratch(Output);
 }

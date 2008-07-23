@@ -2278,7 +2278,8 @@ rhdSave(RHDPtr rhdPtr)
     RHDVGASave(rhdPtr);
 
     RHDOutputsSave(rhdPtr);
-
+    rhdPtr->BIOSScratch = RHDSaveBiosScratchRegisters(rhdPtr);
+    
     RHDPLLsSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 
@@ -2311,6 +2312,7 @@ rhdRestore(RHDPtr rhdPtr)
     RHDCrtcRestore(rhdPtr->Crtc[1]);
 
     RHDOutputsRestore(rhdPtr);
+    RHDRestoreBiosScratchRegisters(rhdPtr, rhdPtr->BIOSScratch);
 }
 
 /*
