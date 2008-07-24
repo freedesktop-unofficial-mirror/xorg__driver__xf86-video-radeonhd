@@ -112,7 +112,7 @@ struct rhdCrtc {
     void (*Blank) (struct rhdCrtc *Crtc, Bool Blank);
 };
 
-void RHDCrtcsInit(RHDPtr rhdPtr);
+Bool RHDCrtcsInit(RHDPtr rhdPtr);
 void RHDAtomCrtcsInit(RHDPtr rhdPtr);
 void RHDCrtcsDestroy(RHDPtr rhdPtr);
 void RHDCrtcSave(struct rhdCrtc *Crtc);

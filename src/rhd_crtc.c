@@ -1279,13 +1279,16 @@ rhdInitScaleType(RHDPtr rhdPtr)
 /*
  *
  */
-void
+Bool
 RHDCrtcsInit(RHDPtr rhdPtr)
 {
     struct rhdCrtc *Crtc;
     enum rhdCrtcScaleType ScaleType;
+    Bool useAtom;
 
     RHDFUNC(rhdPtr);
+
+    useAtom = RHDUseAtom(rhdPtr, NULL, atomUsageCrtc);
 
     ScaleType = rhdInitScaleType(rhdPtr);
 
@@ -1384,6 +1387,8 @@ RHDCrtcsInit(RHDPtr rhdPtr)
     Crtc->Blank = D2Blank;
 
     rhdPtr->Crtc[1] = Crtc;
+
+    return !useAtom;
 }
 
 /*

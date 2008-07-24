@@ -79,7 +79,7 @@ struct rhdPLL {
     Bool StoreGlitchReset;
 };
 
-void RHDPLLsInit(RHDPtr rhdPtr);
+Bool RHDPLLsInit(RHDPtr rhdPtr);
 ModeStatus RHDPLLValid(struct rhdPLL *PLL, CARD32 Clock);
 void RHDPLLSet(struct rhdPLL *PLL, CARD32 Clock);
 void RHDPLLPower(struct rhdPLL *PLL, int Power);
