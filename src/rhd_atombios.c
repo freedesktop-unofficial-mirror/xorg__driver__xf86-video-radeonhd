@@ -4005,7 +4005,7 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
 	     disObjPathTable->ucNumOfDispPath, disObjPathTable->ucVersion);
 
     for (i = 0; i < disObjPathTable->ucNumOfDispPath; i++) {
-	CARD8 objNum;
+	CARD8 objNum, cObjNum;
 	CARD8 objId;
 	CARD8 objType;
 	rhdConnectorType ct;
@@ -4020,6 +4020,7 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
 	    continue;
 
 	ct = rhd_connector_objs[objId].con;
+	cObjNum = objNum;
 
 	for (j = 0; j < disObjPath->usSize / sizeof(USHORT) - 4; j++) {
 	    int k = 0,l;
@@ -4042,7 +4043,7 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
 		    return ATOM_FAILED;
 
 		DeviceList[cnt].DeviceId = rhd_devices[k].atomDevID;
-		DeviceList[cnt].ConnectorType = ct;
+		DeviceList[cnt].ConnectorType = rhdAtomGetConnectorID(handle, ct, cObjNum);
 		DeviceList[cnt].OutputType = rhd_encoders[objId].ot[objNum - 1];
 		cnt++;
 		RHDDebug(handle->scrnIndex, "   DeviceIndex: 0x%x\n",k);
