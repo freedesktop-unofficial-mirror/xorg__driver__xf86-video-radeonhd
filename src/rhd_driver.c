@@ -252,7 +252,8 @@ typedef enum {
     OPTION_DRI,
     OPTION_TV_MODE,
     OPTION_SCALE_TYPE,
-    OPTION_UNVERIFIED_FEAT
+    OPTION_UNVERIFIED_FEAT,
+    OPTION_USE_ATOMBIOS
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -272,6 +273,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN,  {0}, FALSE },
+    { OPTION_USE_ATOMBIOS,	   "UseAtomBIOS",	   OPTV_BOOLEAN,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -768,15 +770,10 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     /* Init modesetting structures */
     RHDVGAInit(rhdPtr);
     RHDMCInit(rhdPtr);
-    RHDCrtcsInit(rhdPtr);
-#if 1
-    RHDAtomCrtcsInit(rhdPtr);
-#endif
-#if 0
-    RHDPLLsInit(rhdPtr);
-#else
-    RHDAtomPLLsInit(rhdPtr);
-#endif
+    if (!RHDCrtcsInit(rhdPtr))
+	RHDAtomCrtcsInit(rhdPtr);
+    if (!RHDPLLsInit(rhdPtr))
+	RHDAtomPLLsInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
 
@@ -2603,6 +2600,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		       &rhdPtr->scaleTypeOpt, "default");
     RhdGetOptValBool   (rhdPtr->Options, OPTION_UNVERIFIED_FEAT,
 			&rhdPtr->unverifiedFeatures, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
+			&rhdPtr->UseAtomBIOS, FALSE);
 
     rhdAccelOptionsHandle(pScrn);
 
@@ -2780,6 +2779,8 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
 #else
 	    rhdPtr->NBPciTag = pciTag(0,0,0);
 #endif
+	    break;
+	default:
 	    break;
     }
 }

@@ -198,7 +198,7 @@ enum AccelMethod {
 typedef struct RHDRec {
     int                 scrnIndex;
 
-    int                 ChipSet;
+    enum RHD_CHIPSETS   ChipSet;
 #ifdef XSERVER_LIBPCIACCESS
     struct pci_device   *PciInfo;
     struct pci_device   *NBPciInfo;
@@ -320,6 +320,9 @@ typedef struct RHDRec {
 
     /* BIOS Scratch registers */
     struct rhdBiosScratchRegisters *BIOSScratch;
+
+    /* AtomBIOS usage */
+    RHDOpt		UseAtomBIOS;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
@@ -335,11 +338,19 @@ typedef struct RHDRec {
 
 #define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
 
+enum atomSubSystem {
+    atomUsageCrtc,
+    atomUsagePLL,
+    atomUsageOutput
+};
+
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
 extern unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
 extern Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector);
 extern void RHDAllIdle(ScrnInfoPtr pScrn);
+extern Bool RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList, enum atomSubSystem subsys);
+
 extern CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
 #define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
 extern void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);

@@ -1254,13 +1254,16 @@ RHDSetupLimits(RHDPtr rhdPtr, CARD32 *RefClock,
 /*
  *
  */
-void
+Bool
 RHDPLLsInit(RHDPtr rhdPtr)
 {
     struct rhdPLL *PLL;
     CARD32 RefClock, IntMin, IntMax, PixMin, PixMax;
 
     RHDFUNC(rhdPtr);
+
+    if (RHDUseAtom(rhdPtr, NULL, atomUsagePLL))
+	return FALSE;
 
     RHDSetupLimits(rhdPtr, &RefClock, &IntMin, &IntMax, &PixMin, &PixMax);
 
@@ -1319,6 +1322,8 @@ RHDPLLsInit(RHDPtr rhdPtr)
     }
 
     rhdPtr->PLLs[1] = PLL;
+
+    return TRUE;
 }
 
 /*

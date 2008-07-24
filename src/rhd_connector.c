@@ -331,46 +331,49 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 		    break;
 
 	    if (!Output) {
-#if 0
-		switch (ConnectorInfo[i].Output[k]) {
-		case RHD_OUTPUT_DACA:
-		    Output = RHDDACAInit(rhdPtr);
-		    RHDOutputAdd(rhdPtr, Output);
-		    break;
-		case RHD_OUTPUT_DACB:
-		    Output = RHDDACBInit(rhdPtr);
-		    RHDOutputAdd(rhdPtr, Output);
-		    break;
-		case RHD_OUTPUT_TMDSA:
-		    Output = RHDTMDSAInit(rhdPtr);
-		    RHDOutputAdd(rhdPtr, Output);
-		    break;
-		case RHD_OUTPUT_LVTMA:
-		    Output = RHDLVTMAInit(rhdPtr, ConnectorInfo[i].Type);
-		    RHDOutputAdd(rhdPtr, Output);
-		    break;
+		if (!RHDUseAtom(rhdPtr, NULL, atomUsageOutput)) {
+		    switch (ConnectorInfo[i].Output[k]) {
+		    case RHD_OUTPUT_DACA:
+			Output = RHDDACAInit(rhdPtr);
+			RHDOutputAdd(rhdPtr, Output);
+			break;
+		    case RHD_OUTPUT_DACB:
+			Output = RHDDACBInit(rhdPtr);
+			RHDOutputAdd(rhdPtr, Output);
+			break;
+		    case RHD_OUTPUT_TMDSA:
+			Output = RHDTMDSAInit(rhdPtr);
+			RHDOutputAdd(rhdPtr, Output);
+			break;
+		    case RHD_OUTPUT_LVTMA:
+			Output = RHDLVTMAInit(rhdPtr, ConnectorInfo[i].Type);
+			RHDOutputAdd(rhdPtr, Output);
+			break;
 		    case RHD_OUTPUT_DVO:
-		    Output = RHDDDIAInit(rhdPtr, ConnectorInfo[i].Type);
+			Output = RHDDDIAInit(rhdPtr, ConnectorInfo[i].Type);
+			if (Output)
+			    RHDOutputAdd(rhdPtr, Output);
+			break;
+		    case RHD_OUTPUT_KLDSKP_LVTMA:
+		    case RHD_OUTPUT_UNIPHYA:
+		    case RHD_OUTPUT_UNIPHYB:
+			Output = RHDDIGInit(rhdPtr, ConnectorInfo[i].Output[k], ConnectorInfo[i].Type);
+			RHDOutputAdd(rhdPtr, Output);
+			break;
+		    default:
+			xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+				   "%s: unhandled output id: %d. Trying fallback to AtomBIOS\n", __func__,
+				   ConnectorInfo[i].Output[k]);
+			break;
+		    }
+		}
+
+		if (!Output) {
+		    Output = RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Type,
+					       ConnectorInfo[i].Output[k]);
 		    if (Output)
 			RHDOutputAdd(rhdPtr, Output);
-		    break;
-		case RHD_OUTPUT_KLDSKP_LVTMA:
-		case RHD_OUTPUT_UNIPHYA:
-		case RHD_OUTPUT_UNIPHYB:
-		    Output = RHDDIGInit(rhdPtr, ConnectorInfo[i].Output[k], ConnectorInfo[i].Type);
-		    RHDOutputAdd(rhdPtr, Output);
-		    break;
-		default:
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-			       "%s: unhandled output id: %d\n", __func__,
-			       ConnectorInfo[i].Output[k]);
-		    break;
 		}
-#else
-		Output = RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Type, ConnectorInfo[i].Output[k]);
-		if (Output)
-		    RHDOutputAdd(rhdPtr, Output);
-#endif
 	    }
 
 	    if (Output) {

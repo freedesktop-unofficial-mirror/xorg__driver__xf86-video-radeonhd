@@ -791,3 +791,60 @@ RHDCardIdentify(ScrnInfoPtr pScrn)
 #endif
     return NULL;
 }
+
+#define USE_ATOMBIOS RHD_RV770
+#define USE_ATOM_CRTC USE_ATOMBIOS
+#define USE_ATOM_PLL USE_ATOMBIOS
+#define USE_ATOM_OUTPUT USE_ATOMBIOS
+
+/*
+ *
+ */
+Bool
+RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
+	   enum atomSubSystem subsys)
+{
+    Bool FromSys = FALSE;
+    int i = 0;
+    char *message;
+    enum RHD_CHIPSETS AtomChip;
+    MessageType from = X_CONFIG;
+
+    switch (subsys) {
+	case atomUsageCrtc:
+	    AtomChip = USE_ATOM_CRTC;
+	    message = "Crtcs";
+	    break;
+	case atomUsagePLL:
+	    AtomChip = USE_ATOM_PLL;
+	    message = "PLLs";
+	    break;
+	case atomUsageOutput:
+	    AtomChip = USE_ATOM_OUTPUT;
+	    message = "Outputs";
+	    break;
+    }
+
+    if (rhdPtr->ChipSet > AtomChip)
+	FromSys = TRUE;
+
+    if (!FromSys && BlackList) {
+	while (BlackList[i] != RHD_CHIP_END) {
+	    if (BlackList[i++] == rhdPtr->ChipSet) {
+		FromSys = TRUE;
+	    }
+	}
+    }
+    if (!FromSys) {
+	if (rhdPtr->UseAtomBIOS.set)
+	    from = X_CONFIG;
+	FromSys = rhdPtr->UseAtomBIOS.val.bool;
+    } else {
+	/* */
+    }
+    if (FromSys)
+	xf86DrvMsg(rhdPtr->scrnIndex, from, "Using AtomBIOS for %s\n",
+		   message);
+
+    return FromSys;
+}
