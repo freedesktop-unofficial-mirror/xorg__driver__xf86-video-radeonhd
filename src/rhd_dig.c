@@ -1436,7 +1436,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 			return NULL;
 		    }
 		}
-		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
+		if (RHDIsIGP(rhdPtr->ChipSet))
+		    transPrivate->atomTransmitterID = atomTransmitterPCIEPHY;
+		else
+		    transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
 	    }
 	    break;
 #else
@@ -1479,7 +1482,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 			return NULL;
 		    }
 		}
-		transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
+		if (RHDIsIGP(rhdPtr->ChipSet))
+		    transPrivate->atomTransmitterID = atomTransmitterPCIEPHY;
+		else
+		    transPrivate->atomTransmitterID = atomTransmitterUNIPHY;
 	    }
 	    break;
 #else

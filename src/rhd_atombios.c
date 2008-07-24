@@ -838,9 +838,6 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	    data.exec.index =  GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
 	    name = "UNIPHYTransmitterControl";
 
-	    if (id == atomTransmitterPCIEPHY)
-		return FALSE; /* for now */
-
 	    break;
 
 	case atomTransmitterLVTMA:
