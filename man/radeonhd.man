@@ -182,8 +182,12 @@ Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
 .PP
 .SH CONFIGURATION DETAILS
 Please refer to __xconfigfile__(__filemansuffix__) for general
-configuration details.  This section only covers configuration options
-specific to this driver. Some options may be deprecated and considered to be
+configuration details.
+.P
+This section only covers configuration options
+specific to this driver, for
+.BR "Section \*qDevice\*q" .
+Some options may be deprecated and considered to be
 removed or replaced by better implementations soon.
 .\"
 .TP
