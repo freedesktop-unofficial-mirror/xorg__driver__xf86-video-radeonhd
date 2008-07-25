@@ -1537,10 +1537,10 @@ RHDPLLsDestroy(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
-    if (rhdPtr->PLLs[0]->Private)
+    if (rhdPtr->PLLs[0] && rhdPtr->PLLs[0]->Private)
 	xfree(rhdPtr->PLLs[0]->Private);
     xfree(rhdPtr->PLLs[0]);
-    if (rhdPtr->PLLs[1]->Private)
+    if (rhdPtr->PLLs[1] && rhdPtr->PLLs[1]->Private)
 	xfree(rhdPtr->PLLs[1]->Private);
     xfree(rhdPtr->PLLs[1]);
 }
