@@ -1770,7 +1770,7 @@ RHDDRMFDGet(int scrnIndex)
 /*
  * Get an indirect buffer for the CP 2D acceleration commands
  */
-drmBufPtr
+struct _drmBuf *
 RHDDRMCPBuffer(int scrnIndex)
 {
     struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;

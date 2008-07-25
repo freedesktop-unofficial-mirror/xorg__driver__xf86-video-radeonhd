@@ -192,10 +192,6 @@ CSMMIOInit(struct RhdCS *CS)
 
 #define R5XX_IDLE_RETRY 16 /* Fall out of idle loops after this count */
 
-/* from rhd_dri.c */
-extern int RHDDRMFDGet(int scrnIndex);
-extern drmBufPtr RHDDRMCPBuffer(int scrnIndex);
-
 struct RhdDRMCP {
     int DrmFd;
     drmBufPtr DrmBuffer;

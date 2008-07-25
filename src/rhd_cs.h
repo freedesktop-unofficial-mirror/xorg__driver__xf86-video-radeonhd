@@ -83,6 +83,12 @@ struct RhdCS {
     void *Private; /* holds MMIO or direct/indirect CP specific information */
 };
 
+/* some interface bleedover from rhd_dri.c */
+#ifdef USE_DRI
+int RHDDRMFDGet(int scrnIndex);
+struct _drmBuf *RHDDRMCPBuffer(int scrnIndex);
+#endif
+
 /*
  * Some CP defines.
  */
