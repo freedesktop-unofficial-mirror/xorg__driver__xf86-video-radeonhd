@@ -242,8 +242,8 @@ enum atomEncoderMode {
 };
 
 enum atomEncoderAction {
-    atomEncoderOn,
-    atomEncoderOff
+    atomEncoderOff,
+    atomEncoderOn
 };
 
 enum atomOutput {
