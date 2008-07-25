@@ -930,9 +930,6 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	    data.exec.index =  GetIndexIntoMasterTable(COMMAND, UNIPHYTransmitterControl);
 	    name = "UNIPHYTransmitterControl";
 
-	    if (id == atomTransmitterPCIEPHY)
-		return FALSE; /* for now @@@ */
-
 	    break;
 
 	case atomTransmitterLVTMA:
@@ -1467,6 +1464,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	case atomEncoderExternal:
 	{
 	    DIG_ENCODER_CONTROL_PARAMETERS *dig = &ps.dig;
+
 	    if (EncoderId == atomEncoderDIG1) {
 		name = "DIG1EncoderControl";
 		data.exec.index = GetIndexIntoMasterTable(COMMAND, DIG1EncoderControl);
@@ -1493,6 +1491,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    dig->ucConfig |= ATOM_ENCODER_CONFIG_LINKB_A;
 		    break;
 	    }
+
 	    if (EncoderId != atomEncoderExternal) {
 		switch (Config->u.dig.Transmitter) {
 		    case atomTransmitterUNIPHY:
@@ -1506,6 +1505,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			break;
 		}
 	    }
+
 	    switch (Config->u.dig.EncoderMode) {
 		case atomDVI:
 		    dig->ucEncoderMode = ATOM_ENCODER_MODE_DVI;
@@ -1532,6 +1532,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    return FALSE;
 		    break;
 	    }
+
 	    switch (Action) {
 		case atomEncoderOn:
 		    dig->ucAction = ATOM_ENABLE;
@@ -1543,6 +1544,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DIG unknown action\n",__func__);
 		    return FALSE;
 	    }
+
 	    switch (Config->u.dig.LinkCnt) {
 		case atomSingleLink:
 		    dig->ucLaneNum = 4;
