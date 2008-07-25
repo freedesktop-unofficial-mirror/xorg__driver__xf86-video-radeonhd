@@ -164,6 +164,8 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 #endif
 		    )
 		    Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
+		else
+		    Private->RunDualLink = FALSE;
 	    } else
 		/* only get here for power down: thus power down both channels to be save */
 		Private->RunDualLink = TRUE;
@@ -200,9 +202,11 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 #endif
 		    )
 		    Private->RunDualLink = (PixelClock > 165000) ? TRUE : FALSE;
+		else
+		    Private->RunDualLink = FALSE;
 	    } else
 		/* only get here for power down: thus power down both channels to be save */
-		Private->RunDualLink = TRUE;
+		    Private->RunDualLink = TRUE;
 
 	    if (Private->RunDualLink) {
 		TransmitterConfig->LinkCnt = EncoderConfig->u.dig.LinkCnt = atomDualLink;
@@ -300,7 +304,6 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 		       "Unknown version of SelectCrtcSource code table: %i\n",Private->CrtcSourceVersion.cref);
 	    return;
     }
-    rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
     data.Address = NULL;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
@@ -314,8 +317,9 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+    struct atomEncoderConfig *EncoderConfig = &Private->EncoderConfig;
     union AtomBiosArg data;
-    
+
     RHDFUNC(Output);
 
     data.Address = &Private->Save;
@@ -326,6 +330,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
     switch (Power) {
 	case RHD_POWER_ON:
 	    RHDDebug(Output->scrnIndex, "RHD_POWER_ON\n");
+	    rhdAtomEncoderControl(rhdPtr->atomBIOS,  Private->EncoderId, atomEncoderOn, EncoderConfig);
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
@@ -377,11 +382,10 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisable)");
 		    break;
 		default:
-			if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputDisable))
-			    ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
-			break;
+		    if (!rhdAtomOutputControl(rhdPtr->atomBIOS, Private->OutputControlId, atomOutputDisable))
+			ERROR_MSG("rhdAtomOutputControl(atomOutputDisable)");
+		    break;
 	    }
-
 	    if (!rhdAtomEncoderControl(rhdPtr->atomBIOS, Private->EncoderId, atomEncoderOff, &Private->EncoderConfig))
 		ERROR_MSG("rhdAtomEncoderControl(atomEncoderOff)");
 	    break;
@@ -820,11 +824,10 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	case RHD_OUTPUT_UNIPHYA:
 	    Private->EncoderId = atomEncoderDIG1;
 	    EncoderConfig->u.dig.Link = atomTransLinkA;
-	    EncoderConfig->u.dig.Transmitter = atomTransmitterUNIPHY;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
-		Private->TransmitterId = atomTransmitterPCIEPHY;
+		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterPCIEPHY;
 	    else
-		Private->TransmitterId = atomTransmitterUNIPHY;
+		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkA;
