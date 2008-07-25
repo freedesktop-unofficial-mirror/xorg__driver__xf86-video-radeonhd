@@ -277,7 +277,6 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
     struct atomEncoderConfig *EncoderConfig = &Private->EncoderConfig;
-/*     struct atomTransmitterConfig *TransmitterConfig = &Private->TransmitterConfig; */
     struct atomCrtcSourceConfig CrtcSourceConfig;
     union AtomBiosArg data;
 
@@ -303,6 +302,16 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 	    xf86DrvMsg(Output->scrnIndex, X_ERROR,
 		       "Unknown version of SelectCrtcSource code table: %i\n",Private->CrtcSourceVersion.cref);
 	    return;
+    }
+    switch (Output->Id) {
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	case RHD_OUTPUT_UNIPHYA:
+	case RHD_OUTPUT_UNIPHYB:
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId, atomTransSetup,
+					 &Private->TransmitterConfig);
+	    break;
+	default:
+	    break;
     }
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
     data.Address = NULL;
