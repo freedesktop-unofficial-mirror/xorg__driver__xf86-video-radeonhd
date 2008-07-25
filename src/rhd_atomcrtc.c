@@ -419,13 +419,6 @@ RHDAtomCrtcsInit(RHDPtr rhdPtr)
 	    Crtc->Id = RHD_CRTC_2;
 	}
 
-	/* We don't have to deal with FMT as this is handled in the SelectCrtcSource table */
-	Crtc->FMTPriv = NULL;
-	Crtc->FMTModeSet = NULL;
-	Crtc->FMTSave = NULL;
-	Crtc->FMTRestore = NULL;
-	Crtc->FMTDestroy = NULL;
-
 	/* EnableGraphSurfaces is only a BIOS internal table. So use the hardcoded path.
 	Crtc->FBValid = atomFBValid;
 	Crtc->FBSet = atomFBSet;
