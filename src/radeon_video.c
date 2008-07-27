@@ -248,7 +248,7 @@ RADEONCopyData(
 #endif /* USE_DRI */
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	unsigned int swapper = info->surface_cntl &
+	unsigned int swapper = info->accel_state->surface_cntl &
 		~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 		  RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 
@@ -274,7 +274,7 @@ RADEONCopyData(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
     }
 }
@@ -330,7 +330,7 @@ RADEONCopyRGB24Data(
 #endif /* USE_DRI */
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->surface_cntl
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->accel_state->surface_cntl
 				   | RADEON_NONSURF_AP0_SWP_32BPP)
 				  & ~RADEON_NONSURF_AP0_SWP_16BPP);
 #endif
@@ -346,7 +346,7 @@ RADEONCopyRGB24Data(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
     }
 }
@@ -424,7 +424,7 @@ RADEONCopyMungedData(
 	unsigned int i, j;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->surface_cntl
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->accel_state->surface_cntl
 				   | RADEON_NONSURF_AP0_SWP_32BPP)
 				  & ~RADEON_NONSURF_AP0_SWP_16BPP);
 #endif
@@ -462,7 +462,7 @@ RADEONCopyMungedData(
 	}
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->ModeReg->surface_cntl);
+	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
     }
 }

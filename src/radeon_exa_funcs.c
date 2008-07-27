@@ -262,7 +262,7 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
     uint32_t	   buf_pitch, dst_pitch_off;
 #endif
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    unsigned int swapper = info->surface_cntl &
+    unsigned int swapper = info->accel_state->surface_cntl &
 	    ~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 	      RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 #endif
@@ -322,7 +322,7 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->surface_cntl);
+    OUTREG(RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
 
     return TRUE;
@@ -369,7 +369,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 {
     RINFO_FROM_SCREEN(pSrc->drawable.pScreen);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    unsigned int swapper = info->surface_cntl &
+    unsigned int swapper = info->accel_state->surface_cntl &
 	    ~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 	      RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 #endif
@@ -508,7 +508,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->surface_cntl);
+    OUTREG(RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
 
     return TRUE;
