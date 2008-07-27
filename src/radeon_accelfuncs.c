@@ -774,16 +774,7 @@ FUNC_NAME(RADEONSetupForScanlineCPUToScreenColorExpandFill)(ScrnInfoPtr pScrn,
     info->accel_state->scanline_fg = fg;
     info->accel_state->scanline_bg = bg;
 
-#if X_BYTE_ORDER == X_LITTLE_ENDIAN
     BEGIN_ACCEL(1);
-#else
-    if (info->ChipFamily < CHIP_FAMILY_R300) {
-	BEGIN_ACCEL(2);
-
-	OUT_ACCEL_REG(RADEON_RBBM_GUICNTL,   RADEON_HOST_DATA_SWAP_32BIT);
-    } else
-	BEGIN_ACCEL(1);
-#endif
     OUT_ACCEL_REG(RADEON_DP_WRITE_MASK,      planemask);
 
 #endif
@@ -973,20 +964,9 @@ FUNC_NAME(RADEONSetupForScanlineImageWrite)(ScrnInfoPtr pScrn,
 
 #else /* ACCEL_CP */
 
-#if X_BYTE_ORDER == X_LITTLE_ENDIAN
     BEGIN_ACCEL(1);
-#else
-    if (info->ChipFamily < CHIP_FAMILY_R300) {
-        BEGIN_ACCEL(2);
+#endif
 
-	if (bpp == 16)
-	    OUT_ACCEL_REG(RADEON_RBBM_GUICNTL,   RADEON_HOST_DATA_SWAP_HDW);
-	else
-	    OUT_ACCEL_REG(RADEON_RBBM_GUICNTL,   RADEON_HOST_DATA_SWAP_NONE);
-    } else
-	BEGIN_ACCEL(1);
-#endif
-#endif
     OUT_ACCEL_REG(RADEON_DP_WRITE_MASK,      planemask);
 
     FINISH_ACCEL();
