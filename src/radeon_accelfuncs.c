@@ -908,18 +908,16 @@ FUNC_NAME(RADEONSubsequentScanline)(ScrnInfoPtr pScrn,
 #else /* ACCEL_CP */
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    if (info->ChipFamily >= CHIP_FAMILY_R300) {
-	if (info->accel_state->scanline_bpp == 16) {
-	    RADEONCopySwap(info->accel_state->scratch_buffer[bufno],
-			   info->accel_state->scratch_buffer[bufno],
-			   info->accel_state->scanline_words << 2,
-			   RADEON_HOST_DATA_SWAP_HDW);
-	} else if (info->scanline_bpp < 15) {
-	    RADEONCopySwap(info->accel_state->scratch_buffer[bufno],
-			   info->accel_state->scratch_buffer[bufno],
-			   info->accel_state->scanline_words << 2,
-			   RADEON_HOST_DATA_SWAP_32BIT);
-	}
+    if (info->accel_state->scanline_bpp == 16) {
+	RADEONCopySwap(info->accel_state->scratch_buffer[bufno],
+		       info->accel_state->scratch_buffer[bufno],
+		       info->accel_state->scanline_words << 2,
+		       RADEON_HOST_DATA_SWAP_HDW);
+    } else if (info->accel_state->scanline_bpp < 15) {
+	RADEONCopySwap(info->accel_state->scratch_buffer[bufno],
+		       info->accel_state->scratch_buffer[bufno],
+		       info->accel_state->scanline_words << 2,
+		       RADEON_HOST_DATA_SWAP_32BIT);
     }
 #endif
 
