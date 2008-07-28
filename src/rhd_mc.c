@@ -50,7 +50,7 @@ struct rhdMC {
     void (*RestoreMC)(RHDPtr rhdPtr);
     void (*SetupMC)(RHDPtr rhdPtr);
     Bool (*MCIdle)(RHDPtr rhdPtr);
-    Bool (*TuneMCAccessForDisplay)(RHDPtr rhdPtr, int crtc,
+    void (*TuneMCAccessForDisplay)(RHDPtr rhdPtr, int crtc,
 				   DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     Bool RV515Variant;
 };
@@ -101,6 +101,7 @@ r6xxSaveMC(RHDPtr rhdPtr)
 /*
  *
  */
+#ifdef NOTYET
 static void
 rs780SaveMC(RHDPtr rhdPtr)
 {
@@ -112,6 +113,7 @@ rs780SaveMC(RHDPtr rhdPtr)
     /* RS780 uses the same register as R6xx */
     MC->HdpFbBase = RHDRegRead(rhdPtr, R6XX_HDP_NONSURFACE_BASE);
 }
+#endif
 
 /*
  *
@@ -194,6 +196,7 @@ r6xxRestoreMC(RHDPtr rhdPtr)
 /*
  *
  */
+#ifdef NOTYET
 static void
 rs780RestoreMC(RHDPtr rhdPtr)
 {
@@ -205,6 +208,7 @@ rs780RestoreMC(RHDPtr rhdPtr)
     /* RS780 uses the same register as R6xx */
     RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, MC->HdpFbBase);
 }
+#endif
 
 static void
 r7xxRestoreMC(RHDPtr rhdPtr)
@@ -332,6 +336,7 @@ r6xxSetupMC(RHDPtr rhdPtr)
 /*
  *
  */
+#ifdef NOTYET
 static void
 rs780SetupMC(RHDPtr rhdPtr)
 {
@@ -354,6 +359,7 @@ rs780SetupMC(RHDPtr rhdPtr)
     /* RS780 uses the same register as R6xx */
     RHDRegWrite(rhdPtr, R6XX_HDP_NONSURFACE_BASE, hdp_fbbase_tmp);
 }
+#endif
 
 /*
  *
@@ -477,6 +483,7 @@ r6xxMCIdle(RHDPtr rhdPtr)
 /*
  *
  */
+#ifdef NOTYET
 static Bool
 rs780MCIdle(RHDPtr rhdPtr)
 {
@@ -486,6 +493,7 @@ rs780MCIdle(RHDPtr rhdPtr)
 	return TRUE;
     return FALSE;
 }
+#endif
 
 /*
  *
