@@ -1065,8 +1065,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	return FALSE;
     }
 
+#ifdef ATOM_BIOS
     /* Set accelerator mode in the BIOSScratch registers */
     RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
+#endif
 
     /* now init the new mode */
     if (rhdPtr->randr)
@@ -1199,8 +1201,10 @@ RHDEnterVT(int scrnIndex, int flags)
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
 	R5xx2DIdle(pScrn);
 
+#ifdef ATOM_BIOS
     /* Set accelerator mode in the BIOSScratch registers */
     RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
+#endif
 
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -1311,7 +1315,9 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc1)) {
 		    Output->Power(Output, RHD_POWER_ON);
+#ifdef ATOM_BIOS
 		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+#endif
 		}
 
 	    Crtc1->Blank(Crtc1, FALSE);
@@ -1323,7 +1329,9 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc2)) {
 		    Output->Power(Output, RHD_POWER_ON);
+#ifdef ATOM_BIOS
 		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+#endif
 		}
 	    Crtc2->Blank(Crtc2, FALSE);
 	}
@@ -1337,7 +1345,9 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc1)) {
 		    Output->Power(Output, RHD_POWER_RESET);
+#ifdef ATOM_BIOS
 		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+#endif
 		}
 
 	    Crtc1->Power(Crtc1, RHD_POWER_RESET);
@@ -1349,7 +1359,9 @@ RHDDisplayPowerManagementSet(ScrnInfoPtr pScrn,
 	    for (Output = rhdPtr->Outputs; Output; Output = Output->Next)
 		if (Output->Power && Output->Active && (Output->Crtc == Crtc2)) {
 		    Output->Power(Output, RHD_POWER_RESET);
+#ifdef ATOM_BIOS
 		    RHDAtomBIOSScratchPMState(rhdPtr, Output, PowerManagementMode);
+#endif
 		}
 
 	    Crtc2->Power(Crtc2, RHD_POWER_RESET);
@@ -2140,8 +2152,9 @@ rhdSave(RHDPtr rhdPtr)
     RHDVGASave(rhdPtr);
 
     RHDOutputsSave(rhdPtr);
+#ifdef ATOM_BIOS
     rhdPtr->BIOSScratch = RHDSaveBiosScratchRegisters(rhdPtr);
-
+#endif
     RHDPLLsSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 
@@ -2174,7 +2187,9 @@ rhdRestore(RHDPtr rhdPtr)
     RHDCrtcRestore(rhdPtr->Crtc[1]);
 
     RHDOutputsRestore(rhdPtr);
+#ifdef ATOM_BIOS
     RHDRestoreBiosScratchRegisters(rhdPtr, rhdPtr->BIOSScratch);
+#endif
 }
 
 /*

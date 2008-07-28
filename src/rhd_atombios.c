@@ -2631,7 +2631,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     handle->BIOSImageSize = BIOSImageSize;
     handle->codeTable = codeTable;
 
-# if ATOM_BIOS_PARSER
+# ifdef ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
     if (unposted) {
 	/* run AsicInit */

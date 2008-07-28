@@ -41,7 +41,7 @@
 #include "rhd_lut.h"
 #include "rhd_regs.h"
 #include "rhd_modes.h"
-#ifdef ATOM_BIOS
+#if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 # include "rhd_atombios.h"
 
 # define D1_REG_OFFSET 0x0000
@@ -448,4 +448,4 @@ RHDAtomCrtcsInit(RHDPtr rhdPtr)
     }
 }
 
-#endif /* ATOM_BIOS */
+#endif /* ATOM_BIOS && ATOM_BIOS_PARSER */

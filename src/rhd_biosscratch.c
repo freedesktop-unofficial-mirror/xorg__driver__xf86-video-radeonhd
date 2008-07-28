@@ -82,6 +82,7 @@ struct rhdOutputDevices {
     enum rhdConnectorType ConnectorType;
 };
 
+#if defined (ATOM_BIOS_PARSER)
 /*
  *
  */
@@ -220,7 +221,7 @@ RHDBIOSScratchDACSense(struct rhdOutput *Output, struct rhdConnector *Connector)
     }
     return RHD_SENSED_NONE;
 }
-
+# endif /* ATOM_BIOS_PARSER */
 /*
  *
  */
