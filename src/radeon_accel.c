@@ -719,10 +719,6 @@ RADEONHostDataBlitCopyPass(
     unsigned int srcPitch
 ){
 
-#if X_BYTE_ORDER == X_BIG_ENDIAN
-    RHDPtr info = RHDPTR(pScrn);
-#endif
-
     /* RADEONHostDataBlitCopy can return NULL ! */
     if( (dst==NULL) || (src==NULL)) return;
 

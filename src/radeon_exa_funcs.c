@@ -309,7 +309,7 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
 		|  RADEON_NONSURF_AP1_SWP_32BPP;
 	break;
     }
-    OUTREG(RADEON_SURFACE_CNTL, swapper);
+    RHDRegWrite(info,RADEON_SURFACE_CNTL, swapper);
 #endif
     w *= bpp / 8;
     dst += (x * bpp / 8) + (y * dst_pitch);
@@ -322,7 +322,7 @@ FUNC_NAME(RADEONUploadToScreen)(PixmapPtr pDst, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
+    RHDRegWrite(info,RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
 
     return TRUE;
@@ -494,7 +494,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 		|  RADEON_NONSURF_AP1_SWP_32BPP;
 	break;
     }
-    OUTREG(RADEON_SURFACE_CNTL, swapper);
+    RHDRegWrite(info,RADEON_SURFACE_CNTL, swapper);
 #endif
 
     src += (x * bpp / 8) + (y * src_pitch);
@@ -508,7 +508,7 @@ FUNC_NAME(RADEONDownloadFromScreen)(PixmapPtr pSrc, int x, int y, int w, int h,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    OUTREG(RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
+    RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
 #endif
 
     return TRUE;

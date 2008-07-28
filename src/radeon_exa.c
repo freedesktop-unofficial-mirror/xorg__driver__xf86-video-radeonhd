@@ -279,7 +279,7 @@ static void RADEONFinishAccess(PixmapPtr pPix, int index)
         return;
 #if defined(USE_DRI)
     if (info->directRenderingEnabled && info->allowColorTiling) {
-	drmRadeonSurfaceFree drmsurffree;
+	struct drm_radeon_surface_free drmsurffree;
 
 	drmsurffree.address = offset;
 	drmCommandWrite(info->dri->drmFD, DRM_RADEON_SURF_FREE,
