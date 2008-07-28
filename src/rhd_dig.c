@@ -268,7 +268,9 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     CARD32 value = 0;
+#ifdef ATOM_BIOS
     AtomBiosArgRec data;
+#endif
     RHDPtr rhdPtr = RHDPTRI(Output);
     Bool doCoherent = Private->Coherent;
     RHDFUNC(Output);
@@ -722,7 +724,7 @@ LVTMATransmitterDestroy(struct rhdOutput *Output)
     xfree(digPrivate->Transmitter.Private);
 }
 
-#ifdef ATOM_BIOS
+#if defined(ATOM_BIOS) && defined(ATOM_BIOS_PARSER)
 
 struct ATOMTransmitterPrivate
 {
@@ -865,7 +867,7 @@ ATOMTransmitterDestroy(struct rhdOutput *Output)
     xfree(digPrivate->Transmitter.Private);
 }
 
-#endif
+#endif /* ATOM_BIOS && ATOM_BIOS_PASER */
 
 /*
  *  Encoder
@@ -1405,7 +1407,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
-#ifdef ATOM_BIOS
+#if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 	    Output->Name = "UNIPHY_A";
 	    Private->EncoderID = ENCODER_DIG1;
 	    Private->Transmitter.Private =
@@ -1448,10 +1450,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    xfree(Private);
 	    xfree(Output);
 	    return NULL;
-#endif
+#endif /* ATOM_BIOS && ATOM_BIOS_PARSER */
 
 	case RHD_OUTPUT_UNIPHYB:
-#ifdef ATOM_BIOS
+#if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 	    Output->Name = "UNIPHY_B";
 	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
@@ -1494,7 +1496,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    xfree(Private);
 	    xfree(Output);
 	    return NULL;
-#endif
+#endif /* ATOM_BIOS && ATOM_BIOS_PARSER */
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSKP_LVTMA";

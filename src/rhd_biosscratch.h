@@ -52,10 +52,10 @@ extern struct rhdBiosScratchRegisters *RHDSaveBiosScratchRegisters(RHDPtr rhdPtr
 extern void RHDRestoreBiosScratchRegisters(RHDPtr rhdPtr,
 					   struct rhdBiosScratchRegisters * regs);
 
-
+# if defined (ATOM_BIOS_PARSER)
 extern enum rhdSensedOutput RHDBIOSScratchDACSense(struct rhdOutput *Output,
 						   struct rhdConnector *Connector);
-
+# endif
 extern Bool RHDAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices,
 					    struct rhdOutput *Output);
 extern Bool RHDFindConnectorAndOutputTypesForDevice(RHDPtr rhdPtr, enum atomDevice Device,

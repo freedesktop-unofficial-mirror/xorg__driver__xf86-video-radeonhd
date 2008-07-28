@@ -46,7 +46,7 @@
 #include "rhd_atomout.h"
 #include "rhd_biosscratch.h"
 
-#ifdef ATOM_BIOS
+#if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 struct rhdAtomOutputPrivate {
     Bool Stored;
 
@@ -975,4 +975,4 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output)
     return BlLevel;
 }
 
-#endif /* ATOM_BIOS */
+#endif /* ATOM_BIOS && ATOM_BIOS_PARSER */

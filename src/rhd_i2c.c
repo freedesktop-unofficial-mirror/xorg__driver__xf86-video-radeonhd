@@ -464,8 +464,7 @@ rhdRS69I2CStatus(I2CBusPtr I2CPtr)
 static Bool
 rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
-    CARD32 ddc;
-    unsigned int clk_line = 0; /* invalid clk register */
+    CARD32 ddc = 0;
 
     RHDFUNC(I2CPtr);
 
@@ -473,6 +472,7 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
     {
 	RHDPtr rhdPtr = RHDPTR(xf86Screens[I2CPtr->scrnIndex]);
 	AtomBiosArgRec atomBiosArg;
+	unsigned int clk_line = 0; /* invalid clk register */
 
 	atomBiosArg.val = line & 0xf;
 	if (ATOM_SUCCESS != RHDAtomBiosFunc(rhdPtr->scrnIndex,
@@ -481,7 +481,6 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 					    &atomBiosArg))
 	    return FALSE;
 	clk_line = atomBiosArg.val;
-#endif /* ATOM_BIOS */
 
 	/* add SDVO handling later */
 	switch (clk_line) {
@@ -503,6 +502,7 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 	RHDDebug(I2CPtr->scrnIndex, "%s: DDC Line: %i val: %i port: 0x%x\n",
 		 __func__, line & 0xf, ddc, atomBiosArg.val);
     }
+#endif /* ATOM_BIOS */
 
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
     RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
@@ -875,10 +875,10 @@ static  Bool
 rhdRV620I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 {
     CARD32 reg_7d9c = 0; /* 0 is invalid */
+    CARD32 scl_reg;
 #ifdef ATOM_BIOS
     RHDPtr rhdPtr = RHDPTRI(I2CPtr);
     AtomBiosArgRec data;
-    CARD32 scl_reg;
 
     RHDFUNC(I2CPtr);
 
@@ -1116,7 +1116,7 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
     if (rhdPtr->ChipSet < RHD_R600) {
 	return (0x7f << 8)
 	    + (DEFAULT_ENGINE_CLOCK) / (4 * 0x7f * TARGET_HW_I2C_CLOCK);
-    } else if {rhdPtr->ChipSet < RHD_RV620) {
+    } else if (rhdPtr->ChipSet < RHD_RV620) {
 	return (DEFAULT_REF_CLOCK / TARGET_HW_I2C_CLOCK);
     } else
 	  return (DEFAULT_REF_CLOCK / (4 * TARGET_HW_I2C_CLOCK));

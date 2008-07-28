@@ -32,9 +32,9 @@
 typedef enum _AtomBiosRequestID {
     ATOMBIOS_INIT,
     ATOMBIOS_TEARDOWN,
-# ifdef ATOM_BIOS_PARSER
+#  ifdef ATOM_BIOS_PARSER
     ATOMBIOS_EXEC,
-# endif
+#  endif
     ATOMBIOS_ALLOCATE_FB_SCRATCH,
     ATOMBIOS_GET_CONNECTORS,
     ATOMBIOS_GET_OUTPUT_DEVICE_LIST,
@@ -488,12 +488,14 @@ struct atomCrtcBlank {
 
 extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
+
+#  ifdef ATOM_BIOS_PARSER
 extern Bool rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode);
 
-#if 0
+#   if 0
 extern Bool rhdAtomASICInit(atomBiosHandlePtr handle);
 extern struct atomCodeTableVersion rhdAtomASICInitVersion(atomBiosHandlePtr handle);
-#endif
+#   endif
 extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
 		 enum atomScaleMode mode);
 extern struct atomCodeTableVersion rhdAtomSetScalerVersion(atomBiosHandlePtr handle);
@@ -535,6 +537,8 @@ struct atomCodeTableVersion rhdAtomSetCRTCOverscanVersion(atomBiosHandlePtr hand
 extern Bool rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlank *config);
 extern struct atomCodeTableVersion rhdAtomBlankCRTCVersion(atomBiosHandlePtr handle);
 
-# endif
+#  endif /* ATOM_BIOS_PASER */
+
+# endif /* ATOM_BIOS */
 
 #endif /*  RHD_ATOMBIOS_H_ */

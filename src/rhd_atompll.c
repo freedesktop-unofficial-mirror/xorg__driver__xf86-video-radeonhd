@@ -43,7 +43,7 @@
 #include "rhd_output.h"
 #include "rhd_crtc.h"
 #include "rhd_regs.h"
-#ifdef ATOM_BIOS
+#if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 # include "rhd_atombios.h"
 # include "rhd_biosscratch.h"
 
@@ -419,4 +419,4 @@ RHDAtomPLLsInit(RHDPtr rhdPtr)
     return TRUE;
 }
 
-#endif /* AtomBIOS */
+#endif /* ATOM_BIOS && ATOM_BIOS_PARSER */
