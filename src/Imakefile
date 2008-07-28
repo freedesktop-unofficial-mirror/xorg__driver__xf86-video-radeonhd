@@ -16,6 +16,7 @@ rhd_atomwrapper.o \
 AtomBios/CD_Operations.o \
 AtomBios/Decoder.o \
 AtomBios/hwserv_drv.o
+
 #endif
 
 SRCS =  \
@@ -44,6 +45,10 @@ rhd_vga.c \
 rhd_shadow.c \
 r5xx_accel.c \
 r5xx_xaa.c \
+rhd_biosscratch.c \
+rhd_atomout.c \
+rhd_atompll.c \
+rhd_atomcrtc.c \
 $(ATOM_BIOS_PARSER_SRCS) \
 git_version.h
 
@@ -73,7 +78,11 @@ rhd_vga.o \
 rhd_shadow.o \
 r5xx_accel.o \
 r5xx_xaa.o \
-$(ATOM_BIOS_PARSER_OBJS)
+rhd_biosscratch.o \
+rhd_atomout.o \
+rhd_atompll.o \
+rhd_atomcrtc.o \
+$(ATOM_BIOS_PARSER_OBJS) \
 
 INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
                                -I$(SERVERSRC)/mi \
