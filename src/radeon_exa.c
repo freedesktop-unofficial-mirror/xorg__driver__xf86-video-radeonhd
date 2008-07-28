@@ -233,6 +233,8 @@ static Bool RADEONPrepareAccess(PixmapPtr pPix, int index)
         flags = 0;
     }
 #if defined(USE_DRI)
+#if 0
+    /* need to port over surface and tiling stuff */
     if (info->directRenderingEnabled && info->allowColorTiling) {
 	drmRadeonSurfaceAlloc drmsurfalloc;
 	int rc;
@@ -253,6 +255,7 @@ static Bool RADEONPrepareAccess(PixmapPtr pPix, int index)
 
 	return TRUE;
     }
+#endif
 #endif
     soff = (index + 1) * 0x10;
     RHDRegWrite(info, RADEON_SURFACE0_INFO + soff, flags);
