@@ -718,10 +718,13 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	    return FALSE; /* failing here doesn't help */
 	}
 	memcpy(Mode, tmp, sizeof(DisplayModeRec));
+	Mode->name = xstrdup(tmp->name);
+	xfree(tmp->name);
 	xfree(tmp);
 	Mode->prev = Mode->next = NULL;
-	Mode->name = xstrdup(Mode->name);
 	DisplayedMode = OrigMode;
+	if (!DisplayedMode->name)
+	    DisplayedMode->name = "n/a";
 	Crtc->ScaledToMode = Mode;
 	Scaled = TRUE;
     } else {

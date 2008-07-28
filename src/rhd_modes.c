@@ -500,14 +500,17 @@ rhdModesDestroy(DisplayModePtr Modes)
  * Basic sanity checks.
  */
 static int
-rhdModeSanity(DisplayModePtr Mode)
+rhdModeSanity(RHDPtr rhdPtr, DisplayModePtr Mode)
 {
     /* do we need to bother at all? */
     if (Mode->status != MODE_OK)
         return Mode->status;
 
-    if (!Mode->name)
+    if (!Mode->name) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "Validation found mode without name.\n");
         return MODE_ERROR;
+    }
 
     if (Mode->Clock <= 0)
         return MODE_NOCLOCK;
@@ -763,7 +766,7 @@ rhdModeValidateCrtc(struct rhdCrtc *Crtc, DisplayModePtr Mode, enum ValidationKi
 
     RHDFUNC(Crtc);
 
-    Status = rhdModeSanity(Mode);
+    Status = rhdModeSanity(rhdPtr, Mode);
     if (Status != MODE_OK)
         return Status;
 
@@ -860,7 +863,7 @@ RHDValidateScaledToMode(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 
     RHDFUNC(Crtc);
 
-    Status = rhdModeSanity(Mode);
+    Status = rhdModeSanity(rhdPtr, Mode);
     if (Status != MODE_OK)
         return Status;
 
@@ -891,7 +894,7 @@ rhdModeValidate(ScrnInfoPtr pScrn, DisplayModePtr Mode)
     int Status;
     int i;
 
-    Status = rhdModeSanity(Mode);
+    Status = rhdModeSanity(rhdPtr, Mode);
     if (Status != MODE_OK)
         return Status;
 
@@ -1590,7 +1593,7 @@ RHDRRModeFixup(ScrnInfoPtr pScrn, DisplayModePtr Mode, struct rhdCrtc *Crtc,
     ASSERT(Output);
     RHDFUNC(Output);
 
-    Status = rhdModeSanity(Mode);
+    Status = rhdModeSanity(rhdPtr, Mode);
     if (Status != MODE_OK)
         return Status;
 
@@ -1709,7 +1712,7 @@ RHDRRValidateScaledToMode(struct rhdOutput *Output, DisplayModePtr Mode)
 
     RHDFUNC(Output);
 
-    Status = rhdModeSanity(Mode);
+    Status = rhdModeSanity(rhdPtr, Mode);
     if (Status != MODE_OK)
         return Status;
 
