@@ -298,11 +298,152 @@ R5xxEXADoneCopy(PixmapPtr pDst)
 }
 
 /*
+ * Buffer swaps for big endian.
+ */
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+static inline void
+R5xxCopySwap8(CARD8 *dst, CARD8 *src, unsigned int size)
+{
+    unsigned int *d = (unsigned int *)dst;
+    unsigned int *s = (unsigned int *)src;
+    unsigned int nwords = size >> 2;
+
+    for (; nwords > 0; --nwords, ++d, ++s)
+#ifdef __powerpc__
+	asm volatile("stwbrx %0,0,%1" : : "r" (*s), "r" (d));
+#else
+        *d = ((*s >> 24) & 0xff) | ((*s >> 8) & 0xff00)
+	    | ((*s & 0xff00) << 8) | ((*s & 0xff) << 24);
+#endif
+}
+
+static inline void
+R5xxCopySwap16(CARD8 *dst, CARD8 *src, unsigned int size)
+{
+    unsigned int *d = (unsigned int *)dst;
+    unsigned int *s = (unsigned int *)src;
+    unsigned int nwords = size >> 2;
+
+    for (; nwords > 0; --nwords, ++d, ++s)
+	*d = ((*s & 0xffff) << 16) | ((*s >> 16) & 0xffff);
+}
+#endif
+
+/* Copies a single pass worth of data for a hostdata blit set up by
+ * R5XXHostDataBlit().
+ */
+static inline void
+R5xxBufCopy(CARD8 *dst, CARD8 *src, unsigned int size, CARD8 bpp)
+{
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+    switch (bpp) {
+    case 8:
+	R5xxCopySwap8(dst, src, size);
+	return;
+    case 16:
+	R5xxCopySwap16(dst, src, size);
+	return;
+    default:
+	memcpy(dst, src, size);
+	return;
+    }
+#else
+    memcpy(dst, src, size);
+#endif
+}
+
+/*
  *
  */
 static Bool
-R5xxEXAUploadToScreen(PixmapPtr pDst, int x, int y, int w, int h,
-		      char *src, int src_pitch)
+R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
+			char *src, int srcpitch)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[pDst->drawable.pScreen->myNum]);
+    struct RhdCS *CS = rhdPtr->CS;
+    CARD32 hpass, datatype, dwords;
+    CARD32 bufpitch, dstpitch, dstoffset;
+
+    datatype = R5xxEXADatatypeGet(pDst->drawable.bitsPerPixel);
+    if (!datatype) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
+		   __func__, pDst->drawable.bitsPerPixel);
+	return FALSE;
+    }
+
+    bufpitch = ((w * pDst->drawable.bitsPerPixel / 8) + 3) & ~3;
+    hpass = ((CS->Size - 10) * 4) / bufpitch;
+
+    dstpitch = exaGetPixmapPitch(pDst);
+    if (R5XX_EXA_PITCH_CHECK(dstpitch)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid destination pitch: %d\n",
+		   __func__, (unsigned int) dstpitch);
+	return FALSE;
+    }
+
+    dstoffset = exaGetPixmapOffset(pDst);
+    if (R5XX_EXA_OFFSET_CHECK(dstoffset)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid destination offset: %d\n",
+		   __func__, (unsigned int) dstoffset);
+	return FALSE;
+    }
+    dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    for (; h; ) {
+	hpass = min((unsigned int) h, hpass);
+	dwords = hpass * bufpitch / 4;
+
+	RHDCSGrab(CS, dwords + 10);
+	RHDCSWrite(CS, CP_PACKET3(R5XX_CP_PACKET3_CNTL_HOSTDATA_BLT, dwords + 10 - 2));
+	RHDCSWrite(CS, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
+		   R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
+		   (datatype << 8) | R5XX_GMC_SRC_DATATYPE_COLOR |
+		   R5XX_ROP3_S | R5XX_DP_SRC_SOURCE_HOST_DATA |
+		   R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_WR_MSK_DIS);
+	RHDCSWrite(CS, (dstpitch << 16) | (dstoffset >> 10));
+	RHDCSWrite(CS, (y << 16) | x );
+	RHDCSWrite(CS, ((y + hpass) << 16) | (x + w) );
+	RHDCSWrite(CS, 0xffffffff );
+	RHDCSWrite(CS, 0xffffffff );
+	RHDCSWrite(CS, (y << 16) | x );
+	RHDCSWrite(CS, (hpass << 16) | ((bufpitch * 8) / pDst->drawable.bitsPerPixel) );
+	RHDCSWrite(CS, dwords );
+
+	/* now copy over the data, while doing pitch conversion */
+	if (bufpitch == (CARD32) srcpitch)
+	    R5xxBufCopy((CARD8 *) (CS->Buffer + CS->Wptr), (CARD8 *)src,
+			hpass * srcpitch, pDst->drawable.bitsPerPixel);
+	else {
+	    CARD8 *SrcBuf = (CARD8 *) src;
+	    CARD8 *DstBuf = (CARD8 *) (CS->Buffer + CS->Wptr);
+	    unsigned int i;
+
+	    for (i = 0; i < hpass; i++) {
+		R5xxBufCopy(DstBuf, SrcBuf, srcpitch,
+			    pDst->drawable.bitsPerPixel);
+		SrcBuf += srcpitch;
+		DstBuf += bufpitch;
+	    }
+	}
+
+	CS->Wptr += dwords;
+	RHDCSFlush(CS);
+
+	src += hpass * srcpitch;
+	y += hpass;
+	h -= hpass;
+    }
+
+    exaMarkSync(pDst->drawable.pScreen);
+    return TRUE;
+}
+
+/*
+ *
+ */
+static Bool
+R5xxEXAUploadToScreenManual(PixmapPtr pDst, int x, int y, int w, int h,
+			    char *src, int src_pitch)
 {
     RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
     CARD8 *dst = ((CARD8 *) rhdPtr->FbBase) +
@@ -353,7 +494,6 @@ R5xxEXADownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 
     return TRUE;
 }
-
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 
@@ -438,6 +578,7 @@ Bool
 R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
     ExaDriverRec *EXAInfo;
     struct R5xxExaPrivate *ExaPrivate;
 
@@ -476,7 +617,11 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     EXAInfo->MarkSync = R5xxEXAMarkSync;
     EXAInfo->WaitMarker = R5xxEXASync;
-    EXAInfo->UploadToScreen = R5xxEXAUploadToScreen;
+
+    if (CS->Type == RHD_CS_CPDMA)
+	EXAInfo->UploadToScreen = R5xxEXAUploadToScreenCP;
+    else
+	EXAInfo->UploadToScreen = R5xxEXAUploadToScreenManual;
     EXAInfo->DownloadFromScreen = R5xxEXADownloadFromScreen;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
