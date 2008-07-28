@@ -16,6 +16,7 @@ rhd_atomwrapper.o \
 AtomBios/CD_Operations.o \
 AtomBios/Decoder.o \
 AtomBios/hwserv_drv.o
+
 #endif
 
 SRCS =  \
@@ -48,6 +49,10 @@ radeon_xaa.c \
 radeon_exa.c \
 radeon_video.c \
 radeon_textured_video.c \
+rhd_biosscratch.c \
+rhd_atomout.c \
+rhd_atompll.c \
+rhd_atomcrtc.c \
 $(ATOM_BIOS_PARSER_SRCS) \
 git_version.h
 
@@ -81,6 +86,10 @@ radeon_xaa.o \
 radeon_exa.o \
 radeon_video.o \
 radeon_textured_video.o \
+rhd_biosscratch.o \
+rhd_atomout.o \
+rhd_atompll.o \
+rhd_atomcrtc.o \
 $(ATOM_BIOS_PARSER_OBJS)
 
 INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
