@@ -633,8 +633,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    {"NTSC", RHD_TV_NTSC},
 	    {"NTSCJ", RHD_TV_NTSCJ},
 	    {"PAL", RHD_TV_PAL},
-	    {"PALM", RHD_TV_PALN},
+	    {"PALM", RHD_TV_PALM},
 	    {"PALCN", RHD_TV_PALCN},
+	    {"PALN", RHD_TV_PALN},
 	    {"PAL60", RHD_TV_PAL60},
 	    {"SECAM", RHD_TV_SECAM},
 	    {NULL, RHD_TV_NONE}
