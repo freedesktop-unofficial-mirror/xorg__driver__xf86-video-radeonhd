@@ -1153,16 +1153,14 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 		R5xxXAADestroy(pScrn);
 	}
 
+    if (pScrn->vtSema)
+	RHDAllIdle(pScrn);
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRICloseScreen(pScreen);
 #endif
-
-    if (pScrn->vtSema) {
-	RHDAllIdle(pScrn);
-
+    if (pScrn->vtSema)
 	rhdRestore(rhdPtr);
-    }
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
