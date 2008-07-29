@@ -1202,21 +1202,17 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if(pScrn->vtSema) {
-
-#ifdef USE_DRI
-	if (rhdPtr->dri)
-	    RHDDRICloseScreen(pScreen);
-#endif
-
+    if (pScrn->vtSema)
 	RHDAllIdle(pScrn);
-
+#ifdef USE_DRI
+    if (rhdPtr->dri)
+	RHDDRICloseScreen(pScreen);
+#endif
+    if (pScrn->vtSema)
 	rhdRestore(rhdPtr);
-    }
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
-
 #ifdef USE_EXA
     if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
 	RADEONCloseEXA(pScreen);
