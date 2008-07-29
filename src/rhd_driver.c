@@ -644,6 +644,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    {"PALN", RHD_TV_PALN},
 	    {"PAL60", RHD_TV_PAL60},
 	    {"SECAM", RHD_TV_SECAM},
+	    {"CV", RHD_TV_CV},
 	    {NULL, RHD_TV_NONE}
 	};
 
