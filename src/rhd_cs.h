@@ -93,6 +93,7 @@ struct _drmBuf *RHDDRMCPBuffer(int scrnIndex);
  * Some CP defines.
  */
 #define CP_PACKET0(reg, n)  (((n - 1) << 16) | ((reg) >> 2))
+#define CP_PACKET2()        (0x80000000)
 #define CP_PACKET3(pkt, n)  (0xC0000000 | (pkt) | ((n) << 16))
 
 #define R5XX_CP_PACKET3_CNTL_HOSTDATA_BLT         0x00009400
@@ -155,5 +156,13 @@ do { \
     if ((CS)->AdvanceFlush) \
 	RHDCSFlush((CS)); \
 } while (0)
+
+#ifdef USE_DRI
+/*
+ * Some extra handling for those who want to use separate indirect buffers.
+ */
+CARD8 *RHDDRMIndirectBufferGet(int scrnIndex, unsigned int *IntAddress, CARD32 *Size);
+void RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer);
+#endif
 
 #endif /* _HAVE_RHD_CS_ */

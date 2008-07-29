@@ -1368,6 +1368,37 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
     return TRUE;
 }
 
+/*
+ *
+ */
+static int
+RHDDRIGARTBaseGet(RHDPtr rhdPtr)
+{
+    struct rhdDri *Dri = rhdPtr->dri;
+    drm_radeon_getparam_t gp;
+    int gart_base;
+
+    if (rhdPtr->cardType == RHD_CARD_AGP) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		   "%s: Unable to get GART address (AGP card).\n", __func__);
+	return 0;
+    }
+
+    memset(&gp, 0, sizeof(gp));
+    gp.param = RADEON_PARAM_GART_BASE;
+    gp.value = &gart_base;
+
+    if (drmCommandWriteRead(Dri->drmFD, DRM_RADEON_GETPARAM, &gp,
+			    sizeof(gp)) < 0) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: Failed to determine GART area MC location.\n", __func__);
+	return 0;
+    } else {
+	RHDDebug(rhdPtr->scrnIndex, "GART location: 0x08X\n", gart_base);
+	return gart_base;
+    }
+}
+
 /* Finish initializing the device-dependent DRI state, and call
  * DRIFinishScreenInit() to complete the device-independent DRI
  * initialization.
@@ -1470,6 +1501,8 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 
     /* TODO: If RADEON_PARAM_GART_BASE is ever to be saved/restored, it has
      * to be updated here. Same on EnterVT. */
+
+    info->gartLocation = RHDDRIGARTBaseGet(rhdPtr);
     /* TODO: call drm's DRM_RADEON_GETPARAM in the EXA case, for accelerated
      * DownloadFromScreen hook. Same on EnterVT. */
 
@@ -1810,4 +1843,55 @@ RHDDRMCPBuffer(int scrnIndex)
     xf86DrvMsg(scrnIndex, X_ERROR,
 	       "%s: throwing in the towel: SIGSEGV ahead!\n", __func__);
     return NULL;
+}
+
+/*
+ *
+ */
+CARD8 *
+RHDDRMIndirectBufferGet(int scrnIndex, unsigned int *IntAddress, CARD32 *Size)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+    struct _drmBuf *DrmBuffer;
+    CARD8 *Buffer;
+
+    if (!Dri->gartLocation)
+	return NULL;
+
+    DrmBuffer = RHDDRMCPBuffer(scrnIndex);
+    Buffer = DrmBuffer->address;
+    *Size = DrmBuffer->total;
+    *IntAddress = Dri->gartLocation + Dri->bufStart + DrmBuffer->idx * DrmBuffer->total;
+
+    return Buffer;
+}
+
+/*
+ *
+ */
+void
+RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+    struct drm_radeon_indirect indirect;
+    int i;
+
+    for (i = 0; i < Dri->bufNumBufs; i++)
+	if (Buffer == Dri->buffers->list[i].address) {
+	    /* stick a NOP in our Buffer */
+	    ((CARD32 *) Buffer)[0] = CP_PACKET2();
+
+	    indirect.idx = Dri->buffers->list[i].idx;
+	    indirect.start = 0;
+	    indirect.end = 1;
+	    indirect.discard = 1;
+
+	    drmCommandWriteRead(Dri->drmFD, DRM_RADEON_INDIRECT,
+				&indirect, sizeof(struct drm_radeon_indirect));
+	    return;
+	}
+
+    xf86DrvMsg(scrnIndex, X_ERROR,
+	       "%s: Unable to retrieve the indirect Buffer at address %p!\n",
+	       __func__, Buffer);
 }

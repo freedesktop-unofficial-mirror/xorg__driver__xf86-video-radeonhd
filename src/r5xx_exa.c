@@ -1,7 +1,11 @@
 /*
- * Copyright 2005 Eric Anholt
- * Copyright 2005 Benjamin Herrenschmidt
- * Copyright 2006 Tungsten Graphics, Inc.
+ * Copyright 2005  Eric Anholt
+ * Copyright 2005  Benjamin Herrenschmidt
+ * Copyright 2006  Tungsten Graphics, Inc.
+ * Copyright 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2008  Egbert Eich   <eich@novell.com>
+ *
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -28,6 +32,7 @@
  *    Zack Rusin <zrusin@trolltech.com>
  *    Benjamin Herrenschmidt <benh@kernel.crashing.org>
  *    Michel Dänzer <michel@tungstengraphics.com>
+ *    Luc Verhaegen <libv@skynet.be>
  *
  */
 
@@ -57,6 +62,13 @@ struct R5xxExaPrivate {
 
     int xdir;
     int ydir;
+
+#ifdef USE_DRI
+    /* For Download: claim an indirect buffer, as a scratch area for download. */
+    CARD8 *Buffer;
+    unsigned int BufferIntAddress;
+    CARD32 BufferSize;
+#endif
 
     int exaSyncMarker;
     int exaMarkerSynced;
@@ -302,7 +314,7 @@ R5xxEXADoneCopy(PixmapPtr pDst)
  */
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 static inline void
-R5xxCopySwap8(CARD8 *dst, CARD8 *src, unsigned int size)
+R5xxCopySwap32(CARD8 *dst, CARD8 *src, unsigned int size)
 {
     unsigned int *d = (unsigned int *)dst;
     unsigned int *s = (unsigned int *)src;
@@ -318,7 +330,7 @@ R5xxCopySwap8(CARD8 *dst, CARD8 *src, unsigned int size)
 }
 
 static inline void
-R5xxCopySwap16(CARD8 *dst, CARD8 *src, unsigned int size)
+R5xxCopySwapHDW(CARD8 *dst, CARD8 *src, unsigned int size)
 {
     unsigned int *d = (unsigned int *)dst;
     unsigned int *s = (unsigned int *)src;
@@ -327,21 +339,40 @@ R5xxCopySwap16(CARD8 *dst, CARD8 *src, unsigned int size)
     for (; nwords > 0; --nwords, ++d, ++s)
 	*d = ((*s & 0xffff) << 16) | ((*s >> 16) & 0xffff);
 }
+
+#ifdef USE_DRI
+static inline void
+R5xxCopySwap16(CARD8 *dst, CARD8 *src, unsigned int size)
+{
+    unsigned short *d = (unsigned short *)dst;
+    unsigned short *s = (unsigned short *)src;
+    unsigned int nwords = size >> 1;
+
+    for (; nwords > 0; --nwords, ++d, ++s)
+#ifdef __powerpc__
+	asm volatile("stwbrx %0,0,%1" : : "r" (*s), "r" (d));
+#else
+        *d = ((*s >> 24) & 0xff) | ((*s >> 8) & 0xff00)
+	    | ((*s & 0xff00) << 8) | ((*s & 0xff) << 24);
 #endif
+}
+#endif /* USE_DRI */
+
+#endif /* X_BYTE_ORDER */
 
 /* Copies a single pass worth of data for a hostdata blit set up by
  * R5XXHostDataBlit().
  */
 static inline void
-R5xxBufCopy(CARD8 *dst, CARD8 *src, unsigned int size, CARD8 bpp)
+R5xxBufCopyUpload(CARD8 *dst, CARD8 *src, unsigned int size, CARD8 bpp)
 {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     switch (bpp) {
     case 8:
-	R5xxCopySwap8(dst, src, size);
+	R5xxCopySwap32(dst, src, size);
 	return;
     case 16:
-	R5xxCopySwap16(dst, src, size);
+	R5xxCopySwapHDW(dst, src, size);
 	return;
     default:
 	memcpy(dst, src, size);
@@ -359,7 +390,7 @@ static Bool
 R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
 			char *src, int srcpitch)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[pDst->drawable.pScreen->myNum]);
+    RHDPtr rhdPtr = RHDPTRE(pDst->drawable.pScreen);
     struct RhdCS *CS = rhdPtr->CS;
     CARD32 hpass, datatype, dwords;
     CARD32 bufpitch, dstpitch, dstoffset;
@@ -411,15 +442,15 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
 
 	/* now copy over the data, while doing pitch conversion */
 	if (bufpitch == (CARD32) srcpitch)
-	    R5xxBufCopy((CARD8 *) (CS->Buffer + CS->Wptr), (CARD8 *)src,
-			hpass * srcpitch, pDst->drawable.bitsPerPixel);
+	    R5xxBufCopyUpload((CARD8 *) (CS->Buffer + CS->Wptr), (CARD8 *)src,
+			      hpass * srcpitch, pDst->drawable.bitsPerPixel);
 	else {
 	    CARD8 *SrcBuf = (CARD8 *) src;
 	    CARD8 *DstBuf = (CARD8 *) (CS->Buffer + CS->Wptr);
 	    unsigned int i;
 
 	    for (i = 0; i < hpass; i++) {
-		R5xxBufCopy(DstBuf, SrcBuf, srcpitch,
+		R5xxBufCopyUpload(DstBuf, SrcBuf, srcpitch,
 			    pDst->drawable.bitsPerPixel);
 		SrcBuf += srcpitch;
 		DstBuf += bufpitch;
@@ -472,8 +503,8 @@ R5xxEXAUploadToScreenManual(PixmapPtr pDst, int x, int y, int w, int h,
  *
  */
 static Bool
-R5xxEXADownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
-			  char *dst, int dst_pitch)
+R5xxEXADownloadFromScreenManual(PixmapPtr pSrc, int x, int y, int w, int h,
+				char *dst, int dst_pitch)
 {
     RHDPtr rhdPtr = RHDPTRE(pSrc->drawable.pScreen);
     CARD8 *src = ((CARD8 *) rhdPtr->FbBase) +
@@ -494,6 +525,143 @@ R5xxEXADownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 
     return TRUE;
 }
+
+#ifdef USE_DRI
+/*
+ *
+ */
+static inline void
+R5xxBufCopyDownload(CARD8 *dst, CARD8 *src, unsigned int size, CARD8 bpp)
+{
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+    switch (bpp) {
+    case 16:
+	R5xxCopySwap16(dst, src, size);
+	return;
+    case 32:
+	R5xxCopySwap32(dst, src, size);
+	return;
+	return;
+    default:
+	memcpy(dst, src, size);
+	return;
+    }
+#else
+    memcpy(dst, src, size);
+#endif
+}
+
+/*
+ * Emit blit with arbitrary source and destination offsets and pitches
+ */
+static inline void
+R5xxEXADownloadBlit(struct RhdCS *CS, CARD32 datatype,
+		    CARD32 srcPitch, CARD32 srcOffset,
+		    CARD32 dstPitch, CARD32 dstOffset,
+		    int srcX, int srcY, int w, int h)
+{
+    RHDCSGrab(CS, 2 * 6);
+
+    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL,
+		  R5XX_GMC_DST_PITCH_OFFSET_CNTL |
+		  R5XX_GMC_SRC_PITCH_OFFSET_CNTL |
+		  R5XX_GMC_BRUSH_NONE |
+		  (datatype << 8) |
+		  R5XX_GMC_SRC_DATATYPE_COLOR |
+		  R5XX_ROP3_S |
+		  R5XX_DP_SRC_SOURCE_MEMORY |
+		  R5XX_GMC_CLR_CMP_CNTL_DIS |
+		  R5XX_GMC_WR_MSK_DIS);
+    RHDCSRegWrite(CS, R5XX_SRC_PITCH_OFFSET, (srcPitch << 16) | (srcOffset >> 10));
+    RHDCSRegWrite(CS, R5XX_DST_PITCH_OFFSET, (dstPitch << 16) | (dstOffset >> 10));
+    RHDCSRegWrite(CS, R5XX_SRC_Y_X, (srcY << 16) | srcX);
+    RHDCSRegWrite(CS, R5XX_DST_Y_X, 0);
+    RHDCSRegWrite(CS, R5XX_DST_HEIGHT_WIDTH, (h << 16) | w);
+
+    RHDCSFlush(CS);
+}
+
+/*
+ * Blit from the framebuffer into a separate indirect buffer, and then copy
+ * this data out of the gart space into the destination pixmap.
+ */
+static Bool
+R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
+			    char *dst, int dstpitch)
+{
+    ScrnInfoPtr pScrn = xf86Screens[pSrc->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
+    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
+    CARD32 datatype, srcpitch, srcoffset;
+    CARD32 BufferPitch;
+    CARD32 wpass, hpass;
+
+    /* maybe we shouldn't bother to idle the engine for tiny ones. */
+    if ((w * h * (pSrc->drawable.bitsPerPixel / 8)) < 64)
+	return R5xxEXADownloadFromScreenManual(pSrc, x, y, w, h, dst, dstpitch);
+
+    datatype = R5xxEXADatatypeGet(pSrc->drawable.bitsPerPixel);
+    if (!datatype) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
+		   __func__, pSrc->drawable.bitsPerPixel);
+	return FALSE;
+    }
+
+    srcpitch = exaGetPixmapPitch(pSrc);
+    if (R5XX_EXA_PITCH_CHECK(srcpitch)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid source pitch: %d\n",
+		   __func__, (unsigned int) srcpitch);
+	return FALSE;
+    }
+
+    srcoffset = exaGetPixmapOffset(pSrc);
+    if (R5XX_EXA_OFFSET_CHECK(srcoffset)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Invalid source offset: %d\n",
+		   __func__, (unsigned int) srcoffset);
+	return FALSE;
+    }
+    srcoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    wpass = w * pSrc->drawable.bitsPerPixel / 8;
+    BufferPitch = (wpass + 63) & ~63;
+    hpass = ExaPrivate->BufferSize / BufferPitch;
+
+    while (h) {
+	hpass = min((unsigned int) h, hpass);
+	R5xxEXADownloadBlit(CS, datatype, srcpitch, srcoffset, BufferPitch,
+			    ExaPrivate->BufferIntAddress, x, y, w, hpass);
+	y += hpass;
+	h -= hpass;
+
+	/* this is quite a big hammer, but we have no other option here */
+	R5xx2DIdle(pScrn);
+
+	/* Copy out data from previous blit */
+	if ((wpass == BufferPitch) && (wpass == (unsigned int) dstpitch)) {
+	    R5xxBufCopyDownload((CARD8*)dst, ExaPrivate->Buffer, wpass * hpass,
+				pSrc->drawable.bitsPerPixel);
+	    dst += dstpitch * hpass;
+	} else {
+	    CARD8 *buf = ExaPrivate->Buffer;
+	    unsigned int i;
+
+	    for (i = 0; i < hpass; i++) {
+		R5xxBufCopyDownload((CARD8*)dst, buf, wpass,
+				    pSrc->drawable.bitsPerPixel);
+		buf += BufferPitch;
+		dst += dstpitch;
+	    }
+	}
+    }
+
+    /* since we had a full idle every time, we make sure we don't do
+       yet another system call here */
+    ExaPrivate->exaMarkerSynced = ExaPrivate->exaSyncMarker;
+
+    return TRUE;
+}
+#endif /* USE_DRI */
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 
@@ -588,6 +756,9 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     if (EXAInfo == NULL)
 	return FALSE;
 
+    ExaPrivate = xnfcalloc(1, sizeof(struct R5xxExaPrivate));
+    ExaPrivate->scrnIndex = pScrn->scrnIndex;
+
     EXAInfo->exa_major = EXA_VERSION_MAJOR;
     EXAInfo->exa_minor = EXA_VERSION_MINOR;
 
@@ -622,7 +793,22 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 	EXAInfo->UploadToScreen = R5xxEXAUploadToScreenCP;
     else
 	EXAInfo->UploadToScreen = R5xxEXAUploadToScreenManual;
-    EXAInfo->DownloadFromScreen = R5xxEXADownloadFromScreen;
+
+#ifdef USE_DRI
+    if (CS->Type == RHD_CS_CPDMA) {
+	ExaPrivate->Buffer =
+	    RHDDRMIndirectBufferGet(CS->scrnIndex, &ExaPrivate->BufferIntAddress,
+				    &ExaPrivate->BufferSize);
+	if (ExaPrivate->Buffer)
+	    EXAInfo->DownloadFromScreen = R5xxEXADownloadFromScreenCP;
+	else {
+	    xf86DrvMsg(CS->scrnIndex, X_INFO,
+		       "Failed to get an indirect buffer for fast download.\n");
+	    EXAInfo->DownloadFromScreen = R5xxEXADownloadFromScreenManual;
+	}
+    } else
+#endif /* USE_DRI */
+	EXAInfo->DownloadFromScreen = R5xxEXADownloadFromScreenManual;
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     EXAInfo->PrepareAccess = R5xxEXAPrepareAccess;
@@ -630,14 +816,16 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 #endif /* X_BYTE_ORDER == X_BIG_ENDIAN */
 
     if (!exaDriverInit(pScreen, EXAInfo)) {
+#ifdef USE_DRI
+	if (ExaPrivate->Buffer)
+	    RHDDRMIndirectBufferDiscard(CS->scrnIndex, ExaPrivate->Buffer);
+#endif
+	xfree(ExaPrivate);
 	xfree(EXAInfo);
 	return FALSE;
     }
 
     RHDPTR(pScrn)->EXAInfo = EXAInfo;
-
-    ExaPrivate = xnfcalloc(1, sizeof(struct R5xxExaPrivate));
-    ExaPrivate->scrnIndex = pScrn->scrnIndex;
 
     rhdPtr->TwoDPrivate = ExaPrivate;
 
@@ -672,6 +860,15 @@ R5xxEXADestroy(ScrnInfoPtr pScrn)
     }
 
     if (rhdPtr->TwoDPrivate) {
+#ifdef USE_DRI
+	if (rhdPtr->TwoDPrivate) {
+	    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
+
+	    if (ExaPrivate->Buffer)
+		RHDDRMIndirectBufferDiscard(rhdPtr->scrnIndex, ExaPrivate->Buffer);
+	}
+#endif
+
 	xfree(rhdPtr->TwoDPrivate);
 	rhdPtr->TwoDPrivate = NULL;
     }

@@ -1138,18 +1138,6 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    if(pScrn->vtSema) {
-
-#ifdef USE_DRI
-	if (rhdPtr->dri)
-	    RHDDRICloseScreen(pScreen);
-#endif
-
-	RHDAllIdle(pScrn);
-
-	rhdRestore(rhdPtr);
-    }
-
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
 #ifdef USE_EXA
@@ -1164,6 +1152,17 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	    if (rhdPtr->ChipSet < RHD_R600)
 		R5xxXAADestroy(pScrn);
 	}
+
+#ifdef USE_DRI
+    if (rhdPtr->dri)
+	RHDDRICloseScreen(pScreen);
+#endif
+
+    if (pScrn->vtSema) {
+	RHDAllIdle(pScrn);
+
+	rhdRestore(rhdPtr);
+    }
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
