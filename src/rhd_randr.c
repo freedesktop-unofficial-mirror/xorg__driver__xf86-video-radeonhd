@@ -688,6 +688,42 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     return Status;
 }
 
+static void
+rhdRRModeCopy(DisplayModePtr  OrigMode, DisplayModePtr Mode)
+{
+    memset(Mode, 0, sizeof(DisplayModeRec));
+    Mode->name       = xstrdup(OrigMode->name ? OrigMode->name : "n/a");
+    Mode->status     = OrigMode->status;
+    Mode->type       = OrigMode->type;
+    Mode->Clock      = OrigMode->Clock;
+    Mode->HDisplay   = OrigMode->HDisplay;
+    Mode->HSyncStart = OrigMode->HSyncStart;
+    Mode->HSyncEnd   = OrigMode->HSyncEnd;
+    Mode->HTotal     = OrigMode->HTotal;
+    Mode->HSkew      = OrigMode->HSkew;
+    Mode->VDisplay   = OrigMode->VDisplay;
+    Mode->VSyncStart = OrigMode->VSyncStart;
+    Mode->VSyncEnd   = OrigMode->VSyncEnd;
+    Mode->VTotal     = OrigMode->VTotal;
+    Mode->VScan      = OrigMode->VScan;
+    Mode->Flags      = OrigMode->Flags;
+
+    if ((Mode->type & M_T_CRTC_C) == M_T_BUILTIN) {
+	Mode->CrtcHDisplay = OrigMode->CrtcHDisplay;
+	Mode->CrtcHBlankStart = OrigMode->CrtcHBlankStart;
+	Mode->CrtcHSyncStart = OrigMode->CrtcHSyncStart;
+	Mode->CrtcHBlankEnd = OrigMode->CrtcHBlankEnd;
+	Mode->CrtcHSyncEnd = OrigMode->CrtcHSyncEnd;
+	Mode->CrtcHTotal = OrigMode->CrtcHTotal;
+	Mode->CrtcVDisplay = OrigMode->CrtcVDisplay;
+	Mode->CrtcVBlankStart = OrigMode->CrtcVBlankStart;
+	Mode->CrtcVSyncStart = OrigMode->CrtcVSyncStart;
+	Mode->CrtcVSyncEnd = OrigMode->CrtcVSyncEnd;
+	Mode->CrtcVBlankEnd = OrigMode->CrtcVBlankEnd;
+	Mode->CrtcVTotal = OrigMode->CrtcVTotal;
+    }
+}
+
 /* The crtc is only known on fixup time. Now it's actually to late to reject a
  * mode and give a reasonable answer why (return is bool), but we'll better not
  * set a mode than scrap our hardware */
@@ -719,48 +755,23 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	}
 	memcpy(Mode, tmp, sizeof(DisplayModeRec));
 	Mode->name = xstrdup(tmp->name);
+	Mode->prev = Mode->next = NULL;
 	xfree(tmp->name);
 	xfree(tmp);
-	Mode->prev = Mode->next = NULL;
+
+        /* sanitize OrigMode */
+	if (!OrigMode->name)
+	    OrigMode->name = xstrdup("n/a");
+	OrigMode->status = MODE_OK;
+
 	DisplayedMode = OrigMode;
-	if (!DisplayedMode->name)
-	    DisplayedMode->name = "n/a";
 	Crtc->ScaledToMode = Mode;
 	Scaled = TRUE;
     } else {
 	/* !@#$ xf86RandRModeConvert doesn't initialize Mode with 0
 	 * Fixed in xserver git c6c284e6 */
-	memset(Mode, 0, sizeof(DisplayModeRec));
-	Mode->name       = xstrdup(OrigMode->name ? OrigMode->name : "n/a");
-	Mode->status     = OrigMode->status;
-	Mode->type       = OrigMode->type;
-	Mode->Clock      = OrigMode->Clock;
-	Mode->HDisplay   = OrigMode->HDisplay;
-	Mode->HSyncStart = OrigMode->HSyncStart;
-	Mode->HSyncEnd   = OrigMode->HSyncEnd;
-	Mode->HTotal     = OrigMode->HTotal;
-	Mode->HSkew      = OrigMode->HSkew;
-	Mode->VDisplay   = OrigMode->VDisplay;
-	Mode->VSyncStart = OrigMode->VSyncStart;
-	Mode->VSyncEnd   = OrigMode->VSyncEnd;
-	Mode->VTotal     = OrigMode->VTotal;
-	Mode->VScan      = OrigMode->VScan;
-	Mode->Flags      = OrigMode->Flags;
+	rhdRRModeCopy(OrigMode, Mode);
 
-	if ((Mode->type & M_T_CRTC_C) == M_T_BUILTIN) {
-	    Mode->CrtcHDisplay = OrigMode->CrtcHDisplay;
-	    Mode->CrtcHBlankStart = OrigMode->CrtcHBlankStart;
-	    Mode->CrtcHSyncStart = OrigMode->CrtcHSyncStart;
-	    Mode->CrtcHBlankEnd = OrigMode->CrtcHBlankEnd;
-	    Mode->CrtcHSyncEnd = OrigMode->CrtcHSyncEnd;
-	    Mode->CrtcHTotal = OrigMode->CrtcHTotal;
-	    Mode->CrtcVDisplay = OrigMode->CrtcVDisplay;
-	    Mode->CrtcVBlankStart = OrigMode->CrtcVBlankStart;
-	    Mode->CrtcVSyncStart = OrigMode->CrtcVSyncStart;
-	    Mode->CrtcVSyncEnd = OrigMode->CrtcVSyncEnd;
-	    Mode->CrtcVBlankEnd = OrigMode->CrtcVBlankEnd;
-	    Mode->CrtcVTotal = OrigMode->CrtcVTotal;
-	}
 	DisplayedMode = Mode;
     }
 
