@@ -31,81 +31,6 @@ typedef CARD32 uint32_t;
 #define GET_PORT_PRIVATE(pScrn) \
    (RADEONPortPrivPtr)((RHDPTR(pScrn))->adaptor->pPortPrivates[0].ptr)
 
-#define FOURCC_RGBA32   0x41424752
-
-#define XVIMAGE_RGBA32(byte_order)   \
-        { \
-                FOURCC_RGBA32, \
-                XvRGB, \
-                byte_order, \
-                { 'R', 'G', 'B', 'A', \
-                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
-                32, \
-                XvPacked, \
-                1, \
-                32, 0x00FF0000, 0x0000FF00, 0x000000FF, \
-                0, 0, 0, 0, 0, 0, 0, 0, 0, \
-                {'A', 'R', 'G', 'B', \
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
-                XvTopToBottom \
-        }               
-
-#define FOURCC_RGB24    0x00000000
-
-#define XVIMAGE_RGB24   \
-        { \
-                FOURCC_RGB24, \
-                XvRGB, \
-                LSBFirst, \
-                { 'R', 'G', 'B', 0, \
-                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
-                24, \
-                XvPacked, \
-                1, \
-                24, 0x00FF0000, 0x0000FF00, 0x000000FF, \
-                0, 0, 0, 0, 0, 0, 0, 0, 0, \
-                { 'R', 'G', 'B', \
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
-                XvTopToBottom \
-        }
-
-#define FOURCC_RGBT16   0x54424752
-
-#define XVIMAGE_RGBT16(byte_order)   \
-        { \
-                FOURCC_RGBT16, \
-                XvRGB, \
-                byte_order, \
-                { 'R', 'G', 'B', 'T', \
-                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
-                16, \
-                XvPacked, \
-                1, \
-                16, 0x00007C00, 0x000003E0, 0x0000001F, \
-                0, 0, 0, 0, 0, 0, 0, 0, 0, \
-                {'A', 'R', 'G', 'B', \
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
-                XvTopToBottom \
-        }               
-
-#define FOURCC_RGB16    0x32424752
-
-#define XVIMAGE_RGB16(byte_order)   \
-        { \
-                FOURCC_RGB16, \
-                XvRGB, \
-                byte_order, \
-                { 'R', 'G', 'B', 0x00, \
-                  0x00,0x00,0x00,0x10,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71}, \
-                16, \
-                XvPacked, \
-                1, \
-                16, 0x0000F800, 0x000007E0, 0x0000001F, \
-                0, 0, 0, 0, 0, 0, 0, 0, 0, \
-                {'R', 'G', 'B', \
-                  0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, \
-                XvTopToBottom \
-        }               
 
 #ifdef USE_EXA
 static void
@@ -161,10 +86,6 @@ void RADEONInitVideo(ScreenPtr pScreen)
 void
 RADEONStopVideo(ScrnInfoPtr pScrn, pointer data, Bool cleanup)
 {
-  RADEONPortPrivPtr pPriv = (RADEONPortPrivPtr)data;
-
-    if (pPriv->textured)
-	return;
 }
 
 int
@@ -173,12 +94,7 @@ RADEONSetPortAttribute(ScrnInfoPtr  pScrn,
 		       INT32	    value,
 		       pointer	    data)
 {
-    RADEONPortPrivPtr	pPriv = (RADEONPortPrivPtr)data;
-
-    if (pPriv->textured)
-	return BadMatch;
-
-    return Success;
+    return BadMatch;
 }
 
 int
@@ -187,12 +103,7 @@ RADEONGetPortAttribute(ScrnInfoPtr  pScrn,
 		       INT32	    *value,
 		       pointer	    data)
 {
-    RADEONPortPrivPtr	pPriv = (RADEONPortPrivPtr)data;
-
-    if (pPriv->textured)
-	return BadMatch;
-
-    return Success;
+    return BadMatch;
 }
 
 void
@@ -227,7 +138,6 @@ RADEONCopyData(
 	w *= 2;
 	bpp = 1;
     }
-
 #ifdef USE_DRI
 
     if ( info->directRenderingEnabled && info->DMAForXv )
@@ -259,15 +169,9 @@ RADEONCopyData(
 		~(RADEON_NONSURF_AP0_SWP_32BPP | RADEON_NONSURF_AP1_SWP_32BPP |
 		  RADEON_NONSURF_AP0_SWP_16BPP | RADEON_NONSURF_AP1_SWP_16BPP);
 
-	switch(bpp) {
-	case 2:
-	    swapper |= RADEON_NONSURF_AP0_SWP_16BPP
-		    |  RADEON_NONSURF_AP1_SWP_16BPP;
-	    break;
-	case 4:
+	if (bpp == 4) {
 	    swapper |= RADEON_NONSURF_AP0_SWP_32BPP
 		    |  RADEON_NONSURF_AP1_SWP_32BPP;
-	    break;
 	}
 	RHDRegWrite(info, RADEON_SURFACE_CNTL, swapper);
 #endif
@@ -285,96 +189,6 @@ RADEONCopyData(
 #endif
     }
 }
-
-#if 0
-static void
-RADEONCopyRGB24Data(
-  ScrnInfoPtr pScrn,
-  unsigned char *src,
-  unsigned char *dst,
-  unsigned int srcPitch,
-  unsigned int dstPitch,
-  unsigned int h,
-  unsigned int w
-){
-    uint32_t *dptr;
-    uint8_t *sptr;
-    unsigned int i, j;
-    RHDPtr info = RHDPTR(pScrn);
-#ifdef USE_DRI
-
-    if ( info->directRenderingEnabled && info->DMAForXv )
-    {
-	uint32_t bufPitch, dstPitchOff;
-	int x, y;
-	unsigned int hpass;
-
-	RADEONHostDataParams( pScrn, dst, dstPitch, 4, &dstPitchOff, &x, &y );
-
-	while ( (dptr = ( uint32_t* )RADEONHostDataBlit( pScrn, 4, w, dstPitchOff,
-						       &bufPitch, x, &y, &h,
-						       &hpass )) )
-	{
-	    for( j = 0; j < hpass; j++ )
-	    {
-		sptr = src;
-
-		for ( i = 0 ; i < w; i++, sptr += 3 )
-		{
-		    dptr[i] = (sptr[2] << 16) | (sptr[1] << 8) | sptr[0];
-		}
-
-		src += srcPitch;
-		dptr += bufPitch / 4;
-	    }
-	}
-
-	FLUSH_RING();
-
-	return;
-    }
-    else
-#endif /* USE_DRI */
-    {
-#if X_BYTE_ORDER == X_BIG_ENDIAN
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, (info->accel_state->surface_cntl
-				   | RADEON_NONSURF_AP0_SWP_32BPP)
-				  & ~RADEON_NONSURF_AP0_SWP_16BPP);
-#endif
-
-	for (j = 0; j < h; j++) {
-	    dptr = (uint32_t *)(dst + j * dstPitch);
-	    sptr = src + j * srcPitch;
-
-	    for (i = 0; i < w; i++, sptr += 3) {
-		dptr[i] = (sptr[2] << 16) | (sptr[1] << 8) | sptr[0];
-	    }
-	}
-
-#if X_BYTE_ORDER == X_BIG_ENDIAN
-	/* restore byte swapping */
-	RHDRegWrite(info, RADEON_SURFACE_CNTL, info->accel_state->surface_cntl);
-#endif
-    }
-}
-#endif
-
-#ifdef USE_DRI
-static void RADEON_420_422(
-    unsigned int *d,
-    unsigned char *s1,
-    unsigned char *s2,
-    unsigned char *s3,
-    unsigned int n
-)
-{
-    while ( n ) {
-	*(d++) = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
-	s1+=2; s2++; s3++;
-	n--;
-    }
-}
-#endif
 
 void
 RADEONCopyMungedData(
@@ -408,8 +222,16 @@ RADEONCopyMungedData(
 	{
 	    while ( hpass-- )
 	    {
-		RADEON_420_422( (unsigned int *) buf, src1, src2, src3,
-				bufPitch / 4 );
+		unsigned int *d = (unsigned int *) buf;
+		unsigned char *s1 = src1, *s2 = src2, *s3 = src3;
+		unsigned int n = bufPitch / 4;
+
+		while ( n ) {
+		    *(d++) = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
+		    s1 += 2; s2++; s3++;
+		    n--;
+		}
+
 		src1 += srcPitch;
 		if ( y & 1 )
 		{
@@ -465,7 +287,7 @@ RADEONCopyMungedData(
 	    {
 		src2 += srcPitch2;
 		src3 += srcPitch2;
-	    }	
+	    }
 	}
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
@@ -612,18 +434,6 @@ RADEONQueryImageAttributes(
 	if(offsets) offsets[2] = size;
 	size += tmp;
 	break;
-    case FOURCC_RGBA32:
-	size = *w << 2;
-	if(pitches) pitches[0] = size;
-	size *= *h;
-	break;
-    case FOURCC_RGB24:
-	size = *w * 3;
-	if(pitches) pitches[0] = size;
-	size *= *h;
-	break;
-    case FOURCC_RGBT16:
-    case FOURCC_RGB16:
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
