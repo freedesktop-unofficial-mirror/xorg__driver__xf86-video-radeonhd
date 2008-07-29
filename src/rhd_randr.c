@@ -828,8 +828,11 @@ rhdRROutputModeSet(xf86OutputPtr  out,
     if (!Mode->name && out->crtc->mode.name)
 	Mode->name = xstrdup(out->crtc->mode.name);
 
-    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s to %s\n", __func__,
-	     rout->Name, Mode->name, Crtc->Name);
+    RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s%s%s to %s\n", __func__,
+	     rout->Name, Mode->name,
+	     rout->ScaledToMode ? " scaled to: " : "",
+	     rout->ScaledToMode ? rout->ScaledToMode->name : "",
+	     Crtc->Name);
 
     /* RandR might want to set up several outputs (RandR speech) with different
      * crtcs, while the outputs differ in fact only by the connector and thus
@@ -840,7 +843,8 @@ rhdRROutputModeSet(xf86OutputPtr  out,
 		   "assuming ouput/connector clash\n", rout->Name);
     /* Set up mode */
     rout->Output->Crtc = Crtc;
-    rout->Output->Mode(rout->Output, Mode);
+    rout->Output->Mode(rout->Output,
+		       rout->ScaledToMode ? rout->ScaledToMode : Mode);
 }
 static void
 rhdRROutputCommit(xf86OutputPtr out)

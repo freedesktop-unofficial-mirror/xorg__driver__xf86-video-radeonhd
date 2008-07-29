@@ -2181,7 +2181,8 @@ rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	    }
 	    RHDPLLSet(Crtc->PLL, mode->Clock);
 	    Crtc->LUTSelect(Crtc, Crtc->LUT);
-	    RHDOutputsMode(rhdPtr, Crtc, mode);
+	    RHDOutputsMode(rhdPtr, Crtc, Crtc->ScaledToMode
+			   ? Crtc->ScaledToMode : mode);
 	}
     }
 
