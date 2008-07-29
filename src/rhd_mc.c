@@ -37,7 +37,6 @@
 
 #include "rhd.h"
 #include "rhd_regs.h"
-#include "radeon_accel.h"
 
 Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
 

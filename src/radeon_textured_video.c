@@ -35,7 +35,14 @@
 #include <math.h>
 
 #include "rhd.h"
-#include "rhd_cp.h"
+#ifdef USE_DRI
+# include "rhd_cp.h"
+#else
+typedef CARD8 uint8_t;
+typedef CARD16 uint16_t;
+typedef CARD32 uint32_t;
+#include "damage.h"
+#endif
 
 #include "radeon_reg.h"
 #include "radeon_video.h"

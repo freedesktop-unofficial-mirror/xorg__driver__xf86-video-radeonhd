@@ -39,10 +39,6 @@
 #include "xaa.h"
 #endif
 
-#ifdef DAMAGE
-#include "damage.h"
-#endif
-
 #include "xf86xv.h"
 
 #ifdef USE_DRI
