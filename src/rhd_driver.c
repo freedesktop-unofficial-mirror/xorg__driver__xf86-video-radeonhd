@@ -2718,21 +2718,40 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
 static enum rhdCardType
 rhdGetCardType(RHDPtr rhdPtr)
 {
-    CARD32 CapPtr = RHDRegRead(rhdPtr, PCI_CAPABILITIES_PTR) & 0xff;
-    RHDFUNC(rhdPtr);
+    CARD32 cmd_stat;
 
-    while (CapPtr) {
-	CARD32 CapID = RHDRegRead(rhdPtr,
-				  PCI_CONFIG_SPACE_BASE | CapPtr);
-	/* look for PCIE or APG capability ID in PCI config space */
-	switch (CapID & 0xff) {
+#ifdef XSERVER_LIBPCIACCESS
+    pci_device_cfg_read_u32(rhdPtr->PciInfo, &cmd_stat, PCI_CMD_STAT_REG);
+#else
+    cmd_stat = pciReadLong(rhdPtr->PciTag, PCI_CMD_STAT_REG);
+#endif
+    if (cmd_stat & 0x100000) {
+        CARD32 cap_ptr, cap_id;
+
+#ifdef XSERVER_LIBPCIACCESS
+        pci_device_cfg_read_u32(rhdPtr->PciInfo, &cap_ptr, 0x34);
+#else
+	cap_ptr = pciReadLong(rhdPtr->PciTag, 0x34);
+#endif
+        cap_ptr &= 0xfc;
+
+        while (cap_ptr) {
+#ifdef XSERVER_LIBPCIACCESS
+            pci_device_cfg_read_u32(rhdPtr->PciInfo, &cap_id, cap_ptr);
+#else
+	    cap_id = pciReadLong(rhdPtr->PciTag, cap_ptr);
+#endif
+	    switch (cap_id & 0xff) {
 	    case RHD_PCI_CAPID_AGP:
+		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "AGP Card Detected\n");
 		return RHD_CARD_AGP;
 	    case RHD_PCI_CAPID_PCIE:
+		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "PCIE Card Detected\n");
 		return RHD_CARD_PCIE;
-	}
-	CapPtr = (CapID >> 8) & 0xff;
-    };
+	    }
+            cap_ptr = (cap_id >> 8) & 0xff;
+        }
+    }
     return RHD_CARD_NONE;
 }
 
