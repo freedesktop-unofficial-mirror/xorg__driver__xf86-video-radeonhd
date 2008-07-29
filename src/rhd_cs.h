@@ -123,7 +123,7 @@ do { \
 } while (0)
 
 #ifdef RHD_CS_DEBUG
-#define RHDCSGrab(CS, Count)
+#define RHDCSGrab(CS, Count) \
 do { \
    if ((CS)->Wptr != (((CS)->Flushed + (CS)->Grabbed) & (CS)->Mask)) \
 	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \

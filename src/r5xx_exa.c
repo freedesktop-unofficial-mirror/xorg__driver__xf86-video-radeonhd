@@ -450,7 +450,7 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
 	    unsigned int i;
 
 	    for (i = 0; i < hpass; i++) {
-		R5xxBufCopyUpload(DstBuf, SrcBuf, srcpitch,
+		R5xxBufCopyUpload(DstBuf, SrcBuf, bufpitch,
 			    pDst->drawable.bitsPerPixel);
 		SrcBuf += srcpitch;
 		DstBuf += bufpitch;
