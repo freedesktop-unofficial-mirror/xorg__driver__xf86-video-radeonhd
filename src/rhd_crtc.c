@@ -313,13 +313,11 @@ calculateOverscan(DisplayModePtr Mode, DisplayModePtr ScaledToMode, enum rhdCrtc
 		tmp = ScaledToMode->CrtcHDisplay - tmp;
 		Overscan.OverscanLeft = tmp >> 1;
 		Overscan.OverscanRight = tmp - Overscan.OverscanLeft;
-		ErrorF("HScale %i %i\n", Overscan.OverscanLeft, Overscan.OverscanRight);
 	    } else {
 		tmp = (p1 / Mode->CrtcHDisplay);
 		tmp = ScaledToMode->CrtcVDisplay - tmp;
 		Overscan.OverscanTop = tmp >> 1;
 		Overscan.OverscanBottom = tmp - Overscan.OverscanTop;
-		ErrorF("VScale %i %i\n", Overscan.OverscanTop, Overscan.OverscanBottom);
 	    }
 	    break;
 	}
