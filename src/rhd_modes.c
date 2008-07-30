@@ -44,8 +44,10 @@
 #include "rhd_modes.h"
 #include "rhd_monitor.h"
 
+#if 0
 /* For Acceleration FB validation */
 #include "r5xx_accel.h"
+#endif
 
 /*
  * Define a set of own mode errors.

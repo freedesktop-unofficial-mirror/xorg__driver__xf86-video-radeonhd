@@ -56,12 +56,17 @@ radeonhd_drv_la_SOURCES = \
 	radeon_accel.c \
 	radeon_accel.h \
 	radeon_xaa.c \
-	radeon_xaa.h \
-	radeon_exa.h \
 	radeon_video.c \
 	radeon_textured_video.c \
 	radeon_video.h \
 	radeon_reg.h
+
+EXTRA_DIST = \
+	radeon_accelfuncs.c \
+	radeon_exa_funcs.c \
+	radeon_commonfuncs.c \
+	radeon_textured_videofuncs.c \
+	radeon_exa_render.c
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
@@ -71,7 +76,7 @@ radeonhd_drv_la_SOURCES += radeon_exa.c
 endif
 
 if USE_DRI
-radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_dripriv.h radeon_sarea.h
+radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h rhd_cp.h radeon_drm.h
 endif
 
 if ATOM_BIOS

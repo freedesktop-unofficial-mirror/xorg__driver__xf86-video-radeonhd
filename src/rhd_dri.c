@@ -76,7 +76,9 @@
 #include "radeon_reg.h"
 #include "rhd_dri.h"
 #include "rhd_cp.h"
+#if 0
 #include "r5xx_accel.h"
+#endif
 #include "radeon_dri.h"
 #include "radeon_accel.h"
 
