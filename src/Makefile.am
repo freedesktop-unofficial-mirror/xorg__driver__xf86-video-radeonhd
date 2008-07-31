@@ -66,7 +66,12 @@ EXTRA_DIST += \
 	radeon_exa_funcs.c \
 	radeon_commonfuncs.c \
 	radeon_textured_videofuncs.c \
-	radeon_exa_render.c
+	radeon_exa_render.c \
+	r5xx_accel.h \
+	r5xx_regs.h \
+	r5xx_accel.c \
+	r5xx_exa.c \
+	r5xx_xaa.c
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
