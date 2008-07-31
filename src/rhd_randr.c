@@ -673,6 +673,8 @@ rhdRROutputModeValid(xf86OutputPtr  out,
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s : %s\n", __func__,
 	     rout->Name, Mode->name);
+    if (rhdPtr->verbosity >= LOG_DEBUG)
+	RHDPrintModeline(Mode);
     ASSERT(rout->Connector);
     ASSERT(rout->Output);
 
