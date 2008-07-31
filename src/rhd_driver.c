@@ -2585,7 +2585,7 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     }
 #else
     if ((read_len =
-	 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, *ptr, size)) < 0) {
+	 xf86ReadPciBIOS(0, rhdPtr->PciTag, -1, *ptr, size)) <= 0) {
 	xf86DrvMsg(rhdPtr->scrnIndex,X_ERROR,
 		   "Cannot read BIOS image\n");
 	xfree(*ptr);
