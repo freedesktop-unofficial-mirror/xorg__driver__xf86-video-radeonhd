@@ -1639,8 +1639,22 @@ rhdMapFB(RHDPtr rhdPtr)
 	if (SetIGPMemory) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Mapping IGP memory @ 0x%8.8x\n",rhdPtr->FbPhysAddress);
 	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
-	    rhdPtr->FbBase = xf86MapVidMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
-					   rhdPtr->FbPhysAddress, rhdPtr->FbMapSize);
+#ifdef XSERVER_LIBPCIACCESS
+	    if (pci_device_map_range(rhdPtr->PciInfo,
+				     rhdPtr->FbPhysAddress,
+				     rhdPtr->FbMapSize,
+				     PCI_DEV_MAP_FLAG_WRITABLE
+				     | PCI_DEV_MAP_FLAG_WRITE_COMBINE,
+				     &rhdPtr->FbBase))
+		rhdPtr->FbBase = NULL;
+
+#else
+	    rhdPtr->FbBase =
+		xf86MapPciMem(rhdPtr->scrnIndex, VIDMEM_FRAMEBUFFER,
+			      rhdPtr->PciTag,
+			      rhdPtr->FbPhysAddress,
+			      rhdPtr->FbMapSize);
+#endif
 	} else {
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Not Mapping IGP memory\n");
 	}
