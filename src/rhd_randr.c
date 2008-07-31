@@ -726,6 +726,26 @@ rhdRRModeCopy(DisplayModePtr  OrigMode, DisplayModePtr Mode)
     }
 }
 
+/*
+ *
+ */
+static void
+rhdRRSanitizeMode(DisplayModePtr Mode)
+{
+    if (!Mode->name)
+	Mode->name = xstrdup("n/a");
+    Mode->status = MODE_OK;
+    if ((Mode->type & M_T_CRTC_C) != M_T_BUILTIN) {
+	Mode->CrtcHDisplay = Mode->CrtcHBlankStart =
+	    Mode->CrtcHSyncStart = Mode->CrtcHBlankEnd =
+	    Mode->CrtcHSyncEnd = Mode->CrtcHTotal = 0;
+	Mode->CrtcVDisplay = Mode->CrtcVBlankStart =
+	    Mode->CrtcVSyncStart = Mode->CrtcVSyncEnd =
+	    Mode->CrtcVBlankEnd = Mode->CrtcVTotal = 0;
+	Mode->SynthClock = 0;
+    }
+}
+
 /* The crtc is only known on fixup time. Now it's actually to late to reject a
  * mode and give a reasonable answer why (return is bool), but we'll better not
  * set a mode than scrap our hardware */
@@ -762,10 +782,7 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
 	xfree(tmp);
 
         /* sanitize OrigMode */
-	if (!OrigMode->name)
-	    OrigMode->name = xstrdup("n/a");
-	OrigMode->status = MODE_OK;
-
+	rhdRRSanitizeMode(OrigMode);
 	DisplayedMode = OrigMode;
 	Crtc->ScaledToMode = Mode;
 	Scaled = TRUE;
