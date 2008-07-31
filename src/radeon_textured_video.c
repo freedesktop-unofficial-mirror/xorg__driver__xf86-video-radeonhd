@@ -34,6 +34,22 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifdef USE_XAA
+#include "xaa.h"
+#endif
+#ifdef USE_EXA
+#include "exa.h"
+#endif
+#ifdef USE_DRI
+# define _XF86DRI_SERVER_
+# include "dri.h"
+# include "GL/glxint.h"
+# ifdef DAMAGE
+#  include "damage.h"
+#  include "globals.h"
+# endif
+#endif
+
 #include "rhd.h"
 #ifdef USE_DRI
 # include "rhd_cp.h"

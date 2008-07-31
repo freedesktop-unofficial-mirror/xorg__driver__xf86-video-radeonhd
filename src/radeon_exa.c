@@ -33,6 +33,17 @@
 #include "config.h"
 #endif
 
+#ifdef USE_XAA
+#include "xaa.h"
+#endif
+#include "exa.h"
+#ifdef USE_DRI
+# define _XF86DRI_SERVER_
+# include "dri.h"
+# include "GL/glxint.h"
+#endif
+
+
 #include "rhd.h"
 #ifdef USE_DRI
 # include "rhd_dri.h"

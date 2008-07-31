@@ -7,6 +7,19 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifdef USE_EXA
+#include "exa.h"
+#endif
+#ifdef USE_XAA
+#include "xaa.h"
+#endif
+#ifdef USE_DRI
+#define _XF86DRI_SERVER_
+#include "dri.h"
+#include "GL/glxint.h"
+#endif
+#include "xf86xv.h"
+
 #include "rhd.h"
 #ifdef USE_DRI
 # include "rhd_dri.h"
@@ -38,7 +51,8 @@ ATIVideoSave(ScreenPtr pScreen, ExaOffscreenArea *area)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr info = RHDPTR(pScrn);
-    RADEONPortPrivPtr pPriv = info->adaptor->pPortPrivates[0].ptr;
+    RADEONPortPrivPtr pPriv =
+	((XF86VideoAdaptorPtr)(info->adaptor))->pPortPrivates[0].ptr;
 
     if (pPriv->video_memory == area)
         pPriv->video_memory = NULL;

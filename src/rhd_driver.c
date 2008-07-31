@@ -81,6 +81,12 @@
 
 #include "picturestr.h"
 
+#ifdef USE_DRI
+#define _XF86DRI_SERVER_
+#include "dri.h"
+#include "GL/glxint.h"
+#endif
+
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
 #else

@@ -32,25 +32,6 @@
 
 #define RHD_DRIVER
 
-#ifdef USE_EXA
-#include "exa.h"
-#endif
-#ifdef USE_XAA
-#include "xaa.h"
-#endif
-
-#include "xf86xv.h"
-
-#ifdef USE_DRI
-#define _XF86DRI_SERVER_
-#include "dri.h"
-#include "GL/glxint.h"
-#ifdef DAMAGE
-#include "damage.h"
-#include "globals.h"
-#endif
-#endif
-
 #define RHD_MAJOR_VERSION (PACKAGE_VERSION_MAJOR)
 #define RHD_MINOR_VERSION (PACKAGE_VERSION_MINOR)
 #define RHD_PATCHLEVEL    (PACKAGE_VERSION_PATCHLEVEL)
@@ -317,10 +298,10 @@ typedef struct RHDRec {
     struct rhdDri      *dri;
 
 #ifdef USE_EXA
-    ExaDriverPtr      exa;
+    struct _ExaDriver *exa;
 #endif
 #ifdef USE_XAA
-    XAAInfoRecPtr     xaa;
+    struct _XAAInfoRec *xaa;
 #endif
     Bool              allowColorTiling;
     Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
@@ -334,9 +315,8 @@ typedef struct RHDRec {
 #endif /* USE_DRI */
     /* chips with PVS/TCL hw (used for EXA render) */
     Bool             has_tcl;
-
     /* Xv */
-    XF86VideoAdaptorPtr adaptor;
+    void *adaptor; /* XF86VideoAdaptorPtr */
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))
