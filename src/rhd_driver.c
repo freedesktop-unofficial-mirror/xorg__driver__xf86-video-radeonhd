@@ -2591,7 +2591,7 @@ rhdDoReadPCIBios(RHDPtr rhdPtr, unsigned char **ptr)
     xf86DrvMsg(rhdPtr->scrnIndex,X_INFO,"Getting BIOS copy from PCI ROM\n");
 
 #ifdef XSERVER_LIBPCIACCESS
-    if (pci_device_read_rom(rhdPtr->PciInfo, ptr)) {
+    if (pci_device_read_rom(rhdPtr->PciInfo, *ptr)) {
 	xf86DrvMsg(rhdPtr->scrnIndex,X_ERROR,
 		   "Cannot read BIOS image\n");
 	xfree(*ptr);
