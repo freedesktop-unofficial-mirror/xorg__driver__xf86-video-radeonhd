@@ -4045,6 +4045,7 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
     RHDDebug(handle->scrnIndex, "DisplayPathObjectTable: entries: %i version: %i\n",
 	     disObjPathTable->ucNumOfDispPath, disObjPathTable->ucVersion);
 
+    disObjPath = &disObjPathTable->asDispPath[0];
     for (i = 0; i < disObjPathTable->ucNumOfDispPath; i++) {
 	CARD8 objNum, cObjNum;
 	CARD8 objId;
@@ -4052,7 +4053,6 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
 	rhdConnectorType ct;
 	char *name;
 
-	disObjPath = &disObjPathTable->asDispPath[i];
 	rhdAtomInterpretObjectID(handle, disObjPath->usConnObjectId, &objType, &objId, &objNum, &name);
 	RHDDebug(handle->scrnIndex, "  DisplaPathTable[%i]: size: %i DeviceTag: 0x%x ConnObjId: 0x%x NAME: %s GPUObjId: 0x%x\n",
 		 i, disObjPath->usSize, disObjPath->usDeviceTag, disObjPath->usConnObjectId, name, disObjPath->usGPUObjectId);
@@ -4090,6 +4090,12 @@ rhdAtomOutputDeviceListFromObjectHeader(atomBiosHandlePtr handle,
 		RHDDebug(handle->scrnIndex, "   DeviceIndex: 0x%x\n",k);
 	    }
 	}
+	disObjPath = (ATOM_DISPLAY_OBJECT_PATH*)(((char *)disObjPath) + disObjPath->usSize);
+	if ((((unsigned long)&atomDataPtr->Object_Header->sHeader + object_header_end)
+	     < (((unsigned long) disObjPath) + sizeof(ATOM_DISPLAY_OBJECT_PATH)))
+	    || (((unsigned long)&atomDataPtr->Object_Header->sHeader + object_header_end)
+		< (((unsigned long) disObjPath) + disObjPath->usSize)))
+	    break;
     }
     DeviceList = xrealloc(DeviceList, sizeof(struct rhdAtomOutputDeviceList) * (cnt + 1));
     DeviceList[cnt].DeviceId = atomNone;
