@@ -831,9 +831,6 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     exaMarkSync(pScreen);
 
-    /* start the engine already */
-    R5xx2DStart(pScrn);
-
     return TRUE;
 }
 

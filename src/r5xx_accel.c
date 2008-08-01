@@ -351,8 +351,6 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
     RHDRegWrite(rhdPtr, R5XX_DP_SRC_FRGD_CLR, 0xFFFFFFFF);
     RHDRegWrite(rhdPtr, R5XX_DP_SRC_BKGD_CLR, 0x00000000);
     RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, 0xFFFFFFFF);
-
-    R5xx2DIdleLocal(rhdPtr->scrnIndex);
 }
 
 /*
@@ -396,6 +394,8 @@ R5xx2DIdle(ScrnInfoPtr pScrn)
 void
 R5xx2DStart(ScrnInfoPtr pScrn)
 {
+    RHDFUNC(pScrn);
+
     RHDRegMask(pScrn, R5XX_GB_TILE_CONFIG, 0, R5XX_ENABLE_TILING);
     RHDRegWrite(pScrn, R5XX_WAIT_UNTIL,
 		R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
@@ -406,6 +406,7 @@ R5xx2DStart(ScrnInfoPtr pScrn)
 
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);
+    R5xx2DIdleLocal(pScrn->scrnIndex);
 }
 
 /*

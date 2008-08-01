@@ -456,6 +456,12 @@ void
 RHDCSFlush(struct RhdCS *CS)
 {
 #ifdef RHD_CS_DEBUG
+    if (!CS->Active) {
+	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: CS is not active (%s)!\n",
+		   __func__, CS->Func);
+	return;
+    }
+
     if (CS->Wptr != ((CS->Flushed + CS->Grabbed) & CS->Mask))
 	xf86DrvMsg(CS->scrnIndex, X_ERROR,
 		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (From %s)\n",
@@ -473,7 +479,15 @@ RHDCSFlush(struct RhdCS *CS)
 void
 RHDCSIdle(struct RhdCS *CS)
 {
-    if (CS->Active && CS->Idle)
+#ifdef RHD_CS_DEBUG
+    if (!CS->Active) {
+	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: CS is not active!\n",
+		   __func__);
+	return;
+    }
+#endif
+
+    if (CS->Idle)
 	CS->Idle(CS);
 }
 
@@ -512,7 +526,13 @@ RHDCSReset(struct RhdCS *CS)
 {
     RHDFUNC(CS);
 
-    if (CS->Active && CS->Reset)
+#ifdef RHD_CS_DEBUG
+    if (!CS->Active)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: CS is not active!\n",
+		   __func__);
+#endif
+
+    if (CS->Reset)
 	CS->Reset(CS);
 }
 
@@ -555,16 +575,26 @@ RHDCSStop(struct RhdCS *CS)
 void
 RHDCSInit(ScrnInfoPtr pScrn)
 {
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     struct RhdCS *CS = xnfcalloc(1, sizeof(struct RhdCS));
 
     CS->scrnIndex = pScrn->scrnIndex;
 
-    RHDPTR(pScrn)->CS = CS;
+    rhdPtr->CS = CS;
 
 #ifdef USE_DRI
     if (CSDRMCPInit(CS))
 	return;
 #endif
+
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "%s: No CS for R600 and up yet.\n", __func__);
+	xfree(CS);
+	rhdPtr->CS = NULL;
+	return;
+    }
+
     /* hook in direct CP backend here */
 
     CSMMIOInit(CS);

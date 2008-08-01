@@ -1090,8 +1090,6 @@ R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     rhdPtr->XAAInfo = XAAInfo;
 
-    R5xx2DStart(pScrn);
-
     return TRUE;
 }
 

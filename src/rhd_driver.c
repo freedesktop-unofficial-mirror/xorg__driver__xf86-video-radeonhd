@@ -1028,8 +1028,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* initialise command submission backend */
     RHDCSInit(pScrn);
-    RHDCSStart(rhdPtr->CS);
-    R5xxEngineSync(pScrn->scrnIndex);
+    if (rhdPtr->CS)
+	RHDCSStart(rhdPtr->CS);
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
 	if (!RHDShadowSetup(pScreen))
@@ -1045,6 +1045,11 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    R5xxEXAInit(pScrn, pScreen);
     }
 #endif /* USE_EXA */
+
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
+	R5xx2DStart(pScrn);
+	R5xxEngineSync(pScrn->scrnIndex);
+    }
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -1122,10 +1127,6 @@ RHDAllIdle(ScrnInfoPtr pScrn)
 	    Crtc->Power(Crtc, RHD_POWER_RESET);
     }
 
-    /* TODO: Invalidate the cached acceleration registers */
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
-
     if (!RHDMCIdle(rhdPtr, 1000))
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
 }
@@ -1153,8 +1154,20 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 		R5xxXAADestroy(pScrn);
 	}
 
+    if (rhdPtr->CS) {
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (rhdPtr->TwoDPrivate)
+		R5xx2DIdle(pScrn);
+
+	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
+	    R5xxEngineSync(rhdPtr->scrnIndex);
+	}
+	RHDCSStop(rhdPtr->CS);
+    }
+
     if (pScrn->vtSema)
 	RHDAllIdle(pScrn);
+
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRICloseScreen(pScreen);
@@ -1188,9 +1201,6 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
-
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
     else
@@ -1203,13 +1213,22 @@ RHDEnterVT(int scrnIndex, int flags)
     /* rhdShowCursor() done by AdjustFrame */
     RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DSetup(pScrn);
-
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIEnterVT(pScrn->pScreen);
 #endif
+
+    if (rhdPtr->CS) {
+	RHDCSStart(rhdPtr->CS);
+
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    R5xxEngineSync(pScrn->scrnIndex);
+	    if (rhdPtr->TwoDPrivate) {
+		R5xx2DSetup(pScrn);
+		R5xx2DIdle(pScrn);
+	    }
+	}
+    }
 
     return TRUE;
 }
@@ -1227,6 +1246,17 @@ RHDLeaveVT(int scrnIndex, int flags)
     if (rhdPtr->dri)
 	RHDDRILeaveVT(pScrn->pScreen);
 #endif
+
+    if (rhdPtr->CS) {
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (rhdPtr->TwoDPrivate)
+		R5xx2DIdle(pScrn);
+
+	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
+	    R5xxEngineSync(rhdPtr->scrnIndex);
+	}
+	RHDCSStop(rhdPtr->CS);
+    }
 
     RHDAllIdle(pScrn);
 

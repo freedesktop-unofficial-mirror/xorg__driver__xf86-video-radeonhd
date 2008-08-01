@@ -125,6 +125,9 @@ do { \
 #ifdef RHD_CS_DEBUG
 #define RHDCSGrab(CS, Count) \
 do { \
+   if (!(CS)->Active) \
+	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \
+                   "%s: Grabbing while CS is not started!\n", __func__); \
    if ((CS)->Wptr != (((CS)->Flushed + (CS)->Grabbed) & (CS)->Mask)) \
 	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \
 		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (%s -> %s)\n", \

@@ -418,6 +418,11 @@ static void RHDDRISwapContext(ScreenPtr pScreen, DRISyncType syncType,
 			      DRIContextType newContextType,
 			      void *newContext)
 {
+    /* is this the right place to check this? Because SwapContext is still being
+       called when we already switched away. --libv */
+    if (!xf86Screens[pScreen->myNum]->vtSema)
+	return;
+
     if ((syncType==DRI_3D_SYNC) && (oldContextType==DRI_2D_CONTEXT) &&
 	(newContextType==DRI_2D_CONTEXT)) { /* Entering from Wakeup */
 	RHDEnterServer(pScreen);
@@ -1543,8 +1548,6 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	memcpy((char *)rhdPtr->FbBase + info->pciGartOffset,
 	       info->pciGartBackup, info->pciGartSize);
 
-    RHDCSStart(rhdPtr->CS);
-    R5xxEngineSync(pScrn->scrnIndex);
     RHDDRISetVBlankInterrupt(pScrn, info->have3Dwindows);
 
     DRIUnlock(pScrn->pScreen);
@@ -1561,10 +1564,6 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
     DRILock(pScrn->pScreen, 0);
-
-    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-    R5xxEngineSync(rhdPtr->scrnIndex);
-    RHDCSStop(rhdPtr->CS);
 
     /* Backup the PCIE GART TABLE from fb memory */
     if (info->pciGartBackup)
@@ -1594,12 +1593,6 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
     drm_radeon_init_t drmInfo;
 
     RHDFUNC(pScrn);
-
-    if (rhdPtr->CS) {
-	R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	R5xxEngineSync(rhdPtr->scrnIndex);
-	RHDCSStop(rhdPtr->CS);
-    }
 
     if (info->irq) {
 	RHDDRISetVBlankInterrupt (pScrn, FALSE);
