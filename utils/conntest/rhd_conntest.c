@@ -1342,7 +1342,7 @@ enum _rhdRS69I2CBits {
 static Bool
 RS69I2CStatus(void *map)
 {
-    int count = 800;
+    int count = 2000;
     volatile CARD32 val;
 
     while (--count) {
@@ -1401,13 +1401,12 @@ RS69I2CSetupStatus(void *map, int line)
 	    break;
     }
 #ifdef DEBUG
-    printf("DDC: line: %i -> %i port: %x\n",line,ddc,
+    fprintf(stderr, "DDC: line: %i -> %i port: %x\n",line,ddc,
 	   AtomData.GPIO_I2C_Info->asGPIO_Info[line & 0xf]
 	   .usClkMaskRegisterIndex);
 #endif
-    RegMask(map, RS69_DC_I2C_CONTROL, ddc << 8, 0xff << 8);
     RegWrite(map, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
-    RegMask(map, RS69_DC_I2C_CONTROL, (line & 0x3) << 16, 0xff << 16);
+    RegMask(map, RS69_DC_I2C_CONTROL, ((line & 0x3) << 16) | ddc << 8, 0xffff << 8);
     RegMask(map, RS69_DC_I2C_INTERRUPT_CONTROL, 0x2, 0x2);
     RegMask(map, RS69_DC_I2C_UNKNOWN_2, 0x2, 0xff);
 
@@ -1504,6 +1503,13 @@ RS69xI2CWriteRead(void *map,  CARD8 line, CARD8 slave,
 static Bool
 RS69DDCProbe(void *map, int Channel, unsigned char slave)
 {
+    return RS69xI2CWriteRead(map, Channel, slave, NULL, 0, NULL, 0);
+}
+
+#if 0
+static Bool
+RS69DDCProbe(void *map, int Channel, unsigned char slave)
+{
     Bool ret = FALSE;
     CARD32 data;
 
@@ -1529,6 +1535,7 @@ RS69DDCProbe(void *map, int Channel, unsigned char slave)
 
     return ret;
 }
+#endif
 
 enum _rhdR5xxI2CBits {
  /* R5_DC_I2C_STATUS1 */
@@ -2199,7 +2206,7 @@ DDCScanBus(void *map, int count)
 {
     int channel;
     unsigned char slave;
-    int max_chan = ((ChipType >= RHD_R600) ? 3 : 2);
+    int max_chan = ((ChipType >= RHD_RS690) ? 3 : 2);
     unsigned char *data = NULL;
 
     if (count)
