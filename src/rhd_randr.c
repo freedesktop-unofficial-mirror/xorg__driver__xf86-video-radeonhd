@@ -70,7 +70,7 @@
 # include "rhd_lut.h"
 # include "rhd_mc.h"
 # include "rhd_card.h"
-
+# include "rhd_i2c.h"
 /*
  * Driver internal
  */
@@ -986,7 +986,11 @@ rhdRROutputDetect(xf86OutputPtr output)
 	}
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
-	    if (xf86I2CProbeAddress(rout->Connector->DDC, 0xa0)) {
+	    RHDI2CDataArg i2cRec;
+	    i2cRec.probe.slave = 0xa0;
+	    i2cRec.probe.i2cBusPtr = rout->Connector->DDC;
+	    if (RHDI2CFunc(rhdPtr->scrnIndex, rhdPtr->I2C,RHD_I2C_PROBE_ADDR,&i2cRec)
+		== RHD_I2C_SUCCESS) {
 		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",rout->Output->Name);
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;

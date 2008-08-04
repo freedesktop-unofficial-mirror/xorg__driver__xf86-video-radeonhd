@@ -1084,7 +1084,7 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			    GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg)
-	    == ATOM_SUCCESS) 
+	    == ATOM_SUCCESS)
 	    return (0x7f << 8)
 		+ (atomBiosArg.val / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
 	else
@@ -1208,28 +1208,43 @@ rhdInitI2C(int scrnIndex)
 }
 
 RHDI2CResult
-rhdI2CProbeAddress(int scrnIndex, I2CBusPtr *I2CList,
-		   int line, CARD8 slave)
+rhdI2CProbeAddress(int scrnIndex, I2CBusPtr I2CBusPtr, CARD8 slave)
 {
     I2CDevPtr dev;
-    int ret = FALSE;
     char *name = "I2CProbe";
 
-    if (line >= I2C_LINES || !I2CList[line])
-	return RHD_I2C_NOLINE;
-
     if ((dev = xf86CreateI2CDevRec())) {
-	dev->SlaveAddr = slave & 0xFE;
 	dev->DevName = name;
-	dev->pI2CBus = I2CList[line];
+	dev->pI2CBus = I2CBusPtr;
 
-	if (xf86I2CDevInit(dev))
+	if (xf86I2CDevInit(dev)) {
+	    Bool ret;
+
+	    dev->SlaveAddr = slave & 0xFE;
+
 	    ret = xf86I2CWriteRead(dev, NULL, 0, NULL, 0);
 
-	xf86DestroyI2CDevRec(dev, TRUE);
+	    if (ret) {
+		unsigned char offset = 0;
+		unsigned char buf[2];
+
+		/*
+		  ASUS M2A-VM (R690) motherboards ACK all I2C slaves on the
+		  HDMI line when the HDMI riser card is not installed.
+		  We therefore need to read the first two bytes and check
+		  if they are part of an I2C header.
+		*/
+		ret = xf86I2CWriteRead(dev, &offset, 1, buf, 2);
+		if (ret && (buf[0] != 0 || buf[1] != 0xff))
+		    ret = FALSE;
+	    }
+	    xf86DestroyI2CDevRec(dev, TRUE);
+
+	    return ret ? RHD_I2C_SUCCESS : RHD_I2C_FAILED;
+	}
     }
 
-    return ret;
+    return RHD_I2C_FAILED;
 }
 
 RHDI2CResult
@@ -1251,10 +1266,14 @@ RHDI2CFunc(int scrnIndex, I2CBusPtr *I2CList, RHDi2cFunc func,
 	datap->monitor = xf86DoEDID_DDC2(scrnIndex, I2CList[datap->i]);
 	return RHD_I2C_SUCCESS;
     }
+    if (func == RHD_I2C_PROBE_ADDR_LINE) {
+
+	if (datap->target.line >= I2C_LINES || !I2CList[datap->target.line])
+	    return RHD_I2C_NOLINE;
+	return rhdI2CProbeAddress(scrnIndex, I2CList[datap->target.line], datap->target.slave);
+    }
     if (func == RHD_I2C_PROBE_ADDR) {
-	return rhdI2CProbeAddress(scrnIndex, I2CList,
-				  datap->target.line,
-				  datap->target.slave);
+	return rhdI2CProbeAddress(scrnIndex, datap->probe.i2cBusPtr, datap->probe.slave);
     }
     if (func == RHD_I2C_GETBUS) {
 	if (datap->i >= I2C_LINES || !I2CList[datap->i])
