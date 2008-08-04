@@ -236,7 +236,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 	exaMoveInPixmap(pPriv->pPixmap);
     }
 #endif
-
+#ifdef USE_XAA
     if (info->xaa &&
 	(((char *)pPriv->pPixmap->devPrivate.ptr < ((char *)info->FbBase + info->FbScanoutStart)) ||
 	 ((char *)pPriv->pPixmap->devPrivate.ptr >= ((char *)info->FbBase + info->FbMapSize)))) {
@@ -245,7 +245,7 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 	 */
 	return BadAlloc;
     }
-
+#endif
     /* copy data */
     top = y1 >> 16;
     left = (x1 >> 16) & ~1;
