@@ -1134,6 +1134,27 @@ RHDAllIdle(ScrnInfoPtr pScrn)
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
 }
 
+/*
+ *
+ */
+static void
+rhdEngineIdle(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->CS) {
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
+	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
+	}
+
+	RHDCSFlush(rhdPtr->CS);
+	RHDCSIdle(rhdPtr->CS);
+    }
+
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
+	R5xx2DIdle(pScrn);
+}
 
 /* Mandatory */
 static Bool
@@ -1143,18 +1164,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     /* Make sure our CS and 2D status is clean before destroying it */
-    if (rhdPtr->CS) {
-	if (rhdPtr->ChipSet < RHD_R600) {
-	    R5xxDstCacheFlush(scrnIndex);
-	    R5xxEngineWaitIdleFull(scrnIndex);
-	}
-
-	RHDCSFlush(rhdPtr->CS);
-	RHDCSIdle(rhdPtr->CS);
-
-	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	    R5xx2DIdle(pScrn);
-    }
+    rhdEngineIdle(pScrn);
 
     /* tear down 2d accel infrastructure */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
@@ -1266,18 +1276,7 @@ RHDLeaveVT(int scrnIndex, int flags)
 	RHDDRILeaveVT(pScrn->pScreen);
 #endif
 
-    if (rhdPtr->CS) {
-	if (rhdPtr->ChipSet < RHD_R600) {
-	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
-	}
-
-	RHDCSFlush(rhdPtr->CS);
-	RHDCSIdle(rhdPtr->CS);
-    }
-
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
+    rhdEngineIdle(pScrn);
 
     if (rhdPtr->CS)
 	RHDCSStop(rhdPtr->CS);
@@ -1295,18 +1294,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
     RHDFUNC(rhdPtr);
 
-    if (rhdPtr->CS) {
-	if (rhdPtr->ChipSet < RHD_R600) {
-	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
-	}
-
-	RHDCSFlush(rhdPtr->CS);
-	RHDCSIdle(rhdPtr->CS);
-    }
-
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
+    rhdEngineIdle(pScrn);
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);
