@@ -104,6 +104,9 @@
 #define ONLY_ONCE 1 /* we're always only once in the radeonhd driver */
 #define ACCEL_CP 1
 
+/* RADEON_FALLBACK is not only error messages, but some things are meant to
+ * happen, which can make it unbelievably noisy. */
+#if 0
 /* i don't like ErrorF's as they don't tell you which driver and
    which device, but no scrnIndex can be had in some of the calls here */
 #define RADEON_FALLBACK(x)     		\
@@ -112,6 +115,9 @@ do {					\
 	ErrorF x;			\
 	return FALSE;			\
 } while (0)
+#else
+#define RADEON_FALLBACK(x) return FALSE
+#endif
 
 #if !defined(UNIXCPP) || defined(ANSICPP)
 #define FUNC_NAME_CAT(prefix,suffix) prefix##suffix
