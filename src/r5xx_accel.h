@@ -89,6 +89,7 @@ struct R5xx3D {
 };
 
 void R5xx3DInit(ScrnInfoPtr pScrn);
+void R5xx3DSetup(int scrnIndex);
 void R5xx3DDestroy(ScrnInfoPtr pScrn);
 
 void R5xxEngineWaitIdleFull(int scrnIndex);

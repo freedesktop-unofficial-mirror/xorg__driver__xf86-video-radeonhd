@@ -1046,8 +1046,11 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     }
 #endif /* USE_EXA */
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
-	R5xx2DStart(pScrn);
+    if (rhdPtr->ChipSet < RHD_R600) {
+	if (rhdPtr->TwoDPrivate)
+	    R5xx2DStart(pScrn);
+	if (rhdPtr->ThreeDPrivate)
+	    R5xx3DSetup(pScrn->scrnIndex);
 	R5xxEngineWaitIdleFull(pScrn->scrnIndex);
     }
 
@@ -1235,6 +1238,9 @@ RHDEnterVT(int scrnIndex, int flags)
 	}
 
 	RHDCSStart(rhdPtr->CS);
+
+	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->ThreeDPrivate)
+	    R5xx3DSetup(scrnIndex);
 
 	if (rhdPtr->ChipSet < RHD_R600)
 	    R5xxEngineWaitIdleFull(scrnIndex);

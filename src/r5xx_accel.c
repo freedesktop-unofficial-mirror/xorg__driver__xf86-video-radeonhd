@@ -339,7 +339,7 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
  *
  */
 static void
-R5xx2DResetFull(ScrnInfoPtr pScrn)
+R5xxEngineReset(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
@@ -348,6 +348,10 @@ R5xx2DResetFull(ScrnInfoPtr pScrn)
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);
     RHDCSReset(rhdPtr->CS);
+
+    /* we also need to reinitialise the 3d engine now */
+    if (rhdPtr->ThreeDPrivate)
+	R5xx3DSetup(pScrn->scrnIndex);
 }
 
 /*
@@ -357,7 +361,7 @@ void
 R5xxFIFOWait(int scrnIndex, CARD32 required)
 {
     if (!R5xxFIFOWaitLocal(scrnIndex, required))
-	R5xx2DResetFull(xf86Screens[scrnIndex]);
+	R5xxEngineReset(xf86Screens[scrnIndex]);
 }
 
 /*
@@ -367,7 +371,7 @@ void
 R5xx2DIdle(ScrnInfoPtr pScrn)
 {
     if (!R5xx2DIdleLocal(pScrn->scrnIndex))
-	R5xx2DResetFull(pScrn);
+	R5xxEngineReset(pScrn);
 }
 
 /*
