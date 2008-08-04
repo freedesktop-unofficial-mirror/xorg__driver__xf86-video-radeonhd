@@ -135,19 +135,6 @@ R5xx2DFlush(int scrnIndex)
 }
 
 /*
- * Used all over the place...
- */
-void
-R5xxEngineSync(int scrnIndex)
-{
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-
-    RHDCSGrab(rhdPtr->CS, 2);
-    RHDCSRegWrite(rhdPtr->CS, R5XX_WAIT_UNTIL, R5XX_WAIT_HOST_IDLECLEAN |
-		  R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
-}
-
-/*
  *
  */
 void
@@ -445,4 +432,105 @@ R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 	return FALSE;
 
     return TRUE;
+}
+
+/*
+ * Handlers for rhdPtr->ThreeDInfo.
+ */
+void
+R5xx3DInit(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->ThreeDPrivate) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: rhdPtr->ThreeDPrivate is already initialised.\n",
+		   __func__);
+	return;
+    }
+
+    rhdPtr->ThreeDPrivate = xnfcalloc(1, sizeof(struct R5xx3D));
+}
+
+/*
+ *
+ */
+void
+R5xx3DDestroy(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (!rhdPtr->ThreeDPrivate) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: rhdPtr->ThreeDPrivate is not assigned.\n", __func__);
+	return;
+    }
+
+    xfree(rhdPtr->ThreeDPrivate);
+    rhdPtr->ThreeDPrivate = NULL;
+}
+
+/*
+ * When we switch between 3d and 2d rendering all the time, we need to make
+ * sure that the other engine is idle first before the new engine goes and
+ * fires off.
+ */
+void
+R5xxEngineWaitIdleFull(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    struct RhdCS *CS = rhdPtr->CS;
+
+    RHDCSGrab(rhdPtr->CS, 2);
+    RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
+		      R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
+		      R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
+
+    if (rhdPtr->ThreeDPrivate) {
+	struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+	State->engineMode = R5XX_ENGINEMODE_IDLE_FULL;
+    }
+}
+
+/*
+ *
+ */
+void
+R5xxEngineWaitIdle3D(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    struct RhdCS *CS = rhdPtr->CS;
+    struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+
+    if (!State)
+	return;
+
+    if (State->engineMode == R5XX_ENGINEMODE_IDLE_2D) {
+	RHDCSGrab(CS, 2);
+	RHDCSRegWrite(CS, R5XX_WAIT_UNTIL, R5XX_WAIT_3D_IDLECLEAN);
+    } /* FULL/3D is always good */
+
+    State->engineMode = R5XX_ENGINEMODE_IDLE_3D;
+}
+
+/*
+ *
+ */
+void
+R5xxEngineWaitIdle2D(int scrnIndex)
+{
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    struct RhdCS *CS = rhdPtr->CS;
+    struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+
+    if (!State)
+	return;
+
+    if (State->engineMode == R5XX_ENGINEMODE_IDLE_3D) {
+	RHDCSGrab(CS, 2);
+	RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
+		      R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
+    } /* FULL/2D is always good */
+
+    State->engineMode = R5XX_ENGINEMODE_IDLE_2D;
 }

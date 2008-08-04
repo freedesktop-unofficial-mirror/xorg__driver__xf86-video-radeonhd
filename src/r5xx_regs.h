@@ -295,9 +295,25 @@
 
 #define R5XX_WAIT_UNTIL                   0x1720
 #       define R5XX_WAIT_CRTC_PFLIP       (1 << 0)
+#       define R5XX_WAIT_RE_CRTC_VLINE    (1 << 1)
+#       define R5XX_WAIT_FE_CRTC_VLINE    (1 << 2)
+#       define R5XX_WAIT_CRTC_VLINE       (1 << 3)
+#       define R5XX_WAIT_DMA_VID_IDLE     (1 << 8)
+#       define R5XX_WAIT_DMA_GUI_IDLE     (1 << 9)
+#       define R5XX_WAIT_CMDFIFO          (1 << 10) /* wait for CMDFIFO_ENTRIES */
+#       define R5XX_WAIT_OV0_FLIP         (1 << 11)
+#       define R5XX_WAIT_AGP_FLUSH        (1 << 13)
+#       define R5XX_WAIT_2D_IDLE          (1 << 14)
+#       define R5XX_WAIT_3D_IDLE          (1 << 15)
 #       define R5XX_WAIT_2D_IDLECLEAN     (1 << 16)
 #       define R5XX_WAIT_3D_IDLECLEAN     (1 << 17)
 #       define R5XX_WAIT_HOST_IDLECLEAN   (1 << 18)
+#       define R5XX_CMDFIFO_ENTRIES_SHIFT 10
+#       define R5XX_CMDFIFO_ENTRIES_MASK  0x7f
+#       define R5XX_WAIT_VAP_IDLE         (1 << 28)
+#       define R5XX_WAIT_BOTH_CRTC_PFLIP  (1 << 30)
+#       define R5XX_ENG_DISPLAY_SELECT_CRTC0    (0 << 31)
+#       define R5XX_ENG_DISPLAY_SELECT_CRTC1    (1 << 31)
 
 #define R5XX_ISYNC_CNTL                   0x1724
 #	define R5XX_ISYNC_ANY2D_IDLE3D	  (1 << 0)

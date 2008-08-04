@@ -836,6 +836,10 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     rhdPtr->TwoDPrivate = ExaPrivate;
 
+    /* if we have CP, we need set up the ThreeDPrivate */
+    if ((CS->Type != RHD_CS_MMIO) && !rhdPtr->ThreeDPrivate)
+	R5xx3DInit(pScrn);
+
     exaMarkSync(pScreen);
 
     return TRUE;
@@ -865,12 +869,10 @@ R5xxEXADestroy(ScrnInfoPtr pScrn)
 
     if (rhdPtr->TwoDPrivate) {
 #ifdef USE_DRI
-	if (rhdPtr->TwoDPrivate) {
-	    struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
+	struct R5xxExaPrivate *ExaPrivate = rhdPtr->TwoDPrivate;
 
-	    if (ExaPrivate->Buffer)
-		RHDDRMIndirectBufferDiscard(rhdPtr->scrnIndex, ExaPrivate->Buffer);
-	}
+	if (ExaPrivate->Buffer)
+	    RHDDRMIndirectBufferDiscard(rhdPtr->scrnIndex, ExaPrivate->Buffer);
 #endif
 
 	xfree(rhdPtr->TwoDPrivate);

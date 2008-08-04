@@ -1048,7 +1048,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
 	R5xx2DStart(pScrn);
-	R5xxEngineSync(pScrn->scrnIndex);
+	R5xxEngineWaitIdleFull(pScrn->scrnIndex);
     }
 
     miInitializeBackingStore(pScreen);
@@ -1143,7 +1143,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     if (rhdPtr->CS) {
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxDstCacheFlush(scrnIndex);
-	    R5xxEngineSync(scrnIndex);
+	    R5xxEngineWaitIdleFull(scrnIndex);
 	}
 
 	RHDCSFlush(rhdPtr->CS);
@@ -1168,6 +1168,9 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	    if (rhdPtr->ChipSet < RHD_R600)
 		R5xxXAADestroy(pScrn);
 	}
+
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->ThreeDPrivate)
+	R5xx3DDestroy(pScrn);
 
     if (rhdPtr->CS)
 	RHDCSStop(rhdPtr->CS);
@@ -1234,7 +1237,7 @@ RHDEnterVT(int scrnIndex, int flags)
 	RHDCSStart(rhdPtr->CS);
 
 	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxEngineSync(scrnIndex);
+	    R5xxEngineWaitIdleFull(scrnIndex);
 
 	RHDCSFlush(rhdPtr->CS);
 	RHDCSIdle(rhdPtr->CS);
@@ -1260,7 +1263,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     if (rhdPtr->CS) {
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	    R5xxEngineSync(rhdPtr->scrnIndex);
+	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
 	}
 
 	RHDCSFlush(rhdPtr->CS);
@@ -1289,7 +1292,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
     if (rhdPtr->CS) {
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	    R5xxEngineSync(rhdPtr->scrnIndex);
+	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
 	}
 
 	RHDCSFlush(rhdPtr->CS);

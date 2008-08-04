@@ -382,7 +382,7 @@ static void RHDEnterServer(ScreenPtr pScreen)
 	if (rhdPtr->CS->Clean == RHD_CS_CLEAN_DIRTY) {
 	    R5xxDstCacheFlush(pScrn->scrnIndex);
 	    R5xxZCacheFlush(pScrn->scrnIndex);
-	    R5xxEngineSync(pScrn->scrnIndex);
+	    R5xxEngineWaitIdleFull(pScrn->scrnIndex);
 	    RHDCSScissorsInit(rhdPtr->CS);
 	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
@@ -402,7 +402,7 @@ static void RHDLeaveServer(ScreenPtr pScreen)
      * we must flush them to the kernel module now. */
     if (CS->Clean == RHD_CS_CLEAN_DONE) {
 	 R5xxDstCacheFlush(pScreen->myNum);
-	 R5xxEngineSync(pScreen->myNum);
+	 R5xxEngineWaitIdleFull(pScreen->myNum);
 	 RHDCSFlush(CS); /* was a Release... */
 	 CS->Clean = RHD_CS_CLEAN_DIRTY;
     }

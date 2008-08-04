@@ -294,6 +294,9 @@ typedef struct RHDRec {
 #endif
     void               *TwoDPrivate;
 
+    /* For EXA Render and Textured Video */
+    void               *ThreeDPrivate;
+
     /* RandR compatibility layer */
     struct rhdRandr    *randr;
     /* log verbosity - store this for convenience */
