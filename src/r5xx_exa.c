@@ -122,7 +122,12 @@ R5xxEXASync(ScreenPtr pScreen, int marker)
     struct R5xxExaPrivate *ExaPrivate = RHDPTR(pScrn)->TwoDPrivate;
 
     if (ExaPrivate->exaMarkerSynced != marker) {
+	struct RhdCS *CS = RHDPTR(pScrn)->CS;
+
+	RHDCSFlush(CS);
+	RHDCSIdle(CS);
 	R5xx2DIdle(pScrn);
+
 	ExaPrivate->exaMarkerSynced = marker;
     }
 }
@@ -635,6 +640,8 @@ R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
 	h -= hpass;
 
 	/* this is quite a big hammer, but we have no other option here */
+	RHDCSFlush(CS);
+	RHDCSIdle(CS);
 	R5xx2DIdle(pScrn);
 
 	/* Copy out data from previous blit */

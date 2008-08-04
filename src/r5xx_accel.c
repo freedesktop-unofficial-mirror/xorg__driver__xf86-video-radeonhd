@@ -180,12 +180,7 @@ static Bool
 R5xx2DIdleLocal(int scrnIndex)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-    struct RhdCS *CS = RHDPTR(pScrn)->CS;
     int i;
-
-    /* first make sure that our command submission backend is quiescent */
-    RHDCSFlush(CS);
-    RHDCSIdle(CS);
 
     /* wait for fifo to clear */
     for (i = 0; i < R5XX_LOOP_COUNT; i++)

@@ -107,6 +107,19 @@ struct R5xxXaaPrivate {
     CARD8 *BufferHook[1];
 };
 
+/*
+ *
+ */
+static void
+R5xxXAAIdle(ScrnInfoPtr pScrn)
+{
+    struct RhdCS *CS = RHDPTR(pScrn)->CS;
+
+    RHDCSFlush(CS);
+    RHDCSIdle(CS);
+    R5xx2DIdle(pScrn);
+}
+
 /* Set up for transparency
  *
  * Mmmm, Seems as though the transparency compare is opposite to r128.
@@ -872,7 +885,7 @@ R5xxXAAFunctionsInit(ScrnInfoPtr pScrn, ScreenPtr pScreen, XAAInfoRecPtr XAAInfo
     XAAInfo->Flags = PIXMAP_CACHE | OFFSCREEN_PIXMAPS | LINEAR_FRAMEBUFFER;
 
     /* Sync */
-    XAAInfo->Sync = R5xx2DIdle;
+    XAAInfo->Sync = R5xxXAAIdle;
 
     /* Clipping */
     XAAInfo->SetClippingRectangle = R5xxXAASetClippingRectangle;
