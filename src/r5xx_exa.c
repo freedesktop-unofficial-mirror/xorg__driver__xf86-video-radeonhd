@@ -164,6 +164,8 @@ R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     }
     offset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
+    R5xxEngineWaitIdle3D(CS->scrnIndex);
+
     RHDCSGrab(CS, 2 * 5);
 
     RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, R5XX_GMC_DST_PITCH_OFFSET_CNTL |
@@ -257,6 +259,8 @@ R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
 	return FALSE;
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    R5xxEngineWaitIdle3D(CS->scrnIndex);
 
     RHDCSGrab(CS, 2 * 5);
 
@@ -400,6 +404,10 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
     CARD32 hpass, datatype, dwords;
     CARD32 bufpitch, dstpitch, dstoffset;
 
+    /* Why does EXA even bother to pass us this? */
+    if (!w || !h || !srcpitch)
+	return FALSE;
+
     datatype = R5xxEXADatatypeGet(pDst->drawable.bitsPerPixel);
     if (!datatype) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unsupported bitdepth %d\n",
@@ -424,6 +432,8 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
 	return FALSE;
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    R5xxEngineWaitIdle3D(CS->scrnIndex);
 
     for (; h; ) {
 	hpass = min((unsigned int) h, hpass);
@@ -632,6 +642,8 @@ R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
     BufferPitch = (wpass + 63) & ~63;
     hpass = ExaPrivate->BufferSize / BufferPitch;
 
+    R5xxEngineWaitIdle3D(CS->scrnIndex);
+
     while (h) {
 	hpass = min((unsigned int) h, hpass);
 	R5xxEXADownloadBlit(CS, datatype, srcpitch, srcoffset, BufferPitch,
@@ -821,6 +833,10 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->PrepareAccess = R5xxEXAPrepareAccess;
     EXAInfo->FinishAccess = R5xxEXAFinishAccess;
 #endif /* X_BYTE_ORDER == X_BIG_ENDIAN */
+
+    /* if we have CP, we can use composite! */
+    if (CS->Type != RHD_CS_MMIO)
+	R5xxExaCompositeFuncs(pScrn->scrnIndex, EXAInfo);
 
     if (!exaDriverInit(pScreen, EXAInfo)) {
 #ifdef USE_DRI

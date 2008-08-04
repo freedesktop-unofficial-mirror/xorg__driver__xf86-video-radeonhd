@@ -58,9 +58,15 @@ void R5xxXAADestroy(ScrnInfoPtr pScrn);
 
 /* EXA specific */
 #ifdef USE_EXA
+
+/* r5xx_exa.c */
 Bool R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
 void R5xxEXACloseScreen(ScreenPtr pScreen);
 void R5xxEXADestroy(ScrnInfoPtr pScrn);
+
+/* radeon_exa_render.c */
+void R5xxExaCompositeFuncs(int scrnIndex, struct _ExaDriver *Exa);
+
 #endif /* USE_EXA */
 
 /*

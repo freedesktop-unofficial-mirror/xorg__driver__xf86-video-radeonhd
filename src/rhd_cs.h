@@ -97,6 +97,10 @@ struct _drmBuf *RHDDRMCPBuffer(int scrnIndex);
 #define CP_PACKET3(pkt, n)  (0xC0000000 | (pkt) | ((n) << 16))
 
 #define R5XX_CP_PACKET3_CNTL_HOSTDATA_BLT         0x00009400
+#define R200_CP_PACKET3_3D_DRAW_IMMD_2            0x00003500
+#define     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN   0x00000005
+#define     RADEON_CP_VC_CNTL_PRIM_WALK_RING      0x00000030
+#define     RADEON_CP_VC_CNTL_NUM_SHIFT           16
 
 /*
  * CS Calls and macros.
