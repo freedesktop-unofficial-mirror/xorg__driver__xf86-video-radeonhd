@@ -216,8 +216,20 @@ struct atomBIOSRequests {
      "DAC1 Force Data",				MSG_FORMAT_HEX},
     {ATOM_DAC2_CRTC2_BG_ADJ,	rhdAtomCompassionateDataQuery,
      "DAC2_CRTC2 BG Adjustment",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_NTSC_BG_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_NTSC BG Adjustment",			MSG_FORMAT_HEX},
+    {ATOM_DAC2_PAL_BG_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_PAL BG Adjustment",			MSG_FORMAT_HEX},
+    {ATOM_DAC2_CV_BG_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_CV BG Adjustment",			MSG_FORMAT_HEX},
     {ATOM_DAC2_CRTC2_DAC_ADJ,	rhdAtomCompassionateDataQuery,
      "DAC2_CRTC2 DAC Adjustment",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_NTSC_DAC_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_NTSC DAC Adjustment",		MSG_FORMAT_HEX},
+    {ATOM_DAC2_PAL_DAC_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_PAL DAC Adjustment",			MSG_FORMAT_HEX},
+    {ATOM_DAC2_CV_DAC_ADJ,	rhdAtomCompassionateDataQuery,
+     "DAC2_CV DAC Adjustment",			MSG_FORMAT_HEX},
     {ATOM_DAC2_CRTC2_FORCE,	rhdAtomCompassionateDataQuery,
      "DAC2_CRTC2 Force",			MSG_FORMAT_HEX},
     {ATOM_DAC2_CRTC2_MUX_REG_IND,rhdAtomCompassionateDataQuery,
@@ -1385,9 +1397,33 @@ rhdAtomCompassionateDataQuery(atomBiosHandlePtr handle,
 	    *val = atomDataPtr->CompassionateData->
 		ucDAC2_CRT2_BG_Adjustment;
 	    break;
+	case ATOM_DAC2_NTSC_BG_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_NTSC_BG_Adjustment;
+	    break;
+	case ATOM_DAC2_PAL_BG_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_PAL_BG_Adjustment;
+	    break;
+	case ATOM_DAC2_CV_BG_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_CV_BG_Adjustment;
+	    break;
 	case ATOM_DAC2_CRTC2_DAC_ADJ:
 	    *val = atomDataPtr->CompassionateData->
 		ucDAC2_CRT2_DAC_Adjustment;
+	    break;
+	case ATOM_DAC2_NTSC_DAC_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_NTSC_DAC_Adjustment;
+	    break;
+	case ATOM_DAC2_PAL_DAC_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_PAL_DAC_Adjustment;
+	    break;
+	case ATOM_DAC2_CV_DAC_ADJ:
+	    *val = atomDataPtr->CompassionateData->
+		ucDAC2_CV_DAC_Adjustment;
 	    break;
 	case ATOM_DAC2_CRTC2_FORCE:
 	    *val = atomDataPtr->CompassionateData->

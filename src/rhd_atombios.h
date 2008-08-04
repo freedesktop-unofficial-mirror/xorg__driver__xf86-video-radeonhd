@@ -74,7 +74,13 @@ typedef enum _AtomBiosRequestID {
     ATOM_DAC1_DAC_ADJ,
     ATOM_DAC1_FORCE,
     ATOM_DAC2_CRTC2_BG_ADJ,
+    ATOM_DAC2_NTSC_BG_ADJ,
+    ATOM_DAC2_PAL_BG_ADJ,
+    ATOM_DAC2_CV_BG_ADJ,
     ATOM_DAC2_CRTC2_DAC_ADJ,
+    ATOM_DAC2_NTSC_DAC_ADJ,
+    ATOM_DAC2_PAL_DAC_ADJ,
+    ATOM_DAC2_CV_DAC_ADJ,
     ATOM_DAC2_CRTC2_FORCE,
     ATOM_DAC2_CRTC2_MUX_REG_IND,
     ATOM_DAC2_CRTC2_MUX_REG_INFO,
@@ -104,6 +110,26 @@ typedef struct AtomFb {
     unsigned int start;
     unsigned int size;
 } AtomFbRec, *AtomFbPtr;
+
+struct AtomDacCodeTableData
+{
+    CARD8 DAC1PALWhiteFine;
+    CARD8 dummy1;
+    CARD8 DAC1NTSCWhiteFine;
+    CARD8 dummy2;
+    CARD8 DAC1VGAWhiteFine;
+    CARD8 dumm3;
+    CARD8 DAC1CVWhiteFine;
+    CARD8 dummy4;
+    CARD8 DAC2PALWhiteFine;
+    CARD8 dummy5;
+    CARD8 DAC2NTSCWhiteFine;
+    CARD8 dummy6;
+    CARD8 DAC2VGAWhiteFine;
+    CARD8 dummy7;
+    CARD8 DAC2CVWhiteFine;
+    CARD8 dummy8;
+};
 
 typedef enum AtomTVMode {
     ATOM_TV_NTSC = 1 << 0,
