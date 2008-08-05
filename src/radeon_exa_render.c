@@ -932,7 +932,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
     TRACE;
 
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(rhdPtr->scrnIndex);
+	RADEONInit3DEngine(info->scrnIndex);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -1297,7 +1297,7 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
     /* Is done in ScreenInit and EnterVT in radeonhd */
 #ifdef IS_RADEON_DRIVER
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(rhdPtr->scrnIndex);
+	RADEONInit3DEngine(index->scrnIndex);
 #endif
 
     if (!R300GetDestFormat(pDstPicture, &dst_format))
