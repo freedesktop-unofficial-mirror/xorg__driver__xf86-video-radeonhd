@@ -356,6 +356,13 @@ if this is needed for your configuration.
 Use this option to enable 3D acceleration using DRI (currently,
 for R5xx chipsets only). This will disable 2D acceleration, making normal
 X11 desktop operation rather slow.
+.TP
+.BI "Option \*qUnverifiedFeatures\*q \*q" boolean \*q
+The
+.B radeonhd
+driver sometimes relies on unverified graphics card features. You can add
+.B "Option \*qUnverifiedFeatures\*q \*qoff\*q"
+to disable those when you run into difficulties.
 .RE
 .\"
 .\"
