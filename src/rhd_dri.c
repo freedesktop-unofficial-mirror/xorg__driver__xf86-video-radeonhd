@@ -76,10 +76,7 @@
 #include "radeon_reg.h"
 #include "rhd_dri.h"
 #include "rhd_cp.h"
-#if 0
 #include "r5xx_accel.h"
-#endif
-
 #define uint8_t  CARD8
 #define uint16_t CARD16
 #define uint32_t CARD32
@@ -280,7 +277,8 @@ static void RHDEnterServer(ScreenPtr pScreen)
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
-	rhdPtr->accel_state->XHas3DEngineState = FALSE;
+	if (rhdPtr->accel_state)
+	    rhdPtr->accel_state->XHas3DEngineState = FALSE;
 	rhdPtr->cp->needCacheFlush = TRUE;
     }
 }
@@ -1084,11 +1082,10 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
      * Same for 16bpp. */
     rhdDRI->depthBits = pScrn->depth;
 
-    if ((rhdPtr->AccelMethod != RHD_ACCEL_EXA) &&
-	(rhdPtr->AccelMethod != RHD_ACCEL_XAA)) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "DRI requires acceleration\n");
-	return FALSE;
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "DRI conflicts with SHADOWFB\n");
+	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
     }
 
     return TRUE;
@@ -1439,13 +1436,12 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
     }
 #endif
 
-#if 0
     /* We need to initialize the 2D engine for back-to-front blits on R5xx */
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DInit(pScrn);
-#endif
+	RADEONInit3DEngine(pScrn);
+
 #ifdef USE_EXA
     if (rhdPtr->cardType != RHD_CARD_AGP) {
 	/* FIXME: add option to enable/disable */
@@ -1507,12 +1503,11 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
-#if 0
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	R5xx2DInit(pScrn);
-#endif
+	RADEONInit3DEngine(pScrn);
+
     DRIUnlock(pScrn->pScreen);
 }
 

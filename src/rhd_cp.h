@@ -117,7 +117,8 @@ do {									\
         }								\
         info->cp->CPStarted = FALSE;                                    \
    }									\
-    RADEONEngineRestore(pScrn);						\
+    if (info->accel_state)						\
+        RADEONEngineRestore(pScrn);					\
     info->cp->CPRuns = FALSE;						\
 } while (0)
 
