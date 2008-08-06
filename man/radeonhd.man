@@ -363,7 +363,33 @@ The
 driver sometimes relies on unverified graphics card features. You can add
 .B "Option \*qUnverifiedFeatures\*q \*qoff\*q"
 to disable those when you run into difficulties.
+.TP
+.BI "Option \*qTVMode\*q \*q" tv-mode \*q
+The TV standard to use on the TV output.
+.RS
+.TP 8
+.PD 0
+.B NTSC
+.TP
+.B NTSCJ
+.TP
+.B PAL
+.TP
+.B PALM
+.TP
+.B PALCN
+.TP
+.B PALN
+.TP
+.B PAL60
+.TP
+.B SECAM
+.TP
+.B CV
+Composite Video
 .RE
+.RS
+.PD
 .\"
 .\"
 .SH RANDR OUTPUT PROPERTIES
