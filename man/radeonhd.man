@@ -349,6 +349,13 @@ these calls. The default is
 .B NOTE:
 Use of this option is considered deprecated. Report to the mailing list
 if this is needed for your configuration.
+.TP
+.BI "Option \*qDRI\*q"
+.IR "This option will disappear when both 2D and 3D acceleration work simultanously."
+.br
+Use this option to enable 3D acceleration using DRI (currently,
+for R5xx chipsets only). This will disable 2D acceleration, making normal
+X11 desktop operation rather slow.
 .RE
 .\"
 .\"
