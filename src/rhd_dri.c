@@ -1437,10 +1437,12 @@ Bool RHDDRIFinishScreenInit(ScreenPtr pScreen)
 #endif
 
     /* We need to initialize the 2D engine for back-to-front blits on R5xx */
+#if 0
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	RADEONInit3DEngine(pScrn);
+	RADEONEngineInit(pScrn);
+#endif
 
 #ifdef USE_EXA
     if (rhdPtr->cardType != RHD_CARD_AGP) {
@@ -1503,10 +1505,12 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
+#if 0
     if (rhdPtr->ChipSet < RHD_R600 &&
 	(rhdPtr->AccelMethod == RHD_ACCEL_NONE ||
 	 rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB))
-	RADEONInit3DEngine(pScrn);
+	RADEONEngineInit(pScrn);
+#endif
 
     DRIUnlock(pScrn->pScreen);
 }
