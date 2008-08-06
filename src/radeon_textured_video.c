@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "xf86.h"
 #ifdef USE_XAA
 #include "xaa.h"
 #endif
@@ -54,17 +55,15 @@
 #ifdef USE_DRI
 # include "rhd_cp.h"
 #else
-typedef CARD8 uint8_t;
-typedef CARD16 uint16_t;
-typedef CARD32 uint32_t;
+# define uint8_t  CARD8
+# define uint16_t CARD16
+# define uint32_t CARD32
 #include "damage.h"
 #endif
 
 #include "radeon_reg.h"
 #include "radeon_video.h"
 #include "radeon_accel.h"
-
-#include "xf86.h"
 
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"

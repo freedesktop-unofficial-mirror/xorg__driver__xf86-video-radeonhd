@@ -120,6 +120,10 @@
 #if 0
 #include "r5xx_accel.h"
 #endif
+
+#define uint8_t  CARD8
+#define uint16_t CARD16
+#define uint32_t CARD32
 #include "radeon_accel.h"
 
 #ifdef USE_DRI
