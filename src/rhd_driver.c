@@ -113,6 +113,7 @@
 #include "rhd_randr.h"
 #include "rhd_cs.h"
 #include "r5xx_accel.h"
+#include "rhd_video.h"
 
 #ifdef USE_DRI
 #include "rhd_dri.h"
@@ -1093,8 +1094,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->racIoFlags = pScrn->racMemFlags = racflag;
 
-    /* @@@@ initialize video overlays here */
-
     /* Function to unblank, so that we don't show an uninitialised FB */
     pScreen->SaveScreen = RHDSaveScreen;
 
@@ -1103,6 +1102,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     xf86DPMSInit(pScreen, (DPMSSetProcPtr)RHDDisplayPowerManagementSet,0);
 
     pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
+
+    if (rhdPtr->TwoDPrivate)
+	RHDInitVideo(pScreen);
 
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;

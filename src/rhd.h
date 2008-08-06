@@ -304,6 +304,11 @@ typedef struct RHDRec {
 
     /* DRI */
     struct rhdDri      *dri;
+
+    /* XV */
+#ifdef USE_EXA
+    void               *adaptor;  /* XF86VideoAdaptorPtr */
+#endif
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

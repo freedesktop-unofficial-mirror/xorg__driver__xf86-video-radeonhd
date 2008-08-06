@@ -60,7 +60,9 @@ radeonhd_drv_la_SOURCES = \
 	r5xx_xaa.c \
 	r5xx_regs.h \
 	r5xx_3dregs.h \
-	radeon_3d.c
+	radeon_3d.c \
+	rhd_video.c \
+	radeon_textured_videofuncs.c
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h

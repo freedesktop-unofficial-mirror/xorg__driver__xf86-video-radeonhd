@@ -24,7 +24,7 @@
  * Based on radeon_exa_render.c and kdrive ati_video.c by Eric Anholt, et al.
  *
  */
-
+#ifdef IS_RADEON_DRIVER
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -69,10 +69,118 @@ do {								\
 
 #endif /* !ACCEL_CP */
 
-static void
+#else /* IS_RADEON_DRIVER */
+
+# ifdef HAVE_CONFIG_H
+#  include "config.h"
+# endif
+
+# include "xf86.h"
+# include "fourcc.h"
+
+# include "rhd.h"
+# include "rhd_cs.h"
+
+# include "r5xx_regs.h"
+# include "r5xx_accel.h"
+# include "r5xx_3dregs.h"
+# include "rhd_video.h"
+
+# include "exa.h"
+
+# define uint32_t CARD32
+
+/*
+ * Map the macros.
+ */
+# define VIDEO_PREAMBLE() struct RhdCS *CS = rhdPtr->CS
+
+# define BEGIN_VIDEO(Count) RHDCSGrab(CS, 2 * (Count))
+# define OUT_VIDEO_REG(Reg, Value) RHDCSRegWrite(CS, (Reg), (Value))
+# define FINISH_VIDEO()
+
+# define BEGIN_RING(Count) RHDCSGrab(CS, (Count))
+# define OUT_RING(Value) RHDCSWrite(CS, (Value))
+# define ADVANCE_RING() RHDCSAdvance(CS)
+
+# define OUT_VIDEO_RING_F(x) OUT_RING(F_TO_DW(x))
+
+#define VTX_DWORD_COUNT 4
+
+#define VTX_OUT(_dstX, _dstY, _srcX, _srcY)			\
+do {								\
+    OUT_VIDEO_RING_F(_dstX);						\
+    OUT_VIDEO_RING_F(_dstY);						\
+    OUT_VIDEO_RING_F(_srcX);						\
+    OUT_VIDEO_RING_F(_srcY);						\
+} while (0)
+
+# define IS_R300_3D \
+    ((rhdPtr->ChipSet == RHD_RS690) || \
+     (rhdPtr->ChipSet == RHD_RS600) || \
+     (rhdPtr->ChipSet == RHD_RS740))
+
+# define IS_R500_3D (!(IS_R300_3D))
+
+# define HAS_TCL IS_R500_3D
+
+# define ONLY_ONCE 1 /* we're always only once in the radeonhd driver */
+# define ACCEL_CP 1
+
+# if !defined(UNIXCPP) || defined(ANSICPP)
+#  define FUNC_NAME_CAT(prefix,suffix) prefix##suffix
+# else
+#  define FUNC_NAME_CAT(prefix,suffix) prefix/**/suffix
+# endif
+
+# define FUNC_NAME(postfix) FUNC_NAME_CAT(RHD,postfix)
+
+/*
+ *
+ */
+static __inline__ uint32_t
+F_TO_DW(float val)
+{
+    union {
+	float f;
+	uint32_t l;
+    } tmp;
+    tmp.f = val;
+    return tmp.l;
+}
+
+/*
+ *
+ */
+static __inline__ Bool
+RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
+{
+    return FALSE; /* for now */
+}
+
+# define xFixedToFloat(f) (((float) (f)) / 65536)
+
+
+# define VAR_PREAMBLE(pScreen) RHDPtr rhdPtr = RHDPTR(xf86Screens[(pScreen)->myNum])
+# define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr rhdPtr = RHDPTR(pScrn)
+# define TWODSTATE_PREAMBLE() struct R5xx3D *accel_state = (struct R5xx3D *)rhdPtr->TwoDPrivate
+
+# define EXA_USED (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+# define FB_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
+# define EXA_FB_OFFSET (rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart)
+
+typedef struct RHDPortPriv *RADEONPortPrivPtr;
+
+#endif /* IS_RADEON_DRIVER */
+
+#ifdef IS_RADEON_DRIVER
+static
+#endif
+void
 FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv)
 {
-    RHDPtr info = RHDPTR(pScrn);
+    VAR_PSCRN_PREAMBLE(pScrn);
+    TWODSTATE_PREAMBLE();
     PixmapPtr pPixmap = pPriv->pPixmap;
 #if 0
     uint32_t txformat;
@@ -85,18 +193,16 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     BoxPtr pBox = REGION_RECTS(&pPriv->clip);
     int nBox = REGION_NUM_RECTS(&pPriv->clip);
     VIDEO_PREAMBLE();
-
     pixel_shift = pPixmap->drawable.bitsPerPixel >> 4;
 
 #ifdef USE_EXA
-    if (info->exa) {
-	dst_offset = exaGetPixmapOffset(pPixmap) + info->FbIntAddress + info->FbScanoutStart;
+    if (EXA_USED) {
+	dst_offset = exaGetPixmapOffset(pPixmap) + EXA_FB_OFFSET;
 	dst_pitch = exaGetPixmapPitch(pPixmap);
     } else
 #endif
 	{
-	    dst_offset = ((char *)pPixmap->devPrivate.ptr - (char *)info->FbBase) +
-		info->FbIntAddress;
+	    dst_offset = FB_OFFSET(pPixmap->devPrivate.ptr);
 	    dst_pitch = pPixmap->devKind;
 	}
 
@@ -108,15 +214,20 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     dstyoff = 0;
 #endif
 
-    if (!info->accel_state->XHas3DEngineState)
+#if 0 /* @@@ */
+    if (!accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
-
+#endif
     /* we can probably improve this */
     BEGIN_VIDEO(2);
+#ifdef IS_RADEON_DRIVER
     if (IS_R300_3D || IS_R500_3D)
+#endif
 	OUT_VIDEO_REG(R300_RB3D_DSTCACHE_CTLSTAT, R300_DC_FLUSH_3D);
+#ifdef IS_RADEON_DRIVER
     else
 	OUT_VIDEO_REG(RADEON_RB3D_DSTCACHE_CTLSTAT, RADEON_RB3D_DC_FLUSH);
+#endif
     /* We must wait for 3d to idle, in case source was just written as a dest. */
     OUT_VIDEO_REG(RADEON_WAIT_UNTIL,
 		  RADEON_WAIT_HOST_IDLECLEAN |
@@ -166,8 +277,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 
 	txformat0 |= R300_TXPITCH_EN;
 
-	info->accel_state->texW[0] = pPriv->w;
-	info->accel_state->texH[0] = pPriv->h;
+	accel_state->texW[0] = pPriv->w;
+	accel_state->texH[0] = pPriv->h;
 
 	txfilter = (R300_TX_CLAMP_S(R300_TX_CLAMP_CLAMP_LAST) |
 		    R300_TX_CLAMP_T(R300_TX_CLAMP_CLAMP_LAST) |
@@ -197,7 +308,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	txenable = R300_TEX_0_ENABLE;
 
 	/* setup the VAP */
-	if (info->has_tcl)
+	if (HAS_TCL)
 	    BEGIN_VIDEO(6);
 	else
 	    BEGIN_VIDEO(4);
@@ -233,7 +344,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	 * - Xv
 	 * Here we select the offset of the vertex program we want to use
 	 */
-	if (info->has_tcl) {
+	if (HAS_TCL) {
 	    OUT_VIDEO_REG(R300_VAP_PVS_CODE_CNTL_0,
 			  ((5 << R300_PVS_FIRST_INST_SHIFT) |
 			   (6 << R300_PVS_XYZW_VALID_INST_SHIFT) |
@@ -427,7 +538,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	FINISH_VIDEO();
 
     } else {
-#if 0
+#ifdef IS_RADEON_DRIVER
 	/* Same for R100/R200 */
 	switch (pPixmap->drawable.bitsPerPixel) {
 	case 16:
@@ -476,8 +587,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	    (info->ChipFamily == CHIP_FAMILY_RS300) ||
 	    (info->ChipFamily == CHIP_FAMILY_R200)) {
 
-	    info->accel_state->texW[0] = pPriv->w;
-	    info->accel_state->texH[0] = pPriv->h;
+	    accel_state->texW[0] = pPriv->w;
+	    accel_state->texH[0] = pPriv->h;
 
 	    BEGIN_VIDEO(12);
 
@@ -515,8 +626,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	    FINISH_VIDEO();
 	} else {
 
-	    info->accel_state->texW[0] = 1;
-	    info->accel_state->texH[0] = 1;
+	    accel_state->texW[0] = 1;
+	    accel_state->texH[0] = 1;
 
 	    BEGIN_VIDEO(8);
 
@@ -548,7 +659,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 			pPriv->src_pitch - 32);
 	    FINISH_VIDEO();
 	}
-#endif
+#endif /* IS_RADEON_DRIVER */
     }
 
     while (nBox--) {
@@ -584,7 +695,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 #endif
 
 #ifdef ACCEL_CP
-	/*if (info->ChipFamily < CHIP_FAMILY_R200) {
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily < CHIP_FAMILY_R200) {
 	    BEGIN_RING(4 * VTX_DWORD_COUNT + 3);
 	    OUT_RING(CP_PACKET3(RADEON_CP_PACKET3_3D_DRAW_IMMD,
 				4 * VTX_DWORD_COUNT + 1));
@@ -595,7 +707,9 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 		     RADEON_CP_VC_CNTL_MAOS_ENABLE |
 		     RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
 		     (4 << RADEON_CP_VC_CNTL_NUM_SHIFT));
-	} else*/ {
+	} else
+# endif /* IS_RADEON_DRIVER */
+	{
 	    if (IS_R300_3D || IS_R500_3D)
 		BEGIN_RING(4 * VTX_DWORD_COUNT + 4);
 	    else
@@ -612,26 +726,28 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	else
 	    BEGIN_VIDEO(1 + VTX_DWORD_COUNT * 4);
 
-	/*if (info->ChipFamily < CHIP_FAMILY_R200) {
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily < CHIP_FAMILY_R200) {
 	    OUT_VIDEO_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_TRIANGLE_FAN |
 					      RADEON_VF_PRIM_WALK_DATA |
 					      RADEON_VF_RADEON_MODE |
 					      4 << RADEON_VF_NUM_VERTICES_SHIFT));
-	} else*/ {
+	} else
+# endif /* IS_RADEON_DRIVER */
+	{
 	    OUT_VIDEO_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_QUAD_LIST |
 					      RADEON_VF_PRIM_WALK_DATA |
 					      4 << RADEON_VF_NUM_VERTICES_SHIFT));
 	}
 #endif
-
 	VTX_OUT((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)dstX,                                      (float)(dstY + dsth),
-		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)(dstX + dstw),                                (float)(dstY + dsth),
-		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcBottomRight.x) / accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / accel_state->texH[0]);
 	VTX_OUT((float)(dstX + dstw),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcTopRight.x) / accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / accel_state->texH[0]);
 
 	if (IS_R300_3D || IS_R500_3D)
 	    /* flushing is pipelined, free/finish is not */
