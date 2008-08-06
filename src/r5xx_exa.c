@@ -556,7 +556,6 @@ R5xxBufCopyDownload(CARD8 *dst, CARD8 *src, unsigned int size, CARD8 bpp)
     case 32:
 	R5xxCopySwap32(dst, src, size);
 	return;
-	return;
     default:
 	memcpy(dst, src, size);
 	return;
