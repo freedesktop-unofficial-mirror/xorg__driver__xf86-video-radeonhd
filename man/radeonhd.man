@@ -365,6 +365,7 @@ driver sometimes relies on unverified graphics card features. You can add
 to disable those when you run into difficulties.
 .TP
 .BI "Option \*qTVMode\*q \*q" tv-mode \*q
+.IR "(not implemented yet)"
 The TV standard to use on the TV output.
 .RS
 .TP 8
