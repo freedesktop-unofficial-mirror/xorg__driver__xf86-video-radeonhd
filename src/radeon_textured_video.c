@@ -230,10 +230,21 @@ RADEONPutImageTextured(ScrnInfoPtr pScrn,
 	pPriv->pPixmap = (PixmapPtr)pDraw;
 
 #ifdef USE_EXA
+# if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 1)
     if (info->exa) {
 	/* Force the pixmap into framebuffer so we can draw to it. */
 	exaMoveInPixmap(pPriv->pPixmap);
     }
+# else
+    if (info->exa &&
+	(((char *)pPriv->pPixmap->devPrivate.ptr < ((char *)info->FbBase + info->FbScanoutStart)) ||
+	 ((char *)pPriv->pPixmap->devPrivate.ptr >= ((char *)info->FbBase + info->FbMapSize)))) {
+	/* If the pixmap wasn't in framebuffer, then we have no way in XAA to
+	 * force it there. So, we simply refuse to draw and fail.
+	 */
+	return BadAlloc;
+    }
+# endif
 #endif
 #ifdef USE_XAA
     if (info->xaa &&
