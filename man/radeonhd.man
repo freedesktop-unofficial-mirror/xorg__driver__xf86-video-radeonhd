@@ -327,13 +327,13 @@ one of the external display.
 means to always scale to the the resolution of the external display filling
 the entire panel.
 .br
-.B \*qscale_keep_aspect_ration\*q
-scales the panel display but keeps the aspect ration of the external display, 
-which means if the external display has a different aspect ration than the 
+.B \*qscale_keep_aspect_ratio\*q
+scales the panel display but keeps the aspect ratio of the external display,
+which means if the external display has a different aspect ratio than the
 panel it black borders will be added to the top and bottom or left and right.
 .br
 .B \*qdefault\*q
-sets the default behavior which is th keep the aspect ration.
+sets the default behavior which is to keep the aspect ratio.
 .br
 .TP
 .BI "Option \*qRRUseXF86Edid\*q \*q" boolean \*q
