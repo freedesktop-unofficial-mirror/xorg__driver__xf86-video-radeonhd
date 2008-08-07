@@ -675,7 +675,7 @@ DACASenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 	switch (DACSenseRV620(Output, RV620_REG_DACA_OFFSET, TRUE)
 		& 0x1010100) {
 	    case 0x1010100:
-		return RHD_SENSED_TV_COMPONENT;
+		return RHD_SENSED_NONE; /* on DAC A we cannot distinguish VGA and CV */
 	    case 0x10100:
 		return RHD_SENSED_TV_SVIDEO;
 	    case 0x1000000:
