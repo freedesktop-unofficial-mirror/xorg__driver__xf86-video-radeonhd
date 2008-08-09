@@ -304,15 +304,20 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
 	    return;
     }
     switch (Output->Id) {
-	case RHD_OUTPUT_KLDSKP_LVTMA:
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+#if 0
+	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId, atomTransInit,
+					 &Private->TransmitterConfig);
+#endif
+	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId, atomTransSetup,
 					 &Private->TransmitterConfig);
 	    break;
 	default:
 	    break;
     }
+
     rhdAtomSelectCrtcSource(rhdPtr->atomBIOS, Output->Crtc->Id ? atomCrtc2 : atomCrtc1, &CrtcSourceConfig);
     data.Address = NULL;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
@@ -399,6 +404,7 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		ERROR_MSG("rhdAtomEncoderControl(atomEncoderOff)");
 	    break;
     }
+
     data.Address = NULL;
     RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }

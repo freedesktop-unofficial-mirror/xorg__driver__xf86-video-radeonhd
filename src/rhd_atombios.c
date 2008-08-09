@@ -379,6 +379,18 @@ struct atomConnectorInfoPrivate {
 #   define LOG_CAIL LOG_DEBUG + 1
 
 static void
+atomDebugPrintPspace(atomBiosHandlePtr handle, AtomBiosArgPtr data, int size)
+{
+    CARD32 *pspace = (CARD32 *)data->exec.pspace;
+    int i = 0;
+
+    size >>= 2;
+
+    while (i++,size--)
+	RHDDebug(handle->scrnIndex, " Pspace[%2.2i]: 0x%8.8x\n", i, *(pspace++));
+}
+
+static void
 CailDebug(int scrnIndex, const char *format, ...)
 {
     va_list ap;
@@ -701,7 +713,9 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     data.exec.dataSpace = NULL;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, ASIC_Init);
     data.exec.pspace = &asicInit;
+    
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ASIC_INIT_PS_ALLOCATION));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Successful\n");
@@ -761,6 +775,7 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
     data.exec.dataSpace = NULL;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableScaler);
     data.exec.pspace = &scaler;
+    atomDebugPrintPspace(handle, &data, sizeof(ENABLE_SCALER_PARAMETERS));
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableScaler\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
@@ -802,6 +817,7 @@ rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
     data.exec.index =  GetIndexIntoMasterTable(COMMAND, TVEncoderControl);
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetTVEncoder\n");
+    atomDebugPrintPspace(handle, &data, sizeof(TV_ENCODER_CONTROL_PS_ALLOCATION));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
@@ -848,6 +864,9 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 	    break;
 	case atomTransSetup:
 	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_SETUP;
+	    break;
+	case atomTransInit:
+	    Transmitter.ucAction = ATOM_TRANSMITTER_ACTION_INIT;
 	    break;
     }
 
@@ -943,6 +962,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     data.exec.pspace = &Transmitter;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    atomDebugPrintPspace(handle, &data, sizeof(DIG_TRANSMITTER_CONTROL_PARAMETERS));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
@@ -1094,6 +1114,7 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput OutputId, enum at
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
@@ -1216,6 +1237,7 @@ AtomDACLoadDetection(atomBiosHandlePtr handle, enum atomDevice Device, enum atom
     }
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling DAC_LoadDetection\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "DAC_LoadDetection Successful\n");
@@ -1671,6 +1693,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
@@ -1779,6 +1802,7 @@ rhdAtomUpdateCRTC_DoubleBufferRegisters(atomBiosHandlePtr handle, enum atomCrtc 
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling UpdateCRTC_DoubleBufferRegisters\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "UpdateCRTC_DoubleBufferRegisters Successful\n");
@@ -1843,6 +1867,7 @@ rhdAtomEnableCrtc(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableCRTC\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTC Successful\n");
@@ -1907,6 +1932,7 @@ rhdAtomEnableCrtcMemReq(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableCRTCMemReq\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "EnableCRTCMemReq Successful\n");
@@ -1986,6 +2012,7 @@ rhdAtomSetCRTCTimings(atomBiosHandlePtr handle, enum atomCrtc id, DisplayModePtr
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetCRTC_Timing\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_Timing Successful\n");
@@ -2043,6 +2070,7 @@ rhdAtomSetCRTCOverscan(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCr
     ps.ovscn.usOverscanTop = config->ovscnTop;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "CallingSetCRTC_OverScan\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "Set CRTC_OverScan Successful\n");
@@ -2106,6 +2134,7 @@ rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlan
     ps.blank.usBlackColorBCb = config->b;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling BlankCRTC\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "BlankCRTC Successful\n");
@@ -2348,6 +2377,7 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetPixelClock\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetPixelClock Successful\n");
@@ -2521,6 +2551,7 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
     data.exec.pspace = &ps;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SelectCRTCSource\n");
+    atomDebugPrintPspace(handle, &data, sizeof(ps));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "SelectCRTCSource Successful\n");
