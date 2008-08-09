@@ -58,7 +58,9 @@
 # define uint8_t  CARD8
 # define uint16_t CARD16
 # define uint32_t CARD32
-#include "damage.h"
+# ifdef DAMAGE
+#  include "damage.h"
+# endif
 #endif
 
 #include "radeon_reg.h"
