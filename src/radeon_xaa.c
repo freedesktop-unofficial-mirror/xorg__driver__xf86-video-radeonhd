@@ -84,9 +84,9 @@
 # include "rhd_dri.h"
 # include "rhd_cp.h"
 #else
-typedef CARD8 uint8_t;
-typedef CARD16 uint16_t;
-typedef CARD32 uint32_t;
+# define uint8_t CARD8
+# define uint16_t CARD16
+# define uint32_t CARD32
 #endif
 
 #include "radeon_accel.h"
