@@ -245,7 +245,6 @@ rhdAtomModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
     else
 	RHDRegWrite(Crtc, RegOff + D1MODE_DATA_FORMAT, 0x0);
 
-
     data.Address = NULL;
     RHDAtomBiosFunc(Crtc->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 }
