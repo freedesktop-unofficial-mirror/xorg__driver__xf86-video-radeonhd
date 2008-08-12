@@ -4969,12 +4969,12 @@ atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 a
     while (SaveListObj) {
 	struct atomSaveListRecord *ListFromObj = *(SaveListObj->SaveList);
 
-	ASSERT(ListFromObj);
-
-	for (i = 0; i < ListFromObj->Last; i++)
-	    if (ListFromObj->RegisterList[i].Address == address
-		&& ListFromObj->RegisterList[i].Type == Type)
-		return;
+	if (ListFromObj) {
+	    for (i = 0; i < ListFromObj->Last; i++)
+		if (ListFromObj->RegisterList[i].Address == address
+		    && ListFromObj->RegisterList[i].Type == Type)
+		    return;
+	}
 	SaveListObj = SaveListObj->next;
     }
 
