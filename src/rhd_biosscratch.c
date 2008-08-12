@@ -579,6 +579,7 @@ rhdBIOSScratchSetDeviceForOutput(struct rhdOutput *Output)
 
     while (Output->OutputDriverPrivate->OutputDevices[i].DeviceId != atomNone) {
 	if (Output->OutputDriverPrivate->OutputDevices[i].ConnectorType == Output->Connector->Type){
+
 	    switch (Output->OutputDriverPrivate->OutputDevices[i].DeviceId) {
 		case atomCrtc1:
 		case atomCrtc2:
@@ -607,6 +608,8 @@ rhdBIOSScratchSetDeviceForOutput(struct rhdOutput *Output)
 	}
 	i++;
     }
+    RHDDebugVerb(Output->scrnIndex,1,"%s: No device found: ConnectorType: %2.2x SensedType: %2.2x\n",
+	     __func__, Output->Connector->Type, Output->SensedType);
     return atomNone;
 }
 
@@ -723,10 +726,13 @@ RHDAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct 
 	return FALSE;
     }
 
+    RHDDebugVerb(Output->scrnIndex, 1, " Output: %s - adding devices:\n", Output->Name);
+
     while (Devices[i].DeviceId != atomNone) {
 	if (Devices[i].OutputType == Output->Id) {
 	    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
 		return FALSE;
+	    RHDDebugVerb(Output->scrnIndex,1,"  0x%2.2x Connector: %2.2x\n", Devices[i].DeviceId, Devices[i].ConnectorType);
 	    od[cnt].DeviceId = Devices[i].DeviceId;
 	    od[cnt].ConnectorType = Devices[i].ConnectorType;
 	    cnt++;
