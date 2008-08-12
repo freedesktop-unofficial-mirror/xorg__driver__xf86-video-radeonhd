@@ -3934,7 +3934,7 @@ rhdAtomHPDFromRecord(atomBiosHandlePtr handle,
  */
 static char *
 rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
-			    ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record, int *num)
+			    ATOM_CONNECTOR_DEVICE_TAG_RECORD *Record)
 {
     int i, j, k;
     char *devices;
@@ -3945,8 +3945,6 @@ rhdAtomDeviceTagsFromRecord(atomBiosHandlePtr handle,
 	     Record->ucNumberOfDevice);
 
     if (!Record->ucNumberOfDevice) return NULL;
-
-    *num = Record->ucNumberOfDevice;
 
     devices = (char *)xcalloc(Record->ucNumberOfDevice * 4 + 1,1);
 
@@ -4217,7 +4215,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	CARD8 obj_type, obj_id, num;
 	char *name;
 	int nout = 0;
-	int nout_dev;
 
 	rhdAtomInterpretObjectID(handle, con_obj->asObjects[i].usObjectID,
 			     &obj_type, &obj_id, &num, &name);
@@ -4245,7 +4242,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
-	nout_dev = nout;
 	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
 	    CARD8 stype, sobj_id, snum;
 	    char *sname;
@@ -4271,7 +4267,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 
 	while (Record->ucRecordType > 0
 	       && Record->ucRecordType <= ATOM_MAX_OBJECT_RECORD_NUMBER ) {
-	    int cnt;
 	    char *taglist;
 
 	    if ((record_base += Record->ucRecordSize)
@@ -4301,8 +4296,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 
 		case ATOM_CONNECTOR_DEVICE_TAG_RECORD_TYPE:
 		    taglist = rhdAtomDeviceTagsFromRecord(handle,
-							  (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record,
-			                                  &cnt);
+							  (ATOM_CONNECTOR_DEVICE_TAG_RECORD *)Record);
 		    if (taglist) {
 			cp[ncon].Name = RhdAppendString(cp[ncon].Name,taglist);
 

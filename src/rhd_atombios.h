@@ -178,12 +178,6 @@ typedef struct AtomGoldenSettings
 
 } AtomGoldenSettings;
 
-#if 0
-struct {
-    enum atomDevice Device;
-} atomOutputInfo;
-#endif
-
 typedef union AtomBiosArg
 {
     CARD32 val;
@@ -201,10 +195,6 @@ typedef union AtomBiosArg
 	enum atomPCIELanes	Chassis;
 	enum atomPCIELanes	Docking;
     } pcieLanes;
-    struct {
-	struct rhdConnectorInfo *ConnectorInfo;
-	struct rhdConnector      *Connector;
-    } AtomConnectorPrivate;
     atomBiosHandlePtr		atomhandle;
     DisplayModePtr		mode;
     AtomExecRec			exec;
