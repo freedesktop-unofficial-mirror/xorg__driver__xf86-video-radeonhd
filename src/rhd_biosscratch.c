@@ -726,13 +726,15 @@ RHDAtomSetupOutputDriverPrivate(struct rhdAtomOutputDeviceList *Devices, struct 
 	return FALSE;
     }
 
-    RHDDebugVerb(Output->scrnIndex, 1, " Output: %s - adding devices:\n", Output->Name);
+    RHDDebugVerb(Output->scrnIndex, 1, " Output: %s[0x%2.2x] - adding devices:\n", Output->Name, Output->Id);
 
     while (Devices[i].DeviceId != atomNone) {
+	RHDDebugVerb(Output->scrnIndex,1," Looking at DeviceID: 0x%2.2x OutputType: 0x%2.2x ConnectorType: 0x%2.2x\n",
+		     Devices[i].DeviceId,Devices[i].OutputType,Devices[i].ConnectorType);
 	if (Devices[i].OutputType == Output->Id) {
 	    if (!(od = (struct rhdOutputDevices *)xrealloc(od, sizeof(struct rhdOutputDevices) * (cnt + 1))))
 		return FALSE;
-	    RHDDebugVerb(Output->scrnIndex,1,"  0x%2.2x Connector: %2.2x\n", Devices[i].DeviceId, Devices[i].ConnectorType);
+	    RHDDebugVerb(Output->scrnIndex,1,"  >> 0x%2.2x\n", Devices[i].DeviceId);
 	    od[cnt].DeviceId = Devices[i].DeviceId;
 	    od[cnt].ConnectorType = Devices[i].ConnectorType;
 	    cnt++;
