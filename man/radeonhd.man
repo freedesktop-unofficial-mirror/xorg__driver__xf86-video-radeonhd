@@ -364,6 +364,10 @@ driver sometimes relies on unverified graphics card features. You can add
 .B "Option \*qUnverifiedFeatures\*q \*qoff\*q"
 to disable those when you run into difficulties.
 .TP
+.BI "Option \*qUseAtomBIOS\*q \*q" boolean \*q
+This option allows to enable the use of AtomBIOS based mode setting for
+chipsets for which the hard coded mode setting path is normally taken.
+.TP
 .BI "Option \*qTVMode\*q \*q" tv-mode \*q
 .IR "(not implemented yet)"
 The TV standard to use on the TV output.
