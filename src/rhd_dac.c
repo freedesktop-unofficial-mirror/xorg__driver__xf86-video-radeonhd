@@ -323,10 +323,12 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	while (list[i].pciIdMin != 0) {
 	    if (list[i].pciIdMin <= rhdPtr->PciDeviceID
 		&& list[i].pciIdMax >= rhdPtr->PciDeviceID) {
+#if 0
 		ErrorF(">> %x %x %x -- %x %x\n",list[i].pciIdMin,
 		       rhdPtr->PciDeviceID,list[i].pciIdMax,
 		       list[i].bandgap[dac][type],list[i].whitefine[dac][type]);
 		ErrorF(">> %i %i\n",dac,type);
+#endif
 		if (*bandgap == 0) *bandgap = list[i].bandgap[dac][type];
 		if (*whitefine == 0) *whitefine = list[i].whitefine[dac][type];
 		break;
