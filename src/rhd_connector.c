@@ -350,7 +350,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			RHDOutputAdd(rhdPtr, Output);
 			break;
 		    case RHD_OUTPUT_DVO:
-			Output = RHDDDIAInit(rhdPtr, ConnectorInfo[i].Type);
+			Output = RHDDDIAInit(rhdPtr);
 			if (Output)
 			    RHDOutputAdd(rhdPtr, Output);
 			break;

@@ -327,7 +327,7 @@ DDIADestroy(struct rhdOutput *Output)
  *
  */
 struct rhdOutput *
-RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
+RHDDDIAInit(RHDPtr rhdPtr)
 {
 #ifdef ATOM_BIOS
     struct rhdOutput *Output;
@@ -348,7 +348,7 @@ RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType)
     Output->Name = "DDIA";
 
     Output->scrnIndex = rhdPtr->scrnIndex;
-    Output->Id = outputType;
+    Output->Id = RHD_OUTPUT_DVO;
 
     Output->Sense = NULL;
     Output->ModeValid = DDIAModeValid;

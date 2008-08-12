@@ -110,7 +110,7 @@ struct rhdOutput *RHDDACBInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType);
-struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr, enum rhdOutputType outputType);
+struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType, rhdOutputType OutputType);
 
 #endif /* _RHD_OUTPUT_H */
