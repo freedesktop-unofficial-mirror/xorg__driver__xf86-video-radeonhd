@@ -806,7 +806,7 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 {
     Bool FromSys = FALSE;
     int i = 0;
-    char *message;
+    char *message = NULL;
     enum RHD_CHIPSETS AtomChip;
     MessageType from = X_CONFIG;
 

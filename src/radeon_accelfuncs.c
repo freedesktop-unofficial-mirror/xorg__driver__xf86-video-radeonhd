@@ -195,13 +195,15 @@ FUNC_NAME(RADEONSetupForSolidLine)(ScrnInfoPtr pScrn,
 						  | RADEON_GMC_BRUSH_SOLID_COLOR
 						  | RADEON_GMC_SRC_DATATYPE_COLOR
 						  | RADEON_ROP[rop].pattern);
-
-    //if (info->ChipFamily >= CHIP_FAMILY_RV200) {
+#ifndef RHD_DRIVER
+    if (info->ChipFamily >= CHIP_FAMILY_RV200)
+#endif
+    {
 	BEGIN_ACCEL(1);
 	OUT_ACCEL_REG(RADEON_DST_LINE_PATCOUNT,
 		      0x55 << RADEON_BRES_CNTL_SHIFT);
 	FINISH_ACCEL();
-	//}
+    }
 
     BEGIN_ACCEL(3);
 
