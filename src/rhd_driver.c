@@ -2331,8 +2331,8 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDVGARestore(rhdPtr);
 
-    RHDCrtcRestore(rhdPtr->Crtc[1]);
     RHDCrtcRestore(rhdPtr->Crtc[0]);
+    RHDCrtcRestore(rhdPtr->Crtc[1]);
 
     RHDOutputsRestore(rhdPtr);
 #ifdef ATOM_BIOS

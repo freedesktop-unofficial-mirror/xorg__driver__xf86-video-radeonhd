@@ -354,7 +354,7 @@ typedef struct _atomDataTables
     ATOM_POWER_SOURCE_INFO              *PowerSourceInfo;
 } atomDataTables, *atomDataTablesPtr;
 
-struct atomRegisterSaveList
+struct atomSaveListRecord
 {
     /* header */
     int Length;
@@ -366,6 +366,12 @@ struct atomRegisterSaveList
     } RegisterList[1];
 };
 
+struct atomSaveListObject
+{
+    struct atomSaveListObject *next;
+    struct atomSaveListRecord **SaveList;
+};
+
 typedef struct _atomBiosHandle {
     int scrnIndex;
     unsigned char *BIOSBase;
@@ -374,7 +380,8 @@ typedef struct _atomBiosHandle {
     CARD32 fbBase;
     unsigned int BIOSImageSize;
     unsigned char *codeTable;
-    struct atomRegisterSaveList **SaveList;
+    struct atomSaveListRecord **SaveList;
+    struct atomSaveListObject *SaveListObjects;
 } atomBiosHandleRec;
 
 enum {
@@ -725,9 +732,9 @@ rhdAtomASICInit(atomBiosHandlePtr handle)
     data.exec.dataSpace = NULL;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, ASIC_Init);
     data.exec.pspace = &asicInit;
-    
+
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling ASIC Init\n");
-    atomDebugPrintPspace(handle, &data, sizeof(ASIC_INIT_PS_ALLOCATION));
+    atomDebugPrintPspace(handle, &data, sizeof(asicInit));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "ASIC_INIT Successful\n");
@@ -787,7 +794,7 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
     data.exec.dataSpace = NULL;
     data.exec.index = GetIndexIntoMasterTable(COMMAND, EnableScaler);
     data.exec.pspace = &scaler;
-    atomDebugPrintPspace(handle, &data, sizeof(ENABLE_SCALER_PARAMETERS));
+    atomDebugPrintPspace(handle, &data, sizeof(scaler));
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling EnableScaler\n");
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
@@ -829,7 +836,7 @@ rhdAtomSetTVEncoder(atomBiosHandlePtr handle, Bool enable, int mode)
     data.exec.index =  GetIndexIntoMasterTable(COMMAND, TVEncoderControl);
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling SetTVEncoder\n");
-    atomDebugPrintPspace(handle, &data, sizeof(TV_ENCODER_CONTROL_PS_ALLOCATION));
+    atomDebugPrintPspace(handle, &data, sizeof(tvEncoder));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "SetTVEncoder Successful\n");
@@ -974,7 +981,7 @@ rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
     data.exec.pspace = &Transmitter;
 
     xf86DrvMsg(handle->scrnIndex, X_INFO, "Calling %s\n",name);
-    atomDebugPrintPspace(handle, &data, sizeof(DIG_TRANSMITTER_CONTROL_PARAMETERS));
+    atomDebugPrintPspace(handle, &data, sizeof(Transmitter));
     if (RHDAtomBiosFunc(handle->scrnIndex, handle,
 			ATOMBIOS_EXEC, &data) == ATOM_SUCCESS) {
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "%s Successful\n",name);
@@ -2673,6 +2680,7 @@ rhdAtomInit(atomBiosHandlePtr unused1, AtomBiosRequestID unused2,
     handle->scrnIndex = scrnIndex;
     handle->BIOSImageSize = BIOSImageSize;
     handle->codeTable = codeTable;
+    handle->SaveListObjects = NULL;
 
 # ifdef ATOM_BIOS_PARSER
     /* Try to find out if BIOS has been posted (either by system or int10 */
@@ -4808,20 +4816,77 @@ RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
     return ret;
 }
 
+/*
+ *
+ */
+static void
+atomRegisterSaveList(atomBiosHandlePtr handle, struct atomSaveListRecord **SaveList)
+{
+    struct atomSaveListObject *ListObject = handle->SaveListObjects;
+    RHDFUNC(handle);
 
+    while (ListObject) {
+	if (ListObject->SaveList == SaveList)
+	    return;
+	ListObject = ListObject->next;
+    }
+    if (!(ListObject = (struct atomSaveListObject *)xcalloc(1,sizeof (struct atomSaveListObject))))
+	return;
+    ListObject->next = handle->SaveListObjects;
+    ListObject->SaveList = SaveList;
+    handle->SaveListObjects = ListObject;
+}
+
+/*
+ *
+ */
+static void
+atomUnregisterSaveList(atomBiosHandlePtr handle, struct atomSaveListRecord **SaveList)
+{
+    struct atomSaveListObject **ListObject;
+    RHDFUNC(handle);
+
+    if (!handle->SaveListObjects)
+	return;
+    ListObject  = &handle->SaveListObjects;
+
+    while (1) {
+	if ((*ListObject)->SaveList == SaveList) {
+	    struct atomSaveListObject *tmp = *ListObject;
+	    *ListObject = ((*ListObject)->next);
+	    xfree(tmp);
+	}
+	if (!(*ListObject) || !(*ListObject)->next)
+	    return;
+	ListObject = &((*ListObject)->next);
+    }
+}
+
+/*
+ *
+ */
 static AtomBiosResult
 atomSetRegisterListLocation(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
 {
-    handle->SaveList = (struct atomRegisterSaveList **)data->Address;
+    RHDFUNC(handle);
+
+    handle->SaveList = (struct atomSaveListRecord **)data->Address;
+    if (handle->SaveList)
+	atomRegisterSaveList(handle, handle->SaveList);
 
     return ATOM_SUCCESS;
 }
 
+/*
+ *
+ */
 static AtomBiosResult
 atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
 {
-    struct atomRegisterSaveList *List = *(data->Address);
+    struct atomSaveListRecord *List = *(data->Address);
     int i;
+
+    RHDFUNC(handle);
 
     if (!List)
 	return ATOM_FAILED;
@@ -4863,6 +4928,7 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
     }
 
     /* deallocate list */
+    atomUnregisterSaveList(handle, (struct atomSaveListRecord **)data->Address);
     xfree(List);
     *(data->Address) = NULL;
 
@@ -4873,25 +4939,31 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
 
 #define ALLOC_CNT 25
 
+/*
+ *
+ */
 static void
 atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 address)
 {
-    struct atomRegisterSaveList *List;
+    struct atomSaveListRecord *List;
     CARD32 val = 0;
     int i;
+    struct atomSaveListObject *SaveListObj = handle->SaveListObjects;
+
+    RHDFUNC(handle);
 
     if (!handle->SaveList)
 	return;
 
     if (!(*(handle->SaveList))) {
-	if (!(*handle->SaveList = (struct atomRegisterSaveList *)xalloc(sizeof(struct atomRegisterSaveList)
+	if (!(*handle->SaveList = (struct atomSaveListRecord *)xalloc(sizeof(struct atomSaveListRecord)
 								  + sizeof(struct  atomRegisterList) * (ALLOC_CNT - 1))))
 	    return;
 	(*(handle->SaveList))->Length = ALLOC_CNT;
 	(*(handle->SaveList))->Last = 0;
     } else if ((*(handle->SaveList))->Length == (*(handle->SaveList))->Last) {
-	if (!(List = (struct atomRegisterSaveList *)xrealloc(*handle->SaveList,
-						      sizeof(struct atomRegisterSaveList)
+	if (!(List = (struct atomSaveListRecord *)xrealloc(*handle->SaveList,
+						      sizeof(struct atomSaveListRecord)
 						      + (sizeof(struct  atomRegisterList)
 							 * ((*(handle->SaveList))->Length + ALLOC_CNT - 1)))))
 	    return;
@@ -4900,9 +4972,17 @@ atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 a
     }
     List = *handle->SaveList;
 
-    for (i = 0; i < List->Last; i++)
-	if (List->RegisterList[i].Address == address)
-	    return;
+    while (SaveListObj) {
+	struct atomSaveListRecord *ListFromObj = *(SaveListObj->SaveList);
+
+	ASSERT(ListFromObj);
+
+	for (i = 0; i < ListFromObj->Last; i++)
+	    if (ListFromObj->RegisterList[i].Address == address
+		&& ListFromObj->RegisterList[i].Type == Type)
+		return;
+	SaveListObj = SaveListObj->next;
+    }
 
     switch (Type) {
 	case atomRegisterMMIO:
@@ -4936,6 +5016,9 @@ atomSaveRegisters(atomBiosHandlePtr handle, enum atomRegisterType Type, CARD32 a
     List->Last++;
 }
 
+/*
+ *
+ */
 VOID*
 CailAllocateMemory(VOID *CAIL,UINT16 size)
 {
