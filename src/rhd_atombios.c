@@ -4369,7 +4369,7 @@ rhdAtomOutputDeviceListFromSupportedDevices(atomBiosHandlePtr handle,
 	    return ATOM_FAILED;
 
 	DeviceList[cnt].ConnectorType = rhd_connectors[ci.sucConnectorInfo.sbfAccess.bfConnectorType].con;
-	DeviceList[cnt].DeviceId = rhd_devices[cnt].atomDevID;
+	DeviceList[cnt].DeviceId = rhd_devices[n].atomDevID;
 
 	if (!Limit(ci.sucConnectorInfo.sbfAccess.bfAssociatedDAC,
 		   n_acc_dac, "bfAssociatedDAC")) {
