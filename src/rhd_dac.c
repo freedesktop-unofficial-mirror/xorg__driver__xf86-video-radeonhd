@@ -209,7 +209,10 @@ enum outputType {
 static void
 DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, CARD8 *whitefine)
 {
+#ifdef ATOM_BIOS
     enum _AtomBiosRequestID bg = 0, wf = 0;
+    AtomBiosArgRec atomBiosArg;
+#endif
     struct
     {
 	CARD16 pciIdMin;
@@ -242,10 +245,10 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	    { 0, 0, 0, 0 } }
 	}
     };
-    AtomBiosArgRec atomBiosArg;
 
     *bandgap = *whitefine = 0;
 
+#ifdef ATOM_BIOS
     switch (type) {
 	case TvPAL:
 	    bg = ATOM_DAC2_PAL_BG_ADJ;
@@ -272,7 +275,6 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	    }
 	    break;
     }
-
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, bg, &atomBiosArg)
 	== ATOM_SUCCESS) {
 	*bandgap = atomBiosArg.val;
@@ -318,6 +320,7 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	    *whitefine = w_f;
 	}
     }
+#endif
     if (*bandgap == 0 || *whitefine == 0) {
 	int i = 0;
 	while (list[i].pciIdMin != 0) {
