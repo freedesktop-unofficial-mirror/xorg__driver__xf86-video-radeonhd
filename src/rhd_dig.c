@@ -606,10 +606,8 @@ LVTMA_LVDSTransmitterPower(struct rhdOutput *Output, int Power)
 		else
 		    RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_ENABLE, 0x0f, 0x3ff);
 	    }
-	    /* SYNCEN doesn't disable LVDS Tx drivers, SYNCEN doesn't override power sequencer */
 	    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_CNTL, 0,
-		       RV62_LVTMA_PWRSEQ_DISABLE_SYNCEN_CONTROL_OF_TX_EN
-		       | RV62_LVTMA_SYNCEN_OVRD);
+		       RV62_LVTMA_DIGON_OVRD | RV62_LVTMA_BLON_OVRD);
 	    RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV, 3999, 0xffff); /* 4000 - 1 */
 	    tmp = Private->PowerSequenceDe2Bl * 10 / 4;
 	    tmp1 = Private->PowerSequenceDig2De * 10 / 4;
@@ -1036,7 +1034,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	    else
 		RHDRegMask(Output, RV620_EXT2_DIFF_POST_DIV_CNTL, 0, 0x1 << RV62_EXT2_DIFF_DRIVER_ENABLE_SHIFT);
 	    /* disable DIG */
-	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x1010);
+	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x10);
 	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
 		       : RV620_DCCG_PCLK_DIGA_CNTL,
