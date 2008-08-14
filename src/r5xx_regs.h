@@ -383,9 +383,4 @@
 #       define R5XX_SUBPIXEL_1_12                       (0 << 16)
 #       define R5XX_SUBPIXEL_1_16                       (1 << 16)
 
-#define R5XX_SC_SCISSOR0				0x43e0
-#define R5XX_SC_SCISSOR1				0x43e4
-#       define R5XX_SCISSOR_X_SHIFT                     0
-#       define R5XX_SCISSOR_Y_SHIFT                     13
-
 #endif /* _R5XX_2DREGS_H */

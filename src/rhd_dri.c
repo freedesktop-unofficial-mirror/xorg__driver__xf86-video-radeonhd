@@ -345,19 +345,6 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
 {
 }
 
-/*
- *
- */
-static void
-RHDCSScissorsInit(struct RhdCS *CS)
-{
-    RHDCSGrab(CS, 4);
-    RHDCSRegWrite(CS, R5XX_SC_SCISSOR0,
-		  (0 << R5XX_SCISSOR_X_SHIFT) | (0 << R5XX_SCISSOR_Y_SHIFT));
-    RHDCSRegWrite(CS, R5XX_SC_SCISSOR1,
-		  (0x1FFF << R5XX_SCISSOR_X_SHIFT) | (0x1FFF << R5XX_SCISSOR_Y_SHIFT));
-}
-
 /* Called when the X server is woken up to allow the last client's
  * context to be saved and the X server's context to be loaded.  This is
  * not necessary for the Radeon since the client detects when it's
@@ -383,7 +370,7 @@ static void RHDEnterServer(ScreenPtr pScreen)
 	    R5xxDstCacheFlush(pScrn->scrnIndex);
 	    R5xxZCacheFlush(pScrn->scrnIndex);
 	    R5xxEngineWaitIdleFull(pScrn->scrnIndex);
-	    RHDCSScissorsInit(rhdPtr->CS);
+
 	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
 }
