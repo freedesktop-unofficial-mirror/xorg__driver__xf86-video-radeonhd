@@ -127,8 +127,8 @@ do {					\
 
 #define FUNC_NAME(prefix) FUNC_NAME_CAT(RHD,prefix)
 
-#define TRACE RHDFUNC(rhdPtr)
-#define ENTER_DRAW(x) RHDFUNC(rhdPtr)
+#define TRACE
+#define ENTER_DRAW(x)
 #define LEAVE_DRAW(x)
 
 #define RADEONPixmapIsColortiled(x) FALSE

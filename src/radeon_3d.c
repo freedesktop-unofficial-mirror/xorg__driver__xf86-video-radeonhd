@@ -142,8 +142,6 @@ FUNC_NAME(RADEONInit3DEngine)(int scrnIndex)
     Bool HasTCL = HAS_TCL;
     ACCEL_PREAMBLE();
 
-    RHDFUNC(pScrn);
-
     accel_state->texW[0] = 1;
     accel_state->texH[0] = 1;
     accel_state->texW[1] = 1;
