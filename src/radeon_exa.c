@@ -426,7 +426,6 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr info = RHDPTR(pScrn);
-    //xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
     int cpp = pScrn->bitsPerPixel >> 3;
     int screen_size;
     int byteStride = pScrn->displayWidth * cpp;
@@ -479,7 +478,7 @@ Bool RADEONSetupMemEXA (ScreenPtr pScreen)
 #ifndef ExaOffscreenMarkUsed
 extern void ExaOffscreenMarkUsed(PixmapPtr);
 #endif
-
+# if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 1)
 unsigned long long
 RADEONTexOffsetStart(PixmapPtr pPix)
 {
@@ -490,4 +489,5 @@ RADEONTexOffsetStart(PixmapPtr pPix)
 	RHDPTR(xf86Screens[pPix->drawable.pScreen->myNum])->FbScanoutStart +
 	exaGetPixmapOffset(pPix);
 }
+# endif
 #endif
