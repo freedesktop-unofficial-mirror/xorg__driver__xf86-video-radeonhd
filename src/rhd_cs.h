@@ -130,20 +130,8 @@ do { \
 } while (0)
 
 #ifdef RHD_CS_DEBUG
-#define RHDCSGrab(CS, Count) \
-do { \
-   if (!(CS)->Active) \
-	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \
-                   "%s: Grabbing while CS is not started!\n", __func__); \
-   if ((CS)->Wptr != (((CS)->Flushed + (CS)->Grabbed) & (CS)->Mask)) \
-	xf86DrvMsg((CS)->scrnIndex, X_ERROR, \
-		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (%s -> %s)\n", \
-		   __func__, (unsigned int) (CS)->Wptr, (unsigned int) (CS)->Flushed, \
-		   (unsigned int) (CS)->Grabbed, (CS)->Func, __func__); \
-    _RHDCSGrab((CS), (Count)); \
-    (CS)->Grabbed += (Count); \
-    (CS)->Func = __func__; \
-} while (0)
+void RHDCSGrabDebug(struct RhdCS *CS, CARD32 Count, const char *func);
+#define RHDCSGrab(CS, Count) RHDCSGrabDebug((CS), (Count), __func__)
 #else
 #define RHDCSGrab(CS, Count) _RHDCSGrab((CS), (Count))
 #endif

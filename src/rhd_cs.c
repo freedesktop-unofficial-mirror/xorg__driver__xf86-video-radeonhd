@@ -449,6 +449,30 @@ CSDRMCPInit(struct RhdCS *CS)
  * The logic is kind of tricky, we can use both ringbuffers as normal buffers.
  */
 
+#ifdef RHD_CS_DEBUG
+/*
+ * Since we're CS_DEBUG, we don't really need to care about performance much.
+ */
+void
+RHDCSGrabDebug(struct RhdCS *CS, CARD32 Count, const char *func)
+{
+   if (!CS->Active)
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+                   "%s: Grabbing while CS is not started!\n", func);
+
+   if (CS->Wptr != ((CS->Flushed + CS->Grabbed) & CS->Mask))
+	xf86DrvMsg(CS->scrnIndex, X_ERROR,
+		   "%s: Wptr != Flushed + Grabbed (%d vs %d + %d) (%s -> %s)\n",
+		   func, (unsigned int) CS->Wptr, (unsigned int) CS->Flushed,
+		   (unsigned int) CS->Grabbed, CS->Func, func);
+
+    _RHDCSGrab(CS, Count);
+
+    CS->Grabbed += Count;
+    CS->Func = func;
+}
+#endif /* RHD_CS_DEBUG */
+
 /*
  *
  */
