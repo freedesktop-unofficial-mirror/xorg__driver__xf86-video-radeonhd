@@ -40,17 +40,10 @@
 #ifdef USE_XAA
 #include "xaa.h"
 #endif
-#ifdef USE_DRI
-#define _XF86DRI_SERVER_
-/* #include "dri.h" */
-#include "GL/glxint.h"
-#endif
+
 #include "xf86xv.h"
 
 #include "rhd.h"
-#ifdef USE_DRI
-# include "rhd_dri.h"
-#endif
 #include "rhd_cs.h"
 
 #include "r5xx_regs.h"
@@ -303,7 +296,7 @@ rhdCopyData(
   unsigned int bpp
 ){
 
-#ifdef NOT_YET /* USE_DRI */
+#ifdef NOT_YET /* TODO, but CP specific. */
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     if (rhdPtr->CS->Type == RHD_CS_CPDMA)
@@ -333,7 +326,7 @@ rhdCopyData(
 	return;
     }
     else
-#endif /* USE_DRI */
+#endif /* NOT_YET */
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	unsigned int val, new;
@@ -379,7 +372,7 @@ rhdCopyMungedData(
    unsigned int h,
    unsigned int w
 ){
-#ifdef NOT_YET /* USE_DRI */
+#ifdef NOT_YET /* TODO, but CP specific. */
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     if (rhdPtr->CS->Type == RHD_CS_CPDMA) {
@@ -421,7 +414,7 @@ rhdCopyMungedData(
 	FLUSH_RING();
     }
     else
-#endif /* USE_DRI */
+#endif /* NOT_YET */
     {
 	CARD32 *dst;
 	CARD8 *s1, *s2, *s3;
@@ -543,12 +536,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	break;
     }
 
-#ifdef USE_DRI
    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
        /* The upload blit only supports multiples of 64 bytes */
        dstPitch = (dstPitch + 63) & ~63;
    else
-#endif
        dstPitch = (dstPitch + 15) & ~15;
 
     if (pPriv->video_memory != NULL && size != pPriv->size) {
@@ -569,17 +560,20 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     else
 	pPriv->pPixmap = (PixmapPtr)pDraw;
 
-#ifdef USE_EXA
+
+#if defined(USE_EXA) && ((EXA_VERSION_MAJOR > 2) || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 1))
     if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
 	/* Force the pixmap into framebuffer so we can draw to it. */
 	exaMoveInPixmap(pPriv->pPixmap);
-    }
+    } else
 #endif
-
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA &&
+    /*
+     * TODO: Copy the pixmap into the FB ourselves!!!
+     */
+    if (((rhdPtr->AccelMethod != RHD_ACCEL_NONE) || (rhdPtr->AccelMethod != RHD_ACCEL_SHADOWFB)) &&
 	(((char *)pPriv->pPixmap->devPrivate.ptr < ((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart)) ||
 	 ((char *)pPriv->pPixmap->devPrivate.ptr >= ((char *)rhdPtr->FbBase + rhdPtr->FbMapSize)))) {
-	/* If the pixmap wasn't in framebuffer, then we have no way in XAA to
+	/* If the pixmap wasn't in framebuffer, then we have no way to
 	 * force it there. So, we simply refuse to draw and fail.
 	 */
 	return BadAlloc;
@@ -682,12 +676,6 @@ static XF86VideoFormatRec Formats[NUM_FORMATS] =
     {15, TrueColor}, {16, TrueColor}, {24, TrueColor}
 };
 
-#define NUM_ATTRIBUTES 0
-
-static XF86AttributeRec Attributes[NUM_ATTRIBUTES] =
-{
-};
-
 #define NUM_IMAGES 4
 
 static XF86ImageRec Images[NUM_IMAGES] =
@@ -732,8 +720,8 @@ rhdSetupImageTexturedVideo(ScreenPtr pScreen)
     pPortPriv =
 	(struct RHDPortPriv *)(&adapt->pPortPrivates[num_texture_ports]);
 
-    adapt->nAttributes = NUM_ATTRIBUTES;
-    adapt->pAttributes = Attributes;
+    adapt->nAttributes = 0;
+    adapt->pAttributes = NULL;
     adapt->pImages = Images;
     adapt->nImages = NUM_IMAGES;
     adapt->PutVideo = NULL;
@@ -781,7 +769,6 @@ RHDInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-#ifdef USE_DRI
     if (rhdPtr->ChipSet < RHD_R600 && rhdPtr->TwoDPrivate
 	&& (rhdPtr->CS->Type == RHD_CS_CP || rhdPtr->CS->Type == RHD_CS_CPDMA)) {
 	texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
@@ -791,7 +778,6 @@ RHDInitVideo(ScreenPtr pScreen)
 	} else
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to set up textured video\n");
     } else
-#endif
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Textured Video only for R5xx/IGP\n");
 
     if(num_adaptors)
