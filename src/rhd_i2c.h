@@ -28,7 +28,7 @@
 #include "xf86DDC.h"
 #include "rhd.h"
 
-#define I2C_LINES 4
+#define I2C_LINES 5
 
 typedef enum {
     RHD_I2C_INIT,

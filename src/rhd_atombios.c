@@ -3819,6 +3819,37 @@ rhdAtomInterpretObjectID(atomBiosHandlePtr handle,
 /*
  *
  */
+static AtomBiosResult
+rhdAtomGetDDCIndex(atomBiosHandlePtr handle,
+		   rhdDDC *DDC, unsigned char i2c)
+{
+    atomDataTablesPtr atomDataPtr;
+    CARD8 crev, frev;
+    int i;
+
+    RHDFUNC(handle);
+
+    atomDataPtr = handle->atomDataPtr;
+
+    if (!rhdAtomGetTableRevisionAndSize(
+	    &(atomDataPtr->GPIO_I2C_Info->sHeader), &crev,&frev,NULL)) {
+	return ATOM_NOT_IMPLEMENTED;
+    }
+    for (i = 0; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
+	if (atomDataPtr->GPIO_I2C_Info->asGPIO_Info[i].sucI2cId.ucAccess == i2c) {
+	    RHDDebug(handle->scrnIndex, " Found DDC GPIO Index: %i\n",i);
+	    if (Limit(i, n_hwddc, "GPIO_DDC Index"))
+		return ATOM_FAILED;
+	    *DDC = hwddc[i];
+	    return ATOM_SUCCESS;
+	}
+    }
+    return ATOM_FAILED;
+}
+
+/*
+ *
+ */
 static void
 rhdAtomDDCFromI2CRecord(atomBiosHandlePtr handle,
 			ATOM_I2C_RECORD *Record, rhdDDC *DDC)
@@ -3837,13 +3868,14 @@ rhdAtomDDCFromI2CRecord(atomBiosHandlePtr handle,
 
 	if (Record->ucI2CAddr != 0)
 	    return;
-
 	if (Record->sucI2cId.bfHW_Capable) {
-
-	    *DDC = (rhdDDC)Record->sucI2cId.bfI2C_LineMux;
-	    if (*DDC >= RHD_DDC_MAX)
+	    union {
+		ATOM_I2C_ID_CONFIG i2cId;
+		unsigned char i2cChar;
+	    } u;
+	    u.i2cId = Record->sucI2cId;
+	    if (rhdAtomGetDDCIndex(handle, DDC, u.i2cChar) != ATOM_SUCCESS)
 		*DDC = RHD_DDC_NONE;
-
 	} else {
 	    *DDC = RHD_DDC_GPIO;
 	    /* add GPIO pin parsing */
@@ -4474,11 +4506,8 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	    RHDDebugCont("HW DDC %i ",
 			 ci.sucI2cId.sbfAccess.bfI2C_LineMux);
 
-	    if (Limit(ci.sucI2cId.sbfAccess.bfI2C_LineMux,
-		      n_hwddc, "bfI2C_LineMux"))
+	    if (rhdAtomGetDDCIndex(handle, &devices[n].ddc, ci.sucI2cId.ucAccess) != ATOM_SUCCESS)
 		devices[n].ddc = RHD_DDC_NONE;
-	    else
-		devices[n].ddc = hwddc[ci.sucI2cId.sbfAccess.bfI2C_LineMux];
 
 	} else if (ci.sucI2cId.sbfAccess.bfI2C_LineMux) {
 
