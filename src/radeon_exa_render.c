@@ -149,6 +149,7 @@ F_TO_DW(float val)
 #define xFixedToFloat(f) (((float) (f)) / 65536)
 
 #define RADEON_SWITCH_TO_3D() R5xxEngineWaitIdle2D(rhdPtr->scrnIndex)
+#define RADEONInit3DEngine(x) R5xx3DSetup(rhdPtr->scrnIndex)
 
 #endif /* IS_RADEON_DRIVER */
 
@@ -1294,11 +1295,8 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     TRACE;
 
-    /* Is done in ScreenInit and EnterVT in radeonhd */
-#ifdef IS_RADEON_DRIVER
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(index->scrnIndex);
-#endif
+	RADEONInit3DEngine(info->scrnIndex);
 
     if (!R300GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -2230,6 +2228,10 @@ static void FUNC_NAME(RadeonDoneComposite)(PixmapPtr pDst)
 	BEGIN_ACCEL(1);
     OUT_ACCEL_REG(RADEON_WAIT_UNTIL, RADEON_WAIT_3D_IDLECLEAN);
     FINISH_ACCEL();
+
+#if defined(ACCEL_CP) && !defined(IS_RADEON_DRIVER)
+    ADVANCE_RING();
+#endif
 
     LEAVE_DRAW(0);
 }

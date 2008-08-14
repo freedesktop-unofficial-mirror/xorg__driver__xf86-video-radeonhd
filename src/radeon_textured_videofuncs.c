@@ -169,6 +169,8 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
 # define FB_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
 # define EXA_FB_OFFSET (rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart)
 
+#define RADEONInit3DEngine R5xx3DSetup
+
 typedef struct RHDPortPriv *RADEONPortPrivPtr;
 
 #endif /* IS_RADEON_DRIVER */
@@ -214,10 +216,9 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     dstyoff = 0;
 #endif
 
-#if 0 /* @@@ */
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(pScrn);
-#endif
+	RADEONInit3DEngine(pScrn->scrnIndex);
+
     /* we can probably improve this */
     BEGIN_VIDEO(2);
 #ifdef IS_RADEON_DRIVER

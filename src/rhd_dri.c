@@ -77,6 +77,8 @@
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
 #include "rhd_cs.h"
+
+#define IS_RADEONHD_DRIVER 1
 #include "radeon_dri.h"
 
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
@@ -345,6 +347,18 @@ static void RHDDestroyContext(ScreenPtr pScreen, drm_context_t hwContext,
 {
 }
 
+/*
+ *
+ */
+void
+RHDDRIContextClaim(ScrnInfoPtr pScrn)
+{
+    drm_radeon_sarea_t *pSAREAPriv =
+	(drm_radeon_sarea_t *) DRIGetSAREAPrivate(pScrn->pScreen);
+
+    pSAREAPriv->ctx_owner = DRIGetContext(pScrn->pScreen);
+}
+
 /* Called when the X server is woken up to allow the last client's
  * context to be saved and the X server's context to be loaded.  This is
  * not necessary for the Radeon since the client detects when it's
@@ -365,14 +379,23 @@ static void RHDEnterServer(ScreenPtr pScreen)
 	SET_SYNC_FLAG(rhdPtr->XAAInfo);
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
-    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen))
-	if (rhdPtr->CS->Clean == RHD_CS_CLEAN_DIRTY) {
+    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
+	struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
+
+	if (rhdPtr->CS->Clean != RHD_CS_CLEAN_QUEUED) {
 	    R5xxDstCacheFlush(pScrn->scrnIndex);
 	    R5xxZCacheFlush(pScrn->scrnIndex);
 	    R5xxEngineWaitIdleFull(pScrn->scrnIndex);
 
 	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
+
+	R5xx3D->XHas3DEngineState = FALSE;
+    } else {
+	/* if the engine has been untouched, we need to track this too. */
+	if (rhdPtr->CS->Clean != RHD_CS_CLEAN_QUEUED)
+	    rhdPtr->CS->Clean = RHD_CS_CLEAN_UNTOUCHED;
+    }
 }
 
 /* Called when the X server goes to sleep to allow the X server's
@@ -383,15 +406,19 @@ static void RHDEnterServer(ScreenPtr pScreen)
  * can start/stop the engine. */
 static void RHDLeaveServer(ScreenPtr pScreen)
 {
-    struct RhdCS *CS = RHDPTR(xf86Screens[pScreen->myNum])->CS;
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[pScreen->myNum]);
+    struct RhdCS *CS = rhdPtr->CS;
 
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
     if (CS->Clean == RHD_CS_CLEAN_DONE) {
-	 R5xxDstCacheFlush(pScreen->myNum);
-	 R5xxEngineWaitIdleFull(pScreen->myNum);
-	 RHDCSFlush(CS); /* was a Release... */
-	 CS->Clean = RHD_CS_CLEAN_DIRTY;
+
+	R5xxDstCacheFlush(CS->scrnIndex);
+	R5xxZCacheFlush(CS->scrnIndex);
+	R5xxEngineWaitIdleFull(CS->scrnIndex);
+	RHDCSFlush(CS); /* was a Release... */
+
+	CS->Clean = RHD_CS_CLEAN_DIRTY;
     }
 }
 
@@ -788,7 +815,7 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
     drmInfo.is_pci              = (rhdPtr->cardType != RHD_CARD_AGP);
-    drmInfo.cp_mode             = RADEON_CSQ_PRIBM_INDBM;
+    drmInfo.cp_mode             = R5XX_CSQ_PRIBM_INDBM;
     drmInfo.gart_size           = info->gartSize*1024*1024;
     drmInfo.ring_size           = info->ringSize*1024*1024;
     drmInfo.usec_timeout        = RHD_DEFAULT_CP_TIMEOUT;

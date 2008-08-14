@@ -49,9 +49,12 @@ struct RhdCS {
 
     Bool Active;
 
-#define RHD_CS_CLEAN_DIRTY   0
-#define RHD_CS_CLEAN_QUEUED  1
-#define RHD_CS_CLEAN_DONE    2
+    /* The DIRTY state is actually superfluous, but it makes it easier to
+     * understand the logic. */
+#define RHD_CS_CLEAN_DIRTY     0
+#define RHD_CS_CLEAN_UNTOUCHED 1
+#define RHD_CS_CLEAN_QUEUED    2
+#define RHD_CS_CLEAN_DONE      3
     CARD8 Clean;
 
     /* track the ring state. */
@@ -121,7 +124,7 @@ void RHDCSDestroy(ScrnInfoPtr pScrn);
  */
 #define _RHDCSGrab(CS, Count) \
 do { \
-    if (CS->Clean == RHD_CS_CLEAN_QUEUED) \
+    if ((CS->Clean == RHD_CS_CLEAN_QUEUED) || (CS->Clean == RHD_CS_CLEAN_UNTOUCHED)) \
 	CS->Clean = RHD_CS_CLEAN_DONE; \
     CS->Grab(CS, Count); \
 } while (0)

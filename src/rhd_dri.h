@@ -30,9 +30,6 @@
 #ifndef _RHD_DRI_
 #define _RHD_DRI_
 
-#include "GL/glxint.h"
-#include "xf86drm.h"
-
 extern Bool RHDDRIPreInit(ScrnInfoPtr pScrn);
 extern Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn);
 extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
@@ -43,14 +40,7 @@ extern void RHDDRIEnterVT(ScreenPtr pScreen);
 extern void RHDDRILeaveVT(ScreenPtr pScreen);
 extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 
-/* FIXME: to be put into rhd_regs.h? Check for official names */
-#define RADEON_CP_CSQ_CNTL                  0x0740
-#       define RADEON_CSQ_CNT_PRIMARY_MASK     (0xff << 0)
-#       define RADEON_CSQ_PRIDIS_INDDIS        (0    << 28)
-#       define RADEON_CSQ_PRIPIO_INDDIS        (1    << 28)
-#       define RADEON_CSQ_PRIBM_INDDIS         (2    << 28)
-#       define RADEON_CSQ_PRIPIO_INDBM         (3    << 28)
-#       define RADEON_CSQ_PRIBM_INDBM          (4    << 28)
-#       define RADEON_CSQ_PRIPIO_INDPIO        (15   << 28)
+/* Claim the 3D context */
+void RHDDRIContextClaim(ScrnInfoPtr pScrn);
 
 #endif

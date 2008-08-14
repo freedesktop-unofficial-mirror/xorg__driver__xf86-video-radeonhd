@@ -38,6 +38,7 @@
 
 #include "xf86drm.h"
 
+#ifndef IS_RADEONHD_DRIVER
 /* DRI Driver defaults */
 #define RADEON_DEFAULT_CP_PIO_MODE    RADEON_CSQ_PRIPIO_INDPIO
 #define RADEON_DEFAULT_CP_BM_MODE     RADEON_CSQ_PRIBM_INDBM
@@ -55,6 +56,7 @@
 #define RADEONCP_USE_RING_BUFFER(m)					\
     (((m) == RADEON_CSQ_PRIBM_INDDIS) ||				\
      ((m) == RADEON_CSQ_PRIBM_INDBM))
+#endif
 
 typedef struct {
     /* DRI screen private data */

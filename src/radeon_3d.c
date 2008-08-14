@@ -45,6 +45,11 @@
 #include "r5xx_regs.h"
 #include "r5xx_3dregs.h"
 
+#ifdef USE_DRI
+/* for claiming the context */
+#include "rhd_dri.h"
+#endif
+
 #define VAR_PREAMBLE() RHDPtr rhdPtr = RHDPTR(pScrn)
 #define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = rhdPtr->ThreeDPrivate
 
@@ -56,7 +61,13 @@
 #define BEGIN_ACCEL(Count) RHDCSGrab(CS, 2 * (Count))
 #define OUT_ACCEL_REG(Reg, Value) RHDCSRegWrite(CS, (Reg), (Value))
 #define FINISH_ACCEL()
+
+#ifdef USE_DRI
+#define END_ACCEL() RHDCSAdvance(CS); \
+                    RHDDRIContextClaim(pScrn)
+#else
 #define END_ACCEL() RHDCSAdvance(CS)
+#endif
 
 #define uint32_t CARD32
 
@@ -748,4 +759,6 @@ FUNC_NAME(RADEONInit3DEngine)(int scrnIndex)
 #endif
 
     END_ACCEL();
+
+    accel_state->XHas3DEngineState = TRUE;
 }

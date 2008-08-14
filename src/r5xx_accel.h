@@ -74,6 +74,8 @@ void R5xxExaCompositeFuncs(int scrnIndex, struct _ExaDriver *Exa);
  * 3d engine, so we provide the structure here.
  */
 struct R5xx3D {
+    Bool XHas3DEngineState;
+
 #define R5XX_ENGINEMODE_UNKNOWN   0
 #define R5XX_ENGINEMODE_IDLE_FULL 1
 #define R5XX_ENGINEMODE_IDLE_2D   2

@@ -351,7 +351,7 @@ R5xxEngineReset(ScrnInfoPtr pScrn)
 
     /* we also need to reinitialise the 3d engine now */
     if (rhdPtr->ThreeDPrivate)
-	R5xx3DSetup(pScrn->scrnIndex);
+	((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState = FALSE;
 }
 
 /*
@@ -445,6 +445,7 @@ void
 R5xx3DInit(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct R5xx3D *R5xx3D;
 
     if (rhdPtr->ThreeDPrivate) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -453,7 +454,9 @@ R5xx3DInit(ScrnInfoPtr pScrn)
 	return;
     }
 
-    rhdPtr->ThreeDPrivate = xnfcalloc(1, sizeof(struct R5xx3D));
+    R5xx3D = (struct R5xx3D *) xnfcalloc(1, sizeof(struct R5xx3D));
+    R5xx3D->XHas3DEngineState = FALSE;
+    rhdPtr->ThreeDPrivate = R5xx3D;
 }
 
 /*
