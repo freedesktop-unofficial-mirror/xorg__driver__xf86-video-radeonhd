@@ -700,6 +700,8 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     /* If out->crtc is not NULL, it is not necessarily the Crtc that will
      * be used, so let's better skip crtc based checks... */
     /* Monitor is handled by RandR */
+    if (!rout->Output->Connector)
+	return MODE_OUTPUT_UNDEF;
     Status = RHDRRModeFixup(out->scrn, Mode, NULL, rout->Connector,
 			    rout->Output, NULL, rout->ScaledToMode ? TRUE : FALSE);
     RHDDebug(rhdPtr->scrnIndex, "%s: %s: %s\n", __func__,
