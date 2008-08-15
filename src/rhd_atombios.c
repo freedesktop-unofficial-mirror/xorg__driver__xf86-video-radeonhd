@@ -3865,21 +3865,16 @@ rhdAtomDDCFromI2CRecord(atomBiosHandlePtr handle,
     if (!*(unsigned char *)&(Record->sucI2cId))
 	*DDC = RHD_DDC_NONE;
     else {
-
+	union {
+	    ATOM_I2C_ID_CONFIG i2cId;
+	    unsigned char i2cChar;
+	} u;
 	if (Record->ucI2CAddr != 0)
 	    return;
-	if (Record->sucI2cId.bfHW_Capable) {
-	    union {
-		ATOM_I2C_ID_CONFIG i2cId;
-		unsigned char i2cChar;
-	    } u;
 	    u.i2cId = Record->sucI2cId;
-	    if (rhdAtomGetDDCIndex(handle, DDC, u.i2cChar) != ATOM_SUCCESS)
+	    if (!u.i2cChar
+		|| rhdAtomGetDDCIndex(handle, DDC, u.i2cChar) != ATOM_SUCCESS)
 		*DDC = RHD_DDC_NONE;
-	} else {
-	    *DDC = RHD_DDC_GPIO;
-	    /* add GPIO pin parsing */
-	}
     }
 }
 
@@ -4501,26 +4496,13 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 
 	RHDDebugCont("Output: %x ",devices[n].ot);
 
-	if (ci.sucI2cId.sbfAccess.bfHW_Capable) {
-
-	    RHDDebugCont("HW DDC %i ",
-			 ci.sucI2cId.sbfAccess.bfI2C_LineMux);
-
-	    if (rhdAtomGetDDCIndex(handle, &devices[n].ddc, ci.sucI2cId.ucAccess) != ATOM_SUCCESS)
-		devices[n].ddc = RHD_DDC_NONE;
-
-	} else if (ci.sucI2cId.sbfAccess.bfI2C_LineMux) {
-
-	    RHDDebugCont("GPIO DDC ");
-	    devices[n].ddc = RHD_DDC_GPIO;
-
-	    /* add support for GPIO line */
-	} else {
-
+	if (!ci.sucI2cId.ucAccess
+	    || rhdAtomGetDDCIndex(handle, &devices[n].ddc, ci.sucI2cId.ucAccess) != ATOM_SUCCESS) {
 	    RHDDebugCont("NO DDC ");
 	    devices[n].ddc = RHD_DDC_NONE;
-
-	}
+	} else
+	    RHDDebugCont("HW DDC %i ",
+			 ci.sucI2cId.sbfAccess.bfI2C_LineMux);
 
 	if (crev > 1) {
 	    ATOM_CONNECTOR_INC_SRC_BITMAP isb
