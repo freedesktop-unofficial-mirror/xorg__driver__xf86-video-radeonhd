@@ -90,6 +90,7 @@ struct rhdRandr {
     void         (*PointerMoved)(int, int, int);
 } ;
 
+#define MAX_CONNECTORS_PER_RR_OUTPUT 4
 /* Outputs and Connectors are combined for RandR due to missing abstraction */
 typedef struct _rhdRandrOutput {
     char                 Name[64];
@@ -97,6 +98,7 @@ typedef struct _rhdRandrOutput {
     struct rhdOutput    *Output;
     DisplayModePtr	ScaledToMode;
     struct rhdCrtc      *Crtc;
+    struct rhdConnector *AllConnectors[MAX_CONNECTORS_PER_RR_OUTPUT];
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 #define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
@@ -354,7 +356,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     struct rhdCrtc *Crtc   = (struct rhdCrtc *) crtc->driver_private;
     xf86CrtcConfigPtr xf86CrtcConfig = XF86_CRTC_CONFIG_PTR(crtc->scrn);
     int i;
-    
+
     /* RandR may give us a mode without a name... (xf86RandRModeConvert) */
     if (!Mode->name && crtc->mode.name)
 	Mode->name = xstrdup(crtc->mode.name);
@@ -928,7 +930,8 @@ rhdRROutputDetect(xf86OutputPtr output)
     if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
 	rout->Output->Connector = rout->Connector; /* @@@ */
 	return XF86OutputStatusConnected;
-    }
+    } else if (rout->Connector->Type ==  RHD_CONNECTOR_TV) /* until TV_OUT is fixed we bail here */
+	return XF86OutputStatusDisconnected;
 
     if (rout->Connector->HPDCheck) {
 	/* Hot Plug Detection available, use it */
@@ -937,14 +940,6 @@ rhdRROutputDetect(xf86OutputPtr output)
 	     * HPD returned true
 	     */
 	    if (rout->Output->Sense) {
-		/*
-		 * This is ugly and needs to change when the TV support patches are in.
-		 * The problem here is that the Output struct can be used for two connectors
-		 * and thus two different devices
-		 */
-		if (rout->Output->SensedType != RHD_SENSED_NONE)
-		    return XF86OutputStatusDisconnected;
-
 		if ((rout->Output->SensedType
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector)) != RHD_SENSED_NONE) {
@@ -963,9 +958,10 @@ rhdRROutputDetect(xf86OutputPtr output)
 		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
 		    rhdRandrOutputPtr o =
 			(rhdRandrOutputPtr) (*ro)->driver_private;
-		    if (o != rout && o->Connector == rout->Connector &&
+		    if (o != rout &&
+			o->Connector == rout->Connector &&
 			o->Output->Sense) {
-                        /* Yes, this looks wrong, but is correct */
+			/* Yes, this looks wrong, but is correct */
 			enum rhdSensedOutput SensedType =
 			    o->Output->Sense(o->Output, o->Connector);
 			if (SensedType != RHD_SENSED_NONE) {
@@ -987,12 +983,9 @@ rhdRROutputDetect(xf86OutputPtr output)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "RandR: Verifying state of DMS-59 VGA connector.\n");
 		if (rout->Output->Sense) {
-
-		    /* Already sensed elsewhere */
-		    if (rout->Output->SensedType != RHD_SENSED_NONE)
-			return XF86OutputStatusDisconnected;
-		    rout->Output->SensedType = rout->Output->Sense(rout->Output,
-								   rout->Connector);
+		    rout->Output->SensedType
+			= rout->Output->Sense(rout->Output,
+					      rout->Connector);
 		    if (rout->Output->SensedType != RHD_SENSED_NONE) {
 			rout->Output->Connector = rout->Connector; /* @@@ */
 			RHDOutputPrintSensedType(rout->Output);
@@ -1007,18 +1000,14 @@ rhdRROutputDetect(xf86OutputPtr output)
 	 * No HPD available, Sense() if possible
 	 */
 	if (rout->Output->Sense) {
-	    /* Already sensed elsewhere */
-	    if (rout->Output->SensedType != RHD_SENSED_NONE)
-		return XF86OutputStatusDisconnected;
 	    rout->Output->SensedType
 		= rout->Output->Sense(rout->Output, rout->Connector);
 	    if (rout->Output->SensedType != RHD_SENSED_NONE) {
 		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    RHDOutputPrintSensedType(rout->Output);
 		    return XF86OutputStatusConnected;
-	    } else {
+	    } else
 		return XF86OutputStatusDisconnected;
-	    }
 	}
 	/* Use DDC address probing if possible otherwise */
 	if (rout->Connector->DDC) {
@@ -1397,7 +1386,7 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdRandr *randr;
-    int i, j, numCombined = 0;
+    int i, j, k, numCombined = 0;
     rhdRandrOutputPtr *RandrOutput, *r;
     char *outputorder;
 
@@ -1440,6 +1429,31 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
 		struct rhdOutput *out = conn->Output[j];
 		if (out)
 		    *r++ = createRandrOutput(pScrn, conn, out);
+	    }
+	}
+    }
+
+    /*
+     * Each rhdRandrOutputRec carries a list of all connectors this output belongs to.
+     * Since the output can only drive one connector but RandR doesn't seem to have
+     * any notion of 'shared outputs' we need to probe them all and decide which
+     * output that reports connected we pass to RandR as connected.
+     */
+    for (i = 0; i < numCombined; i++) {
+	int cnt = 0;
+	for (j = 0; j < RHD_CONNECTORS_MAX; j++) {
+	    struct rhdConnector *conn = rhdPtr->Connector[j];
+	    if (!conn) continue;
+	    for (k = 0; k < MAX_OUTPUTS_PER_CONNECTOR; k++) {
+		if (conn->Output[k] == RandrOutput[i]->Output) {
+		    if (cnt >= MAX_CONNECTORS_PER_RR_OUTPUT)
+			xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+				   "%s: Number of Connectors for Output %s exceeds %i\n",
+				   __func__,RandrOutput[i]->Name, MAX_CONNECTORS_PER_RR_OUTPUT);
+		    else
+			RandrOutput[i]->AllConnectors[cnt++] = conn;
+		    break;
+		}
 	    }
 	}
     }
