@@ -28,3 +28,4 @@ missing
 .libs
 git_version.h
 stamp-h1
+src/radeonhd.man.new

@@ -4241,7 +4241,6 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	int record_base;
 	CARD8 obj_type, obj_id, num;
 	char *name;
-	int nout = 0;
 
 	rhdAtomInterpretObjectID(handle, con_obj->asObjects[i].usObjectID,
 			     &obj_type, &obj_id, &num, &name);
@@ -4269,7 +4268,8 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
 
-	for (j = 0; j < SrcDstTable->ucNumberOfSrc; j++) {
+	for (j = 0; ((j < SrcDstTable->ucNumberOfSrc) &&
+		     (j < MAX_OUTPUTS_PER_CONNECTOR)); j++) {
 	    CARD8 stype, sobj_id, snum;
 	    char *sname;
 
@@ -4280,10 +4280,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 		     SrcDstTable->usSrcObjectID[j], sname, snum);
 
 	    if (snum <= 2)
-		cp[ncon].Output[nout] = rhd_encoders[sobj_id].ot[snum - 1];
-
-	    if (++nout >= MAX_OUTPUTS_PER_CONNECTOR)
-		break;
+		cp[ncon].Output[j] = rhd_encoders[sobj_id].ot[snum - 1];
 	}
 
 	Record = (ATOM_COMMON_RECORD_HEADER *)

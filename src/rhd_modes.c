@@ -1695,7 +1695,7 @@ RHDRRValidateScaledToMode(struct rhdOutput *Output, DisplayModePtr Mode)
 
     rhdModeFillOutCrtcValues(Mode);
 
-    for (i = 10; i; i--) {
+    for (i = 0; i < RHD_MODE_VALIDATION_LOOPS; i++) {
 
         Mode->CrtcHAdjusted = FALSE;
         Mode->CrtcVAdjusted = FALSE;
@@ -1723,7 +1723,8 @@ RHDRRValidateScaledToMode(struct rhdOutput *Output, DisplayModePtr Mode)
 
 	break;
     }
-    if (!i) {
+
+    if (i == RHD_MODE_VALIDATION_LOOPS) {
 	/* Mode has been bouncing around for ages, on adjustments */
 	xf86DrvMsg(Output->scrnIndex, X_ERROR,
 		   "%s: Mode \"%s\" (%dx%d:%3.1fMhz) was thrown around"

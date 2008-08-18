@@ -44,9 +44,6 @@
 /* do we need to access PCI config space directly? */
 #include "xf86Pci.h"
 
-/* This is used for module versioning */
-#include "xf86Version.h"
-
 /* Memory manager */
 #include "xf86fbman.h"
 
@@ -1036,7 +1033,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     RHDPtr rhdPtr;
     VisualPtr visual;
     unsigned int racflag = 0;
+#ifdef USE_DRI
     Bool DriScreenInited = FALSE;
+#endif
 
     pScrn = xf86Screens[pScreen->myNum];
     rhdPtr = RHDPTR(pScrn);

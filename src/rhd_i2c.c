@@ -45,6 +45,8 @@
 #include "rhd_atombios.h"
 #endif
 
+#define RHD_I2C_STATUS_LOOPS 5000
+
 typedef struct _rhdI2CRec
 {
     CARD16 prescale;
@@ -386,7 +388,7 @@ rhd5xxI2CSetupStatus(I2CBusPtr I2CPtr, int line)
 static Bool
 rhd5xxI2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 5000;
+    int count = RHD_I2C_STATUS_LOOPS;
     CARD32 res;
 
     RHDFUNC(I2CPtr);
@@ -576,27 +578,33 @@ rhd5xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 static Bool
 rhdRS69I2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 5000;
     volatile CARD32 val;
+    int i;
 
     RHDFUNC(I2CPtr);
 
-    while (--count) {
-
+    for (i = 0; i < RHD_I2C_STATUS_LOOPS; i++) {
 	usleep(10);
+
 	val = RHDRegRead(I2CPtr, RS69_DC_I2C_SW_STATUS);
-	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+
+	RHDDebugVerb(I2CPtr->scrnIndex, 1, "SW_STATUS: 0x%x %i\n",
+		     (unsigned int) val, i);
+
 	if (val & RS69_DC_I2C_SW_DONE)
 	    break;
     }
+
     RHDRegMask(I2CPtr, RS69_DC_I2C_INTERRUPT_CONTROL, RS69_DC_I2C_SW_DONE_ACK,
 	       RS69_DC_I2C_SW_DONE_ACK);
-    if (!count || (val & (RS69_DC_I2C_SW_ABORTED | RS69_DC_I2C_SW_TIMEOUT
-			  | RS69_DC_I2C_SW_INTERRUPTED
-			  | RS69_DC_I2C_SW_BUFFER_OVERFLOW
-			  | RS69_DC_I2C_SW_STOPPED_ON_NACK | RS69_DC_I2C_SW_NACK0 | RS69_DC_I2C_SW_NACK1
-			  | 0x3)))
+
+    if ((i == RHD_I2C_STATUS_LOOPS) ||
+	(val & (RS69_DC_I2C_SW_ABORTED | RS69_DC_I2C_SW_TIMEOUT |
+		RS69_DC_I2C_SW_INTERRUPTED | RS69_DC_I2C_SW_BUFFER_OVERFLOW |
+		RS69_DC_I2C_SW_STOPPED_ON_NACK |
+		RS69_DC_I2C_SW_NACK0 | RS69_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
+
     return TRUE; /* 1 */
 }
 
@@ -608,7 +616,7 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
     CARD32 dummy;
 
     RHDFUNC(I2CPtr);
-    ErrorF("LINE: %i\n",line);
+
     if (!rhdI2CGetDataClkLines(I2CPtr, line, &scl, &sda, &dummy, &dummy)) {
 	xf86DrvMsg(I2CPtr->scrnIndex, X_ERROR, "Invalid ClkLine for DDC. "
 		   "AtomBIOS reported wrong or AtomBIOS unavailable\n");
@@ -654,7 +662,7 @@ rhdRS69I2CSetupStatus(I2CBusPtr I2CPtr, int line, int prescale)
 		return FALSE;
 	}
     }
-    ErrorF("line: %i data: %i clk: %i\n",line,data_pin,clk_pin);
+
     RHDRegMask(I2CPtr, 0x28, 0x200, 0x200);
     RHDRegMask(I2CPtr, RS69_DC_I2C_UNKNOWN_1, prescale << 16 | 0x2, 0xffff00ff);
     RHDRegWrite(I2CPtr, RS69_DC_I2C_DDC_SETUP_Q, 0x30000000);
@@ -762,26 +770,33 @@ rhdRS69WriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer,
 static Bool
 rhdR6xxI2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 5000;
     volatile CARD32 val;
+    int i;
 
     RHDFUNC(I2CPtr);
 
-    while (--count) {
-
+    for (i = 0; i < RHD_I2C_STATUS_LOOPS; i++) {
 	usleep(10);
+
 	val = RHDRegRead(I2CPtr, R6_DC_I2C_SW_STATUS);
-	RHDDebugVerb(I2CPtr->scrnIndex,1,"SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+
+	RHDDebugVerb(I2CPtr->scrnIndex, 1, "SW_STATUS: 0x%x %i\n",
+		     (unsigned int) val, i);
+
 	if (val & R6_DC_I2C_SW_DONE)
 	    break;
     }
+
     RHDRegMask(I2CPtr, R6_DC_I2C_INTERRUPT_CONTROL, R6_DC_I2C_SW_DONE_ACK,
 	       R6_DC_I2C_SW_DONE_ACK);
-    if (!count || (val & ( R6_DC_I2C_SW_ABORTED | R6_DC_I2C_SW_TIMEOUT
-			  | R6_DC_I2C_SW_INTERRUPTED | R6_DC_I2C_SW_BUFFER_OVERFLOW
-			  | R6_DC_I2C_SW_STOPPED_ON_NACK
-			  | R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
+
+    if ((i == RHD_I2C_STATUS_LOOPS) ||
+	(val & (R6_DC_I2C_SW_ABORTED | R6_DC_I2C_SW_TIMEOUT |
+		R6_DC_I2C_SW_INTERRUPTED | R6_DC_I2C_SW_BUFFER_OVERFLOW |
+		R6_DC_I2C_SW_STOPPED_ON_NACK |
+		R6_DC_I2C_SW_NACK0 | R6_DC_I2C_SW_NACK1 | 0x3)))
 	return FALSE; /* 2 */
+
     return TRUE; /* 1 */
 }
 
@@ -952,25 +967,27 @@ rhd6xxWriteRead(I2CDevPtr i2cDevPtr, I2CByte *WriteBuffer, int nWrite, I2CByte *
 static Bool
 rhdRV620I2CStatus(I2CBusPtr I2CPtr)
 {
-    int count = 5000;
     volatile CARD32 val;
+    int i;
 
     RHDFUNC(I2CPtr);
 
-    while (--count) {
-
+    for (i = 0; i < RHD_I2C_STATUS_LOOPS; i++) {
 	usleep(10);
+
 	val = RHDRegRead(I2CPtr, RV62_GENERIC_I2C_STATUS);
-	RHDDebugVerb(I2CPtr->scrnIndex,1,
-		     "SW_STATUS: 0x%x %i\n",(unsigned int)val,count);
+
+	RHDDebugVerb(I2CPtr->scrnIndex, 1,
+		     "SW_STATUS: 0x%x %i\n", (unsigned int) val, i);
 	if (val & RV62_GENERIC_I2C_DONE)
 	    break;
     }
+
     RHDRegMask(I2CPtr, RV62_GENERIC_I2C_INTERRUPT_CONTROL, 0x2, 0xff);
 
-    if (!count
-	|| (val & (RV62_GENERIC_I2C_STOPPED_ON_NACK | RV62_GENERIC_I2C_NACK
-		| RV62_GENERIC_I2C_ABORTED | RV62_GENERIC_I2C_TIMEOUT)))
+    if ((i == RHD_I2C_STATUS_LOOPS) ||
+	(val & (RV62_GENERIC_I2C_STOPPED_ON_NACK | RV62_GENERIC_I2C_NACK |
+		RV62_GENERIC_I2C_ABORTED | RV62_GENERIC_I2C_TIMEOUT)))
 	return FALSE; /* 2 */
 
     return TRUE; /* 1 */

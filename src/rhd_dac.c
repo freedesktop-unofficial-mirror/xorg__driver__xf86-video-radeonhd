@@ -297,9 +297,9 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	    if (atomBiosArg.CommandDataTable.size
 		< (sizeof (struct AtomDacCodeTableData) >> (dac ? 0 : 1))) { /* IGPs only have 1 DAC -> table_size / 2 */
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-			   "Code table data size: %i doesn't match expected size: %lu\n",
+			   "Code table data size: %i doesn't match expected size: %u\n",
 			   atomBiosArg.CommandDataTable.size,
-			   sizeof (struct AtomDacCodeTableData));
+			   (unsigned int) sizeof (struct AtomDacCodeTableData));
 		return;
 	    }
 	    RHDDebug(rhdPtr->scrnIndex, "%s: WhiteFine found in Code Table.\n",__func__);
