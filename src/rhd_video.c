@@ -59,9 +59,6 @@
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
 
-#undef X_BYTE_ORDER
-#define X_BYTE_ORDER X_BIG_ENDIAN
-
 /* @@@ please go away! */
 #define IS_R500_3D \
     ((rhdPtr->ChipSet != RHD_RS690) && \
