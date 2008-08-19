@@ -37,9 +37,8 @@
 #ifdef USE_EXA
 #include "exa.h"
 #endif
-#ifdef USE_XAA
+
 #include "xaa.h"
-#endif
 
 #include "xf86xv.h"
 
@@ -47,6 +46,10 @@
 #include "rhd_cs.h"
 
 #include "r5xx_regs.h"
+
+/* for R5xx3DInit */
+#include "r5xx_accel.h"
+
 #include "rhd_video.h"
 
 #include "xf86.h"
@@ -55,6 +58,9 @@
 
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
+
+#undef X_BYTE_ORDER
+#define X_BYTE_ORDER X_BIG_ENDIAN
 
 /* @@@ please go away! */
 #define IS_R500_3D \
@@ -93,68 +99,67 @@ rhdAllocateMemory(
     int offset = 0;
 
     pScreen = screenInfo.screens[pScrn->scrnIndex];
+
 #ifdef USE_EXA
-	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	    ExaOffscreenArea *area = *mem_struct;
+    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	ExaOffscreenArea *area = *mem_struct;
 
-	    if (area != NULL) {
-		if (area->size >= size)
-		    return area->offset;
+	if (area != NULL) {
+	    if (area->size >= size)
+		return area->offset;
 
-		exaOffscreenFree(pScrn->pScreen, area);
-	    }
-
-	    area = exaOffscreenAlloc(pScrn->pScreen, size, 64, TRUE, ATIVideoSave,
-				     NULL);
-	    *mem_struct = area;
-	    if (area == NULL)
-		return 0;
-	    offset = area->offset;
+	    exaOffscreenFree(pScrn->pScreen, area);
 	}
+
+	area = exaOffscreenAlloc(pScrn->pScreen, size, 64, TRUE, ATIVideoSave,
+				 NULL);
+	*mem_struct = area;
+	if (area == NULL)
+	    return 0;
+	offset = area->offset;
+    }
 #endif /* USE_EXA */
-#ifdef USE_XAA
-	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	    FBLinearPtr linear = *mem_struct;
-	    int cpp = pScrn->bitsPerPixel >> 3;
+    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
+	FBLinearPtr linear = *mem_struct;
+	int cpp = pScrn->bitsPerPixel >> 3;
 
-	    /* XAA allocates in units of pixels at the screen bpp, so adjust size
-	     * appropriately.
-	     */
-	    size = (size + cpp - 1) / cpp;
+	/* XAA allocates in units of pixels at the screen bpp, so adjust size
+	 * appropriately.
+	 */
+	size = (size + cpp - 1) / cpp;
 
-	    if (linear) {
-		if (linear->size >= size)
-		    return linear->offset * cpp;
+	if (linear) {
+	    if (linear->size >= size)
+		return linear->offset * cpp;
 
-		if (xf86ResizeOffscreenLinear(linear, size))
-		    return linear->offset * cpp;
+	    if (xf86ResizeOffscreenLinear(linear, size))
+		return linear->offset * cpp;
 
-		xf86FreeOffscreenLinear(linear);
-	    }
-
-	    linear = xf86AllocateOffscreenLinear(pScreen, size, 16,
-						 NULL, NULL, NULL);
-	    *mem_struct = linear;
-
-	    if (!linear) {
-		int max_size;
-
-		xf86QueryLargestOffscreenLinear(pScreen, &max_size, 16,
-						PRIORITY_EXTREME);
-
-		if(max_size < size)
-		    return 0;
-
-		xf86PurgeUnlockedOffscreenAreas(pScreen);
-		linear = xf86AllocateOffscreenLinear(pScreen, size, 16,
-						     NULL, NULL, NULL);
-		*mem_struct = linear;
-		if (!linear)
-		    return 0;
-	    }
-	    offset = linear->offset * cpp;
+	    xf86FreeOffscreenLinear(linear);
 	}
-#endif /* USE_XAA */
+
+	linear = xf86AllocateOffscreenLinear(pScreen, size, 16,
+						 NULL, NULL, NULL);
+	*mem_struct = linear;
+
+	if (!linear) {
+	    int max_size;
+
+	    xf86QueryLargestOffscreenLinear(pScreen, &max_size, 16,
+					    PRIORITY_EXTREME);
+
+	    if (max_size < size)
+		return 0;
+
+	    xf86PurgeUnlockedOffscreenAreas(pScreen);
+	    linear =
+		xf86AllocateOffscreenLinear(pScreen, size, 16, NULL, NULL, NULL);
+	    *mem_struct = linear;
+	    if (!linear)
+		return 0;
+	}
+	offset = linear->offset * cpp;
+    }
 
     return offset;
 }
@@ -163,28 +168,19 @@ rhdAllocateMemory(
  *
  */
 void
-rhdFreeMemory(
-   ScrnInfoPtr pScrn,
-   void *mem_struct
-){
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+rhdFreeMemory(ScrnInfoPtr pScrn, void *mem_struct)
+{
+    if (mem_struct) {
+	RHDPtr rhdPtr = RHDPTR(pScrn);
 
 #ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	ExaOffscreenArea *area = mem_struct;
-
-	if (area != NULL)
-	    exaOffscreenFree(pScrn->pScreen, area);
-    }
+	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+	    exaOffscreenFree(pScrn->pScreen, (ExaOffscreenArea *) mem_struct);
 #endif /* USE_EXA */
-#ifdef USE_XAA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	FBLinearPtr linear = mem_struct;
 
-	if (linear != NULL)
-	    xf86FreeOffscreenLinear(linear);
+	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
+	    xf86FreeOffscreenLinear((FBLinearPtr) mem_struct);
     }
-#endif /* USE_XAA */
 }
 
 /*
@@ -330,7 +326,7 @@ rhdCopyData(
     {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	unsigned int val, new;
-	val = RHDRegRead(rhdPtr, R5XX_SURFACE_CNTL);
+	val = RHDRegRead(pScrn, R5XX_SURFACE_CNTL);
 	new = val &
 	    ~(R5XX_NONSURF_AP0_SWP_32BPP | R5XX_NONSURF_AP1_SWP_32BPP |
 	      R5XX_NONSURF_AP0_SWP_16BPP | R5XX_NONSURF_AP1_SWP_16BPP);
@@ -339,7 +335,7 @@ rhdCopyData(
 	    new |= R5XX_NONSURF_AP0_SWP_32BPP
 		|  R5XX_NONSURF_AP1_SWP_32BPP;
 
-	RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, new);
+	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, new);
 #endif
 	w *= bpp;
 
@@ -351,7 +347,7 @@ rhdCopyData(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, val);
+	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, val);
 #endif
     }
 }
@@ -371,7 +367,8 @@ rhdCopyMungedData(
    unsigned int dstPitch,
    unsigned int h,
    unsigned int w
-){
+)
+{
 #ifdef NOT_YET /* TODO, but CP specific. */
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
@@ -385,11 +382,9 @@ rhdCopyMungedData(
 
 	RADEONHostDataParams( pScrn, dst1, dstPitch, 4, &dstPitchOff, &blitX, &blitY );
 
-	while ( (buf = RADEONHostDataBlit( pScrn, 4, w/2, dstPitchOff, &bufPitch,
-					   blitX, &blitY, &h, &hpass )) )
-	{
-	    while ( hpass-- )
-	    {
+	while ((buf = RADEONHostDataBlit(pScrn, 4, w/2, dstPitchOff, &bufPitch,
+					 blitX, &blitY, &h, &hpass ))) {
+	    while ( hpass-- ) {
 		unsigned int *d = (unsigned int *) buf;
 		unsigned char *s1 = src1, *s2 = src2, *s3 = src3;
 		unsigned int n = bufPitch / 4;
@@ -401,8 +396,7 @@ rhdCopyMungedData(
 		}
 
 		src1 += srcPitch;
-		if ( y & 1 )
-		{
+		if ( y & 1 ) {
 		    src2 += srcPitch2;
 		    src3 += srcPitch2;
 		}
@@ -422,20 +416,19 @@ rhdCopyMungedData(
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	CARD32 val, new;
-	val = RHDRegRead(rhdPtr, R5XX_SURFACE_CNTL);
-	new = (val | R5XX_NONSURF_AP0_SWP_32BPP) & ~R5XX_NONSURF_AP0_SWP_16BPP);
-	RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, new);
+	val = RHDRegRead(pScrn, R5XX_SURFACE_CNTL);
+	new = (val | R5XX_NONSURF_AP0_SWP_32BPP) & ~R5XX_NONSURF_AP0_SWP_16BPP;
+	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, new);
 #endif
 
 	w /= 2;
 
-	for( j = 0; j < h; j++ )
-	{
+	for( j = 0; j < h; j++ ) {
 	    dst = (pointer)dst1;
 	    s1 = src1;  s2 = src2;  s3 = src3;
 	    i = w;
-	    while( i > 4 )
-	    {
+
+	    while( i > 4 ) {
 		dst[0] = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
 		dst[1] = s1[2] | (s1[3] << 16) | (s3[1] << 8) | (s2[1] << 24);
 		dst[2] = s1[4] | (s1[5] << 16) | (s3[2] << 8) | (s2[2] << 24);
@@ -443,8 +436,8 @@ rhdCopyMungedData(
 		dst += 4; s2 += 4; s3 += 4; s1 += 8;
 		i -= 4;
 	    }
-	    while( i-- )
-	    {
+
+	    while( i-- ) {
 		dst[0] = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
 		dst++; s2++; s3++;
 		s1 += 2;
@@ -452,15 +445,15 @@ rhdCopyMungedData(
 
 	    dst1 += dstPitch;
 	    src1 += srcPitch;
-	    if( j & 1 )
-	    {
+
+	    if( j & 1 ) {
 		src2 += srcPitch2;
 		src3 += srcPitch2;
 	    }
 	}
 #if X_BYTE_ORDER == X_BIG_ENDIAN
 	/* restore byte swapping */
-	RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, val);
+	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, val);
 #endif
     }
 }
@@ -542,17 +535,18 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
    else
        dstPitch = (dstPitch + 15) & ~15;
 
-    if (pPriv->video_memory != NULL && size != pPriv->size) {
+    if (pPriv->video_memory && (size != pPriv->size)) {
 	rhdFreeMemory(pScrn, pPriv->video_memory);
 	pPriv->video_memory = NULL;
     }
 
-    if (pPriv->video_memory == NULL) {
-	pPriv->video_offset = rhdAllocateMemory(pScrn,
-						       &pPriv->video_memory,
-						       size * 2);
-	if (pPriv->video_offset == 0)
-	    return BadAlloc;
+    if (!pPriv->video_memory)
+	pPriv->video_offset =
+	    rhdAllocateMemory(pScrn, &pPriv->video_memory, size * 2);
+    if (!pPriv->video_offset || !pPriv->video_memory) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: Failed to allocate framebuffer memory.\n", __func__);
+	return BadAlloc;
     }
 
     if (pDraw->type == DRAWABLE_WINDOW)
@@ -576,6 +570,8 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	/* If the pixmap wasn't in framebuffer, then we have no way to
 	 * force it there. So, we simply refuse to draw and fail.
 	 */
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: pixmap is not in Framebuffer!\n", __func__);
 	return BadAlloc;
     }
 
@@ -699,10 +695,10 @@ rhdSetupImageTexturedVideo(ScreenPtr pScreen)
     int i;
     int num_texture_ports = 16;
 
-    adapt = xcalloc(1, sizeof(XF86VideoAdaptorRec) + num_texture_ports *
-		    (sizeof(struct RHDPortPriv) + sizeof(DevUnion)));
-    if (adapt == NULL)
-	return NULL;
+    RHDFUNC(pScrn);
+
+    adapt = xnfcalloc(1, sizeof(XF86VideoAdaptorRec) + num_texture_ports *
+		      (sizeof(struct RHDPortPriv) + sizeof(DevUnion)));
 
     adapt->type = XvWindowMask | XvInputMask | XvImageMask;
     adapt->flags = 0;
@@ -756,10 +752,12 @@ void
 RHDInitVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr    rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     XF86VideoAdaptorPtr *adaptors, *newAdaptors = NULL;
     XF86VideoAdaptorPtr texturedAdaptor = NULL;
     int num_adaptors;
+
+    RHDFUNC(pScrn);
 
     num_adaptors = xf86XVListGenericAdaptors(pScrn, &adaptors);
     newAdaptors = xalloc((num_adaptors + 2) * sizeof(XF86VideoAdaptorPtr *));
@@ -769,22 +767,26 @@ RHDInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-    if (rhdPtr->ChipSet < RHD_R600 && rhdPtr->TwoDPrivate
-	&& (rhdPtr->CS->Type == RHD_CS_CP || rhdPtr->CS->Type == RHD_CS_CPDMA)) {
-	texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
-	if (texturedAdaptor != NULL) {
-	    adaptors[num_adaptors++] = texturedAdaptor;
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Set up textured video\n");
-	} else
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to set up textured video\n");
-    } else
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Textured Video only for R5xx/IGP\n");
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate &&
+	((rhdPtr->CS->Type == RHD_CS_CP) || (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
 
-    if(num_adaptors)
+	texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
+
+	adaptors[num_adaptors++] = texturedAdaptor;
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: Textured Video initialised.\n");
+
+	/* EXA could've initialised this already */
+	if (!rhdPtr->ThreeDPrivate)
+	    R5xx3DInit(pScrn);
+
+    } else
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Xv: No Textured Video possible for %s.\n", pScrn->chipset);
+
+    if (num_adaptors)
 	xf86XVScreenInit(pScreen, adaptors, num_adaptors);
 
-    if(newAdaptors)
+    if (newAdaptors)
 	xfree(newAdaptors);
 
 }
-

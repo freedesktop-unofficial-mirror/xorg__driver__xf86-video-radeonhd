@@ -390,7 +390,8 @@ static void RHDEnterServer(ScreenPtr pScreen)
 	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
 
-	R5xx3D->XHas3DEngineState = FALSE;
+	if (R5xx3D)
+	    R5xx3D->XHas3DEngineState = FALSE;
     } else {
 	/* if the engine has been untouched, we need to track this too. */
 	if (rhdPtr->CS->Clean != RHD_CS_CLEAN_QUEUED)
