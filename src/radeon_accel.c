@@ -140,8 +140,7 @@ void RADEONEngineFlush(ScrnInfoPtr pScrn)
     int            i;
 
     RHDRegMask(pScrn, R300_DSTCACHE_CTLSTAT,
-	    R300_RB2D_DC_FLUSH_ALL,
-	    ~R300_RB2D_DC_FLUSH_ALL);
+	       R300_RB2D_DC_FLUSH_ALL, R300_RB2D_DC_FLUSH_ALL);
     for (i = 0; i < RADEON_TIMEOUT; i++) {
 	if (!(RHDRegRead(info, R300_DSTCACHE_CTLSTAT) & R300_RB2D_DC_BUSY))
 	    break;
@@ -235,10 +234,9 @@ void RADEONEngineRestore(ScrnInfoPtr pScrn)
     RADEONWaitForFifo(pScrn, 1);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     RHDRegMask(pScrn, RADEON_DP_DATATYPE,
-	    RADEON_HOST_BIG_ENDIAN_EN,
-	    ~RADEON_HOST_BIG_ENDIAN_EN);
+	       RADEON_HOST_BIG_ENDIAN_EN, RADEON_HOST_BIG_ENDIAN_EN);
 #else
-    RHDRegMask(pScrn, RADEON_DP_DATATYPE, 0, ~RADEON_HOST_BIG_ENDIAN_EN);
+    RHDRegMask(pScrn, RADEON_DP_DATATYPE, 0, RADEON_HOST_BIG_ENDIAN_EN);
 #endif
 
     /* Restore SURFACE_CNTL */
