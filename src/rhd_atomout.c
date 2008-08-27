@@ -102,20 +102,27 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 	case RHD_OUTPUT_NONE:
 	    break;
 	case RHD_OUTPUT_DVO:
+
 	    EncoderConfig->u.dvo.DvoDeviceType = Output->OutputDriverPrivate->Device;
 	    switch (EncoderConfig->u.dvo.DvoDeviceType) {
-		case atomDvoLCD:
-		case atomDvoDFP:
+		case atomCRT1:
+		case atomCRT2:
+		    EncoderConfig->u.dvo.digital = FALSE;
+		break;
+		case atomTV1:
+		case atomTV2:
+		case atomCV:
+		    EncoderConfig->u.dvo.digital = FALSE;
+		    EncoderConfig->u.dvo.u.TVMode = rhdPtr->tvMode;
+		break;
+		case atomLCD1:
+		case atomDFP1:
+		case atomDFP2:
+		case atomLCD2:
+		case atomDFP3:
 		    EncoderConfig->u.dvo.digital = TRUE;
 		    /* @@@ no digital attributes, yet */
-		    break;
-		case atomDvoTV:
-		case atomDvoCV:
-		    EncoderConfig->u.dvo.u.TVMode = rhdPtr->tvMode;
-		    break;
-		case atomDvoCRT:
-		    EncoderConfig->u.dvo.digital = FALSE;
-		    break;
+		break;
 	    }
 	    break;
 	case RHD_OUTPUT_DACA:

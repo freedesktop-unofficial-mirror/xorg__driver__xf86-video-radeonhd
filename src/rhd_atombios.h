@@ -329,14 +329,6 @@ enum atomDACStandard {
     atomDAC_PAL
 };
 
-enum atomDVODeviceType {
-    atomDvoLCD,
-    atomDvoCRT,
-    atomDvoDFP,
-    atomDvoTV,
-    atomDvoCV
-};
-
 enum atomDVORate {
     atomDVO_RateSDR,
     atomDVO_RateDDR
@@ -418,7 +410,7 @@ struct atomEncoderConfig
 	    enum atomEncoderMode EncoderMode;
 	} dig;
 	struct {
-	    enum atomDVODeviceType DvoDeviceType;
+	    enum atomDevice DvoDeviceType;
 	    int EncoderID;
 	    Bool digital;
 	    union

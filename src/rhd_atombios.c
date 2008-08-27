@@ -1608,21 +1608,28 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 		    DVO_ENCODER_CONTROL_PARAMETERS *dvo = &ps.dvo;
 		    dvo->usEncoderID = Config->u.dvo.EncoderID;
 		    switch (Config->u.dvo.DvoDeviceType) {
-			case atomDvoLCD:
+			case atomLCD1:
+			case atomLCD2:
 			    dvo->ucDeviceType = ATOM_DEVICE_LCD1_INDEX;
 			    break;
-			case atomDvoCRT:
+			case atomCRT1:
+			case atomCRT2:
 			    dvo->ucDeviceType = ATOM_DEVICE_CRT1_INDEX;
 			    break;
-			case atomDvoDFP:
+			case atomDFP1:
+			case atomDFP2:
+			case atomDFP3:
 			    dvo->ucDeviceType = ATOM_DEVICE_DFP1_INDEX;
 			    break;
-			case atomDvoTV:
+			case atomTV1:
+			case atomTV2:
 			    dvo->ucDeviceType = ATOM_DEVICE_TV1_INDEX;
 			    break;
-			case atomDvoCV:
+			case atomCV:
 			    dvo->ucDeviceType = ATOM_DEVICE_CV_INDEX;
 			    break;
+			case atomNone:
+			    return FALSE;
 		    }
 		    if (Config->u.dvo.digital) {
 			dvo->usDevAttr.sDigAttrib.ucAttribute = 0; /* @@@ What do these attributes mean? */
@@ -1670,7 +1677,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 			    xf86DrvMsg(handle->scrnIndex, X_ERROR, "%s: DVO unknown action\n",__func__);
 			    return FALSE;
 		    }
-		    break;
+		break;
 		}
 		case 3:
 		{
