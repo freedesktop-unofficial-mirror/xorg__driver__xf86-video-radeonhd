@@ -323,6 +323,7 @@ typedef struct RHDRec {
 
     /* AtomBIOS usage */
     RHDOpt		UseAtomBIOS;
+    CARD32		UseAtomFlags;
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

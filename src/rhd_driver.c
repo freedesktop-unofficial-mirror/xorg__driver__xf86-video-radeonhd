@@ -249,8 +249,11 @@ typedef enum {
     OPTION_DRI,
     OPTION_TV_MODE,
     OPTION_SCALE_TYPE,
-    OPTION_UNVERIFIED_FEAT,
-    OPTION_USE_ATOMBIOS
+#ifdef ATOM_BIOS
+    OPTION_USE_ATOMBIOS,
+    OPTION_ATOMBIOS,     /* only for testing, don't document in man page! */
+#endif
+    OPTION_UNVERIFIED_FEAT
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -269,8 +272,11 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_DRI,                  "DRI",                  OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_SCALE_TYPE,	   "ScaleType",	           OPTV_ANYSTR,  {0}, FALSE },
-    { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN,  {0}, FALSE },
-    { OPTION_USE_ATOMBIOS,	   "UseAtomBIOS",	   OPTV_BOOLEAN,  {0}, FALSE },
+#ifdef ATOM_BIOS
+    { OPTION_USE_ATOMBIOS,	   "UseAtomBIOS",	   OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_ATOMBIOS,	           "AtomBIOS",             OPTV_ANYSTR,  {0}, FALSE },
+#endif
+    { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN, {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -2497,6 +2503,90 @@ _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
     _RHDRegWrite(scrnIndex, CLOCK_CNTL_DATA, data);
 }
 
+#ifdef ATOM_BIOS
+
+/*
+ *
+ */
+static int
+rhdGetArg(ScrnInfoPtr pScrn, CARD32 *val, char *ptr)
+{
+    int cnt = 0;
+    if (isspace(*ptr) || *ptr == '=') {
+	ptr++;
+	cnt++;
+    }
+    if (!strncasecmp("off",ptr,3)) {
+	*val = RHD_ATOMBIOS_OFF;
+	return cnt + 3;
+    } else if (!strncasecmp("on",ptr,2)) {
+	*val = RHD_ATOMBIOS_ON;
+	return cnt + 2;
+    } else if (!strncasecmp("force_off",ptr,9)) {
+	*val = RHD_ATOMBIOS_OFF | RHD_ATOMBIOS_FORCE;
+	return cnt + 9;
+    } else if (!strncasecmp("force_on",ptr,8)) {
+	*val = RHD_ATOMBIOS_ON | RHD_ATOMBIOS_FORCE;
+	return cnt + 8;
+    } else
+	return 0;
+}
+
+/*
+ *
+ */
+static void
+rhdParseAtomBIOSUsage(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDOpt atombios;
+
+    RhdGetOptValString(rhdPtr->Options, OPTION_ATOMBIOS,
+		       &atombios, NULL);
+    if (atombios.set) {
+	if (atombios.val.string) {
+	    char *ptr = atombios.val.string;
+	    CARD32 val;
+	    while (*ptr != '\0') {
+		int c;
+		if (isspace(*ptr))
+		    ptr++;
+		if (!strncasecmp("crtc",ptr,4)) {
+		    ptr += 4;
+		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
+			goto parse_error;
+		    ptr += c;
+		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_CRTC);
+		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_CRTC);
+		}
+		else if (!strncasecmp("output",ptr,6)) {
+		    ptr += 6;
+		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
+			goto parse_error;
+		    ptr += c;
+		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_OUTPUT);
+		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_OUTPUT);
+		}
+		else if (!strncasecmp("pll",ptr,3)) {
+		    ptr += 3;
+		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
+			goto parse_error;
+		    ptr += c;
+		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_PLL);
+		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_PLL);
+		} else goto parse_error;
+	    }
+	}
+    }
+    return;
+
+parse_error:
+    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Cannot parse AtomBIOS usage string: %s\n",atombios.val.string);
+    rhdPtr->UseAtomFlags = 0;
+}
+
+#endif /* ATOM_BIOS */
+
 /*
  * Apart from handling the respective option, this also tries to map out
  * what method is supported on which chips.
@@ -2554,7 +2644,6 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 	}
     }
-
     /* Now for some pretty print */
     switch (rhdPtr->AccelMethod) {
 #ifdef USE_EXA
@@ -2617,6 +2706,9 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
 			&rhdPtr->UseAtomBIOS, FALSE);
 
+#ifdef ATOM_BIOS
+    rhdParseAtomBIOSUsage(pScrn);
+#endif
     rhdAccelOptionsHandle(pScrn);
 
     rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO;

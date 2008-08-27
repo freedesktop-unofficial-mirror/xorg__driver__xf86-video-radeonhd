@@ -367,13 +367,14 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
 			break;
 		    }
 		}
-
+#ifdef ATOM_BIOS
 		if (!Output) {
 		    Output = RHDAtomOutputInit(rhdPtr, ConnectorInfo[i].Type,
 					       ConnectorInfo[i].Output[k]);
 		    if (Output)
 			RHDOutputAdd(rhdPtr, Output);
 		}
+#endif
 	    }
 
 	    if (Output) {

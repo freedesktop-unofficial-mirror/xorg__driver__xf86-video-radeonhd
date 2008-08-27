@@ -29,6 +29,13 @@
 
 # ifdef ATOM_BIOS
 
+#define RHD_ATOMBIOS_ON 1
+#define RHD_ATOMBIOS_OFF 2
+#define RHD_ATOMBIOS_FORCE 4
+#define RHD_ATOMBIOS_CRTC 0
+#define RHD_ATOMBIOS_PLL 4
+#define RHD_ATOMBIOS_OUTPUT 8
+
 typedef enum _AtomBiosRequestID {
     ATOMBIOS_INIT,
     ATOMBIOS_TEARDOWN,

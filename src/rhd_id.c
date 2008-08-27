@@ -35,6 +35,9 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_card.h"
+#ifdef ATOM_BIOS
+#include "rhd_atombios.h"
+#endif
 
 SymTabRec RHDChipsets[] = {
     /* R500 */
@@ -815,7 +818,9 @@ Bool
 RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	   enum atomSubSystem subsys)
 {
-    Bool FromSys = FALSE;
+#ifdef ATOM_BIOS
+    Bool FromSys = FALSE, ret;
+    CARD32 FromUser = 0;
     int i = 0;
     char *message = NULL;
     enum RHD_CHIPSETS AtomChip;
@@ -825,14 +830,17 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	case atomUsageCrtc:
 	    AtomChip = USE_ATOM_CRTC;
 	    message = "Crtcs";
+	    FromUser = (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_CRTC) & 0x7;
 	    break;
 	case atomUsagePLL:
 	    AtomChip = USE_ATOM_PLL;
 	    message = "PLLs";
+	    FromUser = (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_PLL) & 0x7;
 	    break;
 	case atomUsageOutput:
 	    AtomChip = USE_ATOM_OUTPUT;
 	    message = "Outputs";
+	    FromUser = (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_OUTPUT) & 0x7;
 	    break;
     }
 
@@ -849,13 +857,24 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
     if (!FromSys) {
 	if (rhdPtr->UseAtomBIOS.set)
 	    from = X_CONFIG;
-	FromSys = rhdPtr->UseAtomBIOS.val.bool;
+	ret = rhdPtr->UseAtomBIOS.val.bool;
+	if (FromUser & RHD_ATOMBIOS_ON)
+	    ret = TRUE;
+	if (FromUser & RHD_ATOMBIOS_OFF)
+	    ret = FALSE;
     } else {
-	/* */
+	ret = TRUE;
+	if ((FromUser & RHD_ATOMBIOS_FORCE) && (FromUser & RHD_ATOMBIOS_OFF)) {
+	    from = X_CONFIG;
+	    ret = FALSE;
+	}
     }
-    if (FromSys)
+    if (ret)
 	xf86DrvMsg(rhdPtr->scrnIndex, from, "Using AtomBIOS for %s\n",
 		   message);
 
-    return FromSys;
+    return ret;
+#else
+    return 0;
+#endif /* ATOM_BIOS */
 }
