@@ -144,6 +144,8 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     CARD32 Crtc1Cntl, Crtc2Cntl;
     enum atomCrtc owner;
 
+    RHDFUNC(PLL);
+
     Crtc1Cntl = RHDRegRead(PLL, PCLK_CRTC1_CNTL);
     Crtc2Cntl = RHDRegRead(PLL, PCLK_CRTC2_CNTL);
 
@@ -164,7 +166,7 @@ rhdAtomPLLSave(struct rhdPLL *PLL, CARD32 PllCntl, CARD32 OwnerVal)
     Private->StoreCrtc = owner;
     Private->StoreDevice = RHDGetDeviceOnCrtc(rhdPtr, owner);
 
-    if (Private->StoreDevice != atomNone) 
+    if (Private->StoreDevice != atomNone)
 	RHDFindConnectorAndOutputTypesForDevice(rhdPtr, Private->StoreDevice,
 						&Private->StoreOutputType, &Private->StoreConnectorType);
     else
@@ -228,7 +230,7 @@ rhdAtomPLL2Save(struct rhdPLL *PLL)
     Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
     PLL->StorePostDiv  = RHDRegRead(PLL, EXT2_PPLL_POST_DIV) & 0x3F;
     PllCntl = RHDRegRead(PLL, P2PLL_CNTL);
-    RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL1\n",
+    RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL2\n",
 	     ((PLL->StoreFBDiv * PLL->RefClock * 10)
 	      / (PLL->StorePostDiv * PLL->StoreRefDiv)));
 

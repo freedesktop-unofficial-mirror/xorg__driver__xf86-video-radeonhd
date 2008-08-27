@@ -841,6 +841,9 @@ RHDGetDeviceOnCrtc(RHDPtr rhdPtr, enum atomCrtc Crtc)
     else if (BIOS_3 & ATOM_S3_CV_ACTIVE
 	     && ((BIOS_3 ^ Mask) & ATOM_S3_CV_CRTC_ACTIVE))
 	return atomCV;
+    else if (BIOS_3 & ATOM_S3_DFP3_ACTIVE
+	     && ((BIOS_3 ^ Mask) & ATOM_S3_DFP3_CRTC_ACTIVE))
+	return atomDFP3;
     else
 	return atomNone;
 }
