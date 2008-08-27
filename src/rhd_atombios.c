@@ -1047,6 +1047,7 @@ rhdAtomOutputControl(atomBiosHandlePtr handle, enum atomOutput OutputId, enum at
 		case 3:      /* For now. This needs to be treated like DIGTransmitterControl. @@@ */
 		    return FALSE;
 	    }
+	    break;
 	case atomLCDOutput:
 	    data.exec.index = GetIndexIntoMasterTable(COMMAND,  LCD1OutputControl);
 	    name = "LCD1OutputControl";
