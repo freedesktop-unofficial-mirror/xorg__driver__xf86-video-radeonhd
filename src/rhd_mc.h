@@ -33,6 +33,7 @@ extern void RHDMCSetup(RHDPtr rhdPtr);
 extern Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
 extern void RHDTuneMCAccessForDisplay(RHDPtr rhdPtr, int crtc,
 				      DisplayModePtr Mode, DisplayModePtr ScaledToMode);
+extern CARD32 RHDGetFBLocation(RHDPtr rhdPtr, CARD32 *size);
 
 extern Bool RHD_MC_IGP_SideportMemoryPresent(RHDPtr rhdPtr);
 

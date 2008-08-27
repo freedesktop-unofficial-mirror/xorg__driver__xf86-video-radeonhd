@@ -52,6 +52,7 @@ struct rhdMC {
     void (*RestoreMC)(RHDPtr rhdPtr);
     void (*SetupMC)(RHDPtr rhdPtr);
     Bool (*MCIdle)(RHDPtr rhdPtr);
+    CARD32 (*GetFBLocation)(RHDPtr rhdPtr, CARD32 *size);
     void (*TuneMCAccessForDisplay)(RHDPtr rhdPtr, int crtc,
 				   DisplayModePtr Mode, DisplayModePtr ScaledToMode);
     Bool RV515Variant;
@@ -419,6 +420,111 @@ RHDMCSetup(RHDPtr rhdPtr)
 }
 
 /*
+ * Get FB location and size.
+ */
+static CARD32
+r5xxGetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    CARD32 val;
+    CARD32 reg;
+
+    if (MC->RV515Variant)
+	reg = RV515_MC_FB_LOCATION | MC_IND_ALL;
+    else
+	reg = R5XX_MC_FB_LOCATION | MC_IND_ALL;
+
+	val = RHDReadMC(rhdPtr, reg);
+
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 16;
+
+    return (val & 0xFFFF) << 16;
+}
+
+/*
+ *
+ */
+static CARD32
+rs600GetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    CARD32 val = RHDReadMC(rhdPtr, RS60_NB_FB_LOCATION);
+
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 16;
+
+    return (val & 0xFFFF) << 16;
+}
+
+/*
+ *
+ */
+static CARD32
+rs690GetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    CARD32 val = RHDReadMC(rhdPtr, RS69_MCCFG_FB_LOCATION);
+
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 16;
+
+    return (val & 0xFFFF) << 16;
+}
+
+/*
+ *
+ */
+static CARD32
+r6xxGetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    CARD32 val = RHDRegRead(rhdPtr, R6XX_MC_VM_FB_LOCATION);
+
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 24;
+
+    return (val & 0xFFFF) << 24;
+}
+
+/*
+ *
+ */
+#ifdef NOTYET
+static CARD32
+rs780GetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    CARD32 val = RHDReadMC(rhdPtr, RS78_MC_FB_LOCATION);
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 16;
+
+    return (val & 0xFFFF) << 16;
+}
+#endif
+
+/*
+ *
+ */
+static CARD32
+r7xxGetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    CARD32 val = RHDRegRead(rhdPtr, R7XX_MC_VM_FB_LOCATION);
+
+    if (size) *size = ((val >> 16) - (val & 0xFFFF)) << 24;
+
+    return (val & 0xFFFF) << 24;
+}
+
+/*
+ *
+ */
+CARD32
+RHDGetFBLocation(RHDPtr rhdPtr, CARD32 *size)
+{
+    struct rhdMC *MC = rhdPtr->MC;
+    RHDFUNC(rhdPtr);
+
+    if (!MC) {
+	if (size) *size = 0;
+	return 0;
+    }
+
+    return MC->GetFBLocation(rhdPtr, size);
+}
+
+/*
  *
  */
 static Bool
@@ -669,6 +775,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->SaveMC = r5xxSaveMC;
 	MC->RestoreMC = r5xxRestoreMC;
 	MC->SetupMC = r5xxSetupMC;
+	MC->GetFBLocation = r5xxGetFBLocation;
 
 	if (rhdPtr->ChipSet == RHD_RV515
 	    || rhdPtr->ChipSet == RHD_RV505
@@ -695,17 +802,20 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->RestoreMC = rs600RestoreMC;
 	MC->SetupMC = rs600SetupMC;
 	MC->MCIdle = rs600MCIdle;
+	MC->GetFBLocation = rs600GetFBLocation;
     } else if (rhdPtr->ChipSet < RHD_R600) {
 	MC->SaveMC = rs690SaveMC;
 	MC->RestoreMC = rs690RestoreMC;
 	MC->SetupMC = rs690SetupMC;
 	MC->MCIdle = rs690MCIdle;
+	MC->GetFBLocation = rs690GetFBLocation;
 	MC->TuneMCAccessForDisplay = rs690TuneMCAccessForDisplay;
     } else if (rhdPtr->ChipSet <= RHD_RS780) {
 	MC->SaveMC = r6xxSaveMC;
 	MC->RestoreMC = r6xxRestoreMC;
 	MC->SetupMC = r6xxSetupMC;
 	MC->MCIdle = r6xxMCIdle;
+	MC->GetFBLocation = r6xxGetFBLocation;
     }
 #if 0
     else if (rhdPtr->ChipSet == RHD_RS780) {
@@ -713,6 +823,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->RestoreMC = rs780RestoreMC;
 	MC->SetupMC = rs780SetupMC;
 	MC->MCIdle = rs780MCIdle;
+	MC->GetFBLocation = rs780GetFBLocation;
     }
 #endif
     else if (rhdPtr->ChipSet == RHD_RV770) {
@@ -720,6 +831,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->RestoreMC = r7xxRestoreMC;
 	MC->SetupMC = r7xxSetupMC;
 	MC->MCIdle = r6xxMCIdle;
+	MC->GetFBLocation = r7xxGetFBLocation;
     } else {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "I don't know anything about MC on this chipset\n");
 	xfree(MC);
@@ -744,6 +856,9 @@ RHDMCDestroy(RHDPtr rhdPtr)
     rhdPtr->MC = NULL;
 }
 
+/*
+ *
+ */
 Bool
 RHD_MC_IGP_SideportMemoryPresent(RHDPtr rhdPtr)
 {
