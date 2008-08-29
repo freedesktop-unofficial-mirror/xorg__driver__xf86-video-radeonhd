@@ -257,6 +257,10 @@ typedef enum {
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
+    /* See above definition of enum RHDOpts for which options need
+     * documentation and which ones should not be documented in the
+     * man page.
+     */
     { OPTION_NOACCEL,              "NoAccel",              OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_ACCELMETHOD,          "AccelMethod",          OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_OFFSCREENSIZE,        "offscreensize",        OPTV_ANYSTR,  {0}, FALSE },
