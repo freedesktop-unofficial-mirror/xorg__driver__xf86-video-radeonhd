@@ -855,9 +855,10 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	}
     }
     if (!FromSys) {
-	if (rhdPtr->UseAtomBIOS.set)
+	if (rhdPtr->UseAtomBIOS.set) {
 	    from = X_CONFIG;
-	ret = rhdPtr->UseAtomBIOS.val.bool;
+	    ret = rhdPtr->UseAtomBIOS.val.bool;
+	}
 	if (FromUser & RHD_ATOMBIOS_ON)
 	    ret = TRUE;
 	if (FromUser & RHD_ATOMBIOS_OFF)
