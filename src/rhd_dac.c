@@ -777,7 +777,7 @@ DACSetRV620(struct rhdOutput *Output, CARD16 offset)
     if (Bandgap) Mask |= 0xFF << 16;
     if (WhiteFine) Mask |= 0xFF << 8;
 
-    RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, Mode); /* no fine control yet */
+    RHDRegMask(Output, offset + RV620_DACA_MACRO_CNTL, Mode, 0xFF); /* no fine control yet */
     RHDRegMask(Output,  offset + RV620_DACA_SOURCE_SELECT, Source, 0x00000003);
     if (offset) /* TV mux only present on DACB */
 	RHDRegMask(Output,  offset + RV620_DACA_CONTROL2, TV << 8, 0x0100); /* tv enable/disable */
