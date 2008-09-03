@@ -41,6 +41,7 @@
 #include "rhd_lut.h"
 #include "rhd_regs.h"
 #include "rhd_modes.h"
+#include "rhd_mc.h"
 #if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 # include "rhd_atombios.h"
 
@@ -139,6 +140,9 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 
     data.Address = NULL;
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
+
+    RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
+			      ScaledToMode ? ScaledToMode : Mode);
 }
 
 /*
