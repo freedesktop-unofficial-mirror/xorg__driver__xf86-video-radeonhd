@@ -286,7 +286,7 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	RHDDebug(rhdPtr->scrnIndex, "%s: WhiteFine found in CompassionateData.\n",__func__);
     }
     if (*whitefine == 0) {
-	CARD8 w_f = 0;
+	CARD8 w_f = 0, b_g = 0;
 
 	if (atomBiosArg.val = 0x18,
 	    RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
@@ -306,18 +306,24 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 	    switch (type) {
 		case TvPAL:
 		    w_f = dac ? data->DAC2PALWhiteFine : data->DAC1PALWhiteFine;
+		    b_g = dac ? data->DAC2PALBandGap : data->DAC1PALBandGap;
 		    break;
 		case TvNTSC:
 		    w_f = dac ? data->DAC2NTSCWhiteFine : data->DAC1NTSCWhiteFine;
+		    b_g = dac ? data->DAC2NTSCBandGap : data->DAC1NTSCBandGap;
 		    break;
 		case TvCV:
 		    w_f = dac ? data->DAC2CVWhiteFine : data->DAC1CVWhiteFine;
+		    b_g = dac ? data->DAC2CVBandGap : data->DAC1CVBandGap;
 		    break;
 		case VGA:
 		    w_f = dac ? data->DAC2VGAWhiteFine : data->DAC1VGAWhiteFine;
+		    b_g = dac ? data->DAC2VGABandGap : data->DAC1VGABandGap;
 		    break;
 	    }
 	    *whitefine = w_f;
+	    if (rhdPtr->ChipSet >= RHD_RV770)  /* Dunno why this is broken on older ASICs */
+		*bandgap = b_g;
 	}
     }
 #endif

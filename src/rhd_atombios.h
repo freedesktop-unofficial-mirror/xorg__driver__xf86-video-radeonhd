@@ -124,21 +124,21 @@ typedef struct AtomFb {
 struct AtomDacCodeTableData
 {
     CARD8 DAC1PALWhiteFine;
-    CARD8 dummy1;
+    CARD8 DAC1PALBandGap;
     CARD8 DAC1NTSCWhiteFine;
-    CARD8 dummy2;
+    CARD8 DAC1NTSCBandGap;
     CARD8 DAC1VGAWhiteFine;
-    CARD8 dumm3;
+    CARD8 DAC1VGABandGap;
     CARD8 DAC1CVWhiteFine;
-    CARD8 dummy4;
+    CARD8 DAC1CVBandGap;
     CARD8 DAC2PALWhiteFine;
-    CARD8 dummy5;
+    CARD8 DAC2PALBandGap;
     CARD8 DAC2NTSCWhiteFine;
-    CARD8 dummy6;
+    CARD8 DAC2NTSCBandGap;
     CARD8 DAC2VGAWhiteFine;
-    CARD8 dummy7;
+    CARD8 DAC2VGABandGap;
     CARD8 DAC2CVWhiteFine;
-    CARD8 dummy8;
+    CARD8 DAC2CVBandGap;
 };
 
 typedef enum AtomTVMode {
