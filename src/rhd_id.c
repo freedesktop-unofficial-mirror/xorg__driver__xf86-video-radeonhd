@@ -819,7 +819,7 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	   enum atomSubSystem subsys)
 {
 #ifdef ATOM_BIOS
-    Bool FromSys = FALSE, ret;
+    Bool FromSys = FALSE, ret = FALSE;
     CARD32 FromUser = 0;
     int i = 0;
     char *message = NULL;
