@@ -329,6 +329,29 @@ add(char **p, char *new)
 /*
  *
  */
+Bool
+rhdModesEqual(DisplayModePtr mode1, DisplayModePtr mode2)
+{
+    if (mode1->Clock == mode2->Clock
+	&& mode1->HDisplay == mode2->HDisplay
+	&& mode1->HSyncStart == mode2->HSyncStart
+	&& mode1->HSyncEnd == mode2->HSyncEnd
+	&& mode1->HTotal == mode2->HTotal
+	&& mode1->HSkew == mode2->HSkew
+	&& mode1->VDisplay == mode2->VDisplay
+	&& mode1->VSyncStart == mode2->VSyncStart
+	&& mode1->VSyncEnd == mode2->VSyncEnd
+	&& mode1->VTotal == mode2->VTotal
+	&& mode1->VScan == mode2->VScan
+	&& mode1->Flags == mode2->Flags)
+	return TRUE;
+
+    return FALSE;
+}
+
+/*
+ *
+ */
 void
 RHDPrintModeline(DisplayModePtr mode)
 {
@@ -688,6 +711,10 @@ static int
 rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 {
     int i;
+    Bool isNative = FALSE;
+
+    if (Monitor->NativeMode && rhdModesEqual(Mode, Monitor->NativeMode))
+	isNative = TRUE;
 
     for (i = 0; i < Monitor->numHSync; i++)
         if ((Mode->HSync >= (Monitor->HSync[i].lo * (1.0 - SYNC_TOLERANCE))) &&
@@ -707,14 +734,26 @@ rhdMonitorValid(struct rhdMonitor *Monitor, DisplayModePtr Mode)
 	(Mode->SynthClock > (Monitor->Bandwidth * (1 + SYNC_TOLERANCE))))
         return MODE_CLOCK_HIGH;
 
-    if (Monitor->ReducedAllowed) {
-	if (((Mode->CrtcHTotal - Mode->CrtcHDisplay) != 160) && /* CVT -r */
-	    ((Mode->CrtcHTotal - Mode->CrtcHDisplay) != 70) && /* SGI 1600SW */
-	    ((Mode->CrtcHDisplay * 21) > (Mode->CrtcHTotal * 20))) /* 5% */
-	    return MODE_HBLANK_NARROW;
-    } else { /* no reduced blanking */
-	if ((Mode->CrtcHDisplay * 23) > (Mode->CrtcHTotal * 20)) /* 15% */
-	    return MODE_HBLANK_NARROW;
+    if (isNative) { /* if it's this monitor's native mode be less strict on validation */
+	if (Monitor->ReducedAllowed) {
+	    if ((Mode->CrtcHDisplay * 101) > (Mode->CrtcHTotal * 100)) /* 1% */
+		return MODE_HBLANK_NARROW;
+	} else { /* no reduced blanking */
+	    if ((Mode->CrtcHDisplay * 23) > (Mode->CrtcHTotal * 20)) /* 15% */
+		return MODE_HBLANK_NARROW;
+	}
+    } else {
+	if (((Mode->CrtcHDisplay * 5 / 4) & ~0x07) > Mode->CrtcHTotal) {
+	    /* is this a cvt -r Mode, and only a cvt -r Mode? */
+	    if (((Mode->CrtcHTotal - Mode->CrtcHDisplay) == 160) &&
+		((Mode->CrtcHSyncEnd - Mode->CrtcHDisplay) == 80) &&
+		((Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart) == 32) &&
+		((Mode->CrtcVSyncStart - Mode->CrtcVDisplay) == 3)) {
+		if (!Monitor->ReducedAllowed)
+		    return MODE_NO_REDUCED;
+	    } else if ((Mode->CrtcHDisplay * 11) > (Mode->CrtcHTotal * 10))
+		return MODE_HSYNC_NARROW;
+	}
     }
 
     if (Monitor->UseFixedModes && !rhdMonitorFixedValid(Monitor, Mode))
