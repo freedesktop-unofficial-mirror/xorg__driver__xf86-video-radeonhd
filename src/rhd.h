@@ -342,7 +342,8 @@ typedef struct RHDRec {
 enum atomSubSystem {
     atomUsageCrtc,
     atomUsagePLL,
-    atomUsageOutput
+    atomUsageOutput,
+    atomUsageAny
 };
 
 /* rhd_driver.c */

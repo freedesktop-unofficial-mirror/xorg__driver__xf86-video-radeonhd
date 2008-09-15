@@ -632,6 +632,12 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	if (RHDAtomBiosFunc(pScrn->scrnIndex, NULL, ATOMBIOS_INIT, &atomBiosArg)
 	    == ATOM_SUCCESS) {
 	    rhdPtr->atomBIOS = atomBiosArg.atomhandle;
+	} else {
+	    if (RHDUseAtom(rhdPtr,  NULL, atomUsageAny)) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+			   "No AtomBIOS image found but required for AtomBIOS based mode setting\n");
+		goto error0; /* @@@ No blacklist handling. So far no blacklists are used for any subsystem */
+	    }
 	}
     }
 #else
@@ -645,6 +651,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	       "**              of this driver                 ***\n");
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "**************************************************\n");
+    if (RHDUseAtom(rhdPtr,  NULL, atomUsageAny)) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "No AtomBIOS support compiled in but required for this chipset/ current settings\n");
+	goto error0;
+    }
 #endif
     rhdPtr->tvMode = RHD_TV_NONE;
     {

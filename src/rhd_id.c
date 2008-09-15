@@ -842,6 +842,13 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	    message = "Outputs";
 	    FromUser = (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_OUTPUT) & 0x7;
 	    break;
+	case atomUsageAny:
+	    AtomChip = min(USE_ATOM_OUTPUT,min(USE_ATOM_PLL, USE_ATOM_CRTC));
+	    message = "All";
+	    FromUser = ((rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_OUTPUT)
+		| (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_PLL)
+			| (rhdPtr->UseAtomFlags >> RHD_ATOMBIOS_CRTC)) & 0x7;
+	    break;
     }
 
     if (rhdPtr->ChipSet > AtomChip)
