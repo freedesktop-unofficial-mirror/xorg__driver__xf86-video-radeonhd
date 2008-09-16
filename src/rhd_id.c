@@ -851,7 +851,7 @@ RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList,
 	    break;
     }
 
-    if (rhdPtr->ChipSet > AtomChip)
+    if (rhdPtr->ChipSet >= AtomChip)
 	FromSys = TRUE;
 
     if (!FromSys && BlackList) {
