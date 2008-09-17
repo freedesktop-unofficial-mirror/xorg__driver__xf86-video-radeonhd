@@ -75,7 +75,7 @@ struct RhdCS {
 
     void (*Flush) (struct RhdCS *CS);
     Bool AdvanceFlush; /* flush the buffer all the time? */
-    void (*Idle) (struct RhdCS *CS);
+    Bool (*Idle) (struct RhdCS *CS);
 
     void (*Start) (struct RhdCS *CS);
     void (*Reset) (struct RhdCS *CS);
@@ -109,7 +109,7 @@ struct _drmBuf *RHDDRMCPBuffer(int scrnIndex);
  * CS Calls and macros.
  */
 void RHDCSFlush(struct RhdCS *CS);
-void RHDCSIdle(struct RhdCS *CS);
+Bool RHDCSIdle(struct RhdCS *CS);
 void RHDCSStart(struct RhdCS *CS);
 void RHDCSReset(struct RhdCS *CS);
 void RHDCSStop(struct RhdCS *CS);

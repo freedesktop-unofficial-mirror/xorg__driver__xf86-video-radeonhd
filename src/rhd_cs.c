@@ -330,7 +330,7 @@ DRMCPReset(struct RhdCS *CS)
 /*
  *
  */
-static void
+static Bool
 DRMCPIdle(struct RhdCS *CS)
 {
     struct RhdDRMCP *CP = CS->Private;
@@ -343,15 +343,16 @@ DRMCPIdle(struct RhdCS *CS)
     for (i = 0; i < 2000000; i++) {
 	ret = drmCommandNone(CP->DrmFd, DRM_RADEON_CP_IDLE);
 	if (!ret)
-	    return;
+	    return TRUE;
 	else if (ret != -16) {
 	    xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: DRM CP IDLE returned %d\n", __func__, ret);
-	    return;
+	    return FALSE;
 	} else
 	    xf86DrvMsg(CS->scrnIndex, X_WARNING, "%s: DRM CP IDLE returned BUSY!\n", __func__);
     }
 
     xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: Failed!\n", __func__);
+    return FALSE;
 }
 
 /*
@@ -500,19 +501,21 @@ RHDCSFlush(struct RhdCS *CS)
 /*
  *
  */
-void
+Bool
 RHDCSIdle(struct RhdCS *CS)
 {
 #ifdef RHD_CS_DEBUG
     if (!CS->Active) {
 	xf86DrvMsg(CS->scrnIndex, X_ERROR, "%s: CS is not active!\n",
 		   __func__);
-	return;
+	return TRUE;
     }
 #endif
 
     if (CS->Idle)
-	CS->Idle(CS);
+	return CS->Idle(CS);
+
+    return TRUE;
 }
 
 /*
