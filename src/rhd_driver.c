@@ -1418,6 +1418,9 @@ RHDLeaveVT(int scrnIndex, int flags)
 
     rhdAllIdle(rhdPtr);
 
+    if (rhdPtr->randr)
+	RHDRRFreeShadow(pScrn);
+
     rhdRestore(rhdPtr);
 }
 

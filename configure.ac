@@ -212,6 +212,14 @@ if test "x$XF86CRTCFUNCS_HAS_SETMODEMAJOR" = xyes; then
         AC_DEFINE(XF86CRTCFUNCS_HAS_SETMODEMAJOR, 1, [xf86CrtcFuncsRec has member set_mode_major])
 fi
 
+AC_CHECK_DECL(xf86RotateFreeShadow,
+              [AC_DEFINE(HAVE_FREE_SHADOW, 1, [have RotateFreeShadow API])],
+              [],
+              [#include <xorg-server.h>
+               #include <windowstr.h>
+               #include <xf86Crtc.h>])
+
+
 CFLAGS="$SAVED_CFLAGS"
 
 AC_ARG_ENABLE(atombios, AC_HELP_STRING([--disable-atombios],
