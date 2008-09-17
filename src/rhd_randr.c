@@ -445,6 +445,9 @@ rhdRRCrtcCommit(xf86CrtcPtr crtc)
     rhdCrtc->Active = TRUE;
     rhdCrtc->Power(rhdCrtc, RHD_POWER_ON);
 
+    if (crtc->scrn->pScreen != NULL)
+	xf86_reload_cursors(crtc->scrn->pScreen);
+
     RHDDebugRandrState(rhdPtr, rhdCrtc->Name);
 }
 
@@ -1437,6 +1440,83 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 #endif
 
 /*
+ *
+ */
+Bool
+RHDRRInitCursor(ScreenPtr pScreen)
+{
+    RHDFUNCI(pScreen->myNum);
+
+    /* still need to alloc fb mem for cursors */
+    return xf86_cursors_init(pScreen, MAX_CURSOR_WIDTH, MAX_CURSOR_HEIGHT,
+			     HARDWARE_CURSOR_TRUECOLOR_AT_8BPP
+			     | HARDWARE_CURSOR_UPDATE_UNHIDDEN
+			     | HARDWARE_CURSOR_AND_SOURCE_WITH_MASK
+			     | HARDWARE_CURSOR_SOURCE_MASK_INTERLEAVE_1
+			     | HARDWARE_CURSOR_ARGB);
+}
+
+/*
+ *
+ */
+static void
+rhdRRShowCursor(xf86CrtcPtr crtc)
+{
+    struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc;
+    rhdCrtcShowCursor(rhdCrtc);
+}
+
+/*
+ *
+ */
+static void
+rhdRRHideCursor(xf86CrtcPtr crtc)
+{
+    struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc;
+    rhdCrtcHideCursor(rhdCrtc);
+}
+
+/*
+ *
+ */
+static void
+rhdRRLoadCursorARGB(xf86CrtcPtr crtc, CARD32 *Image)
+{
+    struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc;
+    rhdCrtcLoadCursorARGB(rhdCrtc, Image);
+}
+
+/*
+ *
+ */
+static void
+rhdRRSetCursorColors(xf86CrtcPtr crtc, int bg, int fg)
+{
+    struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc;
+    rhdCrtcSetCursorColors(rhdCrtc, bg, fg);
+}
+
+/*
+ *
+ */
+static void
+rhdRRSetCursorPosition(xf86CrtcPtr crtc, int x, int y)
+{
+    struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc;
+    /*
+     * Given cursor pos is always relative to frame - make absolute
+     * NOTE: This is hardware specific, it doesn't really fit here,
+     * but it's the only place where the relevant information is
+     * available.
+     */
+    if (!crtc->rotatedData) {
+	x += crtc->x;
+	y += crtc->y;
+    }
+    rhdCrtcSetCursorPosition(rhdCrtc, x, y);
+}
+
+/*
  * Xorg Interface
  */
 
@@ -1452,9 +1532,10 @@ static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcPrepare, rhdRRCrtcModeSet, rhdRRCrtcCommit,
     rhdRRCrtcGammaSet,
     rhdRRCrtcShadowAllocate, rhdRRCrtcShadowCreate, rhdRRCrtcShadowDestroy,
+    rhdRRSetCursorColors, rhdRRSetCursorPosition, rhdRRShowCursor, rhdRRHideCursor,
+    NULL, rhdRRLoadCursorARGB, NULL
     /* SetCursorColors,SetCursorPosition,ShowCursor,HideCursor,
      * LoadCursorImage,LoadCursorArgb,CrtcDestroy */
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL
 #ifdef XF86CRTCFUNCS_HAS_SETMODEMAJOR
     /* set_mode_major */
     , NULL

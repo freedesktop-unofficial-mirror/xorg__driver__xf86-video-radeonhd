@@ -399,7 +399,6 @@ rhdSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
     }
 }
 
-
 static void
 rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
 {
@@ -572,5 +571,75 @@ RHDxf86InitCursor(ScreenPtr pScreen)
     xf86DrvMsg(pScrn->scrnIndex,X_INFO,"Using HW cursor\n");
 
     return TRUE;
+}
+
+/*
+ *  Cursor Funcs as used by RandR
+ */
+void
+rhdCrtcShowCursor(struct rhdCrtc *Crtc)
+{
+    struct rhdCursor *Cursor = Crtc->Cursor;
+
+    lockCursor   (Cursor, TRUE);
+    displayCursor(Crtc);
+    lockCursor   (Cursor, FALSE);
+}
+
+/*
+ *
+ */
+void
+rhdCrtcHideCursor(struct rhdCrtc *Crtc)
+{
+    struct rhdCursor *Cursor = Crtc->Cursor;
+
+    lockCursor  (Cursor, TRUE);
+    enableCursor(Cursor, FALSE);
+    lockCursor  (Cursor, FALSE);
+}
+
+/*
+ *
+ */
+void
+rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
+{
+    struct rhdCursor *Cursor = Crtc->Cursor;
+    Cursor->X = x;
+    Cursor->Y = y;
+
+    lockCursor   (Cursor, TRUE);
+    displayCursor(Crtc);
+    lockCursor   (Cursor, FALSE);
+}
+
+/*
+ *
+ */
+void
+rhdCrtcSetCursorColors(struct rhdCrtc *Crtc, int bg, int fg)
+{
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
+
+    rhdPtr->CursorColor0 = bg | 0xff000000;
+    rhdPtr->CursorColor1 = fg | 0xff000000;
+}
+
+/*
+ *
+ */
+void
+rhdCrtcLoadCursorARGB(struct rhdCrtc *Crtc, CARD32 *Image)
+{
+    struct rhdCursor *Cursor = Crtc->Cursor;
+
+    Cursor->Width = MAX_CURSOR_WIDTH;
+    Cursor->Height = MAX_CURSOR_HEIGHT;
+
+    lockCursor       (Cursor, TRUE);
+    uploadCursorImage(Cursor, Image);
+    setCursorImage   (Cursor);
+    lockCursor       (Cursor, FALSE);
 }
 

@@ -37,5 +37,6 @@ extern Bool RHDRandrScreenInit(ScreenPtr pScreen);
 extern Bool RHDRandrModeInit(ScrnInfoPtr pScrn);
 extern Bool RHDRandrSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
 extern void RHDRRFreeShadow(ScrnInfoPtr pScrn);
+extern Bool RHDRRInitCursor(ScreenPtr pScreen);
 
 #endif

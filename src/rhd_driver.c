@@ -1195,11 +1195,16 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
 
     /* Inititalize HW cursor */
-    if (!rhdPtr->swCursor.val.bool)
-        if (!RHDxf86InitCursor(pScreen))
+    if (!rhdPtr->swCursor.val.bool) {
+	Bool ret;
+	if (rhdPtr->randr == NULL)
+	    ret = RHDxf86InitCursor(pScreen);
+	else
+	    ret = RHDRRInitCursor(pScreen);
+	if (!ret)
             xf86DrvMsg(scrnIndex, X_ERROR,
                        "Hardware cursor initialization failed\n");
-
+    }
     /* default colormap */
     if(!miCreateDefColormap(pScreen))
 	return FALSE;
