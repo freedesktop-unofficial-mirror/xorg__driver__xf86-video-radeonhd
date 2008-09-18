@@ -80,8 +80,6 @@
 extern struct R5xxRop R5xxRops[];
 
 struct R5xxXaaPrivate {
-    int scrnIndex;
-
     CARD32 dst_pitch_offset; /* Base value for R5XX_DST_PITCH_OFFSET */
     CARD32 control; /* Base value for R5XX_DP_GUI_MASTER_CNTL */
     CARD32 control_saved;
@@ -94,9 +92,9 @@ struct R5xxXaaPrivate {
     int scanline_x;
     int scanline_y;
     int scanline_w;
-    CARD32 scanline_h; /* R5xx */
-    CARD32 scanline_words; /* R5xx */
-    int scanline_bpp; /* Only used for ImageWrite -- R5xx */
+    CARD32 scanline_h;
+    CARD32 scanline_words;
+    int scanline_bpp; /* Only used for ImageWrite */
     int scanline_fg;
     int scanline_bg;
     int scanline_hpass;
@@ -154,10 +152,10 @@ R5xxXAASetClippingRectangle(ScrnInfoPtr pScrn, int xa, int ya, int xb, int yb)
 	tmp1 = xa;
 
     if (ya < 0) {
-	tmp1 |= (((-ya) & 0x3fff) << 16);
+	tmp1 |= ((-ya) & 0x3fff) << 16;
 	tmp1 |= R5XX_SC_SIGN_MASK_HI;
     } else
-	tmp1 |= (ya << 16);
+	tmp1 |= ya << 16;
 
     xb++;
     yb++;
@@ -169,15 +167,15 @@ R5xxXAASetClippingRectangle(ScrnInfoPtr pScrn, int xa, int ya, int xb, int yb)
 	tmp2 = xb;
 
     if (yb < 0) {
-	tmp2 |= (((-yb) & 0x3fff) << 16);
+	tmp2 |= ((-yb) & 0x3fff) << 16;
 	tmp2 |= R5XX_SC_SIGN_MASK_HI;
     } else
-	tmp2 |= (yb << 16);
+	tmp2 |= yb << 16;
 
     RHDCSGrab(CS, 2 * 3);
 
-    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, XaaPrivate->control_saved |
-		  R5XX_GMC_DST_CLIPPING);
+    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL,
+		  XaaPrivate->control_saved | R5XX_GMC_DST_CLIPPING);
     RHDCSRegWrite(CS, R5XX_SC_TOP_LEFT, tmp1);
     RHDCSRegWrite(CS, R5XX_SC_BOTTOM_RIGHT, tmp2);
 
@@ -253,7 +251,7 @@ R5xxXAASubsequentSolidFillRect(ScrnInfoPtr pScrn, int x, int y, int w, int h)
 }
 
 /*
- * Setup for XAA solid lines
+ *
  */
 static void
 R5xxXAASetupForSolidLine(ScrnInfoPtr pScrn,
@@ -261,10 +259,10 @@ R5xxXAASetupForSolidLine(ScrnInfoPtr pScrn,
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
-    CARD32 control = XaaPrivate->control;
+    CARD32 control;
 
-    control |= R5XX_GMC_BRUSH_SOLID_COLOR |
-	R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].pattern;
+    control = XaaPrivate->control | R5xxRops[rop].pattern;
+    control |= R5XX_GMC_BRUSH_SOLID_COLOR | R5XX_GMC_SRC_DATATYPE_COLOR;
 
     /* Save for later clipping */
     XaaPrivate->control_saved = control;
@@ -278,7 +276,7 @@ R5xxXAASetupForSolidLine(ScrnInfoPtr pScrn,
 }
 
 /*
- * Subsequent XAA solid horizontal and vertical lines
+ *
  */
 static void
 R5xxXAASubsequentSolidHorVertLine(ScrnInfoPtr pScrn,
@@ -304,8 +302,7 @@ R5xxXAASubsequentSolidHorVertLine(ScrnInfoPtr pScrn,
     RHDCSAdvance(CS);
 }
 
-/* Subsequent XAA solid TwoPointLine line
- *
+/*
  * Tests: xtest CH06/drwln, ico, Mark Vojkovich's linetest program
  *
  * [See http://www.xfree86.org/devel/archives/devel/1999-Jun/0102.shtml for
@@ -357,8 +354,8 @@ R5xxXAASetupForScreenToScreenCopy(ScrnInfoPtr pScrn, int xdir, int ydir, int rop
     RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, control);
     RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK, planemask);
     RHDCSRegWrite(CS, R5XX_DP_CNTL,
-		  ((xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
-		   (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0)));
+		  (xdir >= 0 ? R5XX_DST_X_LEFT_TO_RIGHT : 0) |
+		  (ydir >= 0 ? R5XX_DST_Y_TOP_TO_BOTTOM : 0));
 
     XaaPrivate->trans_color = trans_color;
     if (trans_color != -1)
@@ -396,7 +393,8 @@ R5xxXAASubsequentScreenToScreenCopy(ScrnInfoPtr pScrn, int xa, int ya,
     RHDCSAdvance(CS);
 }
 
-/* Setup for XAA mono 8x8 pattern color expansion.  Patterns with
+/*
+ * Setup for XAA mono 8x8 pattern color expansion.  Patterns with
  * transparency use `bg == -1'.  This routine is only used if the XAA
  * pixmap cache is turned on.
  *
@@ -447,7 +445,8 @@ R5xxXAASetupForMono8x8PatternFill(ScrnInfoPtr pScrn, int patternx, int patterny,
     RHDCSRegWrite(CS, R5XX_BRUSH_DATA1, patterny);
 }
 
-/* Subsequent XAA 8x8 pattern color expansion.  Because they are used in
+/*
+ * Subsequent XAA 8x8 pattern color expansion.  Because they are used in
  * the setup function, `patternx' and `patterny' are not used here.
  */
 static void
@@ -468,7 +467,8 @@ R5xxXAASubsequentMono8x8PatternFillRect(ScrnInfoPtr pScrn,
     RHDCSAdvance(CS);
 }
 
-/* Setup for XAA indirect CPU-to-screen color expansion (indirect).
+/*
+ * Setup for XAA indirect CPU-to-screen color expansion (indirect).
  * Because of how the scratch buffer is initialized, this is really a
  * mainstore-to-screen color expansion.  Transparency is supported when
  * `bg == -1'.
@@ -514,7 +514,8 @@ R5xxXAASetupForScanlineCPUToScreenColorExpandFillMMIO(ScrnInfoPtr pScrn, int fg,
     RHDCSRegWrite(CS, R5XX_DP_SRC_BKGD_CLR, bg);
 }
 
-/* Subsequent XAA indirect CPU-to-screen color expansion.  This is only
+/*
+ * Subsequent XAA indirect CPU-to-screen color expansion.  This is only
  * called once for each rectangle.
  */
 static void
@@ -539,7 +540,8 @@ R5xxXAASubsequentScanlineCPUToScreenColorExpandFillMMIO(ScrnInfoPtr pScrn, int x
     RHDCSAdvance(CS);
 }
 
-/* Subsequent XAA indirect CPU-to-screen color expansion and indirect
+/*
+ * Subsequent XAA indirect CPU-to-screen color expansion and indirect
  * image write.  This is called once for each scanline.
  */
 static void
@@ -588,7 +590,7 @@ R5xxXAASubsequentScanlineMMIO(ScrnInfoPtr pScrn, int bufno)
  */
 static void
 R5xxXAASetupForScanlineImageWriteMMIO(ScrnInfoPtr pScrn, int rop, unsigned int planemask,
-				  int trans_color, int bpp, int depth)
+				      int trans_color, int bpp, int depth)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
@@ -628,7 +630,7 @@ R5xxXAASetupForScanlineImageWriteMMIO(ScrnInfoPtr pScrn, int rop, unsigned int p
  */
 static void
 R5xxXAASubsequentScanlineImageWriteRectMMIO(ScrnInfoPtr pScrn, int x, int y,
-					int w, int h, int skipleft)
+					    int w, int h, int skipleft)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
@@ -653,7 +655,8 @@ R5xxXAASubsequentScanlineImageWriteRectMMIO(ScrnInfoPtr pScrn, int x, int y,
     RHDCSAdvance(CS);
 }
 
-/* Helper function to write out a HOSTDATA_BLT packet into the indirect
+/*
+ * Helper function to write out a HOSTDATA_BLT packet into the indirect
  * buffer and set the XAA scratch buffer address appropriately.
  */
 static void
@@ -666,50 +669,56 @@ R5xxXAACPScanlinePacket(struct RhdCS *CS, struct R5xxXaaPrivate *XaaPrivate)
     RHDCSWrite(CS, CP_PACKET3(R5XX_CP_PACKET3_CNTL_HOSTDATA_BLT,chunk_words+10-2));
     RHDCSWrite(CS, XaaPrivate->control_saved);
     RHDCSWrite(CS, XaaPrivate->dst_pitch_offset);
-    RHDCSWrite(CS, (XaaPrivate->scanline_y << 16) | (XaaPrivate->scanline_x1clip & 0xffff));
+    RHDCSWrite(CS, (XaaPrivate->scanline_y << 16) |
+	       (XaaPrivate->scanline_x1clip & 0xffff));
     RHDCSWrite(CS, ((XaaPrivate->scanline_y + XaaPrivate->scanline_hpass) << 16) |
-	     (XaaPrivate->scanline_x2clip & 0xffff));
+	       (XaaPrivate->scanline_x2clip & 0xffff));
     RHDCSWrite(CS, XaaPrivate->scanline_fg);
     RHDCSWrite(CS, XaaPrivate->scanline_bg);
-    RHDCSWrite(CS, (XaaPrivate->scanline_y << 16) | (XaaPrivate->scanline_x & 0xffff));
-    RHDCSWrite(CS, (XaaPrivate->scanline_hpass << 16) | (XaaPrivate->scanline_w & 0xffff));
+    RHDCSWrite(CS, (XaaPrivate->scanline_y << 16) |
+	       (XaaPrivate->scanline_x & 0xffff));
+    RHDCSWrite(CS, (XaaPrivate->scanline_hpass << 16) |
+	       (XaaPrivate->scanline_w & 0xffff));
     RHDCSWrite(CS, chunk_words);
 
-    XaaPrivate->BufferHook[0] = (CARD8 *) ((CARD32 *) CS->Buffer + CS->Wptr);
+    XaaPrivate->BufferHook[0] = (CARD8 *) &(CS->Buffer[CS->Wptr]);
     CS->Wptr += chunk_words;
 
     XaaPrivate->scanline_y += XaaPrivate->scanline_hpass;
     XaaPrivate->scanline_h -= XaaPrivate->scanline_hpass;
 }
 
-/* Setup for XAA indirect CPU-to-screen color expansion (indirect).
+/*
+ * Setup for XAA indirect CPU-to-screen color expansion (indirect).
  * Because of how the scratch buffer is initialized, this is really a
  * mainstore-to-screen color expansion.  Transparency is supported when
  * `bg == -1'.
  */
 static void
 R5xxXAASetupForScanlineCPUToScreenColorExpandFillCP(ScrnInfoPtr pScrn, int fg,
-						   int bg, int rop, unsigned int planemask)
+						    int bg, int rop, unsigned int planemask)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
+    CARD32 control = XaaPrivate->control;
 
     XaaPrivate->scanline_bpp = 0;
 
-    /* Save for later clipping */
-    XaaPrivate->control_saved = (XaaPrivate->control
-						  | R5XX_GMC_DST_CLIPPING
-						  | R5XX_GMC_BRUSH_NONE
-						  | (bg == -1
-						     ? R5XX_GMC_SRC_DATATYPE_MONO_FG_LA
-						     : R5XX_GMC_SRC_DATATYPE_MONO_FG_BG)
-						  | R5xxRops[rop].rop
+    control |= R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
+	R5xxRops[rop].rop | R5XX_DP_SRC_SOURCE_HOST_DATA;
+
+    if (bg == -1)
+	control |= R5XX_GMC_SRC_DATATYPE_MONO_FG_LA;
+    else
+	control |= R5XX_GMC_SRC_DATATYPE_MONO_FG_BG;
+
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
-						  | R5XX_GMC_BYTE_LSB_TO_MSB
+    control |= R5XX_GMC_BYTE_LSB_TO_MSB;
 #else
-						  | R5XX_GMC_BYTE_MSB_TO_LSB
+    control |= R5XX_GMC_BYTE_MSB_TO_LSB;
 #endif
-						  | R5XX_DP_SRC_SOURCE_HOST_DATA);
+
+    XaaPrivate->control_saved = control;
 
     XaaPrivate->scanline_fg = fg;
     XaaPrivate->scanline_bg = bg;
@@ -718,29 +727,29 @@ R5xxXAASetupForScanlineCPUToScreenColorExpandFillCP(ScrnInfoPtr pScrn, int fg,
     RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK, planemask);
 }
 
-/* Subsequent XAA indirect CPU-to-screen color expansion.  This is only
+/*
+ * Subsequent XAA indirect CPU-to-screen color expansion.  This is only
  * called once for each rectangle.
  */
 static void
-R5xxXAASubsequentScanlineCPUToScreenColorExpandFillCP(ScrnInfoPtr pScrn,
-							      int x, int y,
-							      int w, int h,
-							      int skipleft)
+R5xxXAASubsequentScanlineCPUToScreenColorExpandFillCP(ScrnInfoPtr pScrn, int x, int y,
+						      int w, int h, int skipleft)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
 
-    XaaPrivate->scanline_x      = x;
-    XaaPrivate->scanline_y      = y;
+    XaaPrivate->scanline_x = x;
+    XaaPrivate->scanline_y = y;
     /* Have to pad the width here and use clipping engine */
-    XaaPrivate->scanline_w      = (w + 31) & ~31;
-    XaaPrivate->scanline_h      = h;
+    XaaPrivate->scanline_w = (w + 31) & ~31;
+    XaaPrivate->scanline_h = h;
 
     XaaPrivate->scanline_x1clip = x + skipleft;
     XaaPrivate->scanline_x2clip = x + w;
 
-    XaaPrivate->scanline_words  = XaaPrivate->scanline_w / 32;
-    XaaPrivate->scanline_hpass  = min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
+    XaaPrivate->scanline_words = XaaPrivate->scanline_w / 32;
+    XaaPrivate->scanline_hpass =
+	min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
 
     R5xxXAACPScanlinePacket(CS, XaaPrivate);
 }
@@ -772,10 +781,10 @@ R5xxXAAScanlineSwap8(unsigned int *Buf, unsigned int nwords)
 #endif
 }
 
-#endif
+#endif /* X_BYTE_ORDER */
 
-
-/* Subsequent XAA indirect CPU-to-screen color expansion and indirect
+/*
+ * Subsequent XAA indirect CPU-to-screen color expansion and indirect
  * image write.  This is called once for each scanline.
  */
 static void
@@ -784,19 +793,26 @@ R5xxXAASubsequentScanlineCP(ScrnInfoPtr pScrn, int bufno)
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
 
+    if (bufno) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: buffer number provided (%d)\n", __func__, bufno);
+	return;
+    }
+
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     if (XaaPrivate->scanline_bpp == 16)
-	R5xxXAAScanlineSwap16((unsigned int *)XaaPrivate->BufferHook[bufno],
+	R5xxXAAScanlineSwap16((unsigned int *)XaaPrivate->BufferHook[0],
 			     XaaPrivate->scanline_words);
     else if (XaaPrivate->scanline_bpp < 15)
-	R5xxXAAScanlineSwap8((unsigned int *)XaaPrivate->BufferHook[bufno],
+	R5xxXAAScanlineSwap8((unsigned int *)XaaPrivate->BufferHook[0],
 			    XaaPrivate->scanline_words);
 #endif
 
     if (--XaaPrivate->scanline_hpass) {
-	XaaPrivate->BufferHook[bufno] += 4 * XaaPrivate->scanline_words;
+	XaaPrivate->BufferHook[0] += 4 * XaaPrivate->scanline_words;
     } else if (XaaPrivate->scanline_h) {
-	XaaPrivate->scanline_hpass = min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
+	XaaPrivate->scanline_hpass =
+	    min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
 	R5xxXAACPScanlinePacket(CS, XaaPrivate);
     }
 }
@@ -806,35 +822,38 @@ R5xxXAASubsequentScanlineCP(ScrnInfoPtr pScrn, int bufno)
  */
 static void
 R5xxXAASetupForScanlineImageWriteCP(ScrnInfoPtr pScrn, int rop, unsigned int planemask,
-					    int trans_color, int bpp, int depth)
+				    int trans_color, int bpp, int depth)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
+    CARD32 control = XaaPrivate->control;
 
     XaaPrivate->scanline_bpp = bpp;
 
-    /* Save for later clipping */
-    XaaPrivate->control_saved = (XaaPrivate->control
-						  | R5XX_GMC_DST_CLIPPING
-						  | R5XX_GMC_BRUSH_NONE
-						  | R5XX_GMC_SRC_DATATYPE_COLOR
-						  | R5xxRops[rop].rop
-						  | R5XX_GMC_BYTE_MSB_TO_LSB
-						  | R5XX_DP_SRC_SOURCE_HOST_DATA);
+    control |= R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
+	R5XX_GMC_SRC_DATATYPE_COLOR | R5xxRops[rop].rop |
+	R5XX_GMC_BYTE_MSB_TO_LSB | R5XX_DP_SRC_SOURCE_HOST_DATA;
+
+     /* Save for later clipping */
+    XaaPrivate->control_saved = control;
 
     RHDCSGrab(CS, 2 * 2);
 
-    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, XaaPrivate->control_saved);
-    RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK,      planemask);
+    RHDCSRegWrite(CS, R5XX_DP_GUI_MASTER_CNTL, control);
+    RHDCSRegWrite(CS, R5XX_DP_WRITE_MASK, planemask);
 
     XaaPrivate->trans_color = trans_color;
     if (trans_color != -1)
 	R5xxXAASetTransparency(CS, trans_color);
 }
 
+/*
+ * Subsequent XAA indirect image write. This is only called once for
+ * each rectangle.
+ */
 static void
 R5xxXAASubsequentScanlineImageWriteRectCP(ScrnInfoPtr pScrn, int x, int y,
-						  int w, int h, int skipleft)
+					  int w, int h, int skipleft)
 {
     struct R5xxXaaPrivate *XaaPrivate = RHDPTR(pScrn)->TwoDPrivate;
     struct RhdCS *CS = RHDPTR(pScrn)->CS;
@@ -856,17 +875,18 @@ R5xxXAASubsequentScanlineImageWriteRectCP(ScrnInfoPtr pScrn, int x, int y,
 	pad = 0;
     }
 
-    XaaPrivate->scanline_x      = x;
-    XaaPrivate->scanline_y      = y;
+    XaaPrivate->scanline_x = x;
+    XaaPrivate->scanline_y = y;
     /* Have to pad the width here and use clipping engine */
-    XaaPrivate->scanline_w      = (w + pad) & ~pad;
-    XaaPrivate->scanline_h      = h;
+    XaaPrivate->scanline_w = (w + pad) & ~pad;
+    XaaPrivate->scanline_h = h;
 
     XaaPrivate->scanline_x1clip = x + skipleft;
     XaaPrivate->scanline_x2clip = x + w;
 
-    XaaPrivate->scanline_words  = (w * XaaPrivate->scanline_bpp + 31) / 32;
-    XaaPrivate->scanline_hpass  = min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
+    XaaPrivate->scanline_words = (w * XaaPrivate->scanline_bpp + 31) / 32;
+    XaaPrivate->scanline_hpass =
+	min(XaaPrivate->scanline_h, ((CS->Size - 10) / XaaPrivate->scanline_words));
 
     R5xxXAACPScanlinePacket(CS, XaaPrivate);
 }
@@ -1037,11 +1057,11 @@ static void
 R5xxXaaPrivateInit(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct R5xxXaaPrivate *XaaPrivate = xnfcalloc(1, sizeof(struct R5xxXaaPrivate));
+    struct R5xxXaaPrivate *XaaPrivate =
+	xnfcalloc(1, sizeof(struct R5xxXaaPrivate));
 
-    XaaPrivate->scrnIndex = pScrn->scrnIndex;
-
-    XaaPrivate->control = (R5xx2DDatatypeGet(pScrn) << R5XX_GMC_DST_DATATYPE_SHIFT) |
+    XaaPrivate->control =
+	(R5xx2DDatatypeGet(pScrn) << R5XX_GMC_DST_DATATYPE_SHIFT) |
 	R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_DST_PITCH_OFFSET_CNTL;
 
     XaaPrivate->dst_pitch_offset =
