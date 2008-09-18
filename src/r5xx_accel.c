@@ -72,6 +72,7 @@
 #include "rhd_cs.h"
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
+#include "r5xx_3dregs.h"
 
 /*
  * Used by both XAA and EXA code.
@@ -123,9 +124,13 @@ R5xx2DFlush(int scrnIndex)
     int i;
 
     _RHDRegMask(scrnIndex, R5XX_DSTCACHE_CTLSTAT,
+		/* Radeon code:
+		   R5XX_RB2D_DC_FLUSH_ALL, R5XX_RB2D_DC_FLUSH_ALL */
 		R5XX_DSTCACHE_FLUSH_ALL, R5XX_DSTCACHE_FLUSH_ALL);
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
+	/* Radeon code:
+	   & R5XX_RB2D_DC_BUSY */
 	if (!(_RHDRegRead(scrnIndex, R5XX_DSTCACHE_CTLSTAT) & R5XX_DSTCACHE_BUSY))
 	    return TRUE;
 
@@ -346,12 +351,22 @@ R5xx2DIdle(ScrnInfoPtr pScrn)
 void
 R5xx2DStart(ScrnInfoPtr pScrn)
 {
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
     RHDFUNC(pScrn);
+
+    if ((rhdPtr->ChipSet != RHD_RS690) &&
+	(rhdPtr->ChipSet != RHD_RS600) &&
+	(rhdPtr->ChipSet != RHD_RS740)) {
+	CARD8 pipe = (RHDRegRead(rhdPtr, R400_GB_PIPE_SELECT) >> 4) & 0xF0;
+	RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, pipe | 0x01);
+    }
 
     RHDRegMask(pScrn, R5XX_GB_TILE_CONFIG, 0, R5XX_ENABLE_TILING);
     RHDRegWrite(pScrn, R5XX_WAIT_UNTIL,
 		R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
-    RHDRegMask(pScrn, R5XX_DST_PIPE_CONFIG, R5XX_PIPE_AUTO_CONFIG, R5XX_PIPE_AUTO_CONFIG);
+    RHDRegMask(pScrn, R5XX_DST_PIPE_CONFIG,
+	       R5XX_PIPE_AUTO_CONFIG, R5XX_PIPE_AUTO_CONFIG);
     RHDRegMask(pScrn, R5XX_RB2D_DSTCACHE_MODE,
 	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE,
 	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE);
@@ -475,8 +490,8 @@ R5xxEngineWaitIdleFull(struct RhdCS *CS)
 
     RHDCSGrab(CS, 2);
     RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
-		      R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
-		      R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
+		  R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
+		  R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
 
     if (rhdPtr->ThreeDPrivate) {
 	struct R5xx3D *State = rhdPtr->ThreeDPrivate;

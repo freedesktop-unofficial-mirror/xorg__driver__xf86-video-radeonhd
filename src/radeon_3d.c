@@ -42,7 +42,6 @@
 #include "rhd_cs.h"
 
 #include "r5xx_accel.h"
-#include "r5xx_regs.h"
 #include "r5xx_3dregs.h"
 
 #ifdef USE_DRI

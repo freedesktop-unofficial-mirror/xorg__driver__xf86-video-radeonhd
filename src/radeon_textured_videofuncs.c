@@ -77,6 +77,7 @@ do {								\
 
 # include "xf86.h"
 # include "fourcc.h"
+# include "picturestr.h"
 
 # include "rhd.h"
 # include "rhd_cs.h"
@@ -86,7 +87,9 @@ do {								\
 # include "r5xx_3dregs.h"
 # include "rhd_video.h"
 
-# include "exa.h"
+# ifdef USE_EXA
+#  include "exa.h"
+# endif
 
 # define uint32_t CARD32
 
@@ -163,11 +166,14 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
 # define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr rhdPtr = RHDPTR(pScrn)
 # define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = (struct R5xx3D *)rhdPtr->ThreeDPrivate
 
-# define EXA_USED (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
 # define FB_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
-# define EXA_FB_OFFSET (rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart)
 
-#define RADEONInit3DEngine R5xx3DSetup
+# ifdef USE_EXA
+#  define EXA_ENABLED (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
+#  define EXA_FB_OFFSET (rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart)
+# endif
+
+#define RADEONInit3DEngine(p) R5xx3DSetup((p)->scrnIndex)
 
 typedef struct RHDPortPriv *RADEONPortPrivPtr;
 
@@ -193,10 +199,11 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     BoxPtr pBox = REGION_RECTS(&pPriv->clip);
     int nBox = REGION_NUM_RECTS(&pPriv->clip);
     VIDEO_PREAMBLE();
+
     pixel_shift = pPixmap->drawable.bitsPerPixel >> 4;
 
 #ifdef USE_EXA
-    if (EXA_USED) {
+    if (EXA_ENABLED) {
 	dst_offset = exaGetPixmapOffset(pPixmap) + EXA_FB_OFFSET;
 	dst_pitch = exaGetPixmapPitch(pPixmap);
     } else
@@ -215,7 +222,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 #endif
 
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(pScrn->scrnIndex);
+	RADEONInit3DEngine(pScrn);
 
     /* we can probably improve this */
     BEGIN_VIDEO(2);

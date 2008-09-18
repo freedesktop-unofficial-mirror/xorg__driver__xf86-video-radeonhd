@@ -1027,25 +1027,38 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	RHDDRIFinishScreenInit(pScreen);
 #endif
 
-    /* initialise command submission backend */
+    /* Initialize command submission backend */
     RHDCSInit(pScrn);
     if (rhdPtr->CS)
 	RHDCSStart(rhdPtr->CS);
 
-    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+    /* Init 2D after DRI is set up */
+    switch (rhdPtr->AccelMethod) {
+    case RHD_ACCEL_SHADOWFB:
 	if (!RHDShadowSetup(pScreen))
 	    /* No safetynet anymore */
 	    return FALSE;
-    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxXAAInit(pScrn, pScreen);
-    }
+	break;
+    case RHD_ACCEL_XAA:
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (!R5xxXAAInit(pScrn, pScreen))
+		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	} else
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
 #ifdef USE_EXA
-    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
- 	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxEXAInit(pScrn, pScreen);
-    }
+    case RHD_ACCEL_EXA:
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (!R5xxEXAInit(pScrn, pScreen))
+		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	} else
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
 #endif /* USE_EXA */
+    default:
+	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
+    }
 
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (rhdPtr->TwoDPrivate)

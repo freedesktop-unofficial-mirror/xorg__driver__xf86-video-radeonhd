@@ -379,8 +379,8 @@ static void RHDEnterServer(ScreenPtr pScreen)
     if (rhdPtr->XAAInfo)
 	SET_SYNC_FLAG(rhdPtr->XAAInfo);
 
-    pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScrn->pScreen);
-    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
+    pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
+    if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScreen)) {
 	struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
 
 	if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
@@ -408,8 +408,7 @@ static void RHDEnterServer(ScreenPtr pScreen)
  * can start/stop the engine. */
 static void RHDLeaveServer(ScreenPtr pScreen)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[pScreen->myNum]);
-    struct RhdCS *CS = rhdPtr->CS;
+    struct RhdCS *CS = RHDPTR(xf86Screens[pScreen->myNum])->CS;
 
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
@@ -417,7 +416,7 @@ static void RHDLeaveServer(ScreenPtr pScreen)
 
 	R5xxDstCacheFlush(CS);
 	R5xxZCacheFlush(CS);
-	R5xxEngineWaitIdleFull(CS);
+
 	RHDCSFlush(CS); /* was a Release... */
 
 	CS->Clean = RHD_CS_CLEAN_DIRTY;
@@ -1192,6 +1191,8 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
     int            depthBytesPerPixel = (info->depthBits == 24 ? 32 : info->depthBits) / 8;
     int            size, depth_size;
     unsigned int   old_freeoffset, old_freesize;
+
+    RHDFUNC(rhdPtr);
 
     size = pScrn->displayWidth * bytesPerPixel * pScrn->virtualY;
 
