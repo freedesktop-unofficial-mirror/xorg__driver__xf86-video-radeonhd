@@ -25,7 +25,7 @@ AUTOMAKE_OPTIONS = foreign
 # src before man: src/ may update sources in man/
 SUBDIRS = src man utils/conntest
 
-EXTRA_DIST = RadeonHD.tmpl Imakefile git_version.sh ChangeLog
+EXTRA_DIST = RadeonHD.tmpl Imakefile git_version.sh ChangeLog INSTALL
 MAINTAINERCLEANFILES = ChangeLog
 
 .PHONY: ChangeLog
