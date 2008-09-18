@@ -1050,7 +1050,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (rhdPtr->TwoDPrivate)
 	    R5xx2DStart(pScrn);
-	R5xxEngineWaitIdleFull(pScrn->scrnIndex);
+	R5xxEngineWaitIdleFull(rhdPtr->CS);
     }
 
     miInitializeBackingStore(pScreen);
@@ -1141,15 +1141,16 @@ static void
 rhdEngineIdle(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
 
-    if (rhdPtr->CS) {
+    if (CS) {
 	if (rhdPtr->ChipSet < RHD_R600) {
-	    R5xxDstCacheFlush(rhdPtr->scrnIndex);
-	    R5xxEngineWaitIdleFull(rhdPtr->scrnIndex);
+	    R5xxDstCacheFlush(CS);
+	    R5xxEngineWaitIdleFull(CS);
 	}
 
-	RHDCSFlush(rhdPtr->CS);
-	RHDCSIdle(rhdPtr->CS);
+	RHDCSFlush(CS);
+	RHDCSIdle(CS);
     }
 
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
@@ -1250,7 +1251,7 @@ RHDEnterVT(int scrnIndex, int flags)
 	RHDCSStart(rhdPtr->CS);
 
 	if (rhdPtr->ChipSet < RHD_R600)
-	    R5xxEngineWaitIdleFull(scrnIndex);
+	    R5xxEngineWaitIdleFull(rhdPtr->CS);
 
 	RHDCSFlush(rhdPtr->CS);
 	RHDCSIdle(rhdPtr->CS);

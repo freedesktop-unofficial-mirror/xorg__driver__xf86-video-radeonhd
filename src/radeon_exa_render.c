@@ -148,7 +148,7 @@ F_TO_DW(float val)
 
 #define xFixedToFloat(f) (((float) (f)) / 65536)
 
-#define RADEON_SWITCH_TO_3D() R5xxEngineWaitIdle2D(rhdPtr->scrnIndex)
+#define RADEON_SWITCH_TO_3D() R5xxEngineWaitIdle2D(rhdPtr->CS)
 #define RADEONInit3DEngine(x) R5xx3DSetup(rhdPtr->scrnIndex)
 
 #endif /* IS_RADEON_DRIVER */

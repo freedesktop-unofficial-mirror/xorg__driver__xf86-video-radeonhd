@@ -39,9 +39,6 @@ struct R5xxRop {
 
 void R5xx2DIdle(ScrnInfoPtr pScrn);
 
-void R5xxDstCacheFlush(int scrnIndex);
-void R5xxZCacheFlush(int scrnIndex);
-
 void R5xx2DSetup(ScrnInfoPtr pScrn); /* to be called after VT switch and such */
 void R5xx2DStart(ScrnInfoPtr pScrn);
 
@@ -99,8 +96,11 @@ void R5xx3DInit(ScrnInfoPtr pScrn);
 void R5xx3DSetup(int scrnIndex);
 void R5xx3DDestroy(ScrnInfoPtr pScrn);
 
-void R5xxEngineWaitIdleFull(int scrnIndex);
-void R5xxEngineWaitIdle3D(int scrnIndex);
-void R5xxEngineWaitIdle2D(int scrnIndex);
+void R5xxDstCacheFlush(struct RhdCS *CS);
+void R5xxZCacheFlush(struct RhdCS *CS);
+
+void R5xxEngineWaitIdleFull(struct RhdCS *CS);
+void R5xxEngineWaitIdle3D(struct RhdCS *CS);
+void R5xxEngineWaitIdle2D(struct RhdCS *CS);
 
 #endif /* _RHD_ACCEL_H */

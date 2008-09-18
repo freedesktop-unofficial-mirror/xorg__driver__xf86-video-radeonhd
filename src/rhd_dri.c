@@ -369,6 +369,7 @@ static void RHDEnterServer(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
     drm_radeon_sarea_t *pSAREAPriv;
 
 #ifdef USE_EXA
@@ -382,20 +383,20 @@ static void RHDEnterServer(ScreenPtr pScreen)
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScrn->pScreen)) {
 	struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
 
-	if (rhdPtr->CS->Clean != RHD_CS_CLEAN_QUEUED) {
-	    R5xxDstCacheFlush(pScrn->scrnIndex);
-	    R5xxZCacheFlush(pScrn->scrnIndex);
-	    R5xxEngineWaitIdleFull(pScrn->scrnIndex);
+	if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
+	    R5xxDstCacheFlush(CS);
+	    R5xxZCacheFlush(CS);
+	    R5xxEngineWaitIdleFull(CS);
 
-	    rhdPtr->CS->Clean = RHD_CS_CLEAN_QUEUED;
+	    CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
 
 	if (R5xx3D)
 	    R5xx3D->XHas3DEngineState = FALSE;
     } else {
 	/* if the engine has been untouched, we need to track this too. */
-	if (rhdPtr->CS->Clean != RHD_CS_CLEAN_QUEUED)
-	    rhdPtr->CS->Clean = RHD_CS_CLEAN_UNTOUCHED;
+	if (CS->Clean != RHD_CS_CLEAN_QUEUED)
+	    CS->Clean = RHD_CS_CLEAN_UNTOUCHED;
     }
 }
 
@@ -414,9 +415,9 @@ static void RHDLeaveServer(ScreenPtr pScreen)
      * we must flush them to the kernel module now. */
     if (CS->Clean == RHD_CS_CLEAN_DONE) {
 
-	R5xxDstCacheFlush(CS->scrnIndex);
-	R5xxZCacheFlush(CS->scrnIndex);
-	R5xxEngineWaitIdleFull(CS->scrnIndex);
+	R5xxDstCacheFlush(CS);
+	R5xxZCacheFlush(CS);
+	R5xxEngineWaitIdleFull(CS);
 	RHDCSFlush(CS); /* was a Release... */
 
 	CS->Clean = RHD_CS_CLEAN_DIRTY;

@@ -135,30 +135,6 @@ R5xx2DFlush(int scrnIndex)
 }
 
 /*
- *
- */
-void
-R5xxDstCacheFlush(int scrnIndex)
-{
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-
-    RHDCSGrab(rhdPtr->CS, 2);
-    RHDCSRegWrite(rhdPtr->CS, R5XX_RB3D_DSTCACHE_CTLSTAT, R5XX_RB3D_DC_FLUSH_ALL);
-}
-
-/*
- *
- */
-void
-R5xxZCacheFlush(int scrnIndex)
-{
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-
-    RHDCSGrab(rhdPtr->CS, 2);
-    RHDCSRegWrite(rhdPtr->CS, R5XX_RB3D_ZCACHE_CTLSTAT, R5XX_RB3D_ZC_FLUSH_ALL);
-}
-
-/*
  * Wait for the graphics engine to be completely idle: the FIFO has
  * drained, the Pixel Cache is flushed, and the engine is idle.  This is
  * a standard "sync" function that will make the hardware "quiescent".
@@ -468,17 +444,36 @@ R5xx3DDestroy(ScrnInfoPtr pScrn)
 }
 
 /*
+ *
+ */
+void
+R5xxDstCacheFlush(struct RhdCS *CS)
+{
+    RHDCSGrab(CS, 2);
+    RHDCSRegWrite(CS, R5XX_RB3D_DSTCACHE_CTLSTAT, R5XX_RB3D_DC_FLUSH_ALL);
+}
+
+/*
+ *
+ */
+void
+R5xxZCacheFlush(struct RhdCS *CS)
+{
+    RHDCSGrab(CS, 2);
+    RHDCSRegWrite(CS, R5XX_RB3D_ZCACHE_CTLSTAT, R5XX_RB3D_ZC_FLUSH_ALL);
+}
+
+/*
  * When we switch between 3d and 2d rendering all the time, we need to make
  * sure that the other engine is idle first before the new engine goes and
  * fires off.
  */
 void
-R5xxEngineWaitIdleFull(int scrnIndex)
+R5xxEngineWaitIdleFull(struct RhdCS *CS)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-    struct RhdCS *CS = rhdPtr->CS;
+    RHDPtr rhdPtr = RHDPTRI(CS);
 
-    RHDCSGrab(rhdPtr->CS, 2);
+    RHDCSGrab(CS, 2);
     RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
 		      R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
 		      R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
@@ -493,11 +488,9 @@ R5xxEngineWaitIdleFull(int scrnIndex)
  *
  */
 void
-R5xxEngineWaitIdle3D(int scrnIndex)
+R5xxEngineWaitIdle3D(struct RhdCS *CS)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-    struct RhdCS *CS = rhdPtr->CS;
-    struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+    struct R5xx3D *State = RHDPTRI(CS)->ThreeDPrivate;
 
     if (!State)
 	return;
@@ -514,11 +507,9 @@ R5xxEngineWaitIdle3D(int scrnIndex)
  *
  */
 void
-R5xxEngineWaitIdle2D(int scrnIndex)
+R5xxEngineWaitIdle2D(struct RhdCS *CS)
 {
-    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-    struct RhdCS *CS = rhdPtr->CS;
-    struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+    struct R5xx3D *State = RHDPTRI(CS)->ThreeDPrivate;
 
     if (!State)
 	return;

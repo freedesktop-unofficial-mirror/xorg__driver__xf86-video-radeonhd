@@ -164,7 +164,7 @@ R5xxEXAPrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     }
     offset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxEngineWaitIdle3D(CS->scrnIndex);
+    R5xxEngineWaitIdle3D(CS);
 
     RHDCSGrab(CS, 2 * 5);
 
@@ -260,7 +260,7 @@ R5xxEXAPrepareCopy(PixmapPtr pSrc, PixmapPtr pDst, int xdir, int ydir, int rop,
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxEngineWaitIdle3D(CS->scrnIndex);
+    R5xxEngineWaitIdle3D(CS);
 
     RHDCSGrab(CS, 2 * 5);
 
@@ -433,7 +433,7 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
     }
     dstoffset += rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    R5xxEngineWaitIdle3D(CS->scrnIndex);
+    R5xxEngineWaitIdle3D(CS);
 
     for (; h; ) {
 	hpass = min((unsigned int) h, hpass);
@@ -641,7 +641,7 @@ R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
     BufferPitch = (wpass + 63) & ~63;
     hpass = ExaPrivate->BufferSize / BufferPitch;
 
-    R5xxEngineWaitIdle3D(CS->scrnIndex);
+    R5xxEngineWaitIdle3D(CS);
 
     while (h) {
 	hpass = min((unsigned int) h, hpass);
