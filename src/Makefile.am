@@ -148,16 +148,44 @@ radeonhd.man.new: rhd_id.c $(SRCMAN)
 		$(SED) -n '/^\.\\" END_DEVICE_LIST marker - do not delete/,$$p' "$(SRCMAN)" \
 	) > radeonhd.man.new
 
+SRCREADME = $(top_srcdir)/README
+CLEANFILES += README.new
+README.new: rhd_id.c $(top_srcdir)/README
+	echo "Generating radeon.man.new..."; \
+	(	$(SED) -n '1,/^BEGIN_DEVICE_LIST$$/p' "$(SRCREADME)"; \
+		$(SED)	-e '1,/^[ 	]*\/\* START_DEVICE_LIST marker - do not delete \*\/ *$$/d' \
+			-e '/^[ 	]*\/\* END_DEVICE_LIST marker - do not delete \*\/ *$$/,$$d' \
+			-e '/^[ 	]\{1,\}xf86Msg(X_NONE,/d' \
+			-e '/^[ 	]\{1,\}\/\*/d' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*;\)\\n"$$/  * \1:\t\2/' \
+			-e 's/^[ 	]\{1,\}"\\t\\t\(.*\)\.\\n"\();\)\{0,1\}$$/         \t\1/' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*\)\.\\n"\();\)\{0,1\}$$/  * \1:\t\2/' \
+			"$(srcdir)/rhd_id.c"; \
+		$(SED) -n '/^END_DEVICE_LIST$$/,$$p' "$(SRCREADME)" \
+	) > README.new
+
 # Update man page from rhd_id.c RHDIdentify() output.
 # The exit(1) makes sure the update does not go unnoticed.
-all-local: radeonhd.man.new
-	@if diff -u "$(SRCMAN)" radeonhd.man.new; then \
+all-local: radeonhd.man.new README.new
+	@changed=""; \
+	if diff -u "$(SRCMAN)" radeonhd.man.new; then \
 		echo "radeon(4) man page is current."; \
 	else \
-		echo "WARNING: New man pages differs from old one."; \
-		echo "         Please check the changes to $(SRCMAN) and commit them together with your"; \
-		echo "         changes to $(srcdir)/rhd_id.c."; \
+                changed="$$changed $(SRCMAN)"; \
 		mv -f radeonhd.man.new "$(SRCMAN)"; \
+	fi; \
+	if diff -u "$(SRCREADME)" README.new; then \
+		echo "README file is current."; \
+	else \
+                changed="$$changed $(SRCREADME)"; \
+		mv -f README.new "$(SRCREADME)"; \
+	fi; \
+	if test "x$$changed" = "x"; then :; else \
+		echo "WARNING: Due to changes to src/rhd_id.c, some files differ from the original ones."; \
+		echo "         Please verify the changes to the following files"; \
+		for f in $$changed; do echo "              $$f"; done; \
+		echo "         and commit them together with your changes to"; \
+		echo "              $(srcdir)/rhd_id.c"; \
 		exit 1; \
 	fi
 endif
