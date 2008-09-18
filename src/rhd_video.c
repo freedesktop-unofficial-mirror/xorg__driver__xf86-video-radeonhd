@@ -34,11 +34,11 @@
 #include <stdio.h>
 #include <math.h>
 
+/* for memory management */
+#include "xaa.h"
 #ifdef USE_EXA
 #include "exa.h"
 #endif
-
-#include "xaa.h"
 
 #include "xf86xv.h"
 
@@ -58,12 +58,6 @@
 
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
-
-/* @@@ please go away! */
-#define IS_R500_3D \
-    ((rhdPtr->ChipSet != RHD_RS690) && \
-     (rhdPtr->ChipSet != RHD_RS600) && \
-     (rhdPtr->ChipSet != RHD_RS740))
 
 #ifdef USE_EXA
 static void
@@ -633,33 +627,17 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 }
 
 /*
- *
+ * RS690, RS600, RS740 all have a maximum texture size of 2048x2048.
+ * R500s quadruple this to 4096x4096.
  */
-#define IMAGE_MAX_WIDTH		2048
-#define IMAGE_MAX_HEIGHT	2048
-
-#define IMAGE_MAX_WIDTH_R500	4096
-#define IMAGE_MAX_HEIGHT_R500	4096
-
-/* client libraries expect an encoding */
-static XF86VideoEncodingRec DummyEncoding[1] =
+static XF86VideoEncodingRec DummyEncodingRS600[1] =
 {
-    {
-	0,
-	"XV_IMAGE",
-	IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT,
-	{1, 1}
-    }
+    { 0, "XV_IMAGE", 2048, 2048, {1, 1}}
 };
 
 static XF86VideoEncodingRec DummyEncodingR500[1] =
 {
-    {
-	0,
-	"XV_IMAGE",
-	IMAGE_MAX_WIDTH_R500, IMAGE_MAX_HEIGHT_R500,
-	{1, 1}
-    }
+    { 0, "XV_IMAGE", 4096, 4096, {1, 1}}
 };
 
 #define NUM_FORMATS 3
@@ -701,10 +679,13 @@ rhdSetupImageTexturedVideo(ScreenPtr pScreen)
     adapt->flags = 0;
     adapt->name = "RadeonHD Textured Video";
     adapt->nEncodings = 1;
-    if (IS_R500_3D)
-	adapt->pEncodings = DummyEncodingR500;
+
+    if ((rhdPtr->ChipSet == RHD_RS690) || (rhdPtr->ChipSet == RHD_RS600) ||
+	(rhdPtr->ChipSet == RHD_RS740))
+	adapt->pEncodings = DummyEncodingRS600;
     else
-	adapt->pEncodings = DummyEncoding;
+	adapt->pEncodings = DummyEncodingR500;
+
     adapt->nFormats = NUM_FORMATS;
     adapt->pFormats = Formats;
     adapt->nPorts = num_texture_ports;
