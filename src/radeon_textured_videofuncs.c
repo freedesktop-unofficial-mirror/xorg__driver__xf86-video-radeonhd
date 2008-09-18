@@ -160,10 +160,8 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
 
 # define xFixedToFloat(f) (((float) (f)) / 65536)
 
-
-# define VAR_PREAMBLE(pScreen) RHDPtr rhdPtr = RHDPTR(xf86Screens[(pScreen)->myNum])
 # define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr rhdPtr = RHDPTR(pScrn)
-# define TWODSTATE_PREAMBLE() struct R5xx3D *accel_state = (struct R5xx3D *)rhdPtr->TwoDPrivate
+# define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = (struct R5xx3D *)rhdPtr->ThreeDPrivate
 
 # define EXA_USED (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
 # define FB_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
@@ -182,7 +180,7 @@ void
 FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv)
 {
     VAR_PSCRN_PREAMBLE(pScrn);
-    TWODSTATE_PREAMBLE();
+    THREEDSTATE_PREAMBLE();
     PixmapPtr pPixmap = pPriv->pPixmap;
 #if 0
     uint32_t txformat;

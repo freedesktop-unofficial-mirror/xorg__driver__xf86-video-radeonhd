@@ -64,7 +64,8 @@
 
 #ifdef USE_DRI
 #define END_ACCEL() RHDCSAdvance(CS); \
-                    RHDDRIContextClaim(pScrn)
+                    if (pScrn->pScreen) \
+                        RHDDRIContextClaim(pScrn)
 #else
 #define END_ACCEL() RHDCSAdvance(CS)
 #endif
