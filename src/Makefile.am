@@ -132,7 +132,6 @@ endif
 
 if MAINTAINER_MODE
 SRCMAN = $(top_srcdir)/man/radeonhd.man
-
 CLEANFILES += radeonhd.man.new
 radeonhd.man.new: rhd_id.c $(SRCMAN)
 	echo "Generating radeon.man.new..."; \
@@ -151,7 +150,7 @@ radeonhd.man.new: rhd_id.c $(SRCMAN)
 SRCREADME = $(top_srcdir)/README
 CLEANFILES += README.new
 README.new: rhd_id.c $(top_srcdir)/README
-	echo "Generating radeon.man.new..."; \
+	echo "Generating README.new..."; \
 	(	$(SED) -n '1,/^BEGIN_DEVICE_LIST$$/p' "$(SRCREADME)"; \
 		$(SED)	-e '1,/^[ 	]*\/\* START_DEVICE_LIST marker - do not delete \*\/ *$$/d' \
 			-e '/^[ 	]*\/\* END_DEVICE_LIST marker - do not delete \*\/ *$$/,$$d' \
@@ -164,8 +163,8 @@ README.new: rhd_id.c $(top_srcdir)/README
 		$(SED) -n '/^END_DEVICE_LIST$$/,$$p' "$(SRCREADME)" \
 	) > README.new
 
-# Update man page from rhd_id.c RHDIdentify() output.
-# The exit(1) makes sure the update does not go unnoticed.
+# Update man page and README from rhd_id.c RHDIdentify() output.
+# The exit(1) makes sure the updates do not go unnoticed.
 all-local: radeonhd.man.new README.new
 	@changed=""; \
 	if diff -u "$(SRCMAN)" radeonhd.man.new; then \
