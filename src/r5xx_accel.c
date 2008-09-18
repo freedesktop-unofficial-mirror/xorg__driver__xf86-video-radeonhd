@@ -100,17 +100,17 @@ struct R5xxRop R5xxRops[] = {
  * of these slots are empty.
  */
 static Bool
-R5xxFIFOWaitLocal(int scrnIndex, CARD32 required)
+R5xxFIFOWait(RHDPtr rhdPtr, CARD32 required)
 {
     int i;
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
 	if (required <=
-	    (_RHDRegRead(scrnIndex, R5XX_RBBM_STATUS) & R5XX_RBBM_FIFOCNT_MASK))
+	    (RHDRegRead(rhdPtr, R5XX_RBBM_STATUS) & R5XX_RBBM_FIFOCNT_MASK))
 	    return TRUE;
 
-    xf86DrvMsg(scrnIndex, X_ERROR, "%s: Timeout 0x%08X.\n", __func__,
-	       (unsigned int) _RHDRegRead(scrnIndex, R5XX_RBBM_STATUS));
+    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Timeout 0x%08X.\n", __func__,
+	       (unsigned int) RHDRegRead(rhdPtr, R5XX_RBBM_STATUS));
     return FALSE;
 }
 
@@ -290,11 +290,11 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
     tmp = (((pScrn->displayWidth * (pScrn->bitsPerPixel / 8)) / 64) << 22) |
 	((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 2);
+    R5xxFIFOWait(rhdPtr, 2);
     RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, tmp);
     RHDRegWrite(rhdPtr, R5XX_SRC_PITCH_OFFSET, tmp);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 2);
+    R5xxFIFOWait(rhdPtr, 2);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     RHDRegMask(rhdPtr, R5XX_DP_DATATYPE,
 	       R5XX_HOST_BIG_ENDIAN_EN, R5XX_HOST_BIG_ENDIAN_EN);
@@ -317,17 +317,17 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
     RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, 0);
 #endif
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 1);
+    R5xxFIFOWait(rhdPtr, 1);
     RHDRegWrite(rhdPtr, R5XX_DEFAULT_SC_BOTTOM_RIGHT,
 		R5XX_DEFAULT_SC_RIGHT_MAX | R5XX_DEFAULT_SC_BOTTOM_MAX);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 1);
+    R5xxFIFOWait(rhdPtr, 1);
     RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL,
 		(R5xx2DDatatypeGet(pScrn) << R5XX_GMC_DST_DATATYPE_SHIFT) |
 		R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_DST_PITCH_OFFSET_CNTL |
 		R5XX_GMC_BRUSH_SOLID_COLOR | R5XX_GMC_SRC_DATATYPE_COLOR);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 5);
+    R5xxFIFOWait(rhdPtr, 5);
     RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_FRGD_CLR, 0xFFFFFFFF);
     RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_BKGD_CLR, 0x00000000);
     RHDRegWrite(rhdPtr, R5XX_DP_SRC_FRGD_CLR, 0xFFFFFFFF);
@@ -352,16 +352,6 @@ R5xxEngineReset(ScrnInfoPtr pScrn)
     /* we also need to reinitialise the 3d engine now */
     if (rhdPtr->ThreeDPrivate)
 	((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState = FALSE;
-}
-
-/*
- *
- */
-void
-R5xxFIFOWait(int scrnIndex, CARD32 required)
-{
-    if (!R5xxFIFOWaitLocal(scrnIndex, required))
-	R5xxEngineReset(xf86Screens[scrnIndex]);
 }
 
 /*

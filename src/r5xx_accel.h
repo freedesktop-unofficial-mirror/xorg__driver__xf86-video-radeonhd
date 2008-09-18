@@ -37,7 +37,6 @@ struct R5xxRop {
     CARD32 pattern;
 };
 
-void R5xxFIFOWait(int scrnIndex, CARD32 required);
 void R5xx2DIdle(ScrnInfoPtr pScrn);
 
 void R5xxDstCacheFlush(int scrnIndex);
