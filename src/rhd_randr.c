@@ -1128,7 +1128,14 @@ rhdRROutputGetModes(xf86OutputPtr output)
 		       "No monitor size info, assuming 96dpi.\n");
 	}
     }
-
+    RHDDebug(rhdPtr->scrnIndex, "%s: Adding Output Modes:\n",__func__);
+    if (rhdPtr->verbosity >= 7) {
+	DisplayModePtr mode =  rout->Connector->Monitor->Modes;
+	while (mode) {
+	    RHDPrintModeline(mode);
+	    mode = mode->next;
+	}
+    }
     return xf86DuplicateModes(output->scrn, rout->Connector->Monitor->Modes);
 }
 
