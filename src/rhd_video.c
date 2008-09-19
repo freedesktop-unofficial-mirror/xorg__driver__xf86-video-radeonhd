@@ -454,94 +454,29 @@ rhdCopyMungedData(
  */
 static int
 rhdPutImageTextured(ScrnInfoPtr pScrn,
-		       short src_x, short src_y,
-		       short drw_x, short drw_y,
-		       short src_w, short src_h,
-		       short drw_w, short drw_h,
-		       int id,
-		       unsigned char *buf,
-		       short width,
-		       short height,
-		       Bool sync,
-		       RegionPtr clipBoxes,
-		       pointer data,
-		       DrawablePtr pDraw)
+		    short src_x, short src_y,
+		    short drw_x, short drw_y,
+		    short src_w, short src_h,
+		    short drw_w, short drw_h,
+		    int id,
+		    unsigned char *buf,
+		    short width,
+		    short height,
+		    Bool sync,
+		    RegionPtr clipBoxes,
+		    pointer data,
+		    DrawablePtr pDraw)
 {
-    ScreenPtr pScreen = pScrn->pScreen;
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    RHDPortPrivPtr pPriv = (RHDPortPrivPtr)data;
-    INT32 x1, x2, y1, y2;
-    int srcPitch, srcPitch2, dstPitch;
-    int s2offset, s3offset, tmp;
-    int top, left, npixels, nlines, size;
-    BoxRec dstBox;
-    int dst_width = width, dst_height = height;
+    struct RHDPortPriv *pPriv = data;
+    CARD8 *FBBuf;
+    int dstPitch, size;
 
-    /* make the compiler happy */
-    s2offset = s3offset = srcPitch2 = 0;
-
-    /* Clip */
-    x1 = src_x;
-    x2 = src_x + src_w;
-    y1 = src_y;
-    y2 = src_y + src_h;
-
-    dstBox.x1 = drw_x;
-    dstBox.x2 = drw_x + drw_w;
-    dstBox.y1 = drw_y;
-    dstBox.y2 = drw_y + drw_h;
-
-    if (!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
-	return Success;
-
-    src_w = (x2 - x1) >> 16;
-    src_h = (y2 - y1) >> 16;
-    drw_w = dstBox.x2 - dstBox.x1;
-    drw_h = dstBox.y2 - dstBox.y1;
-
-    if ((x1 >= x2) || (y1 >= y2))
-	return Success;
-
-    switch(id) {
-    case FOURCC_YV12:
-    case FOURCC_I420:
-	dstPitch = ((dst_width << 1) + 15) & ~15;
-	srcPitch = (width + 3) & ~3;
-	srcPitch2 = ((width >> 1) + 3) & ~3;
-	size = dstPitch * dst_height;
-	break;
-    case FOURCC_UYVY:
-    case FOURCC_YUY2:
-    default:
-	dstPitch = ((dst_width << 1) + 15) & ~15;
-	srcPitch = (width << 1);
-	srcPitch2 = 0;
-	size = dstPitch * dst_height;
-	break;
-    }
-
-   if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-       /* The upload blit only supports multiples of 64 bytes */
-       dstPitch = (dstPitch + 63) & ~63;
-   else
-       dstPitch = (dstPitch + 15) & ~15;
-
-    if (pPriv->video_memory && (size != pPriv->size)) {
-	rhdFreeMemory(pScrn, pPriv->video_memory);
-	pPriv->video_memory = NULL;
-    }
-
-    if (!pPriv->video_memory)
-	pPriv->video_offset =
-	    rhdAllocateMemory(pScrn, &pPriv->video_memory, size * 2);
-    if (!pPriv->video_offset || !pPriv->video_memory) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: Failed to allocate framebuffer memory.\n", __func__);
-	return BadAlloc;
-    }
-
+    /*
+     * First, make sure we can render to the drawable.
+     */
     if (pDraw->type == DRAWABLE_WINDOW)
-	pPriv->pPixmap = (*pScreen->GetWindowPixmap)((WindowPtr)pDraw);
+	pPriv->pPixmap = (*pScrn->pScreen->GetWindowPixmap)((WindowPtr)pDraw);
     else
 	pPriv->pPixmap = (PixmapPtr)pDraw;
 
@@ -566,51 +501,80 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	return BadAlloc;
     }
 
-    /* copy data */
-    top = y1 >> 16;
-    left = (x1 >> 16) & ~1;
-    npixels = ((((x2 + 0xffff) >> 16) + 1) & ~1) - left;
-
-    pPriv->src_offset = pPriv->video_offset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-    pPriv->src_addr = ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + pPriv->video_offset + (top * dstPitch));
-    pPriv->src_pitch = dstPitch;
-    pPriv->size = size;
     pPriv->pDraw = pDraw;
+
+    /*
+     * Now, find out whether we have enough memory available.
+     */
+    dstPitch = width << 1;
+
+    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+	/* The upload blit only supports multiples of 64 bytes */
+       dstPitch = (dstPitch + 63) & ~63;
+    else
+       dstPitch = (dstPitch + 15) & ~15;
+
+    size = dstPitch * height;
+
+    if (pPriv->video_memory && (size != pPriv->size)) {
+	rhdFreeMemory(pScrn, pPriv->video_memory);
+	pPriv->video_memory = NULL;
+	pPriv->size = 0;
+    }
+
+    if (!pPriv->video_memory)
+	pPriv->video_offset =
+	    rhdAllocateMemory(pScrn, &pPriv->video_memory, size * 2);
+
+    if (!pPriv->video_offset || !pPriv->video_memory) {
+	pPriv->size = 0;
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: Failed to allocate framebuffer memory.\n", __func__);
+	return BadAlloc;
+    }
+
+    pPriv->size = size;
+
+    /*
+     * Now copy the buffer to the framebuffer, and convert to planar when necessary.
+     */
+    pPriv->src_offset = pPriv->video_offset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    FBBuf = ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + pPriv->video_offset);
+    pPriv->src_pitch = dstPitch;
 
     switch(id) {
     case FOURCC_YV12:
     case FOURCC_I420:
-	top &= ~1;
-	nlines = ((((y2 + 0xffff) >> 16) + 1) & ~1) - top;
-	s2offset = srcPitch * height;
-	s3offset = (srcPitch2 * (height >> 1)) + s2offset;
-	top &= ~1;
-	pPriv->src_addr += left << 1;
-	tmp = ((top >> 1) * srcPitch2) + (left >> 1);
-	s2offset += tmp;
-	s3offset += tmp;
-	if (id == FOURCC_I420) {
-	    tmp = s2offset;
-	    s2offset = s3offset;
-	    s3offset = tmp;
+	{
+	    int srcPitch = (width + 3) & ~3;
+	    int srcPitch2 = ((width >> 1) + 3) & ~3;
+	    int s2offset = srcPitch * height;
+	    int s3offset = s2offset + srcPitch2 * (height >> 1);
+
+	    if (id == FOURCC_YV12)
+		rhdCopyMungedData(pScrn, buf, buf + s2offset, buf + s3offset,
+				  FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
+	    else
+		rhdCopyMungedData(pScrn, buf, buf + s3offset, buf + s2offset,
+				  FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
 	}
-	rhdCopyMungedData(pScrn, buf + (top * srcPitch) + left,
-			     buf + s2offset, buf + s3offset, pPriv->src_addr,
-			     srcPitch, srcPitch2, dstPitch, nlines, npixels);
 	break;
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
-	nlines = ((y2 + 0xffff) >> 16) - top;
-	rhdCopyData(pScrn, buf, pPriv->src_addr, srcPitch, dstPitch, nlines, npixels, 2);
+	rhdCopyData(pScrn, buf, FBBuf, 2 * width, dstPitch, height, width, 2);
 	break;
     }
 
-    /* update cliplist */
-    if (!REGION_EQUAL(pScrn->pScreen, &pPriv->clip, clipBoxes)) {
+    /*
+     * Update cliplist
+     */
+    if (!REGION_EQUAL(pScrn->pScreen, &pPriv->clip, clipBoxes))
 	REGION_COPY(pScrn->pScreen, &pPriv->clip, clipBoxes);
-    }
 
+    /*
+     * Now let the 3D engine work its magic.
+     */
     pPriv->id = id;
     pPriv->src_w = src_w;
     pPriv->src_h = src_h;

@@ -1,16 +1,13 @@
 #ifndef __RADEON_VIDEO_H__
 #define __RADEON_VIDEO_H__
 
-#include "xf86xv.h"
-
 /* Xvideo port struct */
-typedef struct RHDPortPriv {
-    RegionRec     clip;
+struct RHDPortPriv {
+    RegionRec clip;
 
-    int           size;
-
-    void         *video_memory;
-    int           video_offset;
+    int size;
+    void *video_memory;
+    int video_offset;
 
     /* textured video */
     DrawablePtr pDraw;
@@ -18,13 +15,17 @@ typedef struct RHDPortPriv {
 
     CARD32 src_offset;
     CARD32 src_pitch;
-    CARD8 *src_addr;
 
     int id;
-    int src_w, src_h, dst_w, dst_h;
-    int w, h;
-    int drw_x, drw_y;
-} RHDPortPrivRec, *RHDPortPrivPtr;
+    int src_w;
+    int src_h;
+    int dst_w;
+    int dst_h;
+    int w;
+    int h;
+    int drw_x;
+    int drw_y;
+};
 
 extern void RHDRADEONDisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv);
 extern void RHDInitVideo(ScreenPtr pScreen);

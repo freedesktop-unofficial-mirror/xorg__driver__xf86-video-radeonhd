@@ -191,7 +191,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 #if 0
     uint32_t txformat;
 #endif
-    uint32_t txfilter, txformat0, txformat1, txoffset, txpitch;
+    uint32_t txfilter, txformat0, txformat1, txpitch;
     uint32_t dst_offset, dst_pitch, dst_format;
     uint32_t txenable, colorpitch;
     uint32_t blendcntl;
@@ -300,15 +300,13 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	if (IS_R500_3D && ((pPriv->h - 1) & 0x800))
 	    txpitch |= R500_TXHEIGHT_11;
 
-	txoffset = pPriv->src_offset;
-
 	BEGIN_VIDEO(6);
 	OUT_VIDEO_REG(R300_TX_FILTER0_0, txfilter);
 	OUT_VIDEO_REG(R300_TX_FILTER1_0, 0);
 	OUT_VIDEO_REG(R300_TX_FORMAT0_0, txformat0);
 	OUT_VIDEO_REG(R300_TX_FORMAT1_0, txformat1);
 	OUT_VIDEO_REG(R300_TX_FORMAT2_0, txpitch);
-	OUT_VIDEO_REG(R300_TX_OFFSET_0, txoffset);
+	OUT_VIDEO_REG(R300_TX_OFFSET_0, pPriv->src_offset);
 	FINISH_VIDEO();
 
 	txenable = R300_TEX_0_ENABLE;
@@ -672,15 +670,14 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	int srcX, srcY, srcw, srch;
 	int dstX, dstY, dstw, dsth;
 	xPointFixed srcTopLeft, srcTopRight, srcBottomLeft, srcBottomRight;
+
 	dstX = pBox->x1 + dstxoff;
 	dstY = pBox->y1 + dstyoff;
 	dstw = pBox->x2 - pBox->x1;
 	dsth = pBox->y2 - pBox->y1;
 
-	srcX = ((pBox->x1 - pPriv->drw_x) *
-		pPriv->src_w) / pPriv->dst_w;
-	srcY = ((pBox->y1 - pPriv->drw_y) *
-		pPriv->src_h) / pPriv->dst_h;
+	srcX = ((pBox->x1 - pPriv->drw_x) * pPriv->src_w) / pPriv->dst_w;
+	srcY = ((pBox->y1 - pPriv->drw_y) * pPriv->src_h) / pPriv->dst_h;
 
 	srcw = (pPriv->src_w * dstw) / pPriv->dst_w;
 	srch = (pPriv->src_h * dsth) / pPriv->dst_h;
