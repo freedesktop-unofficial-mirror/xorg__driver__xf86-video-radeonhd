@@ -791,6 +791,8 @@ DACSetRV620(struct rhdOutput *Output, CARD16 offset)
     RHDRegMask(Output, offset + RV620_DACA_AUTO_CALIB_CONTROL, 0x0, 0x4);
     RHDRegMask(Output, offset + RV620_DACA_BGADJ_SRC, 0x0, 0x30);
     RHDRegMask(Output, offset + RV620_DACA_MACRO_CNTL, (Bandgap << 16) | (WhiteFine << 8), Mask);
+    /* Reset the FMT register on CRTC leading to this output */
+    Output->Crtc->FMTModeSet(Output->Crtc, NULL);
 }
 
 /*
