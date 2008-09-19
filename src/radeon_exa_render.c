@@ -2066,10 +2066,11 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
     }
 
 #ifdef ACCEL_CP
-    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
-	BEGIN_RING(4 * vtx_count + 3);
+# ifdef IS_RADEON_DRIVER
+    if (info->ChipFamily < CHIP_FAMILY_R200) {
+	BEGIN_RING(3 * vtx_count + 3);
 	OUT_RING(CP_PACKET3(RADEON_CP_PACKET3_3D_DRAW_IMMD,
-			    4 * vtx_count + 1));
+			    3 * vtx_count + 1));
 	if (accel_state->has_mask)
 	    OUT_RING(RADEON_CP_VC_FRMT_XY |
 		     RADEON_CP_VC_FRMT_ST0 |
@@ -2077,12 +2078,14 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 	else
 	    OUT_RING(RADEON_CP_VC_FRMT_XY |
 		     RADEON_CP_VC_FRMT_ST0);
-	OUT_RING(RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN |
+	OUT_RING(RADEON_CP_VC_CNTL_PRIM_TYPE_RECT_LIST |
 		 RADEON_CP_VC_CNTL_PRIM_WALK_RING |
 		 RADEON_CP_VC_CNTL_MAOS_ENABLE |
 		 RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
-		 (4 << RADEON_CP_VC_CNTL_NUM_SHIFT));
-    } else*/ {
+		 (3 << RADEON_CP_VC_CNTL_NUM_SHIFT));
+    } else
+# endif /* IS_RADEON_DRIVER */
+ {
 	if (IS_R300_3D || IS_R500_3D)
 	    BEGIN_RING(4 * vtx_count + 4);
 	else
@@ -2090,7 +2093,7 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 
 	OUT_RING(CP_PACKET3(R200_CP_PACKET3_3D_DRAW_IMMD_2,
 			    4 * vtx_count));
-	OUT_RING(RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN |
+	OUT_RING(RADEON_CP_VC_CNTL_PRIM_TYPE_QUAD_LIST |
 		 RADEON_CP_VC_CNTL_PRIM_WALK_RING |
 		 (4 << RADEON_CP_VC_CNTL_NUM_SHIFT));
     }
@@ -2098,24 +2101,31 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 #else /* ACCEL_CP */
     if (IS_R300_3D || IS_R500_3D)
 	BEGIN_ACCEL(2 + vtx_count * 4);
+# ifdef IS_RADEON_DRIVER
+    else if (info->ChipFamily < CHIP_FAMILY_R200)
+	BEGIN_ACCEL(1 + vtx_count * 3);
+# endif /* IS_RADEON_DRIVER */
     else
 	BEGIN_ACCEL(1 + vtx_count * 4);
 
-    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
-	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_TRIANGLE_FAN |
-					  RADEON_VF_PRIM_WALK_DATA |
-					  RADEON_VF_RADEON_MODE |
-					  4 << RADEON_VF_NUM_VERTICES_SHIFT));
-    } else*/ {
+# ifdef IS_RADEON_DRIVER
+    if (info->ChipFamily < CHIP_FAMILY_R200)
+	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_RECANGLE_LIST |
+					  (3 << RADEON_VF_NUM_VERTICES_SHIFT)));
+    else
+# endif /* IS_RADEON_DRIVER */
 	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_QUAD_LIST |
 					  RADEON_VF_PRIM_WALK_DATA |
-					  4 << RADEON_VF_NUM_VERTICES_SHIFT));
-    }
-#endif
+					  (4 << RADEON_VF_NUM_VERTICES_SHIFT)));
+#endif /* ACCEL_CP */
 
     if (accel_state->has_mask) {
-	VTX_OUT_MASK((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0],
+
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily >= CHIP_FAMILY_R200)
+# endif /* IS_RADEON_DRIVER */
+	    VTX_OUT_MASK((float)dstX,                                      (float)dstY,
+			 xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0],
 		xFixedToFloat(maskTopLeft.x) / accel_state->texW[1],     xFixedToFloat(maskTopLeft.y) / accel_state->texH[1]);
 	VTX_OUT_MASK((float)dstX,                                      (float)(dstY + h),
 		xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0],
@@ -2127,8 +2137,12 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 		xFixedToFloat(srcTopRight.x) / accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / accel_state->texH[0],
 		xFixedToFloat(maskTopRight.x) / accel_state->texW[1],    xFixedToFloat(maskTopRight.y) / accel_state->texH[1]);
     } else {
-	VTX_OUT((float)dstX,                                      (float)dstY,
-		xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0]);
+
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily >= CHIP_FAMILY_R200)
+# endif /* IS_RADEON_DRIVER */
+	    VTX_OUT((float)dstX,                                      (float)dstY,
+		    xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)dstX,                                      (float)(dstY + h),
 		xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)(dstX + w),                                (float)(dstY + h),
