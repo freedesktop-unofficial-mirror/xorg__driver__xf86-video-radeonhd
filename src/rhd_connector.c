@@ -223,7 +223,7 @@ RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card)
     if (Card && (Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE)) {
 	ConnectorInfo = Card->ConnectorInfo;
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		   "ConnectorInfo from quirk table:");
+		   "ConnectorInfo from quirk table:\n");
 	RhdPrintConnectorInfo (rhdPtr->scrnIndex, ConnectorInfo);
     } else {
 #ifdef ATOM_BIOS
