@@ -41,7 +41,6 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
-#include "rhd_card.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #endif

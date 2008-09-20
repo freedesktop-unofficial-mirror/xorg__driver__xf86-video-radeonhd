@@ -801,7 +801,33 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
 #ifdef ATOM_BIOS
-    {
+    if (rhdPtr->Card
+	&& rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE
+	&& (rhdPtr->Card->DeviceInfo[0][0] != atomNone
+	    || rhdPtr->Card->DeviceInfo[0][1] != atomNone)) {
+	int i, k = 0;
+	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
+
+	for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
+	    int j;
+	    if (rhdPtr->Card->ConnectorInfo[i].Type == RHD_CONNECTOR_NONE)
+		break;
+	    for (j = 0; j < MAX_OUTPUTS_PER_CONNECTOR; j++) {
+		if (rhdPtr->Card->ConnectorInfo[i].Output[j] != RHD_OUTPUT_NONE) {
+		    if (!(OutputDeviceList = (struct rhdAtomOutputDeviceList *)xrealloc(
+			      OutputDeviceList, sizeof (struct rhdAtomOutputDeviceList) * (k + 1))))
+			break;
+		    OutputDeviceList[k].ConnectorType = rhdPtr->Card->ConnectorInfo[i].Type;
+		    OutputDeviceList[k].DeviceId = rhdPtr->Card->DeviceInfo[i][j];
+		    OutputDeviceList[k].OutputType = rhdPtr->Card->ConnectorInfo[i].Output[j];
+		    RHDDebug(rhdPtr->scrnIndex, "OutputDevice: C: 0x%2.2x O: 0x%2.2x DevID: 0x%2.2x\n",
+			     OutputDeviceList[k].ConnectorType, OutputDeviceList[k].OutputType,
+			     OutputDeviceList[k].DeviceId);
+		    k++;
+		}
+	    }
+	}
+    } else {
 	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
 	AtomBiosArgRec data;
 

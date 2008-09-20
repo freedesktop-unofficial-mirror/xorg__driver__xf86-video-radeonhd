@@ -41,17 +41,16 @@
 #endif
 
 #include "rhd.h"
+#ifdef ATOM_BIOS
+# include "rhd_atombios.h"
+# include "rhd_atomout.h"
+#endif
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
 #include "rhd_monitor.h"
 #include "rhd_card.h"
 #include "rhd_i2c.h"
-
-#ifdef ATOM_BIOS
-#include "rhd_atombios.h"
-#include "rhd_atomout.h"
-#endif
 
 /*
  *

@@ -47,7 +47,6 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
-#include "rhd_card.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #endif
@@ -1280,6 +1279,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Private = LVDSInfoRetrieve(rhdPtr);
 
 	LVDSDebugBacklight(Output);
+
     } else {
 	struct rhdTMDSBPrivate *Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
 
