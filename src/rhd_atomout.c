@@ -826,9 +826,8 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    Private->EncoderId = atomEncoderDIG2;
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS,
 								   Private->EncoderId);
-	    Private->TransmitterId = atomTransmitterLVTMA;
 	    EncoderConfig->u.dig.Link = atomTransLinkA;
-	    EncoderConfig->u.dig.Transmitter = atomTransmitterLVTMA;
+	    EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterLVTMA;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkA;
@@ -899,11 +898,10 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	case RHD_OUTPUT_UNIPHYB:
 	    Private->EncoderId = atomEncoderDIG2;
 	    EncoderConfig->u.dig.Link = atomTransLinkB;
-	    EncoderConfig->u.dig.Transmitter = atomTransmitterUNIPHY;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
-		Private->TransmitterId = atomTransmitterPCIEPHY;
+		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterPCIEPHY;
 	    else
-		Private->TransmitterId = atomTransmitterUNIPHY;
+		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Link = atomTransLinkB;
