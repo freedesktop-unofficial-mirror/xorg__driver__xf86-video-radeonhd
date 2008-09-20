@@ -26,35 +26,36 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-#include "xf86.h"
-#include "xf86_OSproc.h"
-#include "xf86Pci.h"
-/* only for testing now */
-#include "xf86DDC.h"
-#include "edid.h"
-
-#if HAVE_XF86_ANSIC_H
-# include "xf86_ansic.h"
-#else
-# include <unistd.h>
-# include <string.h>
-# include <stdio.h>
-#endif
-
-#define DPMS_SERVER
-#include "X11/extensions/dpms.h"
-
-#include "rhd.h"
-#include "rhd_connector.h"
-#include "rhd_output.h"
-#include "rhd_crtc.h"
 
 #ifdef ATOM_BIOS
+# include "xf86.h"
+# include "xf86_OSproc.h"
+# include "xf86Pci.h"
+/* only for testing now */
+# include "xf86DDC.h"
+# include "edid.h"
+
+# if HAVE_XF86_ANSIC_H
+#  include "xf86_ansic.h"
+# else
+#  include <unistd.h>
+#  include <string.h>
+#  include <stdio.h>
+# endif
+
+# define DPMS_SERVER
+# include "X11/extensions/dpms.h"
+
+# include "rhd.h"
+
 # include "rhd_atombios.h"
-# include "rhd_atomout.h"
+
+# include "rhd_connector.h"
+# include "rhd_output.h"
 # include "rhd_biosscratch.h"
-# include "rhd_atomwrapper.h"
-# include "xf86int10.h"
+# include "rhd_crtc.h"
+# include "rhd_card.h"
+
 # ifdef ATOM_BIOS_PARSER
 #  define INT8 INT8
 #  define INT16 INT16
@@ -635,6 +636,11 @@ rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
     if (Output->Connector) {
 	/* connected - enable */
 	Device = rhdBIOSScratchSetDeviceForOutput(Output);
+
+	if (Device == atomNone && rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE) {
+	    xf86DrvMsg(Output->scrnIndex, X_WARNING, "%s: AtomBIOS DeviceID unknown\n");
+	    return Device;
+	}
 
 	ASSERT(Device != atomNone);
 
