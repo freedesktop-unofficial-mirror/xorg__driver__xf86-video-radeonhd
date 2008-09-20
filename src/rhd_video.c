@@ -269,78 +269,108 @@ rhdQueryImageAttributes(
 }
 
 /*
+ * Buffer swaps for big endian.
+ */
+#if X_BYTE_ORDER == X_BIG_ENDIAN
+static inline void
+MemCopySwap32(CARD8 *dst, CARD8 *src, unsigned int size)
+{
+    unsigned int *d = (unsigned int *)dst;
+    unsigned int *s = (unsigned int *)src;
+    unsigned int nwords = size >> 2;
+
+    for (; nwords > 0; --nwords, ++d, ++s)
+#ifdef __powerpc__
+	asm volatile("stwbrx %0,0,%1" : : "r" (*s), "r" (d));
+#else
+        *d = ((*s >> 24) & 0xff) | ((*s >> 8) & 0xff00)
+	    | ((*s & 0xff00) << 8) | ((*s & 0xff) << 24);
+#endif
+}
+#else
+#define MemCopySwap32 memcpy
+#endif /* X_BYTE_ORDER */
+
+/*
  *
  */
 static void
-rhdCopyData(
-  ScrnInfoPtr pScrn,
-  unsigned char *src,
-  unsigned char *dst,
-  unsigned int srcPitch,
-  unsigned int dstPitch,
-  unsigned int h,
-  unsigned int w,
-  unsigned int bpp
-){
+RhdXvCopyPackedDMA(RHDPtr rhdPtr, CARD8 *src, CARD8 *dst,
+		   CARD16 srcPitch, CARD16 dstPitch, CARD16 h)
+{
+    struct RhdCS *CS = rhdPtr->CS;
+    CARD32 Offset = dst - (CARD8 *)rhdPtr->FbBase + rhdPtr->FbIntAddress;
+    CARD32 Control = R5XX_GMC_DST_PITCH_OFFSET_CNTL |
+	R5XX_GMC_DST_CLIPPING | R5XX_GMC_BRUSH_NONE |
+	R5XX_GMC_DST_8BPP_CI | R5XX_GMC_SRC_DATATYPE_COLOR |
+	R5XX_ROP3_S | R5XX_DP_SRC_SOURCE_HOST_DATA |
+	R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_WR_MSK_DIS;
+    CARD16 y = 0, dwords;
+    CARD16 hpass = ((CS->Size - 10) * 4) / srcPitch;
 
-#ifdef NOT_YET /* TODO, but CP specific. */
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    while (h) {
+	if (h < hpass)
+	    hpass = h;
 
-    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-    {
-	CARD8 *buf;
-	CARD32 bufPitch, dstPitchOff;
-	int x, y;
-	unsigned int hpass;
+	dwords = hpass * srcPitch / 4;
 
-	/* Get the byte-swapping right for big endian systems */
-	if ( bpp == 2 ) {
-	    w *= 2;
-	    bpp = 1;
-	}
-	RADEONHostDataParams( pScrn, dst, dstPitch, bpp, &dstPitchOff, &x, &y );
+	RHDCSGrab(CS, dwords + 10);
+	RHDCSWrite(CS, CP_PACKET3(R5XX_CP_PACKET3_CNTL_HOSTDATA_BLT,
+				  dwords + 10 - 2));
+	RHDCSWrite(CS, Control);
+	RHDCSWrite(CS, (dstPitch << 16) | (Offset >> 10));
+	RHDCSWrite(CS, y << 16);
+	RHDCSWrite(CS, ((y + hpass) << 16) | srcPitch);
+	RHDCSWrite(CS, 0xFFFFFFFF);
+	RHDCSWrite(CS, 0xFFFFFFFF);
+	RHDCSWrite(CS, y << 16);
+	RHDCSWrite(CS, (hpass << 16) | srcPitch);
+	RHDCSWrite(CS, dwords);
 
-	while ( (buf = RADEONHostDataBlit( pScrn, bpp, w, dstPitchOff, &bufPitch,
-					   x, &y, &h, &hpass )) )
-	{
-	    RADEONHostDataBlitCopyPass( pScrn, bpp, buf, src, hpass, bufPitch,
-					srcPitch );
-	    src += hpass * srcPitch;
-	}
+	MemCopySwap32((CARD8 *) &CS->Buffer[CS->Wptr], src, hpass * srcPitch);
+	src += hpass * srcPitch;
+	CS->Wptr += dwords;
 
-	FLUSH_RING();
-
-	return;
+	y += hpass;
+	h -= hpass;
     }
-    else
-#endif /* NOT_YET */
-    {
+
+    RHDCSFlush(CS);
+
+    return;
+}
+
+
+/*
+ *
+ */
+static void
+RhdXvCopyPacked(RHDPtr rhdPtr, CARD8 *src, CARD8 *dst,
+		CARD16 srcPitch, CARD16 dstPitch, CARD16 h)
+{
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	unsigned int val, new;
-	val = RHDRegRead(pScrn, R5XX_SURFACE_CNTL);
-	new = val &
-	    ~(R5XX_NONSURF_AP0_SWP_32BPP | R5XX_NONSURF_AP1_SWP_32BPP |
-	      R5XX_NONSURF_AP0_SWP_16BPP | R5XX_NONSURF_AP1_SWP_16BPP);
-
-	if (bpp == 4)
-	    new |= R5XX_NONSURF_AP0_SWP_32BPP
-		|  R5XX_NONSURF_AP1_SWP_32BPP;
-
-	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, new);
+    CARD32 val, new;
+    val = RHDRegRead(rhdPtr, R5XX_SURFACE_CNTL);
+    new = val &
+	~(R5XX_NONSURF_AP0_SWP_32BPP | R5XX_NONSURF_AP1_SWP_32BPP |
+	  R5XX_NONSURF_AP0_SWP_16BPP | R5XX_NONSURF_AP1_SWP_16BPP);
+    RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, new);
 #endif
-	w *= bpp;
 
+    if (srcPitch == dstPitch)
+	memcpy(dst, src, srcPitch * h);
+    else {
 	while (h--) {
-	    memcpy(dst, src, w);
+	    memcpy(dst, src, srcPitch);
 	    src += srcPitch;
 	    dst += dstPitch;
 	}
+    }
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-	/* restore byte swapping */
-	RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, val);
+    /* restore byte swapping */
+    RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, val);
 #endif
-    }
 }
 
 /*
@@ -562,7 +592,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
-	rhdCopyData(pScrn, buf, FBBuf, 2 * width, dstPitch, height, width, 2);
+	if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+	    RhdXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width, dstPitch, height);
+	else
+	    RhdXvCopyPacked(rhdPtr, buf, FBBuf, 2 * width, dstPitch, height);
 	break;
     }
 
