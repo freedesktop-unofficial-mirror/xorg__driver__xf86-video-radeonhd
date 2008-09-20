@@ -490,32 +490,6 @@ rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
     return TRUE;
 }
 
-#if 0 /* Needed if we want to support rotation w/o own hardware support */
-    void *
-    crtc->funcs->shadow_allocate (xf86CrtcPtr crtc, int width, int height)
-
-This function allocates frame buffer space for a shadow frame buffer. When
-allocated, the crtc must scan from the shadow instead of the main frame
-buffer. This is used for rotation. The address returned is passed to the
-shadow_create function. This function should return NULL on failure.
-
-    PixmapPtr
-    crtc->funcs->shadow_create (xf86CrtcPtr crtc, void *data,
-                                int width, int height)
-
-This function creates a pixmap object that will be used as a shadow of the
-main frame buffer for CRTCs which are rotated or reflected. 'data' is the
-value returned by shadow_allocate.
-
-    void
-    crtc->funcs->shadow_destroy (xf86CrtcPtr crtc, PixmapPtr pPixmap,
-                                 void *data)
-
-Destroys any associated shadow objects. If pPixmap is NULL, then a pixmap
-was not created, but 'data' may still be non-NULL indicating that the shadow
-had been allocated.
-#endif
-
 
 /*
  * xf86Output callback functions
@@ -1289,7 +1263,7 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
     ScreenPtr         pScreen = screenInfo.screens[pScrn->scrnIndex];
     struct rhdRandrCrtc *rhdRRCrtc = (struct rhdRandrCrtc*) crtc->driver_private;
     int		      OctPerPixel = pScrn->bitsPerPixel >> 3;
-    int               size = (pScrn->displayWidth * OctPerPixel) * Height;
+    int               Size = (pScrn->displayWidth * OctPerPixel) * Height;
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_NONE
 	|| rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
@@ -1300,7 +1274,7 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
 
 	ASSERT(rhdRRCrtc->u.MemEXA == NULL);
 
-	rhdRRCrtc->u.MemEXA = exaOffscreenAlloc(pScreen, size, 4096,
+	rhdRRCrtc->u.MemEXA = exaOffscreenAlloc(pScreen, Size, 4096,
 						TRUE, NULL, NULL);
 	if (rhdRRCrtc->u.MemEXA == NULL) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1314,13 +1288,13 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
 #endif /* USE_EXA */
 #ifdef USE_XAA
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	int align = (4096 + OctPerPixel - 1) / OctPerPixel;
-	size = (size + OctPerPixel - 1) / OctPerPixel;
+	int Align = (4096 + OctPerPixel - 1) / OctPerPixel;
+	Size = (Size + OctPerPixel - 1) / OctPerPixel;
 
 	ASSERT(rhdRRCrtc->u.MemXAA == NULL);
 
 	rhdRRCrtc->u.MemXAA =
-	    xf86AllocateOffscreenLinear(pScreen, size, align,  /* @@@ */
+	    xf86AllocateOffscreenLinear(pScreen, Size, Align,  /* @@@ */
 					       NULL, NULL, NULL);
 	if (rhdRRCrtc->u.MemXAA == NULL) {
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
