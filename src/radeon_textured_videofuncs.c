@@ -24,7 +24,7 @@
  * Based on radeon_exa_render.c and kdrive ati_video.c by Eric Anholt, et al.
  *
  */
-#ifdef IS_RADEON_DRIVER
+#if defined(IS_RADEON_DRIVER) || defined(IS_QUICK_AND_DIRTY)
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -66,6 +66,18 @@ do {								\
     OUT_VIDEO_REG_F(RADEON_SE_PORT_DATA0, _srcX);		\
     OUT_VIDEO_REG_F(RADEON_SE_PORT_DATA0, _srcY);		\
 } while (0)
+
+# define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr info = RHDPTR(pScrn)
+# define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
+
+# define FB_OFFSET(x) (((char *)(x) - (char *)info->FbBase) + info->FbIntAddress)
+
+# ifdef USE_EXA
+#  define EXA_ENABLED (info->AccelMethod == RHD_ACCEL_EXA)
+#  define EXA_FB_OFFSET (info->FbIntAddress + info->FbScanoutStart)
+# endif
+
+# define HAS_TCL IS_R500_3D
 
 #endif /* !ACCEL_CP */
 

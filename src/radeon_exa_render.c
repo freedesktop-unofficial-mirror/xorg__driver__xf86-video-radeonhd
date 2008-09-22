@@ -29,7 +29,7 @@
  *    Alex Deucher <alexander.deucher@amd.com>
  *
  */
-#ifdef IS_RADEON_DRIVER
+#if defined(IS_RADEON_DRIVER) || defined(IS_QUICK_AND_DIRTY)
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -52,6 +52,14 @@
 
 #ifndef ACCEL_CP
 #define ONLY_ONCE
+
+#define VAR_PREAMBLE(pScreen) \
+        ScrnInfoPtr pScrn = xf86Screens[(pScreen)->myNum]; \
+        RHDPtr info = RHDPTR(pScrn)
+#define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
+#define HAS_TCL IS_R500_3D
+#define FB_OFFSET (info->FbIntAddress + info->FbScanoutStart)
+
 #endif
 
 #else /* IS_RADEON_DRIVER */
@@ -933,7 +941,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
     TRACE;
 
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(info->scrnIndex);
+	RADEONInit3DEngine(pScrn);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -1296,7 +1304,7 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
     TRACE;
 
     if (!accel_state->XHas3DEngineState)
-	RADEONInit3DEngine(info->scrnIndex);
+	RADEONInit3DEngine(pScrn);
 
     if (!R300GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -2111,6 +2119,8 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 # ifdef IS_RADEON_DRIVER
     if (info->ChipFamily < CHIP_FAMILY_R200)
 	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_RECANGLE_LIST |
+					  RADEON_VF_PRIM_WALK_DATA |
+					  RADEON_VF_RADEON_MODE |
 					  (3 << RADEON_VF_NUM_VERTICES_SHIFT)));
     else
 # endif /* IS_RADEON_DRIVER */
@@ -2243,14 +2253,14 @@ static void FUNC_NAME(RadeonDoneComposite)(PixmapPtr pDst)
     OUT_ACCEL_REG(RADEON_WAIT_UNTIL, RADEON_WAIT_3D_IDLECLEAN);
     FINISH_ACCEL();
 
-#if defined(ACCEL_CP) && !defined(IS_RADEON_DRIVER)
+#if defined(ACCEL_CP) && !defined(IS_RADEON_DRIVER) && !defined(IS_QUICK_AND_DIRTY)
     ADVANCE_RING();
 #endif
 
     LEAVE_DRAW(0);
 }
 
-#ifndef IS_RADEON_DRIVER
+#if !defined(IS_RADEON_DRIVER) && !defined(IS_QUICK_AND_DIRTY)
 void
 R5xxExaCompositeFuncs(int scrnIndex, struct _ExaDriver *Exa)
 {

@@ -28,9 +28,90 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef IS_RADEON_DRIVER
+#ifdef IS_QUICK_AND_DIRTY /* make this IS_RADEON_DRIVER */
 /*
- * RadeonHD specifics.
+ * Radeon driver specifics.
+ */
+#if defined(ACCEL_MMIO) && defined(ACCEL_CP)
+#error Cannot define both MMIO and CP acceleration!
+#endif
+
+#if !defined(UNIXCPP) || defined(ANSICPP)
+#define FUNC_NAME_CAT(prefix,suffix) prefix##suffix
+#else
+#define FUNC_NAME_CAT(prefix,suffix) prefix/**/suffix
+#endif
+
+#ifdef ACCEL_MMIO
+#define FUNC_NAME(prefix) FUNC_NAME_CAT(prefix,MMIO)
+#else
+#ifdef ACCEL_CP
+#define FUNC_NAME(prefix) FUNC_NAME_CAT(prefix,CP)
+#else
+#error No accel type defined!
+#endif
+#endif
+
+#ifdef ACCEL_MMIO
+#define ONLY_ONCE
+#else
+#undef ONLY_ONCE
+#endif
+
+#ifdef ONLY_ONCE
+
+# define VAR_PREAMBLE() RHDPtr info = RHDPTR(pScrn)
+# define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
+
+# define HAS_TCL info->has_tcl
+
+# define R5XXPowerPipes(p) {}
+
+/* Map the number of GB Pipes the hardware has. */
+static int
+R5xxGBPipesCount(ScrnInfoPtr pScrn)
+{
+    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
+}
+#define NUM_GB_PIPES R5xxGBPipesCount(pScrn)
+
+/* Map the number of FPUs the VPS has. */
+static int
+R5xxPVSFPUCount(ScrnInfoPtr pScrn)
+{
+     switch (RHDPTR(pScrn)->ChipSet) {
+     case RHD_RV515:
+     case RHD_RV516:
+     case RHD_RV550:
+     case RHD_M52:
+     case RHD_M54:
+     case RHD_M62:
+     case RHD_M64:
+	 return 2;
+     case RHD_RV530:
+     case RHD_RV560:
+     case RHD_RV570:
+     case RHD_M56:
+     case RHD_M58:
+     case RHD_M66:
+	 return 5;
+     case RHD_R520:
+     case RHD_R580:
+     case RHD_M68:
+	 return 8;
+     default:
+	 return 4;
+     }
+}
+#define NUM_PVS_FPUS R5xxPVSFPUCount(pScrn)
+
+# define END_ACCEL()
+
+#endif /* ONLY_ONCE */
+
+#else /* IS_RADEON_DRIVER */
+/*
+ * RadeonHD driver specifics.
  */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -136,12 +217,12 @@ R5XXPowerPipes(ScrnInfoPtr pScrn)
 
 #endif /* IS_RADEON_DRIVER */
 
-#ifndef IS_RADEON_DRIVER
-void
-R5xx3DSetup(int scrnIndex)
-#else
+#if defined(IS_RADEON_DRIVER) || defined(IS_QUICK_AND_DIRTY)
 static void
 FUNC_NAME(RADEONInit3DEngine)(int scrnIndex)
+#else
+void
+R5xx3DSetup(int scrnIndex)
 #endif
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
@@ -762,3 +843,5 @@ FUNC_NAME(RADEONInit3DEngine)(int scrnIndex)
 
     accel_state->XHas3DEngineState = TRUE;
 }
+
+#undef FUNC_NAME
