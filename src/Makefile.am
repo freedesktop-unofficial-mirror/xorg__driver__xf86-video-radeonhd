@@ -69,7 +69,7 @@ radeonhd_drv_la_SOURCES = \
 EXTRA_DIST += \
 	radeon_accelfuncs.c \
 	radeon_exa_funcs.c \
-	radeon_commonfuncs.c \
+	radeon_3d.c \
 	radeon_textured_videofuncs.c \
 	radeon_exa_render.c \
 	r5xx_accel.h \
