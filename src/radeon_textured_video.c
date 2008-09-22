@@ -107,6 +107,8 @@ static __inline__ uint32_t F_TO_DW(float val)
     return tmp.l;
 }
 
+#define IS_QUICK_AND_DIRTY
+
 #define ACCEL_MMIO
 #define VIDEO_PREAMBLE()
 #define BEGIN_VIDEO(n)		RADEONWaitForFifo(pScrn, (n))

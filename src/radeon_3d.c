@@ -1,3 +1,5 @@
+/* BROKEN DISCLAIMER */
+
 /*
  * Copyright 2000 ATI Technologies Inc., Markham, Ontario, and
  *                VA Linux Systems Inc., Fremont, California.
@@ -26,10 +28,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
+#ifdef IS_QUICK_AND_DIRTY /* make this IS_RADEON_DRIVER */
+/*
+ * Radeon driver specifics.
+ */
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -50,25 +52,208 @@
 #endif
 #endif
 
-static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
+#ifdef ACCEL_MMIO
+#define ONLY_ONCE
+#else
+#undef ONLY_ONCE
+#endif
+
+#ifdef ONLY_ONCE
+
+# define VAR_PREAMBLE() RHDPtr info = RHDPTR(pScrn)
+# define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
+
+# define HAS_TCL info->has_tcl
+
+# define R5XXPowerPipes(p) {}
+
+/* Map the number of GB Pipes the hardware has. */
+static int
+R5xxGBPipesCount(ScrnInfoPtr pScrn)
 {
-    RHDPtr info = RHDPTR(pScrn);
+    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
+}
+#define NUM_GB_PIPES R5xxGBPipesCount(pScrn)
+
+/* Map the number of FPUs the VPS has. */
+static int
+R5xxPVSFPUCount(ScrnInfoPtr pScrn)
+{
+     switch (RHDPTR(pScrn)->ChipSet) {
+     case RHD_RV515:
+     case RHD_RV516:
+     case RHD_RV550:
+     case RHD_M52:
+     case RHD_M54:
+     case RHD_M62:
+     case RHD_M64:
+	 return 2;
+     case RHD_RV530:
+     case RHD_RV560:
+     case RHD_RV570:
+     case RHD_M56:
+     case RHD_M58:
+     case RHD_M66:
+	 return 5;
+     case RHD_R520:
+     case RHD_R580:
+     case RHD_M68:
+	 return 8;
+     default:
+	 return 4;
+     }
+}
+#define NUM_PVS_FPUS R5xxPVSFPUCount(pScrn)
+
+# define END_ACCEL()
+
+#endif /* ONLY_ONCE */
+
+#else /* IS_RADEON_DRIVER */
+/*
+ * RadeonHD driver specifics.
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "xf86.h"
+
+#include "rhd.h"
+#include "rhd_cs.h"
+
+#include "r5xx_accel.h"
+#include "r5xx_3dregs.h"
+
+#ifdef USE_DRI
+/* for claiming the context */
+#include "rhd_dri.h"
+#endif
+
+#define VAR_PREAMBLE() RHDPtr rhdPtr = RHDPTR(pScrn)
+#define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = rhdPtr->ThreeDPrivate
+
+/*
+ * Map the macros.
+ */
+#define ACCEL_PREAMBLE() struct RhdCS *CS = rhdPtr->CS
+
+#define BEGIN_ACCEL(Count) RHDCSGrab(CS, 2 * (Count))
+#define OUT_ACCEL_REG(Reg, Value) RHDCSRegWrite(CS, (Reg), (Value))
+#define FINISH_ACCEL()
+
+#ifdef USE_DRI
+#define END_ACCEL() RHDCSAdvance(CS); \
+                    if (pScrn->pScreen) \
+                        RHDDRIContextClaim(pScrn)
+#else
+#define END_ACCEL() RHDCSAdvance(CS)
+#endif
+
+#define uint32_t CARD32
+
+#define IS_R300_3D \
+    ((rhdPtr->ChipSet == RHD_RS690) || \
+     (rhdPtr->ChipSet == RHD_RS600) || \
+     (rhdPtr->ChipSet == RHD_RS740))
+
+#define IS_R500_3D \
+    ((rhdPtr->ChipSet != RHD_RS690) && \
+     (rhdPtr->ChipSet != RHD_RS600) && \
+     (rhdPtr->ChipSet != RHD_RS740))
+
+#define HAS_TCL IS_R500_3D
+
+/* Map the number of GB Pipes the hardware has. */
+static int
+R5xxGBPipesCount(ScrnInfoPtr pScrn)
+{
+    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
+}
+#define NUM_GB_PIPES R5xxGBPipesCount(pScrn)
+
+/* Map the number of FPUs the VPS has. */
+static int
+R5xxPVSFPUCount(ScrnInfoPtr pScrn)
+{
+     switch (RHDPTR(pScrn)->ChipSet) {
+     case RHD_RV515:
+     case RHD_RV516:
+     case RHD_RV550:
+     case RHD_M52:
+     case RHD_M54:
+     case RHD_M62:
+     case RHD_M64:
+	 return 2;
+     case RHD_RV530:
+     case RHD_RV560:
+     case RHD_RV570:
+     case RHD_M56:
+     case RHD_M58:
+     case RHD_M66:
+	 return 5;
+     case RHD_R520:
+     case RHD_R580:
+     case RHD_M68:
+	 return 8;
+     default:
+	 return 4;
+     }
+}
+#define NUM_PVS_FPUS R5xxPVSFPUCount(pScrn)
+
+/*
+ *
+ */
+static void
+R5XXPowerPipes(ScrnInfoPtr pScrn)
+{
+    CARD32 tmp = RHDRegRead(pScrn, R400_GB_PIPE_SELECT);
+    RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, (1 | ((tmp >> 8) & 0xf) << 4));
+}
+/* for radeon, this is done elsewhere, so use:
+ * #define R5XXPowerPipes(x)
+ */
+
+#endif /* IS_RADEON_DRIVER */
+
+#if defined(IS_RADEON_DRIVER) || defined(IS_QUICK_AND_DIRTY)
+static void
+FUNC_NAME(RADEONInit3DEngine)(int scrnIndex)
+#else
+void
+R5xx3DSetup(int scrnIndex)
+#endif
+{
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    VAR_PREAMBLE();
+    THREEDSTATE_PREAMBLE();
     uint32_t gb_tile_config, su_reg_dest, vap_cntl;
+    int num_gb_pipes = NUM_GB_PIPES;
+    int num_pvs_fpus = NUM_PVS_FPUS;
+    Bool HasTCL = HAS_TCL;
     ACCEL_PREAMBLE();
 
-    info->accel_state->texW[0] = info->accel_state->texH[0] = info->accel_state->texW[1] = info->accel_state->texH[1] = 1;
+    accel_state->texW[0] = 1;
+    accel_state->texH[0] = 1;
+    accel_state->texW[1] = 1;
+    accel_state->texH[1] = 1;
 
+#ifdef IS_RADEON_DRIVER
     if (IS_R300_3D || IS_R500_3D) {
-
+#endif
 	BEGIN_ACCEL(3);
 	OUT_ACCEL_REG(R300_RB3D_DSTCACHE_CTLSTAT, R300_DC_FLUSH_3D | R300_DC_FREE_3D);
 	OUT_ACCEL_REG(R300_RB3D_ZCACHE_CTLSTAT, R300_ZC_FLUSH | R300_ZC_FREE);
 	OUT_ACCEL_REG(RADEON_WAIT_UNTIL, RADEON_WAIT_2D_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN);
 	FINISH_ACCEL();
 
+	if (IS_R500_3D)
+	    R5XXPowerPipes(pScrn);
+
 	gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16 | R300_SUBPIXEL_1_16);
 
-	switch(info->accel_state->num_gb_pipes) {
+	switch(num_gb_pipes) {
 	case 2: gb_tile_config |= R300_PIPE_COUNT_R300; break;
 	case 3: gb_tile_config |= R300_PIPE_COUNT_R420_3P; break;
 	case 4: gb_tile_config |= R300_PIPE_COUNT_R420; break;
@@ -85,7 +270,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	FINISH_ACCEL();
 
 	if (IS_R500_3D) {
-	    su_reg_dest = ((1 << info->accel_state->num_gb_pipes) - 1);
+	    su_reg_dest = ((1 << num_gb_pipes) - 1);
 	    BEGIN_ACCEL(2);
 	    OUT_ACCEL_REG(R500_SU_REG_DEST, su_reg_dest);
 	    OUT_ACCEL_REG(R500_VAP_INDEX_OFFSET, 0);
@@ -144,51 +329,25 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	FINISH_ACCEL();
 
 	/* setup the VAP */
-	if (info->has_tcl)
+	if (HasTCL)
 	    vap_cntl = ((5 << R300_PVS_NUM_SLOTS_SHIFT) |
 			(5 << R300_PVS_NUM_CNTLRS_SHIFT) |
-			(9 << R300_VF_MAX_VTX_NUM_SHIFT));
+			(9 << R300_VF_MAX_VTX_NUM_SHIFT) |
+			(num_pvs_fpus << R300_PVS_NUM_FPUS_SHIFT));
 	else
 	    vap_cntl = ((10 << R300_PVS_NUM_SLOTS_SHIFT) |
 			(5 << R300_PVS_NUM_CNTLRS_SHIFT) |
-			(5 << R300_VF_MAX_VTX_NUM_SHIFT));
+			(5 << R300_VF_MAX_VTX_NUM_SHIFT) |
+			(num_pvs_fpus << R300_PVS_NUM_FPUS_SHIFT));
 
-	if ((info->ChipSet == RHD_RV505) ||
-	    (info->ChipSet == RHD_RV515) ||
-	    (info->ChipSet == RHD_RV516) ||
-	    (info->ChipSet == RHD_RV550) ||
-	    (info->ChipSet == RHD_M52) ||
-	    (info->ChipSet == RHD_M54) ||
-	    (info->ChipSet == RHD_M62) ||
-	    (info->ChipSet == RHD_M64))
-	    vap_cntl |= (2 << R300_PVS_NUM_FPUS_SHIFT);
-	else if ((info->ChipSet == RHD_RV530) ||
-		 (info->ChipSet == RHD_RV560) ||
-		 (info->ChipSet == RHD_RV570) ||
-		 (info->ChipSet == RHD_M56) ||
-		 (info->ChipSet == RHD_M58) ||
-		 (info->ChipSet == RHD_M66))
-	    vap_cntl |= (5 << R300_PVS_NUM_FPUS_SHIFT);
-#ifndef RHD_DRIVER
-	else if ((info->ChipSet == CHIP_FAMILY_RV410) ||
-		 (info->ChipSet == CHIP_FAMILY_R420))
-	  vap_cntl |= (6 << R300_PVS_NUM_FPUS_SHIFT);
-#endif
-	else if ((info->ChipSet == RHD_R520) ||
-		 (info->ChipSet == RHD_R580) ||
-		 (info->ChipSet == RHD_M68))
-	    vap_cntl |= (8 << R300_PVS_NUM_FPUS_SHIFT);
-	else
-	    vap_cntl |= (4 << R300_PVS_NUM_FPUS_SHIFT);
-
-	if (info->has_tcl)
+	if (HasTCL)
 	    BEGIN_ACCEL(15);
 	else
 	    BEGIN_ACCEL(9);
 	OUT_ACCEL_REG(R300_VAP_VTX_STATE_CNTL, 0);
 	OUT_ACCEL_REG(R300_VAP_PVS_STATE_FLUSH_REG, 0);
 
-	if (info->has_tcl)
+	if (HasTCL)
 	    OUT_ACCEL_REG(R300_VAP_CNTL_STATUS, 0);
 	else
 	    OUT_ACCEL_REG(R300_VAP_CNTL_STATUS, R300_PVS_BYPASS);
@@ -218,7 +377,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 		       ((R300_WRITE_ENA_X | R300_WRITE_ENA_Y | R300_WRITE_ENA_Z | R300_WRITE_ENA_W)
 			<< R300_WRITE_ENA_2_SHIFT)));
 
-	if (info->has_tcl) {
+	if (HasTCL) {
 	    OUT_ACCEL_REG(R300_VAP_PVS_FLOW_CNTL_OPC, 0);
 	    OUT_ACCEL_REG(R300_VAP_GB_VERT_CLIP_ADJ, 0x3f800000);
 	    OUT_ACCEL_REG(R300_VAP_GB_VERT_DISC_ADJ, 0x3f800000);
@@ -229,7 +388,7 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	FINISH_ACCEL();
 
 	/* pre-load the vertex shaders */
-	if (info->has_tcl) {
+	if (HasTCL) {
 	    /* exa mask shader program */
 	    BEGIN_ACCEL(13);
 	    OUT_ACCEL_REG(R300_VAP_PVS_VECTOR_INDX_REG, 0);
@@ -617,9 +776,9 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	OUT_ACCEL_REG(R300_SC_CLIP_RULE, 0xAAAA);
 	OUT_ACCEL_REG(R300_SC_SCREENDOOR, 0xffffff);
 	FINISH_ACCEL();
-    }
-#ifndef RHD_DRIVER
-    else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
+
+#ifdef IS_RADEON_DRIVER
+    } else if ((info->ChipFamily == CHIP_FAMILY_RV250) ||
 	       (info->ChipFamily == CHIP_FAMILY_RV280) ||
 	       (info->ChipFamily == CHIP_FAMILY_RS300) ||
 	       (info->ChipFamily == CHIP_FAMILY_R200)) {
@@ -679,87 +838,10 @@ static void FUNC_NAME(RADEONInit3DEngine)(ScrnInfoPtr pScrn)
 	FINISH_ACCEL();
     }
 #endif
-}
 
+    END_ACCEL();
 
-/* MMIO:
- *
- * Wait for the graphics engine to be completely idle: the FIFO has
- * drained, the Pixel Cache is flushed, and the engine is idle.  This is
- * a standard "sync" function that will make the hardware "quiescent".
- *
- * CP:
- *
- * Wait until the CP is completely idle: the FIFO has drained and the CP
- * is idle.
- */
-void FUNC_NAME(RADEONWaitForIdle)(ScrnInfoPtr pScrn)
-{
-    RHDPtr info = RHDPTR(pScrn);
-    int            i    = 0;
-
-#ifdef ACCEL_CP
-    /* Make sure the CP is idle first */
-    if (info->cp->CPStarted) {
-	int  ret;
-
-	FLUSH_RING();
-
-	for (;;) {
-	    do {
-		ret = drmCommandNone(info->dri->drmFD, DRM_RADEON_CP_IDLE);
-		if (ret && ret != -EBUSY) {
-		    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-			       "%s: CP idle %d\n", __FUNCTION__, ret);
-		}
-	    } while ((ret == -EBUSY) && (i++ < RADEON_TIMEOUT));
-
-	    if (ret == 0) return;
-
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Idle timed out, resetting engine...\n");
-	    RADEONEngineReset(pScrn);
-	    RADEONEngineRestore(pScrn);
-
-	    /* Always restart the engine when doing CP 2D acceleration */
-	    RADEONCP_RESET(pScrn, info);
-	    RADEONCP_START(pScrn, info);
-	}
-    }
-#endif
-
-#if 0
-    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-		   "WaitForIdle (entering): %d entries, stat=0x%08x\n",
-		   RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
-		   RHDRegRead(pScrn, RADEON_RBBM_STATUS));
-#endif
-
-    /* Wait for the engine to go idle */
-    RADEONWaitForFifoFunction(pScrn, 64);
-
-    for (;;) {
-	for (i = 0; i < RADEON_TIMEOUT; i++) {
-	    if (!(RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_ACTIVE)) {
-		RADEONEngineFlush(pScrn);
-		return;
-	    }
-	}
-	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
-		       "Idle timed out: %u entries, stat=0x%08x\n",
-		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
-		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS));
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "Idle timed out, resetting engine...\n");
-	RADEONEngineReset(pScrn);
-	RADEONEngineRestore(pScrn);
-#ifdef USE_DRI
-	if (info->directRenderingEnabled) {
-	    RADEONCP_RESET(pScrn, info);
-	    RADEONCP_START(pScrn, info);
-	}
-#endif
-    }
+    accel_state->XHas3DEngineState = TRUE;
 }
 
 #undef FUNC_NAME

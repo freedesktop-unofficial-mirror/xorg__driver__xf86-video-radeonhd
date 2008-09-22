@@ -351,6 +351,8 @@ do {									\
 #define LEAVE_DRAW(x) TRACE
 /***********************************************************************/
 
+#define IS_QUICK_AND_DIRTY 1
+
 #define ACCEL_MMIO
 #define ACCEL_PREAMBLE()
 #define BEGIN_ACCEL(n)		RADEONWaitForFifo(pScrn, (n))

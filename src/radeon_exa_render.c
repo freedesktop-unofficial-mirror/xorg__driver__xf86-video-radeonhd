@@ -29,7 +29,7 @@
  *    Alex Deucher <alexander.deucher@amd.com>
  *
  */
-
+#if defined(IS_RADEON_DRIVER) || defined(IS_QUICK_AND_DIRTY)
 #if defined(ACCEL_MMIO) && defined(ACCEL_CP)
 #error Cannot define both MMIO and CP acceleration!
 #endif
@@ -52,7 +52,114 @@
 
 #ifndef ACCEL_CP
 #define ONLY_ONCE
+
+#define VAR_PREAMBLE(pScreen) \
+        ScrnInfoPtr pScrn = xf86Screens[(pScreen)->myNum]; \
+        RHDPtr info = RHDPTR(pScrn)
+#define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
+#define HAS_TCL IS_R500_3D
+#define FB_OFFSET (info->FbIntAddress + info->FbScanoutStart)
+
 #endif
+
+#else /* IS_RADEON_DRIVER */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "xf86.h"
+
+#include "rhd.h"
+#include "rhd_cs.h"
+
+#include "r5xx_regs.h"
+#include "r5xx_accel.h"
+#include "r5xx_3dregs.h"
+
+#include "exa.h"
+
+#define VAR_PREAMBLE(pScreen) RHDPtr rhdPtr = RHDPTR(xf86Screens[(pScreen)->myNum])
+#define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = rhdPtr->ThreeDPrivate
+/*
+ * Map the macros.
+ */
+#define ACCEL_PREAMBLE() struct RhdCS *CS = rhdPtr->CS
+
+#define BEGIN_ACCEL(Count) RHDCSGrab(CS, 2 * (Count))
+#define OUT_ACCEL_REG(Reg, Value) RHDCSRegWrite(CS, (Reg), (Value))
+#define FINISH_ACCEL()
+
+#define BEGIN_RING(Count) RHDCSGrab(CS, (Count))
+#define OUT_RING(Value) RHDCSWrite(CS, (Value))
+#define OUT_RING_F(x) OUT_RING(F_TO_DW(x))
+#define ADVANCE_RING() RHDCSAdvance(CS)
+
+#define uint32_t CARD32
+
+#define IS_R300_3D \
+    ((rhdPtr->ChipSet == RHD_RS690) || \
+     (rhdPtr->ChipSet == RHD_RS600) || \
+     (rhdPtr->ChipSet == RHD_RS740))
+
+#define IS_R500_3D \
+    ((rhdPtr->ChipSet != RHD_RS690) && \
+     (rhdPtr->ChipSet != RHD_RS600) && \
+     (rhdPtr->ChipSet != RHD_RS740))
+
+#define HAS_TCL IS_R500_3D
+
+#define ONLY_ONCE 1 /* we're always only once in the radeonhd driver */
+#define ACCEL_CP 1
+
+/* RADEON_FALLBACK is not only error messages, but some things are meant to
+ * happen, which can make it unbelievably noisy. */
+#if 0
+/* i don't like ErrorF's as they don't tell you which driver and
+   which device, but no scrnIndex can be had in some of the calls here */
+#define RADEON_FALLBACK(x)     		\
+do {					\
+	ErrorF("%s: ", __FUNCTION__);	\
+	ErrorF x;			\
+	return FALSE;			\
+} while (0)
+#else
+#define RADEON_FALLBACK(x) return FALSE
+#endif
+
+#if !defined(UNIXCPP) || defined(ANSICPP)
+#define FUNC_NAME_CAT(prefix,suffix) prefix##suffix
+#else
+#define FUNC_NAME_CAT(prefix,suffix) prefix/**/suffix
+#endif
+
+#define FUNC_NAME(prefix) FUNC_NAME_CAT(RHD,prefix)
+
+#define TRACE
+#define ENTER_DRAW(x)
+#define LEAVE_DRAW(x)
+
+#define RADEONPixmapIsColortiled(x) FALSE
+
+#define FB_OFFSET (rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart)
+
+static __inline__ uint32_t
+F_TO_DW(float val)
+{
+    union {
+	float f;
+	uint32_t l;
+    } tmp;
+    tmp.f = val;
+    return tmp.l;
+}
+
+#define xFixedToFloat(f) (((float) (f)) / 65536)
+
+#define RADEON_SWITCH_TO_3D() R5xxEngineWaitIdle2D(rhdPtr->CS)
+#define RADEONInit3DEngine(x) R5xx3DSetup(rhdPtr->scrnIndex)
+
+#endif /* IS_RADEON_DRIVER */
 
 /* Only include the following (generic) bits once. */
 #ifdef ONLY_ONCE
@@ -100,7 +207,7 @@ struct formatinfo {
 /* Note on texture formats:
  * TXFORMAT_Y8 expands to (Y,Y,Y,1).  TXFORMAT_I8 expands to (I,I,I,I)
  */
-#ifndef RHD_DRIVER
+#ifdef IS_RADEON_DRIVER
 static struct formatinfo R100TexFormats[] = {
 	{PICT_a8r8g8b8,	RADEON_TXFORMAT_ARGB8888 | RADEON_TXFORMAT_ALPHA_IN_MAP},
 	{PICT_x8r8g8b8,	RADEON_TXFORMAT_ARGB8888},
@@ -120,7 +227,7 @@ static struct formatinfo R200TexFormats[] = {
     {PICT_x1r5g5b5,	R200_TXFORMAT_ARGB1555},
     {PICT_a8,		R200_TXFORMAT_I8 | R200_TXFORMAT_ALPHA_IN_MAP},
 };
-#endif
+#endif /* IS_RADEON_DRIVER */
 
 static struct formatinfo R300TexFormats[] = {
     {PICT_a8r8g8b8,	R300_EASY_TX_FORMAT(X, Y, Z, W, W8Z8Y8X8)},
@@ -134,7 +241,7 @@ static struct formatinfo R300TexFormats[] = {
 };
 
 /* Common Radeon setup code */
-#ifndef RHD_DRIVER
+#ifdef IS_RADEON_DRIVER
 static Bool RADEONGetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 {
     switch (pDstPicture->format) {
@@ -159,7 +266,7 @@ static Bool RADEONGetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 
     return TRUE;
 }
-#endif
+#endif /* IS_RADEON_DRIVER */
 
 static Bool R300GetDestFormat(PicturePtr pDstPicture, uint32_t *dst_format)
 {
@@ -281,9 +388,11 @@ static Bool RADEONSetupSourceTile(PicturePtr pPict,
 				  Bool canTile1d,
 				  Bool needMatchingPitch)
 {
-    RINFO_FROM_SCREEN(pPix->drawable.pScreen);
-    info->accel_state->need_src_tile_x = info->accel_state->need_src_tile_y = FALSE;
-    info->accel_state->src_tile_width = info->accel_state->src_tile_height = 65536; /* "infinite" */
+    VAR_PREAMBLE(pPix->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
+
+    accel_state->need_src_tile_x = accel_state->need_src_tile_y = FALSE;
+    accel_state->src_tile_width = accel_state->src_tile_height = 65536; /* "infinite" */
 
     if (pPict->repeat) {
 	Bool badPitch = needMatchingPitch && !RADEONPitchMatches(pPix);
@@ -296,18 +405,18 @@ static Bool RADEONSetupSourceTile(PicturePtr pPict,
 		RADEON_FALLBACK(("Width %d and pitch %u not compatible for repeat\n",
 				 w, (unsigned)exaGetPixmapPitch(pPix)));
 	} else {
-	    info->accel_state->need_src_tile_x = (w & (w - 1)) != 0 || badPitch;
-	    info->accel_state->need_src_tile_y = (h & (h - 1)) != 0;
+	    accel_state->need_src_tile_x = (w & (w - 1)) != 0 || badPitch;
+	    accel_state->need_src_tile_y = (h & (h - 1)) != 0;
 
 	    if (!canTile1d)
-		info->accel_state->need_src_tile_x = info->accel_state->need_src_tile_y
-		    = info->accel_state->need_src_tile_x || info->accel_state->need_src_tile_y;
+		accel_state->need_src_tile_x = accel_state->need_src_tile_y
+		    = accel_state->need_src_tile_x || accel_state->need_src_tile_y;
 	}
 
-	if (info->accel_state->need_src_tile_x)
-	  info->accel_state->src_tile_width = w;
-	if (info->accel_state->need_src_tile_y)
-	  info->accel_state->src_tile_height = h;
+	if (accel_state->need_src_tile_x)
+	    accel_state->src_tile_width = w;
+	if (accel_state->need_src_tile_y)
+	  accel_state->src_tile_height = h;
     }
 
     return TRUE;
@@ -324,7 +433,7 @@ RADEONGetDrawablePixmap(DrawablePtr pDrawable)
 
 #endif /* ONLY_ONCE */
 
-#ifndef RHD_DRIVER
+#ifdef IS_RADEON_DRIVER
 
 /* R100-specific code */
 # ifdef ONLY_ONCE
@@ -361,16 +470,17 @@ static Bool R100CheckCompositeTexture(PicturePtr pPict, int unit)
 static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
-    RINFO_FROM_SCREEN(pPix->drawable.pScreen);
+    VAR_PREAMBLE(pPix->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t txfilter, txformat, txoffset, txpitch;
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    Bool repeat = pPict->repeat && !(unit == 0 && (info->accel_state->need_src_tile_x || info->accel_state->need_src_tile_y));
+    Bool repeat = pPict->repeat && !(unit == 0 && (accel_state->need_src_tile_x || accel_state->need_src_tile_y));
     unsigned int i;
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + FB_OFFSET;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -397,8 +507,8 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 	txformat |= RADEON_TXFORMAT_NON_POWER2;
     txformat |= unit << 24; /* RADEON_TXFORMAT_ST_ROUTE_STQX */
 
-    info->accel_state->texW[unit] = 1;
-    info->accel_state->texH[unit] = 1;
+    accel_state->texW[unit] = 1;
+    accel_state->texH[unit] = 1;
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -435,10 +545,10 @@ static Bool FUNC_NAME(R100TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     FINISH_ACCEL();
 
     if (pPict->transform != 0) {
-	info->accel_state->is_transform[unit] = TRUE;
-	info->accel_state->transform[unit] = pPict->transform;
+	accel_state->is_transform[unit] = TRUE;
+	accel_state->transform[unit] = pPict->transform;
     } else {
-	info->accel_state->is_transform[unit] = FALSE;
+	accel_state->is_transform[unit] = FALSE;
     }
 
     return TRUE;
@@ -522,7 +632,8 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 					    PixmapPtr pMask,
 					    PixmapPtr pDst)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t dst_format, dst_offset, dst_pitch, colorpitch;
     uint32_t pp_cntl, blendcntl, cblend, ablend;
     int pixel_shift;
@@ -530,26 +641,26 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 
     TRACE;
 
-    if (!info->accel_state->XHas3DEngineState)
+    if (!accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
 
     if (pMask)
-	info->accel_state->has_mask = TRUE;
+	accel_state->has_mask = TRUE;
     else
-	info->accel_state->has_mask = FALSE;
+	accel_state->has_mask = FALSE;
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + FB_OFFSET;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
     if (RADEONPixmapIsColortiled(pDst))
 	colorpitch |= RADEON_COLOR_TILE_ENABLE;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + FB_OFFSET;
     dst_pitch = exaGetPixmapPitch(pDst);
     if ((dst_offset & 0x0f) != 0)
 	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)dst_offset));
@@ -568,7 +679,7 @@ static Bool FUNC_NAME(R100PrepareComposite)(int op,
 	    return FALSE;
 	pp_cntl |= RADEON_TEX_1_ENABLE;
     } else {
-	info->accel_state->is_transform[1] = FALSE;
+	accel_state->is_transform[1] = FALSE;
     }
 
     RADEON_SWITCH_TO_3D();
@@ -663,16 +774,17 @@ static Bool R200CheckCompositeTexture(PicturePtr pPict, int unit)
 static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
-    RINFO_FROM_SCREEN(pPix->drawable.pScreen);
+    VAR_PREAMBLE(pPix->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t txfilter, txformat, txoffset, txpitch;
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    Bool repeat = pPict->repeat && !(unit == 0 && (info->accel_state->need_src_tile_x || info->accel_state->need_src_tile_y));
+    Bool repeat = pPict->repeat && !(unit == 0 && (accel_state->need_src_tile_x || accel_state->need_src_tile_y));
     unsigned int i;
     ACCEL_PREAMBLE();
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + FB_OFFSET;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -699,8 +811,8 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 	txformat |= R200_TXFORMAT_NON_POWER2;
     txformat |= unit << R200_TXFORMAT_ST_ROUTE_SHIFT;
 
-    info->accel_state->texW[unit] = w;
-    info->accel_state->texH[unit] = h;
+    accel_state->texW[unit] = w;
+    accel_state->texH[unit] = h;
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -739,10 +851,10 @@ static Bool FUNC_NAME(R200TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     FINISH_ACCEL();
 
     if (pPict->transform != 0) {
-	info->accel_state->is_transform[unit] = TRUE;
-	info->accel_state->transform[unit] = pPict->transform;
+	accel_state->is_transform[unit] = TRUE;
+	accel_state->transform[unit] = pPict->transform;
     } else {
-	info->accel_state->is_transform[unit] = FALSE;
+	accel_state->is_transform[unit] = FALSE;
     }
 
     return TRUE;
@@ -819,7 +931,8 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 				PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t dst_format, dst_offset, dst_pitch;
     uint32_t pp_cntl, blendcntl, cblend, ablend, colorpitch;
     int pixel_shift;
@@ -827,20 +940,20 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     TRACE;
 
-    if (!info->accel_state->XHas3DEngineState)
+    if (!accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!RADEONGetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
 
     if (pMask)
-	info->accel_state->has_mask = TRUE;
+	accel_state->has_mask = TRUE;
     else
-	info->accel_state->has_mask = FALSE;
+	accel_state->has_mask = FALSE;
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + FB_OFFSET;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
     if (RADEONPixmapIsColortiled(pDst))
@@ -863,7 +976,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 	    return FALSE;
 	pp_cntl |= RADEON_TEX_1_ENABLE;
     } else {
-	info->accel_state->is_transform[1] = FALSE;
+	accel_state->is_transform[1] = FALSE;
     }
 
     RADEON_SWITCH_TO_3D();
@@ -932,7 +1045,7 @@ static Bool FUNC_NAME(R200PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     return TRUE;
 }
-#endif /* RHD_DRIVER */
+#endif /* IS_RADEON_DRIVER */
 
 #ifdef ONLY_ONCE
 
@@ -995,7 +1108,8 @@ static Bool R300CheckCompositeTexture(PicturePtr pPict,
 static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 					int unit)
 {
-    RINFO_FROM_SCREEN(pPix->drawable.pScreen);
+    VAR_PREAMBLE(pPix->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t txfilter, txformat0, txformat1, txoffset, txpitch;
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
@@ -1006,7 +1120,7 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     TRACE;
 
     txpitch = exaGetPixmapPitch(pPix);
-    txoffset = exaGetPixmapOffset(pPix) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    txoffset = exaGetPixmapOffset(pPix) + FB_OFFSET;
 
     if ((txoffset & 0x1f) != 0)
 	RADEON_FALLBACK(("Bad texture offset 0x%x\n", (int)txoffset));
@@ -1044,15 +1158,15 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
      */
     txformat0 |= R300_TXPITCH_EN;
 
-    info->accel_state->texW[unit] = w;
-    info->accel_state->texH[unit] = h;
+    accel_state->texW[unit] = w;
+    accel_state->texH[unit] = h;
 
-    if (pPict->repeat && !(unit == 0 && info->accel_state->need_src_tile_x))
+    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
       txfilter = R300_TX_CLAMP_S(R300_TX_CLAMP_WRAP);
     else
       txfilter = R300_TX_CLAMP_S(R300_TX_CLAMP_CLAMP_GL);
 
-    if (pPict->repeat && !(unit == 0 && info->accel_state->need_src_tile_y))
+    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_y))
       txfilter |= R300_TX_CLAMP_T(R300_TX_CLAMP_WRAP);
     else
       txfilter |= R300_TX_CLAMP_T(R300_TX_CLAMP_CLAMP_GL);
@@ -1082,10 +1196,10 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
     FINISH_ACCEL();
 
     if (pPict->transform != 0) {
-	info->accel_state->is_transform[unit] = TRUE;
-	info->accel_state->transform[unit] = pPict->transform;
+	accel_state->is_transform[unit] = TRUE;
+	accel_state->transform[unit] = pPict->transform;
     } else {
-	info->accel_state->is_transform[unit] = FALSE;
+	accel_state->is_transform[unit] = FALSE;
     }
 
     return TRUE;
@@ -1096,11 +1210,9 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 static Bool R300CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
 			       PicturePtr pDstPicture)
 {
+    VAR_PREAMBLE(pSrcPicture->pDrawable->pScreen);
     uint32_t tmp1;
-    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
     PixmapPtr pSrcPixmap, pDstPixmap;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr info = RHDPTR(pScrn);
     int max_tex_w, max_tex_h, max_dst_w, max_dst_h;
 
     TRACE;
@@ -1181,7 +1293,8 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 				PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     uint32_t dst_format, dst_offset, dst_pitch;
     uint32_t txenable, colorpitch;
     uint32_t blendcntl;
@@ -1190,20 +1303,20 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 
     TRACE;
 
-    if (!info->accel_state->XHas3DEngineState)
+    if (!accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
 
     if (!R300GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
 
     if (pMask)
-	info->accel_state->has_mask = TRUE;
+	accel_state->has_mask = TRUE;
     else
-	info->accel_state->has_mask = FALSE;
+	accel_state->has_mask = FALSE;
 
     pixel_shift = pDst->drawable.bitsPerPixel >> 4;
 
-    dst_offset = exaGetPixmapOffset(pDst) + info->FbIntAddress + info->FbScanoutStart + pScrn->fbOffset;
+    dst_offset = exaGetPixmapOffset(pDst) + FB_OFFSET;
     dst_pitch = exaGetPixmapPitch(pDst);
     colorpitch = dst_pitch >> pixel_shift;
 
@@ -1229,13 +1342,13 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
 	    return FALSE;
 	txenable |= R300_TEX_1_ENABLE;
     } else {
-	info->accel_state->is_transform[1] = FALSE;
+	accel_state->is_transform[1] = FALSE;
     }
 
     RADEON_SWITCH_TO_3D();
 
     /* setup the VAP */
-    if (info->has_tcl) {
+    if (HAS_TCL) {
 	if (pMask)
 	    BEGIN_ACCEL(8);
 	else
@@ -1295,7 +1408,7 @@ static Bool FUNC_NAME(R300PrepareComposite)(int op, PicturePtr pSrcPicture,
      * - Xv
      * Here we select the offset of the vertex program we want to use
      */
-    if (info->has_tcl) {
+    if (HAS_TCL) {
 	if (pMask) {
 	    OUT_ACCEL_REG(R300_VAP_PVS_CODE_CNTL_0,
 			  ((0 << R300_PVS_FIRST_INST_SHIFT) |
@@ -1906,7 +2019,8 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 					   int dstX, int dstY,
 					   int w, int h)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     int vtx_count;
     xPointFixed srcTopLeft, srcTopRight, srcBottomLeft, srcBottomRight;
     xPointFixed maskTopLeft, maskTopRight, maskBottomLeft, maskBottomRight;
@@ -1935,20 +2049,20 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
     maskBottomRight.x = IntToxFixed(maskX + w);
     maskBottomRight.y = IntToxFixed(maskY + h);
 
-    if (info->accel_state->is_transform[0]) {
-	transformPoint(info->accel_state->transform[0], &srcTopLeft);
-	transformPoint(info->accel_state->transform[0], &srcTopRight);
-	transformPoint(info->accel_state->transform[0], &srcBottomLeft);
-	transformPoint(info->accel_state->transform[0], &srcBottomRight);
+    if (accel_state->is_transform[0]) {
+	transformPoint(accel_state->transform[0], &srcTopLeft);
+	transformPoint(accel_state->transform[0], &srcTopRight);
+	transformPoint(accel_state->transform[0], &srcBottomLeft);
+	transformPoint(accel_state->transform[0], &srcBottomRight);
     }
-    if (info->accel_state->is_transform[1]) {
-	transformPoint(info->accel_state->transform[1], &maskTopLeft);
-	transformPoint(info->accel_state->transform[1], &maskTopRight);
-	transformPoint(info->accel_state->transform[1], &maskBottomLeft);
-	transformPoint(info->accel_state->transform[1], &maskBottomRight);
+    if (accel_state->is_transform[1]) {
+	transformPoint(accel_state->transform[1], &maskTopLeft);
+	transformPoint(accel_state->transform[1], &maskTopRight);
+	transformPoint(accel_state->transform[1], &maskBottomLeft);
+	transformPoint(accel_state->transform[1], &maskBottomRight);
     }
 
-    if (info->accel_state->has_mask)
+    if (accel_state->has_mask)
 	vtx_count = VTX_COUNT_MASK;
     else
 	vtx_count = VTX_COUNT;
@@ -1960,11 +2074,12 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
     }
 
 #ifdef ACCEL_CP
-    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
+# ifdef IS_RADEON_DRIVER
+    if (info->ChipFamily < CHIP_FAMILY_R200) {
 	BEGIN_RING(3 * vtx_count + 3);
 	OUT_RING(CP_PACKET3(RADEON_CP_PACKET3_3D_DRAW_IMMD,
 			    3 * vtx_count + 1));
-	if (info->accel_state->has_mask)
+	if (accel_state->has_mask)
 	    OUT_RING(RADEON_CP_VC_FRMT_XY |
 		     RADEON_CP_VC_FRMT_ST0 |
 		     RADEON_CP_VC_FRMT_ST1);
@@ -1976,7 +2091,9 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 		 RADEON_CP_VC_CNTL_MAOS_ENABLE |
 		 RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
 		 (3 << RADEON_CP_VC_CNTL_NUM_SHIFT));
-    } else*/ {
+    } else
+# endif /* IS_RADEON_DRIVER */
+ {
 	if (IS_R300_3D || IS_R500_3D)
 	    BEGIN_RING(4 * vtx_count + 4);
 	else
@@ -1992,49 +2109,56 @@ static void FUNC_NAME(RadeonCompositeTile)(PixmapPtr pDst,
 #else /* ACCEL_CP */
     if (IS_R300_3D || IS_R500_3D)
 	BEGIN_ACCEL(2 + vtx_count * 4);
-    /*else if (info->ChipFamily < CHIP_FAMILY_R200)
-	BEGIN_ACCEL(1 + vtx_count * 3);*/
+# ifdef IS_RADEON_DRIVER
+    else if (info->ChipFamily < CHIP_FAMILY_R200)
+	BEGIN_ACCEL(1 + vtx_count * 3);
+# endif /* IS_RADEON_DRIVER */
     else
 	BEGIN_ACCEL(1 + vtx_count * 4);
 
-    /*if (info->ChipFamily < CHIP_FAMILY_R200) {
-	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_RECTANGLE_LIST |
+# ifdef IS_RADEON_DRIVER
+    if (info->ChipFamily < CHIP_FAMILY_R200)
+	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_RECANGLE_LIST |
 					  RADEON_VF_PRIM_WALK_DATA |
 					  RADEON_VF_RADEON_MODE |
 					  (3 << RADEON_VF_NUM_VERTICES_SHIFT)));
-    } else*/ {
+    else
+# endif /* IS_RADEON_DRIVER */
 	OUT_ACCEL_REG(RADEON_SE_VF_CNTL, (RADEON_VF_PRIM_TYPE_QUAD_LIST |
 					  RADEON_VF_PRIM_WALK_DATA |
 					  (4 << RADEON_VF_NUM_VERTICES_SHIFT)));
-    }
-#endif
+#endif /* ACCEL_CP */
 
-    if (info->accel_state->has_mask) {
-	/*if (info->ChipFamily >= CHIP_FAMILY_R200)*/ {
+    if (accel_state->has_mask) {
+
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily >= CHIP_FAMILY_R200)
+# endif /* IS_RADEON_DRIVER */
 	    VTX_OUT_MASK((float)dstX,                                      (float)dstY,
-			 xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0],
-			 xFixedToFloat(maskTopLeft.x) / info->accel_state->texW[1],     xFixedToFloat(maskTopLeft.y) / info->accel_state->texH[1]);
-	}
+			 xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0],
+		xFixedToFloat(maskTopLeft.x) / accel_state->texW[1],     xFixedToFloat(maskTopLeft.y) / accel_state->texH[1]);
 	VTX_OUT_MASK((float)dstX,                                      (float)(dstY + h),
-		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0],
-		xFixedToFloat(maskBottomLeft.x) / info->accel_state->texW[1],  xFixedToFloat(maskBottomLeft.y) / info->accel_state->texH[1]);
+		xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0],
+		xFixedToFloat(maskBottomLeft.x) / accel_state->texW[1],  xFixedToFloat(maskBottomLeft.y) / accel_state->texH[1]);
 	VTX_OUT_MASK((float)(dstX + w),                                (float)(dstY + h),
-		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0],
-		xFixedToFloat(maskBottomRight.x) / info->accel_state->texW[1], xFixedToFloat(maskBottomRight.y) / info->accel_state->texH[1]);
+		xFixedToFloat(srcBottomRight.x) / accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / accel_state->texH[0],
+		xFixedToFloat(maskBottomRight.x) / accel_state->texW[1], xFixedToFloat(maskBottomRight.y) / accel_state->texH[1]);
 	VTX_OUT_MASK((float)(dstX + w),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0],
-		xFixedToFloat(maskTopRight.x) / info->accel_state->texW[1],    xFixedToFloat(maskTopRight.y) / info->accel_state->texH[1]);
+		xFixedToFloat(srcTopRight.x) / accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / accel_state->texH[0],
+		xFixedToFloat(maskTopRight.x) / accel_state->texW[1],    xFixedToFloat(maskTopRight.y) / accel_state->texH[1]);
     } else {
-	/*if (info->ChipFamily >= CHIP_FAMILY_R200)*/ {
+
+# ifdef IS_RADEON_DRIVER
+	if (info->ChipFamily >= CHIP_FAMILY_R200)
+# endif /* IS_RADEON_DRIVER */
 	    VTX_OUT((float)dstX,                                      (float)dstY,
-		    xFixedToFloat(srcTopLeft.x) / info->accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / info->accel_state->texH[0]);
-	}
+		    xFixedToFloat(srcTopLeft.x) / accel_state->texW[0],      xFixedToFloat(srcTopLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)dstX,                                      (float)(dstY + h),
-		xFixedToFloat(srcBottomLeft.x) / info->accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0],   xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0]);
 	VTX_OUT((float)(dstX + w),                                (float)(dstY + h),
-		xFixedToFloat(srcBottomRight.x) / info->accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcBottomRight.x) / accel_state->texW[0],  xFixedToFloat(srcBottomRight.y) / accel_state->texH[0]);
 	VTX_OUT((float)(dstX + w),                                (float)dstY,
-		xFixedToFloat(srcTopRight.x) / info->accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / info->accel_state->texH[0]);
+		xFixedToFloat(srcTopRight.x) / accel_state->texW[0],     xFixedToFloat(srcTopRight.y) / accel_state->texH[0]);
     }
 
     if (IS_R300_3D || IS_R500_3D)
@@ -2058,11 +2182,12 @@ static void FUNC_NAME(RadeonComposite)(PixmapPtr pDst,
 				       int dstX, int dstY,
 				       int width, int height)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
+    THREEDSTATE_PREAMBLE();
     int tileSrcY, tileMaskY, tileDstY;
     int remainingHeight;
 
-    if (!info->accel_state->need_src_tile_x && !info->accel_state->need_src_tile_y) {
+    if (!accel_state->need_src_tile_x && !accel_state->need_src_tile_y) {
 	FUNC_NAME(RadeonCompositeTile)(pDst,
 				       srcX, srcY,
 				       maskX, maskY,
@@ -2073,7 +2198,7 @@ static void FUNC_NAME(RadeonComposite)(PixmapPtr pDst,
 
     /* Tiling logic borrowed from exaFillRegionTiled */
 
-    modulus(srcY, info->accel_state->src_tile_height, tileSrcY);
+    modulus(srcY, accel_state->src_tile_height, tileSrcY);
     tileMaskY = maskY;
     tileDstY = dstY;
 
@@ -2081,18 +2206,18 @@ static void FUNC_NAME(RadeonComposite)(PixmapPtr pDst,
     while (remainingHeight > 0) {
 	int remainingWidth = width;
 	int tileSrcX, tileMaskX, tileDstX;
-	int h = info->accel_state->src_tile_height - tileSrcY;
+	int h = accel_state->src_tile_height - tileSrcY;
 
 	if (h > remainingHeight)
 	    h = remainingHeight;
 	remainingHeight -= h;
 
-	modulus(srcX, info->accel_state->src_tile_width, tileSrcX);
+	modulus(srcX, accel_state->src_tile_width, tileSrcX);
 	tileMaskX = maskX;
 	tileDstX = dstX;
 
 	while (remainingWidth > 0) {
-	    int w = info->accel_state->src_tile_width - tileSrcX;
+	    int w = accel_state->src_tile_width - tileSrcX;
 	    if (w > remainingWidth)
 		w = remainingWidth;
 	    remainingWidth -= w;
@@ -2115,7 +2240,7 @@ static void FUNC_NAME(RadeonComposite)(PixmapPtr pDst,
 
 static void FUNC_NAME(RadeonDoneComposite)(PixmapPtr pDst)
 {
-    RINFO_FROM_SCREEN(pDst->drawable.pScreen);
+    VAR_PREAMBLE(pDst->drawable.pScreen);
     ACCEL_PREAMBLE();
 
     ENTER_DRAW(0);
@@ -2128,8 +2253,26 @@ static void FUNC_NAME(RadeonDoneComposite)(PixmapPtr pDst)
     OUT_ACCEL_REG(RADEON_WAIT_UNTIL, RADEON_WAIT_3D_IDLECLEAN);
     FINISH_ACCEL();
 
+#if defined(ACCEL_CP) && !defined(IS_RADEON_DRIVER) && !defined(IS_QUICK_AND_DIRTY)
+    ADVANCE_RING();
+#endif
+
     LEAVE_DRAW(0);
 }
+
+#if !defined(IS_RADEON_DRIVER) && !defined(IS_QUICK_AND_DIRTY)
+void
+R5xxExaCompositeFuncs(int scrnIndex, struct _ExaDriver *Exa)
+{
+
+    xf86DrvMsg(scrnIndex, X_INFO, "Attaching EXA Composite hooks for R5xx.\n");
+
+    Exa->CheckComposite = R300CheckComposite;
+    Exa->PrepareComposite = FUNC_NAME(R300PrepareComposite);
+    Exa->Composite = FUNC_NAME(RadeonComposite);
+    Exa->DoneComposite = FUNC_NAME(RadeonDoneComposite);
+}
+#endif /* IS_RADEON_DRIVER */
 
 #undef ONLY_ONCE
 #undef FUNC_NAME

@@ -354,13 +354,103 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
     RADEONEngineRestore(pScrn);
 }
 
+/* MMIO:
+ *
+ * Wait for the graphics engine to be completely idle: the FIFO has
+ * drained, the Pixel Cache is flushed, and the engine is idle.  This is
+ * a standard "sync" function that will make the hardware "quiescent".
+ */
+void RADEONWaitForIdleMMIO(ScrnInfoPtr pScrn)
+{
+    RHDPtr info = RHDPTR(pScrn);
+    int            i    = 0;
+
+#if 0
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
+		   "WaitForIdle (entering): %d entries, stat=0x%08x\n",
+		   RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+		   RHDRegRead(pScrn, RADEON_RBBM_STATUS));
+#endif
+
+    /* Wait for the engine to go idle */
+    RADEONWaitForFifoFunction(pScrn, 64);
+
+    for (;;) {
+	for (i = 0; i < RADEON_TIMEOUT; i++) {
+	    if (!(RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_ACTIVE)) {
+		RADEONEngineFlush(pScrn);
+		return;
+	    }
+	}
+	xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, RADEON_LOGLEVEL_DEBUG,
+		       "Idle timed out: %u entries, stat=0x%08x\n",
+		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+		       (unsigned int)RHDRegRead(pScrn, RADEON_RBBM_STATUS));
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Idle timed out, resetting engine...\n");
+	RADEONEngineReset(pScrn);
+	RADEONEngineRestore(pScrn);
+#ifdef USE_DRI
+	if (info->directRenderingEnabled) {
+	    RADEONCP_RESET(pScrn, info);
+	    RADEONCP_START(pScrn, info);
+	}
+#endif
+    }
+}
+
+#ifdef USE_DRI
+/* CP:
+ *
+ * Wait until the CP is completely idle: the FIFO has drained and the CP
+ * is idle.
+ */
+void RADEONWaitForIdleCP(ScrnInfoPtr pScrn)
+{
+    RHDPtr info = RHDPTR(pScrn);
+    int            i    = 0;
+
+    /* Make sure the CP is idle first */
+    if (info->cp->CPStarted) {
+	int  ret;
+
+	FLUSH_RING();
+
+	for (;;) {
+	    do {
+		ret = drmCommandNone(info->dri->drmFD, DRM_RADEON_CP_IDLE);
+		if (ret && ret != -EBUSY) {
+		    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+			       "%s: CP idle %d\n", __FUNCTION__, ret);
+		}
+	    } while ((ret == -EBUSY) && (i++ < RADEON_TIMEOUT));
+
+	    if (ret == 0) return;
+
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "Idle timed out, resetting engine...\n");
+	    RADEONEngineReset(pScrn);
+	    RADEONEngineRestore(pScrn);
+
+	    /* Always restart the engine when doing CP 2D acceleration */
+	    RADEONCP_RESET(pScrn, info);
+	    RADEONCP_START(pScrn, info);
+	}
+    }
+
+    RADEONWaitForIdleMMIO(pScrn);
+}
+#endif /* USE_DRI */
+
+#define IS_QUICK_AND_DIRTY 1
+
 #define ACCEL_MMIO
 #define ACCEL_PREAMBLE()
 #define BEGIN_ACCEL(n)          RADEONWaitForFifo(pScrn, (n))
 #define OUT_ACCEL_REG(reg, val) RHDRegWrite(info, reg, val)
 #define FINISH_ACCEL()
 
-#include "radeon_commonfuncs.c"
+#include "radeon_3d.c"
 
 #undef ACCEL_MMIO
 #undef ACCEL_PREAMBLE
@@ -378,7 +468,7 @@ void RADEONEngineInit(ScrnInfoPtr pScrn)
 #define OUT_ACCEL_REG(reg, val) OUT_RING_REG(reg, val)
 #define FINISH_ACCEL()          ADVANCE_RING()
 
-#include "radeon_commonfuncs.c"
+#include "radeon_3d.c"
 
 #undef ACCEL_CP
 #undef ACCEL_PREAMBLE
@@ -793,10 +883,10 @@ void RADEONInit3DEngine(ScrnInfoPtr pScrn)
 
 	pSAREAPriv = DRIGetSAREAPrivate(pScrn->pScreen);
 	pSAREAPriv->ctx_owner = DRIGetContext(pScrn->pScreen);
-	RADEONInit3DEngineCP(pScrn);
+	RADEONInit3DEngineCP(pScrn->scrnIndex);
     } else
 #endif
-	RADEONInit3DEngineMMIO(pScrn);
+	RADEONInit3DEngineMMIO(pScrn->scrnIndex);
 
     info->accel_state->XHas3DEngineState = TRUE;
 }
