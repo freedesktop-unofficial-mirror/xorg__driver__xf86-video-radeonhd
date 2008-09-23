@@ -122,9 +122,9 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 		case atomDFP3:
 		    EncoderConfig->u.dvo.digital = TRUE;
 		    /* @@@ no digital attributes, yet */
-		break;
-	        default:
-		break;
+		    break;
+		case atomNone:
+		    break;
 	    }
 	    break;
 	case RHD_OUTPUT_DACA:
@@ -974,15 +974,20 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 /*
  * This sets up AtomBIOS based BL control if we need to use a non-standard method to control BL.
  */
+
 int
-RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output)
+RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
+				     Bool (**PropertyFunc)(struct rhdOutput *Output,
+							   enum rhdPropertyAction Action,
+							   enum rhdOutputProperty Property,
+							   union rhdPropertyData *val))
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     int BlLevel;
 
     RHDFUNC(Output);
 
-    Output->Property = atomLVDSPropertyControl;
+    *PropertyFunc = atomLVDSPropertyControl;
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
 
     return BlLevel;

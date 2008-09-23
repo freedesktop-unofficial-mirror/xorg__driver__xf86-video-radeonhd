@@ -26,6 +26,9 @@
 #ifndef _RHD_ATOMOUT_H
 # define _RHD_ATOMOUT_H
 
-extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output);
-
+extern int RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
+						Bool (**PropertyFunc)(struct rhdOutput *Output,
+								       enum rhdPropertyAction Action,
+								       enum rhdOutputProperty Property,
+								       union rhdPropertyData *val));
 #endif

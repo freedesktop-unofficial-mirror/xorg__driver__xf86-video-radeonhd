@@ -49,6 +49,7 @@
 #include "rhd_regs.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
+#include "rhd_atomout.h"
 #endif
 
 /*
@@ -1268,6 +1269,8 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output->Destroy = LVTMADestroy;
 
     if (Type == RHD_CONNECTOR_PANEL) {
+	struct LVDSPrivate *Private;
+
 	Output->Name = "LVDS";
 
 	Output->ModeValid = LVDSModeValid;
@@ -1276,9 +1279,11 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
 	Output->Property = LVDSPropertyControl;
-	Output->Private = LVDSInfoRetrieve(rhdPtr);
-
-	LVDSDebugBacklight(Output);
+	Output->Private = Private = LVDSInfoRetrieve(rhdPtr);
+	if (Private->BlLevel < 0)
+	    Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Output->Property);
+	else
+	    LVDSDebugBacklight(Output);
 
     } else {
 	struct rhdTMDSBPrivate *Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);

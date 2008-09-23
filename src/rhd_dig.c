@@ -43,6 +43,7 @@
 #include "rhd_regs.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
+#include "rhd_atomout.h"
 #endif
 
 #define FMT2_OFFSET 0x800
@@ -1540,6 +1541,10 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	case RHD_CONNECTOR_PANEL:
 	    Private->EncoderMode = LVDS;
 	    GetLVDSInfo(rhdPtr, Private);
+#ifdef ATOM_BIOS
+	    if (Private->BlLevel < 0)
+		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->Transmitter.Property);
+#endif
 	    break;
 	case RHD_CONNECTOR_DVI:
 	    Private->RunDualLink = FALSE; /* will be set later acc to pxclk */

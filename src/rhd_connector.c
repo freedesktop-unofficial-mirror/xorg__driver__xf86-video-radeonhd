@@ -43,7 +43,6 @@
 #include "rhd.h"
 #ifdef ATOM_BIOS
 # include "rhd_atombios.h"
-# include "rhd_atomout.h"
 #endif
 #include "rhd_connector.h"
 #include "rhd_output.h"
