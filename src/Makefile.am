@@ -63,6 +63,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_cs.h \
 	r5xx_accel.c \
 	r5xx_accel.h \
+	r5xx_xaa.c \
 	r5xx_regs.h \
 	r5xx_3dregs.h
 

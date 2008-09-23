@@ -288,6 +288,9 @@ typedef struct RHDRec {
 
     struct RhdCS       *CS;
 
+    struct _XAAInfoRec *XAAInfo;
+    void               *TwoDPrivate;
+
     /* RandR compatibility layer */
     struct rhdRandr    *randr;
     /* log verbosity - store this for convenience */

@@ -44,10 +44,8 @@
 #include "rhd_modes.h"
 #include "rhd_monitor.h"
 
-#if 0
 /* For Acceleration FB validation */
 #include "r5xx_accel.h"
-#endif
 
 /*
  * Don't bother with checking whether X offers this. Just use the internal one
@@ -1484,14 +1482,14 @@ RHDGetVirtualFromConfig(ScrnInfoPtr pScrn)
 
 	if (Pitch1 != Pitch2)
 	    goto shrink;
-#if 0
+
 	/* let 2d acceleration have a say as well */
 	if (rhdPtr->AccelMethod >= RHD_ACCEL_XAA)
 	    if (rhdPtr->ChipSet < RHD_R600) /* badly abstracted, i know */
 		if (!R5xx2DFBValid(rhdPtr, VirtualX, VirtualY, pScrn->bitsPerPixel,
 				   rhdPtr->FbScanoutStart, rhdPtr->FbScanoutSize, Pitch1))
 		    goto shrink;
-#endif
+
 	break; /* must be good then. */
     shrink:
 	VirtualX--;
@@ -1567,7 +1565,6 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 	    /* when needed, check whether this matches our 2D engine as well. */
 	    if (rhdPtr->AccelMethod >= RHD_ACCEL_XAA)
 		if (rhdPtr->ChipSet < RHD_R600) /* badly abstracted, i know */
-#if 0
 		    if (!R5xx2DFBValid(rhdPtr, VirtualX, VirtualY,
 				       pScrn->bitsPerPixel, rhdPtr->FbScanoutStart,
 				       rhdPtr->FbScanoutSize, Pitch1)) {
@@ -1576,7 +1573,7 @@ RHDGetVirtualFromModesAndFilter(ScrnInfoPtr pScrn, DisplayModePtr Modes, Bool Si
 				   Mode->name, Mode->HDisplay, Mode->VDisplay);
 			goto rejected;
 		    }
-#endif
+
 	    /* mode is perfectly valid FB wise */
 	    Mode = Mode->next;
 	    pScrn->virtualX = VirtualX;

@@ -1116,7 +1116,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    /* No safetynet anymore */
 	    return FALSE;
 	break;
-#if 0
     case RHD_ACCEL_XAA:
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    if (!R5xxXAAInit(pScrn, pScreen))
@@ -1124,6 +1123,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	} else
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
+#if 0
 #ifdef USE_EXA
     case RHD_ACCEL_EXA:
 	if (rhdPtr->ChipSet < RHD_R600) {
@@ -1139,13 +1139,11 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	break;
     }
 
-#if 0
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (rhdPtr->TwoDPrivate)
 	    R5xx2DStart(pScrn);
 	R5xxEngineWaitIdleFull(rhdPtr->CS);
     }
-#endif
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -1255,10 +1253,8 @@ rhdEngineIdle(ScrnInfoPtr pScrn)
 	RHDCSIdle(CS);
     }
 
-#if 0
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
 	R5xx2DIdle(pScrn);
-#endif
 }
 
 /* Mandatory */
@@ -1283,11 +1279,11 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	}
     } else
 #endif /* USE_EXA */
+#endif
 	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	    if (rhdPtr->ChipSet < RHD_R600)
 		R5xxXAADestroy(pScrn);
 	}
-#endif
 
 #if 0
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->ThreeDPrivate)
@@ -1357,12 +1353,10 @@ RHDEnterVT(int scrnIndex, int flags)
 #endif
 
     if (rhdPtr->CS) {
-#if 0
 	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
 	    R5xx2DSetup(pScrn);
 	    R5xx2DIdle(pScrn);
 	}
-#endif
 
 	RHDCSStart(rhdPtr->CS);
 

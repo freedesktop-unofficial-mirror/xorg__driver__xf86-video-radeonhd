@@ -48,11 +48,11 @@ Bool R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 /* Helper from r5xx_accel.c */
 CARD8 R5xx2DDatatypeGet(ScrnInfoPtr pScrn);
 
-#if 0
 /* XAA specific */
 Bool R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
 void R5xxXAADestroy(ScrnInfoPtr pScrn);
 
+#if 0
 /* EXA specific */
 #ifdef USE_EXA
 
