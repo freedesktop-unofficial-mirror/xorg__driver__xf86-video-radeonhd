@@ -305,6 +305,11 @@ typedef struct RHDRec {
     /* DRI */
     struct rhdDri      *dri;
 
+    /* XV */
+#ifdef USE_EXA
+    void               *adaptor;  /* XF86VideoAdaptorPtr */
+#endif
+
     /* BIOS Scratch registers */
     struct rhdBiosScratchRegisters *BIOSScratch;
 
@@ -323,6 +328,7 @@ typedef struct RHDRec {
 #  define NORETURN
 #  define CONST
 #endif
+
 
 enum atomSubSystem {
     atomUsageCrtc,

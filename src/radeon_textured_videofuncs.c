@@ -103,6 +103,10 @@ do {								\
 #  include "exa.h"
 # endif
 
+# ifdef DAMAGE
+#  include "damage.h"
+# endif
+
 # define uint32_t CARD32
 
 /*

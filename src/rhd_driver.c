@@ -117,6 +117,7 @@
 #include "rhd_randr.h"
 #include "rhd_cs.h"
 #include "r5xx_accel.h"
+#include "rhd_video.h"
 
 #ifdef USE_DRI
 #include "rhd_dri.h"
@@ -1196,10 +1197,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
 
-#if 0
     if (rhdPtr->TwoDPrivate)
 	RHDInitVideo(pScreen);
-#endif
 
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;
