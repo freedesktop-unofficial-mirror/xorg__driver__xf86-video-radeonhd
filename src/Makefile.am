@@ -65,10 +65,15 @@ radeonhd_drv_la_SOURCES = \
 	r5xx_accel.h \
 	r5xx_xaa.c \
 	r5xx_regs.h \
-	r5xx_3dregs.h
+	r5xx_3dregs.h \
+	radeon_3d.c
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
+
+if USE_EXA
+radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c
+endif
 
 if USE_DRI
 radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_drm.h

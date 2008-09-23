@@ -1123,7 +1123,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	} else
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
-#if 0
 #ifdef USE_EXA
     case RHD_ACCEL_EXA:
 	if (rhdPtr->ChipSet < RHD_R600) {
@@ -1133,7 +1132,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
 #endif /* USE_EXA */
-#endif
     default:
 	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
@@ -1270,7 +1268,6 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     /* tear down 2d accel infrastructure */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
-#if 0
 #ifdef USE_EXA
     else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
 	if (rhdPtr->ChipSet < RHD_R600) {
@@ -1279,16 +1276,13 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	}
     } else
 #endif /* USE_EXA */
-#endif
 	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	    if (rhdPtr->ChipSet < RHD_R600)
 		R5xxXAADestroy(pScrn);
 	}
 
-#if 0
     if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->ThreeDPrivate)
 	R5xx3DDestroy(pScrn);
-#endif
 
     if (rhdPtr->CS)
 	RHDCSStop(rhdPtr->CS);

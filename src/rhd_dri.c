@@ -100,7 +100,7 @@
 #define RADEON_DRIAPI_VERSION_MINOR 3
 #define RADEON_DRIAPI_VERSION_PATCH 0
 
-#define RHD_IDLE_RETRY              16 /* Fall out of idle loops after this count */
+#define RHD_IDLE_RETRY              16	/* Fall out of idle loops after this count */
 
 /* awkward... */
 #define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
@@ -376,20 +376,16 @@ static void RHDEnterServer(ScreenPtr pScreen)
     struct RhdCS *CS = rhdPtr->CS;
     drm_radeon_sarea_t *pSAREAPriv;
 
-#if 0
 #ifdef USE_EXA
     if (rhdPtr->EXAInfo)
 	exaMarkSync(pScrn->pScreen);
-#endif
 #endif
     if (rhdPtr->XAAInfo)
 	SET_SYNC_FLAG(rhdPtr->XAAInfo);
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScreen)) {
-#if 0
 	struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
-#endif
 
 	if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
 	    R5xxDstCacheFlush(CS);
@@ -399,10 +395,8 @@ static void RHDEnterServer(ScreenPtr pScreen)
 	    CS->Clean = RHD_CS_CLEAN_QUEUED;
 	}
 
-#if 0
 	if (R5xx3D)
 	    R5xx3D->XHas3DEngineState = FALSE;
-#endif
     } else {
 	/* if the engine has been untouched, we need to track this too. */
 	if (CS->Clean != RHD_CS_CLEAN_QUEUED)
@@ -1894,4 +1888,55 @@ RHDDRMCPBuffer(int scrnIndex)
     xf86DrvMsg(scrnIndex, X_ERROR,
 	       "%s: throwing in the towel: SIGSEGV ahead!\n", __func__);
     return NULL;
+}
+
+/*
+ *
+ */
+CARD8 *
+RHDDRMIndirectBufferGet(int scrnIndex, unsigned int *IntAddress, CARD32 *Size)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+    struct _drmBuf *DrmBuffer;
+    CARD8 *Buffer;
+
+    if (!Dri->gartLocation)
+	return NULL;
+
+    DrmBuffer = RHDDRMCPBuffer(scrnIndex);
+    Buffer = DrmBuffer->address;
+    *Size = DrmBuffer->total;
+    *IntAddress = Dri->gartLocation + Dri->bufStart + DrmBuffer->idx * DrmBuffer->total;
+
+    return Buffer;
+}
+
+/*
+ *
+ */
+void
+RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer)
+{
+    struct rhdDri *Dri = RHDPTR(xf86Screens[scrnIndex])->dri;
+    struct drm_radeon_indirect indirect;
+    int i;
+
+    for (i = 0; i < Dri->bufNumBufs; i++)
+	if (Buffer == Dri->buffers->list[i].address) {
+	    /* stick a NOP in our Buffer */
+	    ((CARD32 *) Buffer)[0] = CP_PACKET2();
+
+	    indirect.idx = Dri->buffers->list[i].idx;
+	    indirect.start = 0;
+	    indirect.end = 1;
+	    indirect.discard = 1;
+
+	    drmCommandWriteRead(Dri->drmFD, DRM_RADEON_INDIRECT,
+				&indirect, sizeof(struct drm_radeon_indirect));
+	    return;
+	}
+
+    xf86DrvMsg(scrnIndex, X_ERROR,
+	       "%s: Unable to retrieve the indirect Buffer at address %p!\n",
+	       __func__, Buffer);
 }

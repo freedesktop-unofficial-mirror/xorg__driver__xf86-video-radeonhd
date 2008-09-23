@@ -113,8 +113,6 @@ if test "x$have_exa_h" = xyes; then
         fi
 fi
 
-USE_EXA=no
-
 AM_CONDITIONAL(USE_EXA, test "x$USE_EXA" = xyes)
 
 # Handle DRI

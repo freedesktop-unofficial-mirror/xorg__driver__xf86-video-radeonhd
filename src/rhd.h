@@ -289,7 +289,13 @@ typedef struct RHDRec {
     struct RhdCS       *CS;
 
     struct _XAAInfoRec *XAAInfo;
+#ifdef USE_EXA
+    struct _ExaDriver  *EXAInfo;
+#endif
     void               *TwoDPrivate;
+
+    /* For EXA Render and Textured Video */
+    void               *ThreeDPrivate;
 
     /* RandR compatibility layer */
     struct rhdRandr    *randr;

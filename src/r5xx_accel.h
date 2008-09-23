@@ -52,7 +52,6 @@ CARD8 R5xx2DDatatypeGet(ScrnInfoPtr pScrn);
 Bool R5xxXAAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen);
 void R5xxXAADestroy(ScrnInfoPtr pScrn);
 
-#if 0
 /* EXA specific */
 #ifdef USE_EXA
 
@@ -65,9 +64,7 @@ void R5xxEXADestroy(ScrnInfoPtr pScrn);
 void R5xxExaCompositeFuncs(int scrnIndex, struct _ExaDriver *Exa);
 
 #endif /* USE_EXA */
-#endif
 
-#if 0
 /*
  * EXA Composite and Textured Video both need to know the state of the
  * 3d engine, so we provide the structure here.
@@ -98,15 +95,12 @@ struct R5xx3D {
 void R5xx3DInit(ScrnInfoPtr pScrn);
 void R5xx3DSetup(int scrnIndex);
 void R5xx3DDestroy(ScrnInfoPtr pScrn);
-#endif
 
 void R5xxDstCacheFlush(struct RhdCS *CS);
 void R5xxZCacheFlush(struct RhdCS *CS);
 
 void R5xxEngineWaitIdleFull(struct RhdCS *CS);
-#if 0
 void R5xxEngineWaitIdle3D(struct RhdCS *CS);
 void R5xxEngineWaitIdle2D(struct RhdCS *CS);
-#endif
 
 #endif /* _RHD_ACCEL_H */

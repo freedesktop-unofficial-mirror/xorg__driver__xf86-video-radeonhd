@@ -330,11 +330,9 @@ R5xxEngineReset(ScrnInfoPtr pScrn)
     R5xx2DSetup(pScrn);
     RHDCSReset(rhdPtr->CS);
 
-#if 0
     /* we also need to reinitialise the 3d engine now */
     if (rhdPtr->ThreeDPrivate)
 	((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState = FALSE;
-#endif
 }
 
 /*
@@ -421,7 +419,6 @@ R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
     return TRUE;
 }
 
-#if 0
 /*
  * Handlers for rhdPtr->ThreeDInfo.
  */
@@ -460,7 +457,6 @@ R5xx3DDestroy(ScrnInfoPtr pScrn)
     xfree(rhdPtr->ThreeDPrivate);
     rhdPtr->ThreeDPrivate = NULL;
 }
-#endif
 
 /*
  *
@@ -490,24 +486,19 @@ R5xxZCacheFlush(struct RhdCS *CS)
 void
 R5xxEngineWaitIdleFull(struct RhdCS *CS)
 {
-#if 0
     RHDPtr rhdPtr = RHDPTRI(CS);
-#endif
 
     RHDCSGrab(CS, 2);
     RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
 		  R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
 		  R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
 
-#if 0
     if (rhdPtr->ThreeDPrivate) {
 	struct R5xx3D *State = rhdPtr->ThreeDPrivate;
 	State->engineMode = R5XX_ENGINEMODE_IDLE_FULL;
     }
-#endif
 }
 
-#if 0
 /*
  *
  */
@@ -546,4 +537,3 @@ R5xxEngineWaitIdle2D(struct RhdCS *CS)
 
     State->engineMode = R5XX_ENGINEMODE_IDLE_2D;
 }
-#endif

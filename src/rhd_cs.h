@@ -155,14 +155,12 @@ do { \
 	RHDCSFlush((CS)); \
 } while (0)
 
-#if 0
 #ifdef USE_DRI
 /*
  * Some extra handling for those who want to use separate indirect buffers.
  */
 CARD8 *RHDDRMIndirectBufferGet(int scrnIndex, unsigned int *IntAddress, CARD32 *Size);
 void RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer);
-#endif
 #endif
 
 #endif /* _HAVE_RHD_CS_ */
