@@ -69,8 +69,10 @@
 #include "xf86.h"
 
 #include "rhd.h"
+#include "rhd_cs.h"
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
+#include "r5xx_3dregs.h"
 
 /*
  * Used by both XAA and EXA code.
@@ -99,17 +101,17 @@ struct R5xxRop R5xxRops[] = {
  * of these slots are empty.
  */
 static Bool
-R5xxFIFOWaitLocal(int scrnIndex, CARD32 required)
+R5xxFIFOWait(RHDPtr rhdPtr, CARD32 required)
 {
     int i;
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
 	if (required <=
-	    (_RHDRegRead(scrnIndex, R5XX_RBBM_STATUS) & R5XX_RBBM_FIFOCNT_MASK))
+	    (RHDRegRead(rhdPtr, R5XX_RBBM_STATUS) & R5XX_RBBM_FIFOCNT_MASK))
 	    return TRUE;
 
-    xf86DrvMsg(scrnIndex, X_ERROR, "%s: Timeout 0x%08X.\n", __func__,
-	       (unsigned int) _RHDRegRead(scrnIndex, R5XX_RBBM_STATUS));
+    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Timeout 0x%08X.\n", __func__,
+	       (unsigned int) RHDRegRead(rhdPtr, R5XX_RBBM_STATUS));
     return FALSE;
 }
 
@@ -122,9 +124,13 @@ R5xx2DFlush(int scrnIndex)
     int i;
 
     _RHDRegMask(scrnIndex, R5XX_DSTCACHE_CTLSTAT,
+		/* Radeon code:
+		   R5XX_RB2D_DC_FLUSH_ALL, R5XX_RB2D_DC_FLUSH_ALL */
 		R5XX_DSTCACHE_FLUSH_ALL, R5XX_DSTCACHE_FLUSH_ALL);
 
     for (i = 0; i < R5XX_LOOP_COUNT; i++)
+	/* Radeon code:
+	   & R5XX_RB2D_DC_BUSY */
 	if (!(_RHDRegRead(scrnIndex, R5XX_DSTCACHE_CTLSTAT) & R5XX_DSTCACHE_BUSY))
 	    return TRUE;
 
@@ -265,11 +271,11 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
     tmp = (((pScrn->displayWidth * (pScrn->bitsPerPixel / 8)) / 64) << 22) |
 	((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 2);
+    R5xxFIFOWait(rhdPtr, 2);
     RHDRegWrite(rhdPtr, R5XX_DST_PITCH_OFFSET, tmp);
     RHDRegWrite(rhdPtr, R5XX_SRC_PITCH_OFFSET, tmp);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 2);
+    R5xxFIFOWait(rhdPtr, 2);
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     RHDRegMask(rhdPtr, R5XX_DP_DATATYPE,
 	       R5XX_HOST_BIG_ENDIAN_EN, R5XX_HOST_BIG_ENDIAN_EN);
@@ -292,46 +298,43 @@ R5xx2DSetup(ScrnInfoPtr pScrn)
     RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, 0);
 #endif
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 1);
+    R5xxFIFOWait(rhdPtr, 1);
     RHDRegWrite(rhdPtr, R5XX_DEFAULT_SC_BOTTOM_RIGHT,
 		R5XX_DEFAULT_SC_RIGHT_MAX | R5XX_DEFAULT_SC_BOTTOM_MAX);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 1);
+    R5xxFIFOWait(rhdPtr, 1);
     RHDRegWrite(rhdPtr, R5XX_DP_GUI_MASTER_CNTL,
 		(R5xx2DDatatypeGet(pScrn) << R5XX_GMC_DST_DATATYPE_SHIFT) |
 		R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_DST_PITCH_OFFSET_CNTL |
 		R5XX_GMC_BRUSH_SOLID_COLOR | R5XX_GMC_SRC_DATATYPE_COLOR);
 
-    R5xxFIFOWaitLocal(rhdPtr->scrnIndex, 5);
+    R5xxFIFOWait(rhdPtr, 5);
     RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_FRGD_CLR, 0xFFFFFFFF);
     RHDRegWrite(rhdPtr, R5XX_DP_BRUSH_BKGD_CLR, 0x00000000);
     RHDRegWrite(rhdPtr, R5XX_DP_SRC_FRGD_CLR, 0xFFFFFFFF);
     RHDRegWrite(rhdPtr, R5XX_DP_SRC_BKGD_CLR, 0x00000000);
     RHDRegWrite(rhdPtr, R5XX_DP_WRITE_MASK, 0xFFFFFFFF);
-
-    R5xx2DIdleLocal(rhdPtr->scrnIndex);
 }
 
 /*
  *
  */
 static void
-R5xx2DResetFull(ScrnInfoPtr pScrn)
+R5xxEngineReset(ScrnInfoPtr pScrn)
 {
-    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "%s!!!!!\n", __func__);
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s!!!!!\n", __func__);
 
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);
-}
+    RHDCSReset(rhdPtr->CS);
 
-/*
- *
- */
-void
-R5xxFIFOWait(int scrnIndex, CARD32 required)
-{
-    if (!R5xxFIFOWaitLocal(scrnIndex, required))
-	R5xx2DResetFull(xf86Screens[scrnIndex]);
+#if 0
+    /* we also need to reinitialise the 3d engine now */
+    if (rhdPtr->ThreeDPrivate)
+	((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState = FALSE;
+#endif
 }
 
 /*
@@ -341,7 +344,7 @@ void
 R5xx2DIdle(ScrnInfoPtr pScrn)
 {
     if (!R5xx2DIdleLocal(pScrn->scrnIndex))
-	R5xx2DResetFull(pScrn);
+	R5xxEngineReset(pScrn);
 }
 
 /*
@@ -350,16 +353,29 @@ R5xx2DIdle(ScrnInfoPtr pScrn)
 void
 R5xx2DStart(ScrnInfoPtr pScrn)
 {
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    RHDFUNC(pScrn);
+
+    if ((rhdPtr->ChipSet != RHD_RS690) &&
+	(rhdPtr->ChipSet != RHD_RS600) &&
+	(rhdPtr->ChipSet != RHD_RS740)) {
+	CARD8 pipe = (RHDRegRead(rhdPtr, R400_GB_PIPE_SELECT) >> 4) & 0xF0;
+	RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, pipe | 0x01);
+    }
+
     RHDRegMask(pScrn, R5XX_GB_TILE_CONFIG, 0, R5XX_ENABLE_TILING);
     RHDRegWrite(pScrn, R5XX_WAIT_UNTIL,
 		R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN);
-    RHDRegMask(pScrn, R5XX_DST_PIPE_CONFIG, R5XX_PIPE_AUTO_CONFIG, R5XX_PIPE_AUTO_CONFIG);
+    RHDRegMask(pScrn, R5XX_DST_PIPE_CONFIG,
+	       R5XX_PIPE_AUTO_CONFIG, R5XX_PIPE_AUTO_CONFIG);
     RHDRegMask(pScrn, R5XX_RB2D_DSTCACHE_MODE,
 	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE,
 	       R5XX_RB2D_DC_AUTOFLUSH_ENABLE | R5XX_RB2D_DC_DISABLE_IGNORE_PE);
 
     R5xx2DReset(pScrn);
     R5xx2DSetup(pScrn);
+    R5xx2DIdleLocal(pScrn->scrnIndex);
 }
 
 /*
@@ -404,3 +420,130 @@ R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 
     return TRUE;
 }
+
+#if 0
+/*
+ * Handlers for rhdPtr->ThreeDInfo.
+ */
+void
+R5xx3DInit(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct R5xx3D *R5xx3D;
+
+    if (rhdPtr->ThreeDPrivate) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: rhdPtr->ThreeDPrivate is already initialised.\n",
+		   __func__);
+	return;
+    }
+
+    R5xx3D = (struct R5xx3D *) xnfcalloc(1, sizeof(struct R5xx3D));
+    R5xx3D->XHas3DEngineState = FALSE;
+    rhdPtr->ThreeDPrivate = R5xx3D;
+}
+
+/*
+ *
+ */
+void
+R5xx3DDestroy(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (!rhdPtr->ThreeDPrivate) {
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: rhdPtr->ThreeDPrivate is not assigned.\n", __func__);
+	return;
+    }
+
+    xfree(rhdPtr->ThreeDPrivate);
+    rhdPtr->ThreeDPrivate = NULL;
+}
+#endif
+
+/*
+ *
+ */
+void
+R5xxDstCacheFlush(struct RhdCS *CS)
+{
+    RHDCSGrab(CS, 2);
+    RHDCSRegWrite(CS, R5XX_RB3D_DSTCACHE_CTLSTAT, R5XX_RB3D_DC_FLUSH_ALL);
+}
+
+/*
+ *
+ */
+void
+R5xxZCacheFlush(struct RhdCS *CS)
+{
+    RHDCSGrab(CS, 2);
+    RHDCSRegWrite(CS, R5XX_RB3D_ZCACHE_CTLSTAT, R5XX_RB3D_ZC_FLUSH_ALL);
+}
+
+/*
+ * When we switch between 3d and 2d rendering all the time, we need to make
+ * sure that the other engine is idle first before the new engine goes and
+ * fires off.
+ */
+void
+R5xxEngineWaitIdleFull(struct RhdCS *CS)
+{
+#if 0
+    RHDPtr rhdPtr = RHDPTRI(CS);
+#endif
+
+    RHDCSGrab(CS, 2);
+    RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
+		  R5XX_WAIT_HOST_IDLECLEAN | R5XX_WAIT_3D_IDLECLEAN |
+		  R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
+
+#if 0
+    if (rhdPtr->ThreeDPrivate) {
+	struct R5xx3D *State = rhdPtr->ThreeDPrivate;
+	State->engineMode = R5XX_ENGINEMODE_IDLE_FULL;
+    }
+#endif
+}
+
+#if 0
+/*
+ *
+ */
+void
+R5xxEngineWaitIdle3D(struct RhdCS *CS)
+{
+    struct R5xx3D *State = RHDPTRI(CS)->ThreeDPrivate;
+
+    if (!State)
+	return;
+
+    if (State->engineMode == R5XX_ENGINEMODE_IDLE_2D) {
+	RHDCSGrab(CS, 2);
+	RHDCSRegWrite(CS, R5XX_WAIT_UNTIL, R5XX_WAIT_3D_IDLECLEAN);
+    } /* FULL/3D is always good */
+
+    State->engineMode = R5XX_ENGINEMODE_IDLE_3D;
+}
+
+/*
+ *
+ */
+void
+R5xxEngineWaitIdle2D(struct RhdCS *CS)
+{
+    struct R5xx3D *State = RHDPTRI(CS)->ThreeDPrivate;
+
+    if (!State)
+	return;
+
+    if (State->engineMode == R5XX_ENGINEMODE_IDLE_3D) {
+	RHDCSGrab(CS, 2);
+	RHDCSRegWrite(CS, R5XX_WAIT_UNTIL,
+		      R5XX_WAIT_2D_IDLECLEAN | R5XX_WAIT_DMA_GUI_IDLE);
+    } /* FULL/2D is always good */
+
+    State->engineMode = R5XX_ENGINEMODE_IDLE_2D;
+}
+#endif

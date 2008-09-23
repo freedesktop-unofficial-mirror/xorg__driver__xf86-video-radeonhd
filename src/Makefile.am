@@ -32,6 +32,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_tmds.c \
 	rhd_vga.c \
 	rhd_mc.c \
+	rhd_mc.h \
 	rhd_shadow.c \
 	rhd_randr.c \
 	rhd_dig.c \
@@ -40,6 +41,7 @@ radeonhd_drv_la_SOURCES = \
 	rhd_atompll.c \
 	rhd_atomcrtc.c \
 	rhd_biosscratch.c \
+	rhd_biosscratch.h \
 	rhd_atombios.h \
 	rhd_atomout.h \
 	rhd.h \
@@ -57,37 +59,18 @@ radeonhd_drv_la_SOURCES = \
 	rhd_regs.h \
 	rhd_vga.h \
 	rhd_shadow.h \
-	rhd_mc.h \
-	radeon_accel.c \
-	radeon_accel.h \
-	radeon_xaa.c \
-	radeon_video.c \
-	radeon_textured_video.c \
-	radeon_video.h \
-	radeon_reg.h
-
-EXTRA_DIST += \
-	radeon_accelfuncs.c \
-	radeon_exa_funcs.c \
-	radeon_3d.c \
-	radeon_textured_videofuncs.c \
-	radeon_exa_render.c \
+	rhd_cs.c \
+	rhd_cs.h \
+	r5xx_accel.c \
 	r5xx_accel.h \
 	r5xx_regs.h \
-	r5xx_accel.c \
-	r5xx_exa.c \
-	r5xx_xaa.c \
-	rhd_biosscratch.h
+	r5xx_3dregs.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
 
-if USE_EXA
-radeonhd_drv_la_SOURCES += radeon_exa.c
-endif
-
 if USE_DRI
-radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h rhd_cp.h radeon_drm.h
+radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_drm.h
 endif
 
 if ATOM_BIOS

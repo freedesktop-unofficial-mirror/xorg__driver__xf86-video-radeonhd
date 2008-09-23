@@ -115,14 +115,8 @@
 #include "rhd_shadow.h"
 #include "rhd_card.h"
 #include "rhd_randr.h"
-#if 0
+#include "rhd_cs.h"
 #include "r5xx_accel.h"
-#endif
-
-#define uint8_t  CARD8
-#define uint16_t CARD16
-#define uint32_t CARD32
-#include "radeon_accel.h"
 
 #ifdef USE_DRI
 #include "rhd_dri.h"
@@ -990,8 +984,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 #endif /* USE_EXA */
 
-    rhdPtr->tilingEnabled = FALSE;
-
     /* Last resort: try shadowFB */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowPreInit(pScrn);
@@ -1015,57 +1007,6 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
  error0:
     if (!ret)
 	RHDFreeRec(pScrn);
-
-    return ret;
-}
-
-/*
- *
- */
-static Bool
-RHD2DAccelInit(ScreenPtr pScreen, ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-
-    Bool ret = FALSE;
-
-    RHDFUNC(pScrn);
-
-    if (rhdPtr->ChipSet >= RHD_R600)
-	return FALSE;
-
-    /* old IGP chips have no PVS/TCL hw */
-    if ((rhdPtr->ChipSet == RHD_RS600) ||
-	(rhdPtr->ChipSet == RHD_RS690) ||
-	(rhdPtr->ChipSet == RHD_RS740))
-	rhdPtr->has_tcl = FALSE;
-    else
-	rhdPtr->has_tcl = TRUE;
-
-    if (!(rhdPtr->accel_state = xcalloc(1, sizeof(struct rhdAccel)))) {
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Unable to allocate accel_state rec!\n");
-	return FALSE;
-    }
-    rhdPtr->accel_state->dst_pitch_offset = (((pScrn->displayWidth * (pScrn->bitsPerPixel >> 3) / 64)
-					      << 22) | ((rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart) >> 10));
-
-#ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	if  (RADEONSetupMemEXA(pScreen))
-	    ret = RADEON_EXAInit(pScreen);
-    }
-#endif
-#ifdef USE_XAA
-
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	if (RADEONSetupMemXAA(pScrn->scrnIndex, pScreen))
-	    ret = RADEON_XAAInit(pScreen);
-	}
-#endif
-    if (!ret) {
-	xfree(rhdPtr->accel_state);
-	rhdPtr->accel_state = NULL;
-    }
 
     return ret;
 }
@@ -1160,18 +1101,51 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef USE_DRI
     if (DriScreenInited)
-	rhdPtr->directRenderingEnabled = RHDDRIFinishScreenInit(pScreen);
+	RHDDRIFinishScreenInit(pScreen);
 #endif
+
+    /* Initialize command submission backend */
+    RHDCSInit(pScrn);
+    if (rhdPtr->CS)
+	RHDCSStart(rhdPtr->CS);
+
     /* Init 2D after DRI is set up */
-    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+    switch (rhdPtr->AccelMethod) {
+    case RHD_ACCEL_SHADOWFB:
 	if (!RHDShadowSetup(pScreen))
 	    /* No safetynet anymore */
 	    return FALSE;
-    } else if (rhdPtr->AccelMethod == RHD_ACCEL_XAA
-	       || rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	if (!RHD2DAccelInit(pScreen, pScrn))
+	break;
+#if 0
+    case RHD_ACCEL_XAA:
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (!R5xxXAAInit(pScrn, pScreen))
+		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	} else
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
+#ifdef USE_EXA
+    case RHD_ACCEL_EXA:
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (!R5xxEXAInit(pScrn, pScreen))
+		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	} else
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
+#endif /* USE_EXA */
+#endif
+    default:
+	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	break;
     }
+
+#if 0
+    if (rhdPtr->ChipSet < RHD_R600) {
+	if (rhdPtr->TwoDPrivate)
+	    R5xx2DStart(pScrn);
+	R5xxEngineWaitIdleFull(rhdPtr->CS);
+    }
+#endif
 
     miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
@@ -1217,8 +1191,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->racIoFlags = pScrn->racMemFlags = racflag;
 
-    /* @@@@ initialize video overlays here */
-
     /* Function to unblank, so that we don't show an uninitialised FB */
     pScreen->SaveScreen = RHDSaveScreen;
 
@@ -1228,13 +1200,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     pScrn->memPhysBase = rhdPtr->FbPhysAddress + rhdPtr->FbScanoutStart;
 
-    if (rhdPtr->ChipSet < RHD_R600) {
-#ifdef USE_DRI
-	rhdPtr->DMAForXv = TRUE;
+#if 0
+    if (rhdPtr->TwoDPrivate)
+	RHDInitVideo(pScreen);
 #endif
-	if (rhdPtr->accel_state)
-	    RADEONInitVideo(pScreen);
-    }
 
     /* Wrap the current CloseScreen function */
     rhdPtr->CloseScreen = pScreen->CloseScreen;
@@ -1262,21 +1231,35 @@ RHDAllIdle(ScrnInfoPtr pScrn)
 	    Crtc->Power(Crtc, RHD_POWER_RESET);
     }
 
-#if 0
-    /* TODO: Invalidate the cached acceleration registers */
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
-#endif
-
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA
-	|| rhdPtr->AccelMethod == RHD_ACCEL_EXA)
-	RADEONEngineRestore(pScrn);
-
     if (!RHDMCIdle(rhdPtr, 1000))
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
 
 }
 
+/*
+ *
+ */
+static void
+rhdEngineIdle(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
+
+    if (CS) {
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    R5xxDstCacheFlush(CS);
+	    R5xxEngineWaitIdleFull(CS);
+	}
+
+	RHDCSFlush(CS);
+	RHDCSIdle(CS);
+    }
+
+#if 0
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
+	R5xx2DIdle(pScrn);
+#endif
+}
 
 /* Mandatory */
 static Bool
@@ -1285,29 +1268,44 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
+    /* Make sure our CS and 2D status is clean before destroying it */
+    rhdEngineIdle(pScrn);
+
+    /* tear down 2d accel infrastructure */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+	RHDShadowCloseScreen(pScreen);
+#if 0
+#ifdef USE_EXA
+    else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    R5xxEXACloseScreen(pScreen);
+	    R5xxEXADestroy(pScrn);
+	}
+    } else
+#endif /* USE_EXA */
+	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
+	    if (rhdPtr->ChipSet < RHD_R600)
+		R5xxXAADestroy(pScrn);
+	}
+#endif
+
+#if 0
+    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->ThreeDPrivate)
+	R5xx3DDestroy(pScrn);
+#endif
+
+    if (rhdPtr->CS)
+	RHDCSStop(rhdPtr->CS);
+
     if (pScrn->vtSema)
 	RHDAllIdle(pScrn);
+
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRICloseScreen(pScreen);
 #endif
     if (pScrn->vtSema)
 	rhdRestore(rhdPtr);
-
-    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
-	RHDShadowCloseScreen(pScreen);
-#ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
-	RADEONCloseEXA(pScreen);
-#endif /* USE_EXA */
-#ifdef USE_XAA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
-	RADEONCloseXAA(pScreen);
-#endif /* USE_XAA */
-    if (rhdPtr->accel_state) {
-	xfree(rhdPtr->accel_state);
-	rhdPtr->accel_state = NULL;
-    }
 
     rhdUnmapFB(rhdPtr);
     rhdUnmapMMIO(rhdPtr);
@@ -1335,11 +1333,6 @@ RHDEnterVT(int scrnIndex, int flags)
 
     rhdSave(rhdPtr);
 
-#if 0
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
-	R5xx2DIdle(pScrn);
-#endif
-
 #ifdef ATOM_BIOS
     /* Set accelerator mode in the BIOSScratch registers */
     RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
@@ -1355,16 +1348,30 @@ RHDEnterVT(int scrnIndex, int flags)
     if (rhdPtr->CursorInfo)
 	rhdReloadCursor(pScrn);
     /* rhdShowCursor() done by AdjustFrame */
-    RHDAdjustFrame(pScrn->scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA
-	|| rhdPtr->AccelMethod == RHD_ACCEL_EXA)
-        RADEONEngineRestore(pScrn);
+    RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIEnterVT(pScrn->pScreen);
 #endif
+
+    if (rhdPtr->CS) {
+#if 0
+	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
+	    R5xx2DSetup(pScrn);
+	    R5xx2DIdle(pScrn);
+	}
+#endif
+
+	RHDCSStart(rhdPtr->CS);
+
+	if (rhdPtr->ChipSet < RHD_R600)
+	    R5xxEngineWaitIdleFull(rhdPtr->CS);
+
+	RHDCSFlush(rhdPtr->CS);
+	RHDCSIdle(rhdPtr->CS);
+    }
 
     return TRUE;
 }
@@ -1383,6 +1390,11 @@ RHDLeaveVT(int scrnIndex, int flags)
 	RHDDRILeaveVT(pScrn->pScreen);
 #endif
 
+    rhdEngineIdle(pScrn);
+
+    if (rhdPtr->CS)
+	RHDCSStop(rhdPtr->CS);
+
     RHDAllIdle(pScrn);
 
     rhdRestore(rhdPtr);
@@ -1396,10 +1408,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
 
     RHDFUNC(rhdPtr);
 
-#if 0
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDInfo)
-	R5xx2DIdle(pScrn);
-#endif
+    rhdEngineIdle(pScrn);
 
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);

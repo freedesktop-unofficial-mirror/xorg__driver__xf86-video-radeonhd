@@ -30,8 +30,6 @@
 #  error "config.h missing!"
 # endif
 
-#define RHD_DRIVER
-
 #define RHD_MAJOR_VERSION (PACKAGE_VERSION_MAJOR)
 #define RHD_MINOR_VERSION (PACKAGE_VERSION_MINOR)
 #define RHD_PATCHLEVEL    (PACKAGE_VERSION_PATCHLEVEL)
@@ -194,7 +192,6 @@ enum AccelMethod {
     RHD_ACCEL_DEFAULT = 4 /* keep as highest. */
 };
 
-
 typedef struct RHDRec {
     int                 scrnIndex;
 
@@ -289,6 +286,8 @@ typedef struct RHDRec {
     enum RHD_TV_MODE   tvMode;
     rhdShadowPtr       shadowPtr;
 
+    struct RhdCS       *CS;
+
     /* RandR compatibility layer */
     struct rhdRandr    *randr;
     /* log verbosity - store this for convenience */
@@ -296,27 +295,6 @@ typedef struct RHDRec {
 
     /* DRI */
     struct rhdDri      *dri;
-
-#ifdef USE_EXA
-    struct _ExaDriver *exa;
-#endif
-#ifdef USE_XAA
-    struct _XAAInfoRec *xaa;
-#endif
-    Bool              allowColorTiling;
-    Bool              tilingEnabled; /* mirror of sarea->tiling_enabled */
-
-    struct rhdAccel   *accel_state;
-
-#ifdef USE_DRI
-    Bool              directRenderingEnabled;
-    struct rhdCP      *cp;
-    Bool              DMAForXv;
-#endif /* USE_DRI */
-    /* chips with PVS/TCL hw (used for EXA render) */
-    Bool             has_tcl;
-    /* Xv */
-    void *adaptor; /* XF86VideoAdaptorPtr */
 
     /* BIOS Scratch registers */
     struct rhdBiosScratchRegisters *BIOSScratch;
@@ -336,8 +314,6 @@ typedef struct RHDRec {
 #  define NORETURN
 #  define CONST
 #endif
-
-#define PIXEL_CODE(x) (x->bitsPerPixel != 16 ? x->bitsPerPixel : x->depth)
 
 enum atomSubSystem {
     atomUsageCrtc,
@@ -431,29 +407,5 @@ void _RHDRegMaskD(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
 # define RHDRegMaskD(ptr, offset, value, mask) RHDRegMask(ptr, offset, value, mask)
 # define DEBUGP(x)
 #endif
-
-#define IS_R300_3D ((info->ChipSet == RHD_RS600) || (info->ChipSet == RHD_RS690) || (info->ChipSet == RHD_RS740))
-#define IS_R500_3D ((info->ChipSet >= RHD_RV505) && (info->ChipSet <= RHD_M71))
-
-#define RADEON_TIMEOUT    2000000 /* Fall out of wait loops after this count */
-#define RADEON_LOGLEVEL_DEBUG 4
-#define RADEON_BUFFER_ALIGN 0x00000fff
-#define RADEON_IDLE_RETRY      16 /* Fall out of idle loops after this count */
-
-#define ADDRREG(addr)       ((volatile uint32_t *)((unsigned char*)info->MMIOBase + (addr)))
-
-#define xFixedToFloat(f) (((float) (f)) / 65536)
-
-#define RADEON_ALIGN(x,bytes) (((x) + ((bytes) - 1)) & ~((bytes) - 1))
-
-#define RADEONWaitForFifo(pScrn, entries)                               \
-do {                                                                    \
-    if (info->accel_state->fifo_slots < entries)                        \
-        RADEONWaitForFifoFunction(pScrn, entries);                      \
-    info->accel_state->fifo_slots -= entries;                           \
-} while (0)
-
-/* radeon_video.c */
-extern void RADEONInitVideo(ScreenPtr pScreen);
 
 #endif /* _RHD_H */

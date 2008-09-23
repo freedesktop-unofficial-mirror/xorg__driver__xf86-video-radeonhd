@@ -36,6 +36,8 @@
 #ifndef _RADEON_DRI_
 #define _RADEON_DRI_
 
+#ifndef IS_RADEONHD_DRIVER
+
 #include "xf86drm.h"
 
 /* DRI Driver defaults */
@@ -55,6 +57,8 @@
 #define RADEONCP_USE_RING_BUFFER(m)					\
     (((m) == RADEON_CSQ_PRIBM_INDDIS) ||				\
      ((m) == RADEON_CSQ_PRIBM_INDBM))
+
+#endif /* !IS_RADEONHD_DRIVER */
 
 typedef struct {
     /* DRI screen private data */

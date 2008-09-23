@@ -43,16 +43,12 @@ rhd_randr.c \
 rhd_tmds.c \
 rhd_vga.c \
 rhd_shadow.c \
-rhd_dri.c \
-radeon_accel.c \
-radeon_xaa.c \
-radeon_exa.c \
-radeon_video.c \
-radeon_textured_video.c \
 rhd_biosscratch.c \
 rhd_atomout.c \
 rhd_atompll.c \
 rhd_atomcrtc.c \
+rhd_cs.c \
+r5xx_accel.c \
 $(ATOM_BIOS_PARSER_SRCS) \
 git_version.h
 
@@ -80,14 +76,12 @@ rhd_randr.o \
 rhd_tmds.o \
 rhd_vga.o \
 rhd_shadow.o \
-radeon_accel.o \
-radeon_xaa.o \
-radeon_video.o \
-radeon_textured_video.o \
 rhd_biosscratch.o \
 rhd_atomout.o \
 rhd_atompll.o \
 rhd_atomcrtc.o \
+rhd_cs.o \
+r5xx_accel.o \
 $(ATOM_BIOS_PARSER_OBJS)
 
 INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
@@ -103,7 +97,6 @@ INCLUDES = -I. -I$(XF86COMSRC) -I$(XF86OSSRC) \
 
 ATOM_BIOS_INCLUDES = -I./AtomBios/includes
 ATOM_BIOS_DEFINES = -DATOM_BIOS=1
-NEEDED_DEFINES = -DUSE_XAA=1
 XCOMM older versions always have xf86_ansic.h
 XF86_ANSIC_DEFINES = -DHAVE_XF86_ANSIC_H=1
 
@@ -114,7 +107,6 @@ ATOM_BIOS_PARSER_DEFINES = -DDRIVER_PARSER -DDISABLE_EASF -DENABLE_ALL_SERVICE_F
 
 DEFINES  = $(INCLUDES) $(ATOM_BIOS_INCLUDES) $(ATOM_BIOS_PARSER_INCLUDES) \
            $(ATOM_BIOS_DEFINES) $(ATOM_BIOS_PARSER_DEFINES) \
-	   $(NEEDED_DEFINES) \
            $(XF86_ANSIC_DEFINES) \
            $(RHD_GIT_DEFINES) \
            $(RHD_VERSION_DEFINES)
