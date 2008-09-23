@@ -1,5 +1,8 @@
 /*
- * Copyright 2008 Alex Deucher
+ * Copyright 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2008  Alex Deucher
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -60,117 +63,94 @@
 #include "fourcc.h"
 
 #ifdef USE_EXA
-static void
-ATIVideoSave(ScreenPtr pScreen, ExaOffscreenArea *area)
+/*
+ *
+ */
+static Bool
+rhdXvAllocateEXA(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv, int size)
 {
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct RHDPortPriv *pPriv =
-	((XF86VideoAdaptorPtr)(rhdPtr->adaptor))->pPortPrivates[0].ptr;
+    ExaOffscreenArea *area = pPriv->BufferHandle;
 
-    if (pPriv->video_memory == area)
-        pPriv->video_memory = NULL;
+    if (area && (area->size == size))
+	return TRUE;
+
+    if (area)
+	exaOffscreenFree(pScrn->pScreen, area);
+
+    area = exaOffscreenAlloc(pScrn->pScreen, size, RHD_FB_ALIGNMENT,
+			     TRUE, NULL, NULL);
+    if (!area) {
+    	pPriv->BufferHandle = NULL;
+	pPriv->BufferOffset = 0;
+	return FALSE;
+    } else {
+	pPriv->BufferHandle = area;
+	pPriv->BufferOffset = area->offset + RHDPTR(pScrn)->FbScanoutStart;
+	return TRUE;
+    }
 }
 #endif /* USE_EXA */
 
-/* Allocates memory, either by resizing the allocation pointed to by mem_struct,
- * or by freeing mem_struct (if non-NULL) and allocating a new space.  The size
- * is measured in bytes, and the offset from the beginning of card space is
- * returned.
+/*
+ *
  */
+static FBLinearPtr
+rhdXvAllocateXAAHelper(ScreenPtr pScreen, FBLinearPtr linear, int size)
+{
+    if (linear) {
+	if (linear->size == size)
+	    return linear;
 
-static CARD32
-rhdAllocateMemory(
-    ScrnInfoPtr pScrn,
-    void **mem_struct,
-    int size
-    ){
-    ScreenPtr pScreen;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    int offset = 0;
+	if (xf86ResizeOffscreenLinear(linear, size))
+	    return linear;
 
-    pScreen = screenInfo.screens[pScrn->scrnIndex];
-
-#ifdef USE_EXA
-    if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	ExaOffscreenArea *area = *mem_struct;
-
-	if (area != NULL) {
-	    if (area->size >= size)
-		return area->offset;
-
-	    exaOffscreenFree(pScrn->pScreen, area);
-	}
-
-	area = exaOffscreenAlloc(pScrn->pScreen, size, 64, TRUE, ATIVideoSave,
-				 NULL);
-	*mem_struct = area;
-	if (area == NULL)
-	    return 0;
-	offset = area->offset;
-    }
-#endif /* USE_EXA */
-    if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
-	FBLinearPtr linear = *mem_struct;
-	int cpp = pScrn->bitsPerPixel >> 3;
-
-	/* XAA allocates in units of pixels at the screen bpp, so adjust size
-	 * appropriately.
-	 */
-	size = (size + cpp - 1) / cpp;
-
-	if (linear) {
-	    if (linear->size >= size)
-		return linear->offset * cpp;
-
-	    if (xf86ResizeOffscreenLinear(linear, size))
-		return linear->offset * cpp;
-
-	    xf86FreeOffscreenLinear(linear);
-	}
-
-	linear = xf86AllocateOffscreenLinear(pScreen, size, 16,
-						 NULL, NULL, NULL);
-	*mem_struct = linear;
-
-	if (!linear) {
-	    int max_size;
-
-	    xf86QueryLargestOffscreenLinear(pScreen, &max_size, 16,
-					    PRIORITY_EXTREME);
-
-	    if (max_size < size)
-		return 0;
-
-	    xf86PurgeUnlockedOffscreenAreas(pScreen);
-	    linear =
-		xf86AllocateOffscreenLinear(pScreen, size, 16, NULL, NULL, NULL);
-	    *mem_struct = linear;
-	    if (!linear)
-		return 0;
-	}
-	offset = linear->offset * cpp;
+	xf86FreeOffscreenLinear(linear);
     }
 
-    return offset;
+    linear = xf86AllocateOffscreenLinear(pScreen, size, 1,
+					 NULL, NULL, NULL);
+
+    if (!linear) {
+	int max_size;
+
+	xf86QueryLargestOffscreenLinear(pScreen, &max_size, 1,
+					PRIORITY_EXTREME);
+	if (max_size < size)
+	    return NULL;
+
+	xf86PurgeUnlockedOffscreenAreas(pScreen);
+	linear = xf86AllocateOffscreenLinear(pScreen, size, 1,
+					     NULL, NULL, NULL);
+    }
+
+    return linear;
 }
 
 /*
  *
  */
-void
-rhdFreeMemory(ScrnInfoPtr pScrn, void *mem_struct)
+static Bool
+rhdXvAllocateXAA(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv, int size)
 {
-    if (mem_struct) {
-	RHDPtr rhdPtr = RHDPTR(pScrn);
+    int cpp = pScrn->bitsPerPixel >> 3;
+    FBLinearPtr linear;
 
-#ifdef USE_EXA
-	if (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
-	    exaOffscreenFree(pScrn->pScreen, (ExaOffscreenArea *) mem_struct);
-#endif /* USE_EXA */
+    /* We need to  do FB alignment manually */
+    size += RHD_FB_ALIGNMENT - 1;
 
-	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA)
-	    xf86FreeOffscreenLinear((FBLinearPtr) mem_struct);
+    /* XAA allocates in units of pixels */
+    size = (size + cpp - 1) / cpp;
+
+    linear = rhdXvAllocateXAAHelper(pScrn->pScreen, pPriv->BufferHandle, size);
+    if (!linear) {
+	pPriv->BufferHandle = NULL;
+	pPriv->BufferOffset = 0;
+	return FALSE;
+    } else {
+	pPriv->BufferHandle = linear;
+	pPriv->BufferOffset = RHDPTR(pScrn)->FbScanoutStart +
+	    RHD_FB_CHUNK(linear->offset * cpp + RHD_FB_ALIGNMENT - 1);
+	return TRUE;
     }
 }
 
@@ -180,6 +160,28 @@ rhdFreeMemory(ScrnInfoPtr pScrn, void *mem_struct)
 static void
 rhdStopVideo(ScrnInfoPtr pScrn, pointer data, Bool cleanup)
 {
+    if (cleanup) {
+	struct RHDPortPriv *pPriv = data;
+
+	switch (RHDPTR(pScrn)->AccelMethod) {
+#ifdef USE_EXA
+	case RHD_ACCEL_EXA:
+	    exaOffscreenFree(pScrn->pScreen,
+			     (ExaOffscreenArea *) pPriv->BufferHandle);
+	    break;
+#endif /* USE_EXA */
+	case RHD_ACCEL_XAA:
+	    xf86FreeOffscreenLinear((FBLinearPtr) pPriv->BufferHandle);
+	    break;
+	default:
+	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		       "%s: cannot de-allocate memory!\n", __func__);
+	    break;
+	}
+
+	pPriv->BufferHandle = NULL;
+	pPriv->BufferOffset = 0;
+    }
 }
 
 /*
@@ -388,6 +390,9 @@ R5xxXvCopyPacked(RHDPtr rhdPtr, CARD8 *src, CARD8 *dst,
 #endif
 }
 
+/*
+ *
+ */
 static void
 R5xxXvCopyPlanarToPacked(CARD8 *dst, CARD16 dstPitch,
 			 CARD8 *src1, CARD16 src1Pitch,
@@ -483,6 +488,9 @@ R5xxXvCopyPlanarDMA(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
     RHDCSFlush(CS);
 }
 
+/*
+ *
+ */
 static void
 R5xxXvCopyPlanar(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 		 CARD8 *dst1, CARD16 srcPitch, CARD16 srcPitch2,
@@ -524,7 +532,6 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct RHDPortPriv *pPriv = data;
     CARD8 *FBBuf;
-    int dstPitch, size;
 
     /*
      * First, make sure we can render to the drawable.
@@ -557,44 +564,40 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
     pPriv->pDraw = pDraw;
 
+    /* The upload blit only supports multiples of 64 bytes */
+    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+	pPriv->BufferPitch = ALIGN(2 * width, 64);
+    else
+	pPriv->BufferPitch = ALIGN(2 * width, 16);
+
     /*
      * Now, find out whether we have enough memory available.
      */
-    dstPitch = width << 1;
-
-    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-	/* The upload blit only supports multiples of 64 bytes */
-       dstPitch = (dstPitch + 63) & ~63;
-    else
-       dstPitch = (dstPitch + 15) & ~15;
-
-    size = dstPitch * height;
-
-    if (pPriv->video_memory && (size != pPriv->size)) {
-	rhdFreeMemory(pScrn, pPriv->video_memory);
-	pPriv->video_memory = NULL;
-	pPriv->size = 0;
+    switch (rhdPtr->AccelMethod) {
+#ifdef USE_EXA
+    case RHD_ACCEL_EXA:
+	rhdXvAllocateEXA(pScrn, pPriv, 2 * pPriv->BufferPitch * height);
+	break;
+#endif /* USE_EXA */
+    case RHD_ACCEL_XAA:
+	rhdXvAllocateXAA(pScrn, pPriv, 2 * pPriv->BufferPitch * height);
+	break;
+    default:
+	pPriv->BufferHandle = NULL;
+	pPriv->BufferOffset = 0;
+	break;
     }
 
-    if (!pPriv->video_memory)
-	pPriv->video_offset =
-	    rhdAllocateMemory(pScrn, &pPriv->video_memory, size * 2);
-
-    if (!pPriv->video_offset || !pPriv->video_memory) {
-	pPriv->size = 0;
+    if (!pPriv->BufferHandle) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "%s: Failed to allocate framebuffer memory.\n", __func__);
 	return BadAlloc;
     }
 
-    pPriv->size = size;
-
     /*
      * Now copy the buffer to the framebuffer, and convert to planar when necessary.
      */
-    pPriv->src_offset = pPriv->video_offset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-    FBBuf = ((CARD8 *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + pPriv->video_offset);
-    pPriv->src_pitch = dstPitch;
+    FBBuf = (CARD8 *)rhdPtr->FbBase + pPriv->BufferOffset;
 
     switch(id) {
     case FOURCC_YV12:
@@ -607,18 +610,26 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
 	    if (id == FOURCC_YV12) {
 		if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s2offset, buf + s3offset,
-					FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
+		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s2offset,
+					buf + s3offset, FBBuf, srcPitch,
+					srcPitch2, pPriv->BufferPitch,
+					height, width);
 		else
-		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s2offset, buf + s3offset,
-				     FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
+		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s2offset,
+				     buf + s3offset, FBBuf, srcPitch,
+				     srcPitch2, pPriv->BufferPitch,
+				     height, width);
 	    } else {
 		if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s3offset, buf + s2offset,
-					FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
+		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s3offset,
+					buf + s2offset, FBBuf, srcPitch,
+					srcPitch2, pPriv->BufferPitch,
+					height, width);
 		else
-		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s3offset, buf + s2offset,
-				     FBBuf, srcPitch, srcPitch2, dstPitch, height, width);
+		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s3offset,
+				     buf + s2offset, FBBuf, srcPitch,
+				     srcPitch2, pPriv->BufferPitch,
+				     height, width);
 	    }
 	}
 	break;
@@ -626,9 +637,11 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     case FOURCC_YUY2:
     default:
 	if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-	    R5xxXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width, dstPitch, height);
+	    R5xxXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width,
+				pPriv->BufferPitch, height);
 	else
-	    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, 2 * width, dstPitch, height);
+	    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, 2 * width,
+			     pPriv->BufferPitch, height);
 	break;
     }
 
@@ -745,11 +758,10 @@ rhdSetupImageTexturedVideo(ScreenPtr pScreen)
 
 	/* gotta uninit this someplace, XXX: shouldn't be necessary for textured */
 	REGION_NULL(pScreen, &pPriv->clip);
+
 	adapt->pPortPrivates[i].ptr = (pointer) (pPriv);
     }
-#ifdef USE_EXA
-    rhdPtr->adaptor = adapt;  /* this is only needed for exaOffscreenAlloc */
-#endif
+
     return adapt;
 }
 

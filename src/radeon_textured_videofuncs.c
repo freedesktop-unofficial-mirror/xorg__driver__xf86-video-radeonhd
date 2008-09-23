@@ -70,7 +70,9 @@ do {								\
 # define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr info = RHDPTR(pScrn)
 # define THREEDSTATE_PREAMBLE() struct rhdAccel *accel_state = info->accel_state
 
-# define FB_OFFSET(x) (((char *)(x) - (char *)info->FbBase) + info->FbIntAddress)
+# define BUFFER_PITCH pPriv->src_pitch
+# define FB_BUFFER_OFFSET pPriv->src_offset
+# define FB_PIXMAP_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
 
 # ifdef USE_EXA
 #  define EXA_ENABLED (info->AccelMethod == RHD_ACCEL_EXA)
@@ -182,7 +184,9 @@ RADEONTilingEnabled(ScrnInfoPtr pScrn, PixmapPtr pPix)
 # define VAR_PSCRN_PREAMBLE(pScrn) RHDPtr rhdPtr = RHDPTR(pScrn)
 # define THREEDSTATE_PREAMBLE() struct R5xx3D *accel_state = (struct R5xx3D *)rhdPtr->ThreeDPrivate
 
-# define FB_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
+# define BUFFER_PITCH pPriv->BufferPitch
+# define FB_BUFFER_OFFSET (pPriv->BufferOffset + rhdPtr->FbIntAddress)
+# define FB_PIXMAP_OFFSET(x) (((char *)(x) - (char *)rhdPtr->FbBase) + rhdPtr->FbIntAddress)
 
 # ifdef USE_EXA
 #  define EXA_ENABLED (rhdPtr->AccelMethod == RHD_ACCEL_EXA)
@@ -225,7 +229,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
     } else
 #endif
 	{
-	    dst_offset = FB_OFFSET(pPixmap->devPrivate.ptr);
+	    dst_offset = FB_PIXMAP_OFFSET(pPixmap->devPrivate.ptr);
 	    dst_pitch = pPixmap->devKind;
 	}
 
@@ -307,7 +311,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 		    R300_TX_MAG_FILTER_LINEAR | R300_TX_MIN_FILTER_LINEAR);
 
 	/* pitch is in pixels */
-	txpitch = pPriv->src_pitch / 2;
+	txpitch = BUFFER_PITCH / 2;
 	txpitch -= 1;
 
 	if (IS_R500_3D && ((pPriv->w - 1) & 0x800))
@@ -322,7 +326,7 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 	OUT_VIDEO_REG(R300_TX_FORMAT0_0, txformat0);
 	OUT_VIDEO_REG(R300_TX_FORMAT1_0, txformat1);
 	OUT_VIDEO_REG(R300_TX_FORMAT2_0, txpitch);
-	OUT_VIDEO_REG(R300_TX_OFFSET_0, pPriv->src_offset);
+	OUT_VIDEO_REG(R300_TX_OFFSET_0, FB_BUFFER_OFFSET);
 	FINISH_VIDEO();
 
 	txenable = R300_TEX_0_ENABLE;

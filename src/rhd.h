@@ -231,8 +231,9 @@ typedef struct RHDRec {
 
     /* Some simplistic memory handling */
 #define ALIGN(x,align)	(((x)+(align)-1)&~((align)-1))
+#define RHD_FB_ALIGNMENT 0x1000
     /* Use this macro to always chew up 4096byte aligned pieces. */
-#define RHD_FB_CHUNK(x)     ALIGN((x),0x1000)
+#define RHD_FB_CHUNK(x)     ALIGN((x), RHD_FB_ALIGNMENT)
     unsigned int        FbFreeStart;
     unsigned int        FbFreeSize;
 
@@ -304,11 +305,6 @@ typedef struct RHDRec {
 
     /* DRI */
     struct rhdDri      *dri;
-
-    /* XV */
-#ifdef USE_EXA
-    void               *adaptor;  /* XF86VideoAdaptorPtr */
-#endif
 
     /* BIOS Scratch registers */
     struct rhdBiosScratchRegisters *BIOSScratch;
