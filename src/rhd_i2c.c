@@ -59,7 +59,8 @@ enum rhdDDClines {
     rhdDdc3clk = 5,
     rhdDdc4clk = 7, /* arbirarily choosen */
     rhdVIP_DOUTvipclk = 0x42,
-    rhdDvoData13 = 0x29
+    rhdDvoData13 = 0x29,
+    rhdDdcUnknown
 };
 
 typedef struct _rhdI2CRec
@@ -257,8 +258,8 @@ enum rv620I2CBits {
 /*
  *
  */
-static int
-getDDCLineFromGPIO(CARD32 gpio, int shift)
+static enum rhdDDClines
+getDDCLineFromGPIO(int scrnIndex, CARD32 gpio, int shift)
 {
     switch (gpio) {
     case 0x1f90:
@@ -309,7 +310,11 @@ getDDCLineFromGPIO(CARD32 gpio, int shift)
 	}
 	break;
     }
-    return -1;
+
+    xf86DrvMsg(scrnIndex, X_WARNING,
+	       "%s: Failed to match GPIO 0x%04X.%d with a known DDC line\n",
+	       __func__, (unsigned int) gpio, shift);
+    return rhdDdcUnknown;
 }
 
 /*
@@ -321,41 +326,52 @@ rhdI2CGetDataClkLines(RHDPtr rhdPtr, int line,
 		      CARD32 *sda_reg, CARD32 *scl_reg)
 {
 #ifdef ATOM_BIOS
+    AtomBiosResult result;
     AtomBiosArgRec data;
 
+    /* scl register */
     data.val = line & 0x0f;
-    if (RHDAtomBiosFunc(rhdPtr->scrnIndex,
-			rhdPtr->atomBIOS,
-			ATOM_GPIO_I2C_CLK_MASK,
-			&data) == ATOM_SUCCESS) {
-	CARD32 gpio = data.val;
-	*scl_reg = gpio;
-	data.val = line & 0x0f;
-	if (RHDAtomBiosFunc(rhdPtr->scrnIndex,
-			    rhdPtr->atomBIOS,
-			    ATOM_GPIO_I2C_CLK_MASK_SHIFT,
-			    &data) == ATOM_SUCCESS) {
-	    *scl = getDDCLineFromGPIO(gpio, data.val);
-	    data.val = line & 0x0f;
-	    if (RHDAtomBiosFunc(rhdPtr->scrnIndex,
-				rhdPtr->atomBIOS,
-				ATOM_GPIO_I2C_DATA_MASK,
-				&data) == ATOM_SUCCESS) {
-		gpio = data.val;
-		*sda_reg = gpio;
-		data.val = line & 0x0f;
-		if (RHDAtomBiosFunc(rhdPtr->scrnIndex,
-				    rhdPtr->atomBIOS,
-				    ATOM_GPIO_I2C_DATA_MASK_SHIFT,
-				    &data) == ATOM_SUCCESS) {
-		    *sda = getDDCLineFromGPIO(gpio, data.val);
-		    return TRUE;
-		}
-	    }
-	}
+    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			     ATOM_GPIO_I2C_CLK_MASK, &data);
+    if (result != ATOM_SUCCESS)
+	return FALSE;
+    *scl_reg = data.val;
+
+    /* scl DDC line */
+    data.val = line & 0x0f;
+    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			     ATOM_GPIO_I2C_CLK_MASK_SHIFT, &data);
+    if (result != ATOM_SUCCESS)
+	return FALSE;
+    *scl = getDDCLineFromGPIO(rhdPtr->scrnIndex, *scl_reg, data.val);
+
+    /* sda register */
+    data.val = line & 0x0f;
+    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			     ATOM_GPIO_I2C_DATA_MASK, &data);
+    if (result != ATOM_SUCCESS)
+	return FALSE;
+    *sda_reg = data.val;
+
+    /* sda DDC line */
+    data.val = line & 0x0f;
+    result = RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			     ATOM_GPIO_I2C_DATA_MASK_SHIFT, &data);
+    if (result != ATOM_SUCCESS)
+	return FALSE;
+    *sda = getDDCLineFromGPIO(rhdPtr->scrnIndex, *sda_reg, data.val);
+
+    if ((*scl == rhdDdcUnknown) || (*sda == rhdDdcUnknown)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		   "%s: failed to map gpio lines for DDC line %d\n",
+		   __func__, line);
+	return FALSE;
     }
-#endif
+
+    return TRUE;
+#else /* ATOM_BIOS */
     return FALSE;
+#endif
 }
 
 /* R5xx */
