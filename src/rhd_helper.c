@@ -205,9 +205,13 @@ void RhdAssertFailed(const char *str,
 {
     ErrorF("%s:%d: %s: Assertion '%s' failed.\n", file, line, func, str);
 
-#if !HAVE_XF86_ANSIC_H		/* Set to 1 to get backtraces */
+#if 1			/* Set to 1 to get backtraces */
     kill(getpid(), SIGSEGV);
+# if HAVE_XF86_ANSIC_H
     xf86abort();	/* Not executed, but make gcc happy */
+# else
+    abort();		/* Not executed, but make gcc happy */
+# endif
 #else
     FatalError("Server aborting\n");
 #endif
@@ -224,9 +228,13 @@ void RhdAssertFailedFormat(const char *str,
     va_end(args);
     ErrorF("\n");
 
-#if !(HAVE_XF86_ANSIC_H)		     /* Set to 1 to get backtraces */
+#if 1			/* Set to 1 to get backtraces */
     kill(getpid(), SIGSEGV);
+# if HAVE_XF86_ANSIC_H   
     xf86abort();	/* Not executed, but make gcc happy */
+# else
+    abort();		/* Not executed, but make gcc happy */
+# endif
 #else
     FatalError("Server aborting\n");
 #endif
