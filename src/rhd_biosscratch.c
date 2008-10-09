@@ -638,7 +638,8 @@ rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 	Device = rhdBIOSScratchSetDeviceForOutput(Output);
 
 	if (Device == atomNone && rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE) {
-	    xf86DrvMsg(Output->scrnIndex, X_WARNING, "%s: AtomBIOS DeviceID unknown\n");
+	    xf86DrvMsg(Output->scrnIndex, X_WARNING,
+		       "%s: AtomBIOS DeviceID unknown\n", __func__);
 	    return Device;
 	}
 

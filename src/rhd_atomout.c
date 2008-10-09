@@ -123,6 +123,8 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 		    EncoderConfig->u.dvo.digital = TRUE;
 		    /* @@@ no digital attributes, yet */
 		break;
+	        default:
+		break;
 	    }
 	    break;
 	case RHD_OUTPUT_DACA:
