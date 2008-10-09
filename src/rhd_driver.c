@@ -2588,10 +2588,14 @@ rhdParseAtomBIOSUsage(ScrnInfoPtr pScrn)
 	if (atombios.val.string) {
 	    char *ptr = atombios.val.string;
 	    CARD32 val;
+
 	    while (*ptr != '\0') {
 		int c;
-		if (isspace(*ptr))
+		while (isspace(*ptr))
 		    ptr++;
+		if (*ptr == '\0')
+		    break;
+
 		if (!strncasecmp("crtc",ptr,4)) {
 		    ptr += 4;
 		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
