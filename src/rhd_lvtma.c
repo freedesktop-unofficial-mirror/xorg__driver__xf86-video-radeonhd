@@ -412,8 +412,12 @@ LVDSEnable(struct rhdOutput *Output)
 		   "POWERUP_DONE state after %d loops (%d)\n",
 		   __func__, i, (int) tmp);
     }
-    if (Private->BlLevel >= 0)
-	LVDSSetBacklight(Output, Private->BlLevel);
+    if (Private->BlLevel >= 0) {
+	union rhdPropertyData data;
+	data.integer = Private->BlLevel;
+	Output->Property(Output, rhdPropertySet, RHD_OUTPUT_BACKLIGHT,
+			 &data);
+    }
 }
 
 /*
@@ -1279,10 +1283,14 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
 	Output->Property = LVDSPropertyControl;
-	Output->Private = Private = LVDSInfoRetrieve(rhdPtr);
+	Output->Private = Private =  LVDSInfoRetrieve(rhdPtr);
+#if 0
 	if (Private->BlLevel < 0)
 	    Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Output->Property);
 	else
+#else
+	if (Private->BlLevel >= 0)
+#endif
 	    LVDSDebugBacklight(Output);
 
     } else {
