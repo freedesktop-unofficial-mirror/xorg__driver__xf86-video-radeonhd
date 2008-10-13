@@ -82,6 +82,10 @@ Major Changes
 
 Read ChangeLog for a complete list.
 
+- Version 1.2.3
+
+  - Added Command Submission infrastructure.
+
 - Version 1.2.2
 
   - Added DRI support (R5xx and RS6xx).
