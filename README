@@ -82,6 +82,18 @@ Major Changes
 
 Read ChangeLog for a complete list.
 
+- Version 1.2.2
+
+  - Added DRI support (R5xx and RS6xx).
+  - Added support for RV770, RS780, M82, M86, and M88.
+  - Added XVideo support.
+  - Added CP based 2D acceleration (R5xx and RS6xx).
+  - Added EXA render acceleration (R5xx and RS6xx).
+  - Added support for AtomBIOS based mode setting.
+  - Added support for scaled modes.
+  - Added RandR support for backlight control.
+  - Lots of modesetting related bug fixes.
+
 - Version 1.2.1
 
   - Build-fixes for systems without -NDEBUG, and for rhd_dump
