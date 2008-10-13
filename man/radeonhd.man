@@ -623,5 +623,5 @@ Query the bugtracker for radeonhd bugs
 .\"
 .\"
 .SH AUTHORS
-Egbert Eich, Luc Verhaegen, Matthias Hopf, Hans Ulrich Niedermann, and others.
+Egbert Eich, Luc Verhaegen, Matthias Hopf, Hans Ulrich Niedermann, Alexander Deucher, and others.
 .\" vim: syntax=nroff
