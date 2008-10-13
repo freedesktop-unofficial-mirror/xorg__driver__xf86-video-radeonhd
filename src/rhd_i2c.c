@@ -305,7 +305,7 @@ getDDCLineFromGPIO(int scrnIndex, CARD32 gpio, int shift)
 	switch (shift) {
 	    case 0:
 		return rhdDvoData13; /* ddc6 clk */
-	    case 8:
+	    case 1:
 		return rhdDvoData12; /* ddc6 data */
 	}
 	break;
