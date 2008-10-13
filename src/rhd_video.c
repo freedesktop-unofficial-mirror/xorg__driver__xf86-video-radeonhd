@@ -497,8 +497,8 @@ R5xxXvCopyPlanar(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 		 CARD16 dstPitch, CARD16 h, CARD16 w)
 {
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    CARD32 val = RHDRegRead(pScrn, R5XX_SURFACE_CNTL);
-    RHDRegWrite(pScrn, R5XX_SURFACE_CNTL,
+    CARD32 val = RHDRegRead(rhdPtr, R5XX_SURFACE_CNTL);
+    RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL,
 		(val | R5XX_NONSURF_AP0_SWP_32BPP) & ~R5XX_NONSURF_AP0_SWP_16BPP);
 #endif
 
@@ -507,7 +507,7 @@ R5xxXvCopyPlanar(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 
 #if X_BYTE_ORDER == X_BIG_ENDIAN
     /* restore byte swapping */
-    RHDRegWrite(pScrn, R5XX_SURFACE_CNTL, val);
+    RHDRegWrite(rhdPtr, R5XX_SURFACE_CNTL, val);
 #endif
 }
 
