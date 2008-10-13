@@ -1058,14 +1058,6 @@ rhdRROutputGetModes(xf86OutputPtr output)
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
     /* TODO: per-output options ForceReduced & UseXF86Edid */
 
-    /* Use RandR edid parsing if requested */
-    if (rhdPtr->rrUseXF86Edid.set && rhdPtr->rrUseXF86Edid.val.bool) {
-	if (rout->Connector->DDC)
-	    edid_mon = xf86OutputGetEDID (output, rout->Connector->DDC);
-	xf86OutputSetEDID (output, edid_mon);
-	return xf86OutputGetEDIDModes (output);
-    }
-
     /* Nuke old monitor */
     if (rout->Connector->Monitor) {
 	/* EDID is already freed by RandR (OutputSetEDID+return) */

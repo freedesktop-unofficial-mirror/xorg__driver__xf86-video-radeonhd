@@ -244,7 +244,6 @@ typedef enum {
     OPTION_USECONFIGUREDMONITOR,
     OPTION_HPD,
     OPTION_NORANDR,
-    OPTION_RRUSEXF86EDID,
     OPTION_RROUTPUTORDER,
     OPTION_DRI,
     OPTION_TV_MODE,
@@ -271,7 +270,6 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_USECONFIGUREDMONITOR, "useconfiguredmonitor", OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_HPD,                  "HPD",                  OPTV_STRING,  {0}, FALSE },
     { OPTION_NORANDR,              "NoRandr",              OPTV_BOOLEAN, {0}, FALSE },
-    { OPTION_RRUSEXF86EDID,        "RRUseXF86Edid",        OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_RROUTPUTORDER,        "RROutputOrder",        OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_DRI,                  "DRI",                  OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_TV_MODE,		   "TVMode",	           OPTV_ANYSTR,  {0}, FALSE },
@@ -2736,8 +2734,6 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&hpd, "auto");
     RhdGetOptValBool   (rhdPtr->Options, OPTION_NORANDR,
 			&rhdPtr->noRandr, FALSE);
-    RhdGetOptValBool   (rhdPtr->Options, OPTION_RRUSEXF86EDID,
-			&rhdPtr->rrUseXF86Edid, FALSE);
     RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
 			&rhdPtr->rrOutputOrder, NULL);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_DRI,
