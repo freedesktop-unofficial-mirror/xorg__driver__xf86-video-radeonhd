@@ -793,41 +793,42 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   "Card information has invalid connector information\n");
 	goto error1;
     }
-#ifdef ATOM_BIOS
-    if (rhdPtr->Card
-	&& rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE
-	&& (rhdPtr->Card->DeviceInfo[0][0] != atomNone
-	    || rhdPtr->Card->DeviceInfo[0][1] != atomNone)) {
-	int i, k = 0;
+    {
 	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
+#ifdef ATOM_BIOS
+	if (rhdPtr->Card
+	    && rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE
+	    && (rhdPtr->Card->DeviceInfo[0][0] != atomNone
+		|| rhdPtr->Card->DeviceInfo[0][1] != atomNone)) {
+	    int i, k = 0;
 
-	for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
-	    int j;
-	    if (rhdPtr->Card->ConnectorInfo[i].Type == RHD_CONNECTOR_NONE)
-		break;
-	    for (j = 0; j < MAX_OUTPUTS_PER_CONNECTOR; j++) {
-		if (rhdPtr->Card->ConnectorInfo[i].Output[j] != RHD_OUTPUT_NONE) {
-		    if (!(OutputDeviceList = (struct rhdAtomOutputDeviceList *)xrealloc(
-			      OutputDeviceList, sizeof (struct rhdAtomOutputDeviceList) * (k + 1))))
-			break;
-		    OutputDeviceList[k].ConnectorType = rhdPtr->Card->ConnectorInfo[i].Type;
-		    OutputDeviceList[k].DeviceId = rhdPtr->Card->DeviceInfo[i][j];
-		    OutputDeviceList[k].OutputType = rhdPtr->Card->ConnectorInfo[i].Output[j];
-		    RHDDebug(rhdPtr->scrnIndex, "OutputDevice: C: 0x%2.2x O: 0x%2.2x DevID: 0x%2.2x\n",
-			     OutputDeviceList[k].ConnectorType, OutputDeviceList[k].OutputType,
-			     OutputDeviceList[k].DeviceId);
-		    k++;
+	    for (i = 0; i < RHD_CONNECTORS_MAX; i++) {
+		int j;
+		if (rhdPtr->Card->ConnectorInfo[i].Type == RHD_CONNECTOR_NONE)
+		    break;
+		for (j = 0; j < MAX_OUTPUTS_PER_CONNECTOR; j++) {
+		    if (rhdPtr->Card->ConnectorInfo[i].Output[j] != RHD_OUTPUT_NONE) {
+			if (!(OutputDeviceList = (struct rhdAtomOutputDeviceList *)xrealloc(
+				  OutputDeviceList, sizeof (struct rhdAtomOutputDeviceList) * (k + 1))))
+			    break;
+			OutputDeviceList[k].ConnectorType = rhdPtr->Card->ConnectorInfo[i].Type;
+			OutputDeviceList[k].DeviceId = rhdPtr->Card->DeviceInfo[i][j];
+			OutputDeviceList[k].OutputType = rhdPtr->Card->ConnectorInfo[i].Output[j];
+			RHDDebug(rhdPtr->scrnIndex, "OutputDevice: C: 0x%2.2x O: 0x%2.2x DevID: 0x%2.2x\n",
+				 OutputDeviceList[k].ConnectorType, OutputDeviceList[k].OutputType,
+				 OutputDeviceList[k].DeviceId);
+			k++;
+		    }
 		}
 	    }
-	}
-    } else {
-	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
-	AtomBiosArgRec data;
+	} else {
+	    AtomBiosArgRec data;
 
-	data.chipset = rhdPtr->ChipSet;
-	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    ATOMBIOS_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
-	    OutputDeviceList = data.OutputDeviceList;
+	    data.chipset = rhdPtr->ChipSet;
+	    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+				ATOMBIOS_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
+		OutputDeviceList = data.OutputDeviceList;
+	}
 
 	if (OutputDeviceList) {
 	    struct rhdOutput *Output;
@@ -836,8 +837,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		RHDAtomSetupOutputDriverPrivate(OutputDeviceList, Output);
 	    xfree(OutputDeviceList);
 	}
-    }
 #endif
+    }
+
     /*
      * Set this here as we might need it for the validation of a fixed mode in
      * rhdModeLayoutSelect(). Later it is used for Virtual selection and mode
