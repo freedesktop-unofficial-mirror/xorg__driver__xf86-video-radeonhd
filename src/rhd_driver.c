@@ -1348,9 +1348,15 @@ RHDEnterVT(int scrnIndex, int flags)
 #endif
 
     if (rhdPtr->CS) {
-	if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate) {
-	    R5xx2DSetup(pScrn);
-	    R5xx2DIdle(pScrn);
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    if (rhdPtr->TwoDPrivate) {
+		R5xx2DSetup(pScrn);
+		R5xx2DIdle(pScrn);
+	    }
+
+	    if (rhdPtr->ThreeDPrivate)
+		((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState =
+		    FALSE;
 	}
 
 	RHDCSStart(rhdPtr->CS);
