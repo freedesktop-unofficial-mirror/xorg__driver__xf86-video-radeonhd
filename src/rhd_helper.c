@@ -42,7 +42,6 @@
 #endif
 
 #if SEGV_ON_ASSERT
-# include <sys/types.h>
 # include <signal.h>
 #endif
 
