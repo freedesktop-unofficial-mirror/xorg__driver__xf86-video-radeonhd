@@ -53,7 +53,6 @@ XORG_DRIVER_CHECK_EXT(RANDR, randrproto)
 XORG_DRIVER_CHECK_EXT(RENDER, renderproto)
 XORG_DRIVER_CHECK_EXT(XV, videoproto)
 XORG_DRIVER_CHECK_EXT(DPMSExtension, xextproto)
-XORG_DRIVER_CHECK_EXT(XSERVER_LIBPCIACCESS, pciaccess)
 # @@@@ We don't do DGA any more
 
 # pkg-config packages checks
@@ -84,6 +83,15 @@ AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
 # Properly handle EXA.
 CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
 CFLAGS="$SAVED_CFLAGS"
+
+AC_CHECK_DECL(XSERVER_LIBPCIACCESS,
+              [XSERVER_LIBPCIACCESS=yes],[XSERVER_LIBPCIACCESS=no],
+              [#include "xorg-server.h"])
+if test "x$XSERVER_LIBPCIACCESS" = xyes; then
+	PKG_CHECK_MODULES([PCIACCESS], [pciaccess])
+	XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS"
+fi
+AM_CONDITIONAL(XSERVER_LIBPCIACCESS, test "x$XSERVER_LIBPCIACCESS" = xyes)
 
 # basic exa check.
 AC_MSG_CHECKING([whether to enable EXA support])

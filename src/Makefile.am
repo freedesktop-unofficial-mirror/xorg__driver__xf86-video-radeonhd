@@ -11,6 +11,11 @@ drivers_LTLIBRARIES = radeonhd_drv.la
 
 radeonhd_drv_la_LDFLAGS = -module -avoid-version
 radeonhd_drv_la_CFLAGS = $(AM_CFLAGS) @PEDANTIC_CFLAGS@
+radeonhd_drv_la_LIBADD =
+
+if XSERVER_LIBPCIACCESS
+radeonhd_drv_la_LIBADD += @PCIACCESS_LIBS@
+endif
 
 radeonhd_drv_la_SOURCES = \
 	rhd_atombios.c \
@@ -80,6 +85,7 @@ endif
 
 if USE_DRI
 radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_drm.h
+radeonhd_drv_la_LIBADD += @DRI_LIBS@
 endif
 
 if ATOM_BIOS
@@ -118,7 +124,7 @@ libatom_la_SOURCES = \
 	AtomBios/includes/ObjectID.h \
 	AtomBios/includes/regsdef.h
 
-radeonhd_drv_la_LIBADD = libatom.la
+radeonhd_drv_la_LIBADD += libatom.la
 
 endif
 
