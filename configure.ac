@@ -124,7 +124,7 @@ USE_DRI=no
 if test "x$DRI" = xyes; then
 	USE_DRI="yes"
 	AC_CHECK_DECL(XF86DRI,, [USE_DRI=no], [#include <xorg-server.h>])
-	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto],, [USE_DRI=no])
+	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto glproto],, [USE_DRI=no])
 fi
 AC_MSG_CHECKING([whether to enable DRI support])
 AC_MSG_RESULT($USE_DRI)
