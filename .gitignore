@@ -5,9 +5,11 @@
 *.o
 *.s
 *.so
+ChangeLog
 Makefile.bak
 Makefile
 Makefile.in
+README.new
 TAGS
 aclocal.m4
 autom4te.cache
@@ -29,3 +31,5 @@ missing
 git_version.h
 stamp-h1
 src/radeonhd.man.new
+*.bz2
+*.gz
