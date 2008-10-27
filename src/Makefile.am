@@ -18,67 +18,67 @@ radeonhd_drv_la_LIBADD += @PCIACCESS_LIBS@
 endif
 
 radeonhd_drv_la_SOURCES = \
-	rhd_atombios.c \
-	rhd_i2c.c \
-	rhd_crtc.c \
-	rhd_connector.c \
-	rhd_cursor.c \
-	rhd_dac.c \
-	rhd_driver.c \
-	rhd_edid.c \
-	rhd_helper.c \
-	rhd_id.c \
-	rhd_lut.c \
-	rhd_lvtma.c \
-	rhd_modes.c \
-	rhd_monitor.c \
-	rhd_output.c \
-	rhd_pll.c \
-	rhd_tmds.c \
-	rhd_vga.c \
-	rhd_mc.c \
-	rhd_mc.h \
-	rhd_shadow.c \
-	rhd_randr.c \
-	rhd_dig.c \
-	rhd_ddia.c \
-	rhd_atomout.c \
-	rhd_atompll.c \
-	rhd_atomcrtc.c \
-	rhd_biosscratch.c \
-	rhd_biosscratch.h \
-	rhd_audio.c \
-	rhd_audio.h \
-	rhd_hdmi.c \
-	rhd_hdmi.h \
-	rhd_atombios.h \
-	rhd_atomout.h \
-	rhd.h \
-	rhd_i2c.h \
-	rhd_card.h \
-	rhd_crtc.h \
-	rhd_connector.h \
-	rhd_cursor.h \
-	rhd_lut.h \
-	rhd_modes.h \
-	rhd_monitor.h \
-	rhd_output.h \
-	rhd_pll.h \
-	rhd_randr.h \
-	rhd_regs.h \
-	rhd_vga.h \
-	rhd_shadow.h \
-	rhd_cs.c \
-	rhd_cs.h \
+	r5xx_3dregs.h \
 	r5xx_accel.c \
 	r5xx_accel.h \
-	r5xx_xaa.c \
 	r5xx_regs.h \
-	r5xx_3dregs.h \
+	r5xx_xaa.c \
 	radeon_3d.c \
+	radeon_textured_videofuncs.c \
+	rhd_atombios.c \
+	rhd_atombios.h \
+	rhd_atomcrtc.c \
+	rhd_atomout.c \
+	rhd_atomout.h \
+	rhd_atompll.c \
+	rhd_audio.c \
+	rhd_audio.h \
+	rhd_biosscratch.c \
+	rhd_biosscratch.h \
+	rhd_card.h \
+	rhd_connector.c \
+	rhd_connector.h \
+	rhd_crtc.c \
+	rhd_crtc.h \
+	rhd_cs.c \
+	rhd_cs.h \
+	rhd_cursor.c \
+	rhd_cursor.h \
+	rhd_dac.c \
+	rhd_ddia.c \
+	rhd_dig.c \
+	rhd_driver.c \
+	rhd_edid.c \
+	rhd.h \
+	rhd_hdmi.c \
+	rhd_hdmi.h \
+	rhd_helper.c \
+	rhd_i2c.c \
+	rhd_i2c.h \
+	rhd_id.c \
+	rhd_lut.c \
+	rhd_lut.h \
+	rhd_lvtma.c \
+	rhd_mc.c \
+	rhd_mc.h \
+	rhd_modes.c \
+	rhd_modes.h \
+	rhd_monitor.c \
+	rhd_monitor.h \
+	rhd_output.c \
+	rhd_output.h \
+	rhd_pll.c \
+	rhd_pll.h \
+	rhd_randr.c \
+	rhd_randr.h \
+	rhd_regs.h \
+	rhd_shadow.c \
+	rhd_shadow.h \
+	rhd_tmds.c \
+	rhd_vga.c \
+	rhd_vga.h \
 	rhd_video.c \
-	rhd_video.h \
-	radeon_textured_videofuncs.c
+	rhd_video.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
