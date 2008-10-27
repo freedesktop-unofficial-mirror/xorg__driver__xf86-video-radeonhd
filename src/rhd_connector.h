@@ -85,5 +85,6 @@ Bool RHDConnectorsInit(RHDPtr rhdPtr, struct rhdCard *Card);
 void RHDHPDSave(RHDPtr rhdPtr);
 void RHDHPDRestore(RHDPtr rhdPtr);
 void RHDConnectorsDestroy(RHDPtr rhdPtr);
+Bool RHDConnectorEnableHDMI(struct rhdConnector *Connector);
 
 #endif /* _RHD_CONNECTOR_H */

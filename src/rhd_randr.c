@@ -69,6 +69,8 @@
 # include "rhd_mc.h"
 # include "rhd_card.h"
 # include "rhd_i2c.h"
+# include "rhd_audio.h"
+
 /*
  * Driver internal
  */

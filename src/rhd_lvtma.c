@@ -47,6 +47,7 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
+#include "rhd_hdmi.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #include "rhd_atomout.h"
@@ -693,6 +694,21 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 
 /*
  *
+ */
+static void
+LVDSDestroy(struct rhdOutput *Output)
+{
+    RHDFUNC(Output);
+
+    if (!Output->Private)
+	return;
+
+    xfree(Output->Private);
+    Output->Private = NULL;
+}
+
+/*
+ *
  * Handling for LVTMA block as TMDS.
  *
  */
@@ -700,6 +716,8 @@ struct rhdTMDSBPrivate {
     Bool RunsDualLink;
     Bool Coherent;
     DisplayModePtr Mode;
+
+    struct rhdHdmi *Hdmi;
 
     Bool Stored;
 
@@ -1116,6 +1134,8 @@ TMDSBSet(struct rhdOutput *Output, DisplayModePtr Mode)
     RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0x00000100, 0x00000100);
     usleep(2);
     RHDRegMask(Output, LVTMA_DATA_SYNCHRONIZATION, 0, 0x00000001);
+
+    RHDHdmiSetMode(Private->Hdmi, Mode);
 }
 
 /*
@@ -1134,7 +1154,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 
     switch (Power) {
     case RHD_POWER_ON:
-	RHDRegMask(Output, LVTMA_CNTL, 0x00000001, 0x00000001);
+	RHDRegMask(Output, LVTMA_CNTL, 0x1, 0x00000001);
 
 	if (Private->RunsDualLink)
 	    RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0x00003E3E,0x00003E3E);
@@ -1144,6 +1164,10 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0x00000001, 0x00000001);
 	usleep(2);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000002);
+	if(Output->Connector != NULL && RHDConnectorEnableHDMI(Output->Connector))
+	    RHDHdmiEnable(Private->Hdmi, TRUE);
+	else
+	    RHDHdmiEnable(Private->Hdmi, FALSE);
 	return;
     case RHD_POWER_RESET:
 	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E);
@@ -1155,6 +1179,7 @@ TMDSBPower(struct rhdOutput *Output, int Power)
 	RHDRegMask(Output, LVTMA_TRANSMITTER_CONTROL, 0, 0x00000001);
 	RHDRegMask(Output, LVTMA_TRANSMITTER_ENABLE, 0, 0x00003E3E);
 	RHDRegMask(Output, LVTMA_CNTL, 0, 0x00000001);
+	RHDHdmiEnable(Private->Hdmi, FALSE);
 	return;
     }
 }
@@ -1188,6 +1213,8 @@ TMDSBSave(struct rhdOutput *Output)
        Private->StoreRv600TXAdjust = RHDRegRead(Output, LVTMA_TRANSMITTER_ADJUST);
        Private->StoreRv600PreEmphasis = RHDRegRead(Output, LVTMA_PREEMPHASIS_CONTROL);
     }
+
+    RHDHdmiSave(Private->Hdmi);
 
     Private->Stored = TRUE;
 }
@@ -1227,6 +1254,8 @@ TMDSBRestore(struct rhdOutput *Output)
 	RHDRegWrite(Output, LVTMA_TRANSMITTER_ADJUST, Private->StoreRv600TXAdjust);
 	RHDRegWrite(Output, LVTMA_PREEMPHASIS_CONTROL, Private->StoreRv600PreEmphasis);
     }
+
+    RHDHdmiRestore(Private->Hdmi);
 }
 
 
@@ -1234,14 +1263,17 @@ TMDSBRestore(struct rhdOutput *Output)
  *
  */
 static void
-LVTMADestroy(struct rhdOutput *Output)
+TMDSBDestroy(struct rhdOutput *Output)
 {
+    struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
     RHDFUNC(Output);
 
-    if (!Output->Private)
+    if (!Private)
 	return;
 
-    xfree(Output->Private);
+    RHDHdmiDestroy(Private->Hdmi);
+
+    xfree(Private);
     Output->Private = NULL;
 }
 
@@ -1270,7 +1302,6 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
     Output->Id = RHD_OUTPUT_LVTMA;
 
     Output->Sense = NULL; /* not implemented in hw */
-    Output->Destroy = LVTMADestroy;
 
     if (Type == RHD_CONNECTOR_PANEL) {
 	struct LVDSPrivate *Private;
@@ -1283,6 +1314,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Save = LVDSSave;
 	Output->Restore = LVDSRestore;
 	Output->Property = LVDSPropertyControl;
+	Output->Destroy = LVDSDestroy;
 	Output->Private = Private =  LVDSInfoRetrieve(rhdPtr);
 #if 0
 	if (Private->BlLevel < 0)
@@ -1304,7 +1336,9 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Save = TMDSBSave;
 	Output->Restore = TMDSBRestore;
 	Output->Property = TMDSBPropertyControl;
+	Output->Destroy = TMDSBDestroy;
 
+	Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	Output->Private = Private;
 
 	Private->RunsDualLink = FALSE;

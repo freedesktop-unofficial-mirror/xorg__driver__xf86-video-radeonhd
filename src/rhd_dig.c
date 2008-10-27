@@ -41,6 +41,7 @@
 #include "rhd_connector.h"
 #include "rhd_output.h"
 #include "rhd_regs.h"
+#include "rhd_hdmi.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #include "rhd_atomout.h"
@@ -106,6 +107,7 @@ struct DIGPrivate
     Bool Coherent;
     Bool RunDualLink;
     DisplayModePtr Mode;
+    struct rhdHdmi *Hdmi;
 
     /* LVDS */
     Bool FPDI;
@@ -1249,14 +1251,25 @@ DigPower(struct rhdOutput *Output, int Power)
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     struct transmitter *Transmitter = &Private->Transmitter;
     struct encoder *Encoder = &Private->Encoder;
+    Bool enableHDMI;
 
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
+
+    if(Output->Connector != NULL) {
+	/* check if attached monitor supports HDMI */
+	enableHDMI = RHDConnectorEnableHDMI(Output->Connector);
+	if (enableHDMI && Private->EncoderMode == TMDS_DVI)
+	    Private->EncoderMode = TMDS_HDMI;
+	else if (!enableHDMI && Private->EncoderMode == TMDS_HDMI)
+	    Private->EncoderMode = TMDS_DVI;
+    }
 
     switch (Power) {
 	case RHD_POWER_ON:
 	    Encoder->Power(Output, Power);
 	    Transmitter->Power(Output, Power);
+	    RHDHdmiEnable(Private->Hdmi, Private->EncoderMode == TMDS_HDMI);
 	    return;
 	case RHD_POWER_RESET:
 	    Transmitter->Power(Output, Power);
@@ -1266,6 +1279,7 @@ DigPower(struct rhdOutput *Output, int Power)
 	default:
 	    Transmitter->Power(Output, Power);
 	    Encoder->Power(Output, Power);
+	    RHDHdmiEnable(Private->Hdmi, FALSE);
 	    return;
     }
 }
@@ -1319,6 +1333,7 @@ DigMode(struct rhdOutput *Output, DisplayModePtr Mode)
 
     Encoder->Mode(Output, Crtc, Mode);
     Transmitter->Mode(Output, Crtc, Mode);
+    RHDHdmiSetMode(Private->Hdmi, Mode);
 }
 
 /*
@@ -1335,6 +1350,7 @@ DigSave(struct rhdOutput *Output)
 
     Encoder->Save(Output);
     Transmitter->Save(Output);
+    RHDHdmiSave(Private->Hdmi);
 }
 
 /*
@@ -1351,6 +1367,7 @@ DigRestore(struct rhdOutput *Output)
 
     Encoder->Restore(Output);
     Transmitter->Restore(Output);
+    RHDHdmiRestore(Private->Hdmi);
 }
 
 /*
@@ -1367,6 +1384,7 @@ DigDestroy(struct rhdOutput *Output)
 
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
+    RHDHdmiDestroy(Private->Hdmi);
 
     xfree(Private);
     Output->Private = NULL;
@@ -1545,14 +1563,17 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    if (Private->BlLevel < 0)
 		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->Transmitter.Property);
 #endif
+	    Private->Hdmi = NULL;
 	    break;
 	case RHD_CONNECTOR_DVI:
 	    Private->RunDualLink = FALSE; /* will be set later acc to pxclk */
 	    Private->EncoderMode = TMDS_DVI;
+	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    break;
 	case RHD_CONNECTOR_DVI_SINGLE:
 	    Private->RunDualLink = FALSE;
-	    Private->EncoderMode = TMDS_DVI;  /* currently also HDMI */
+	    Private->EncoderMode = TMDS_DVI; /* changed later to HDMI if aplicateable */
+	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    break;
     }
 

@@ -484,3 +484,25 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 		   output_name[cp[n].Output[1]]);
     }
 }
+
+/*
+ * Should we enable HDMI on this connector?
+ */
+Bool RHDConnectorEnableHDMI(struct rhdConnector *Connector)
+{
+    RHDPtr rhdPtr = RHDPTRI(Connector);
+    RHDFUNC(rhdPtr);
+
+    /* ask connected monitor if it supports HDMI */
+    /* TODO: Not implemented yet! */
+
+    /* check if user forced HDMI on this connector */
+    if(rhdPtr->hdmi.set && (
+	strcasecmp(rhdPtr->hdmi.val.string, Connector->Name) == 0 ||
+	strcasecmp(rhdPtr->hdmi.val.string, "all") == 0))
+    {
+	return TRUE;
+    }
+
+    return FALSE;
+}

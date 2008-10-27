@@ -116,6 +116,7 @@
 #include "rhd_card.h"
 #include "rhd_randr.h"
 #include "rhd_cs.h"
+#include "rhd_audio.h"
 #include "r5xx_accel.h"
 #include "rhd_video.h"
 
@@ -247,7 +248,9 @@ typedef enum {
     OPTION_USE_ATOMBIOS,
     OPTION_ATOMBIOS,     /* only for testing, don't document in man page! */
 #endif
-    OPTION_UNVERIFIED_FEAT
+    OPTION_UNVERIFIED_FEAT,
+    OPTION_AUDIO,
+    OPTION_HDMI
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -274,6 +277,8 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_ATOMBIOS,	           "AtomBIOS",             OPTV_ANYSTR,  {0}, FALSE },
 #endif
     { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_AUDIO,		   "Audio",	           OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_HDMI,		   "HDMI",	           OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -345,6 +350,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDMCDestroy(rhdPtr);
     RHDVGADestroy(rhdPtr);
     RHDPLLsDestroy(rhdPtr);
+    RHDAudioDestroy(rhdPtr);
     RHDLUTsDestroy(rhdPtr);
     RHDOutputsDestroy(rhdPtr);
     RHDConnectorsDestroy(rhdPtr);
@@ -785,6 +791,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	RHDAtomCrtcsInit(rhdPtr);
     if (!RHDPLLsInit(rhdPtr))
 	RHDAtomPLLsInit(rhdPtr);
+    RHDAudioInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
 
@@ -1170,6 +1177,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* fix viewport */
     RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
 
+    /* enable/disable audio */
+    RHDAudioSetEnable(rhdPtr, rhdPtr->audio.val.bool);
+
     /* Initialise cursor functions */
     miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
 
@@ -1341,6 +1351,9 @@ RHDEnterVT(int scrnIndex, int flags)
     /* rhdShowCursor() done by AdjustFrame */
 
     RHDAdjustFrame(scrnIndex, pScrn->frameX0, pScrn->frameY0, 0);
+
+    /* enable/disable audio */
+    RHDAudioSetEnable(rhdPtr, rhdPtr->audio.val.bool);
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
@@ -2352,6 +2365,7 @@ rhdSave(RHDPtr rhdPtr)
     rhdPtr->BIOSScratch = RHDSaveBiosScratchRegisters(rhdPtr);
 #endif
     RHDPLLsSave(rhdPtr);
+    RHDAudioSave(rhdPtr);
     RHDLUTsSave(rhdPtr);
 
     RHDCrtcSave(rhdPtr->Crtc[0]);
@@ -2375,6 +2389,7 @@ rhdRestore(RHDPtr rhdPtr)
 	rhdRestoreCursor(pScrn);
 
     RHDPLLsRestore(rhdPtr);
+    RHDAudioRestore(rhdPtr);
     RHDLUTsRestore(rhdPtr);
 
     RHDVGARestore(rhdPtr);
@@ -2750,6 +2765,10 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->unverifiedFeatures, FALSE);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
 			&rhdPtr->UseAtomBIOS, FALSE);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_AUDIO,
+			&rhdPtr->audio, TRUE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,
+			&rhdPtr->hdmi, "none");
 
 #ifdef ATOM_BIOS
     rhdParseAtomBIOSUsage(pScrn);
