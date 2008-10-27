@@ -82,6 +82,7 @@
 #include "radeon_dri.h"
 
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
+# include "xf86i2c.h" /* this is complete BS, stop using unnamed structs! */
 # include "xf86Crtc.h"
 #endif
 
