@@ -32,12 +32,9 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+
 /* Xserver interface */
 #include "xf86.h"
-
-#if (RANDR_MAJOR == 1 && RANDR_MINOR >= 2) || RANDR_MAJOR >= 2
-# define RANDR_12_SUPPORT
-#endif
 
 #ifdef RANDR_12_SUPPORT
 /* Xserver interface */

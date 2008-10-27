@@ -123,6 +123,15 @@ fi
 
 AM_CONDITIONAL(USE_EXA, test "x$USE_EXA" = xyes)
 
+# Handle RandR1.2
+AC_CHECK_HEADER(xf86RandR12.h, [have_randr12="yes"], [have_randr12="no"], [#include <xf86.h>])
+if test "x$have_randr12" = xyes; then
+	AC_DEFINE(RANDR_12_SUPPORT, 1, [Build RandR 1.2 Support])
+fi
+
+AC_MSG_CHECKING([whether to enable RandR1.2 support])
+AC_MSG_RESULT($have_randr12)
+
 # Handle DRI
 CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
 CFLAGS="$SAVED_CFLAGS $XORG_CFLAGS"
@@ -134,6 +143,11 @@ if test "x$DRI" = xyes; then
 	AC_CHECK_DECL(XF86DRI,, [USE_DRI=no], [#include <xorg-server.h>])
 	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto glproto],, [USE_DRI=no])
 fi
+
+if test "x$USE_DRI" = xyes; then
+	AC_CHECK_HEADER(GL/gl.h, [USE_DRI="yes"], [USE_DRI="no"])
+fi
+
 AC_MSG_CHECKING([whether to enable DRI support])
 AC_MSG_RESULT($USE_DRI)
 test "x$USE_DRI" = xyes && AC_DEFINE(USE_DRI, 1, [Build support for DRI])
