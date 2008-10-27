@@ -787,18 +787,22 @@ RHDInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate &&
-	((rhdPtr->CS->Type == RHD_CS_CP) || (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
+    if (rhdPtr->ChipSet < RHD_R600) {
+	if (rhdPtr->TwoDPrivate &&
+	    ((rhdPtr->CS->Type == RHD_CS_CP) ||
+	     (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
 
-	texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
+	    texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
 
-	adaptors[num_adaptors++] = texturedAdaptor;
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: Textured Video initialised.\n");
+	    adaptors[num_adaptors++] = texturedAdaptor;
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: Textured Video initialised.\n");
 
-	/* EXA could've initialised this already */
-	if (!rhdPtr->ThreeDPrivate)
-	    R5xx3DInit(pScrn);
-
+	    /* EXA could've initialised this already */
+	    if (!rhdPtr->ThreeDPrivate)
+		R5xx3DInit(pScrn);
+	} else
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: No Textured Video "
+		       "possible without the Command Processor.\n");
     } else
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		   "Xv: No Textured Video possible for %s.\n", pScrn->chipset);
