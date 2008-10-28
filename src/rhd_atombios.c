@@ -1714,6 +1714,8 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 	    }
 	    break;
 	}
+	case atomEncoderNone:
+	    return FALSE;
     }
 
     data.exec.dataSpace = NULL;
@@ -2537,6 +2539,7 @@ rhdAtomSelectCrtcSource(atomBiosHandlePtr handle, enum atomCrtc CrtcId,
 		case atomEncoderTMDS1:
 		case atomEncoderTMDS2:
 		case atomEncoderLVDS:
+		case atomEncoderNone:
 		    return FALSE;
 	    }
 	    if (NeedMode) {
@@ -3811,11 +3814,11 @@ rhdAtomInterpretObjectID(atomBiosHandlePtr handle,
 
     switch (*obj_type) {
 	case GRAPH_OBJECT_TYPE_CONNECTOR:
-	    if (!Limit(*obj_id, n_rhd_connector_objs, "obj_id"))
+	    if (!Limit(*obj_id, n_rhd_connector_objs, "connector_obj"))
 		*name = rhd_connector_objs[*obj_id].name;
 	    break;
 	case GRAPH_OBJECT_TYPE_ENCODER:
-	    if (!Limit(*obj_id, n_rhd_encoders, "obj_id"))
+	    if (!Limit(*obj_id, n_rhd_encoders, "encoder_obj"))
 		*name = rhd_encoders[*obj_id].name;
 	    break;
 	default:

@@ -98,6 +98,7 @@ typedef struct _rhdRandrOutput {
     DisplayModePtr	ScaledToMode;
     struct rhdCrtc      *Crtc;
     struct rhdConnector *AllConnectors[MAX_CONNECTORS_PER_RR_OUTPUT];
+    Bool	        OutputActive;
 } rhdRandrOutputRec, *rhdRandrOutputPtr;
 
 #define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
@@ -684,6 +685,7 @@ rhdRROutputModeValid(xf86OutputPtr  out,
     int                Status;
 
     RHDFUNC(rhdPtr);
+
     /* RandR may give us a mode without a name... (xf86RandRModeConvert)
      * xf86DuplicateMode should fill it up, though */
     if (!Mode->name)
@@ -766,6 +768,36 @@ rhdRRSanitizeMode(DisplayModePtr Mode)
     }
 }
 
+/*
+ *
+ */
+static void
+rhdRRFreeOutputs( RHDPtr rhdPtr)
+{
+    xf86OutputPtr *ro;
+    struct rhdOutput *Output;
+    /*
+     * modesUpdated indicates if we are entering here for a first time after a
+     * OutputsModeValid(). In this case a new mode setting round starts, thus
+     * we need to free all outputs so that all inactive outputs are freed.
+     * We later on allocate each output.
+     */
+    for (Output = rhdPtr->Outputs; Output; Output = Output->Next) {
+	if (Output->AllocFree) {
+	    for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
+		rhdRandrOutputPtr o = (rhdRandrOutputPtr) (*ro)->driver_private;
+		if (o->Output == Output) {
+		    if (!(*ro)->crtc) {
+			Output->AllocFree(Output, RHD_OUTPUT_FREE);
+			RHDDebug(rhdPtr->scrnIndex, "%s: Freeing Output: %s\n",__func__,
+				 Output->Name);
+		    }
+		}
+	    }
+	}
+    }
+}
+
 /* The crtc is only known on fixup time. Now it's actually to late to reject a
  * mode and give a reasonable answer why (return is bool), but we'll better not
  * set a mode than scrap our hardware */
@@ -784,6 +816,8 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     RHDFUNC(rhdPtr);
     ASSERT(out->crtc);
     Crtc = (struct rhdCrtc *) out->crtc->driver_private;
+
+    rhdRRFreeOutputs(rhdPtr);
 
     xfree(Mode->name);
     if (rout->ScaledToMode) {
@@ -824,13 +858,19 @@ rhdRROutputModeFixup(xf86OutputPtr  out,
     setupCrtc(rhdPtr, Crtc);
 
     /* Monitor is handled by RandR */
-    Status = RHDRRModeFixup(out->scrn, DisplayedMode, Crtc, rout->Connector,
-			    rout->Output, NULL, Scaled);
+    if (!rout->Output->AllocFree || rout->Output->AllocFree(rout->Output, RHD_OUTPUT_ALLOC)) {
+	Status = RHDRRModeFixup(out->scrn, DisplayedMode, Crtc, rout->Connector,
+				rout->Output, NULL, Scaled);
+    } else
+	Status = MODE_NO_ENCODER;
+
     if (Status != MODE_OK) {
+	rout->OutputActive = FALSE;
 	RHDDebug(rhdPtr->scrnIndex, "%s: %s FAILED: [0x%x] %s\n", __func__,
 		 Mode->name, Status, RHDModeStatusToString(Status));
 	return FALSE;
     }
+    rout->OutputActive = TRUE;
     return TRUE;
 }
 
@@ -1051,7 +1091,6 @@ rhdRROutputGetModes(xf86OutputPtr output)
 {
     RHDPtr            rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) output->driver_private;
-    xf86MonPtr	      edid_mon = NULL;
     struct rhdOutput  *o;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
@@ -1553,6 +1592,7 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(rhdPtr);
+
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
     /* Wrap cursor for driver-level panning */

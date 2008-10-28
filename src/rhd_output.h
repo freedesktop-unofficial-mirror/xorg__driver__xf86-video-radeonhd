@@ -57,6 +57,11 @@ enum rhdOutputProperty {
     RHD_OUTPUT_COHERENT
 };
 
+enum rhdOutputAllocation {
+    RHD_OUTPUT_ALLOC,
+    RHD_OUTPUT_FREE
+};
+
 char *rhdPowerString[4];
 
 /*
@@ -89,6 +94,7 @@ struct rhdOutput {
     void (*Destroy) (struct rhdOutput *Output);
     Bool (*Property) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
+    Bool (*AllocFree) (struct rhdOutput *Output, enum rhdOutputAllocation Alloc);
     /* Driver Private data */
     rhdOutputDriverPrivate *OutputDriverPrivate;
     /* Output Private data */

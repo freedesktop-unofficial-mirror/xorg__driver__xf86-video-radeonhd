@@ -94,6 +94,7 @@ enum encoderMode {
 };
 
 enum encoderID {
+    ENCODER_NONE,
     ENCODER_DIG1,
     ENCODER_DIG2
 };
@@ -792,6 +793,38 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 /*
  *
  */
+static CARD32
+digProbeEncoder(struct rhdOutput *Output)
+{
+    if (Output->Id == RHD_OUTPUT_KLDSKP_LVTMA) {
+	return ENCODER_DIG2;
+    } else {
+	Bool swap = (RHDRegRead(Output, RV620_DCIO_LINK_STEER_CNTL)
+		     & RV62_LINK_STEER_SWAP) == RV62_LINK_STEER_SWAP;
+
+	switch (Output->Id) {
+	    case RHD_OUTPUT_UNIPHYA:
+		if (swap)
+		    return ENCODER_DIG2;
+		else
+		    return ENCODER_DIG1;
+		break;
+	    case RHD_OUTPUT_UNIPHYB:
+		if (swap)
+		    return ENCODER_DIG1;
+		else
+		    return ENCODER_DIG2;
+		break;
+	    default:
+		return ENCODER_NONE; /* should not get here */
+	}
+    }
+    return ENCODER_NONE;
+}
+
+/*
+ *
+ */
 static void
 ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 {
@@ -809,6 +842,9 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 	atc->LinkCnt = atomSingleLink;
 
     atc->Coherent = Private->Coherent;
+
+    if (atc->Encoder == atomEncoderNone)
+	atc->Encoder = (digProbeEncoder(Output) == ENCODER_DIG1) ? atomEncoderDIG1 : atomEncoderDIG2;
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -877,6 +913,8 @@ struct DIGEncoder
 {
     Bool Stored;
 
+    CARD32 StoredOff;
+
     CARD32 StoredRegExt1DiffPostDivCntl;
     CARD32 StoredRegExt2DiffPostDivCntl;
     CARD32 StoredDIGClockPattern;
@@ -911,10 +949,13 @@ static void
 LVDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
 
     RHDFUNC(Output);
 
+    ASSERT(Private->EncoderID != ENCODER_NONE);
+
+    off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
     /* Clock pattern ? */
     RHDRegMask(Output, off + RV620_DIG1_CLOCK_PATTERN, 0x0063, 0xFFFF);
     /* set panel type: 18/24 bit mode */
@@ -933,10 +974,12 @@ static void
 TMDSEncoder(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
 
     RHDFUNC(Output);
 
+    ASSERT(Private->EncoderID != ENCODER_NONE);
+    off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
     /* clock pattern ? */
     RHDRegMask(Output, off + RV620_DIG1_CLOCK_PATTERN, 0x001F, 0xFFFF);
     /* color format RGB - normal color format 24bpp, Twin-Single 30bpp or Dual 48bpp*/
@@ -953,33 +996,47 @@ static void
 EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
 
     RHDFUNC(Output);
+
+    ASSERT(Private->EncoderID != ENCODER_NONE);
+    off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+
+    RHDRegMask(Output, off + RV620_DIG1_CNTL, Output->Crtc->Id,
+	       RV62_DIG_SOURCE_SELECT);
+
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
 	/* select LinkA ?? */
-	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL, 0,
+	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL,
 		   ((Private->EncoderID == ENCODER_DIG2)
 		    ? RV62_LINK_STEER_SWAP
-		    : 0)); /* swap if DIG2 */
+		    : 0), RV62_LINK_STEER_SWAP); /* swap if DIG2 */
 	if (!Private->RunDualLink) {
-	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, RV62_DIG_SWAP |  RV62_DIG_DUAL_LINK_ENABLE);
+	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
+		       0,
+		       RV62_DIG_SWAP |RV62_DIG_DUAL_LINK_ENABLE);
 	} else {
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
-		       ((Private->EncoderID == ENCODER_DIG2)
-			?  RV62_DIG_SWAP
-			: 0) | RV62_DIG_DUAL_LINK_ENABLE,
-		       RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE );
+		       RV62_DIG_DUAL_LINK_ENABLE,
+		       RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE);
 	}
     } else if (Output->Id == RHD_OUTPUT_UNIPHYB) {
-	RHDRegMask(Output, off + RV620_DIG1_CNTL, 0, RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE);
 	/* select LinkB ?? */
 	RHDRegMask(Output, RV620_DCIO_LINK_STEER_CNTL,
 		   ((Private->EncoderID == ENCODER_DIG2)
 		    ? 0
 		    : RV62_LINK_STEER_SWAP), RV62_LINK_STEER_SWAP);
+	if (!Private->RunDualLink)
+	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
+		       0,
+		       RV62_DIG_SWAP |  RV62_DIG_DUAL_LINK_ENABLE);
+	 else
+	    RHDRegMask(Output, off + RV620_DIG1_CNTL,
+		       RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE,
+		       RV62_DIG_SWAP | RV62_DIG_DUAL_LINK_ENABLE);
     } else { /* LVTMA */
-	RHDRegMask(Output, RV620_EXT2_DIFF_POST_DIV_CNTL, 0, 0x1 << RV62_EXT2_DIFF_DRIVER_ENABLE_SHIFT);
+	RHDRegMask(Output, RV620_EXT2_DIFF_POST_DIV_CNTL, 0, RV62_EXT2_DIFF_DRIVER_ENABLE);
     }
 
     if (Private->EncoderMode == LVDS)
@@ -1009,12 +1066,19 @@ static void
 EncoderPower(struct rhdOutput *Output, int Power)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
+    enum encoderID EncoderID = Private->EncoderID;
 
     RHDFUNC(Output);
+
+    if (EncoderID == ENCODER_NONE)
+	EncoderID = digProbeEncoder(Output);
+
+    off = (EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+
     /* clock src is pixel PLL */
     RHDRegMask(Output, RV620_DCCG_SYMCLK_CNTL, 0x0,
-	       0x3 << ((Private->EncoderID == ENCODER_DIG2)
+	       0x3 << ((EncoderID == ENCODER_DIG2)
 		       ? RV62_SYMCLKB_SRC_SHIFT
 		       : RV62_SYMCLKA_SRC_SHIFT));
 
@@ -1022,7 +1086,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	case RHD_POWER_ON:
 	    /* enable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x10, 0x10);
-	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
+	    RHDRegMask(Output, (EncoderID == ENCODER_DIG2)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
 		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       RV62_PCLK_DIGA_ON, RV62_PCLK_DIGA_ON); /* @@@ */
@@ -1031,13 +1095,17 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	case RHD_POWER_SHUTDOWN:
 	default:
 	    /* disable differential clock driver */
-	    if (Private->EncoderID == ENCODER_DIG1)
-		RHDRegMask(Output, RV620_EXT1_DIFF_POST_DIV_CNTL, 0, RV62_EXT1_DIFF_DRIVER_ENABLE);
+	    if (EncoderID == ENCODER_DIG1)
+		RHDRegMask(Output, RV620_EXT1_DIFF_POST_DIV_CNTL,
+			   0,
+			   RV62_EXT1_DIFF_DRIVER_ENABLE);
 	    else
-		RHDRegMask(Output, RV620_EXT2_DIFF_POST_DIV_CNTL, 0, 0x1 << RV62_EXT2_DIFF_DRIVER_ENABLE_SHIFT);
+		RHDRegMask(Output, RV620_EXT2_DIFF_POST_DIV_CNTL,
+			   0,
+			   RV62_EXT2_DIFF_DRIVER_ENABLE);
 	    /* disable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x0, 0x10);
-	    RHDRegMask(Output, (Private->EncoderID == ENCODER_DIG2)
+	    RHDRegMask(Output, (EncoderID == ENCODER_DIG2)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
 		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       0, RV62_PCLK_DIGA_ON); /* @@@ */
@@ -1053,9 +1121,14 @@ EncoderSave(struct rhdOutput *Output)
 {
     struct DIGPrivate *digPrivate = (struct DIGPrivate *)Output->Private;
     struct DIGEncoder *Private = (struct DIGEncoder *)(digPrivate->Encoder.Private);
-    CARD32 off = (digPrivate->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
+    enum encoderID EncoderID;
 
     RHDFUNC(Output);
+
+    EncoderID = digProbeEncoder(Output);
+    off = (EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    Private->StoredOff = off;
 
     Private->StoredRegExt1DiffPostDivCntl          = RHDRegRead(Output, off + RV620_EXT1_DIFF_POST_DIV_CNTL);
     Private->StoredRegExt2DiffPostDivCntl          = RHDRegRead(Output, off + RV620_EXT2_DIFF_POST_DIV_CNTL);
@@ -1065,13 +1138,11 @@ EncoderSave(struct rhdOutput *Output)
     Private->StoredTMDSCntl        = RHDRegRead(Output, off + RV620_TMDS1_CNTL);
     Private->StoredDCIOLinkSteerCntl = RHDRegRead(Output, RV620_DCIO_LINK_STEER_CNTL);
     Private->StoredDCCGPclkDigCntl    = RHDRegRead(Output,
-						   (digPrivate->EncoderID
-						    == ENCODER_DIG2)
+						   (off == DIG2_OFFSET)
 						   ? RV620_DCCG_PCLK_DIGB_CNTL
 						   : RV620_DCCG_PCLK_DIGA_CNTL);
     Private->StoredDCCGSymclkCntl     = RHDRegRead(Output, RV620_DCCG_SYMCLK_CNTL);
     Private->StoredBlModCntl          = RHDRegRead(Output, RV620_LVTMA_BL_MOD_CNTL);
-
     Private->Stored = TRUE;
 }
 
@@ -1083,7 +1154,7 @@ EncoderRestore(struct rhdOutput *Output)
 {
     struct DIGPrivate *digPrivate = (struct DIGPrivate *)Output->Private;
     struct DIGEncoder *Private = (struct DIGEncoder *)(digPrivate->Encoder.Private);
-    CARD32 off = (digPrivate->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+    CARD32 off;
 
     RHDFUNC(Output);
 
@@ -1092,6 +1163,7 @@ EncoderRestore(struct rhdOutput *Output)
 		   "%s: No registers stored.\n", __func__);
 	return;
     }
+    off = Private->StoredOff;
 
     RHDRegWrite(Output, off + RV620_EXT1_DIFF_POST_DIV_CNTL, Private->StoredRegExt1DiffPostDivCntl);
     RHDRegWrite(Output, off + RV620_EXT2_DIFF_POST_DIV_CNTL, Private->StoredRegExt2DiffPostDivCntl);
@@ -1101,7 +1173,7 @@ EncoderRestore(struct rhdOutput *Output)
     RHDRegWrite(Output, off + RV620_DIG1_CLOCK_PATTERN, Private->StoredDIGClockPattern);
     RHDRegWrite(Output, off + RV620_LVDS1_DATA_CNTL, Private->StoredLVDSDataCntl);
     RHDRegWrite(Output, off + RV620_TMDS1_CNTL, Private->StoredTMDSCntl);
-    RHDRegWrite(Output, (digPrivate->EncoderID == ENCODER_DIG2)
+    RHDRegWrite(Output, (off == DIG2_OFFSET)
 		? RV620_DCCG_PCLK_DIGB_CNTL
 		: RV620_DCCG_PCLK_DIGA_CNTL,
 		Private->StoredDCCGPclkDigCntl);
@@ -1393,6 +1465,89 @@ DigDestroy(struct rhdOutput *Output)
 /*
  *
  */
+static Bool
+DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
+{
+    struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    char *TransmitterName;
+
+    RHDFUNC(rhdPtr);
+
+    switch (Output->Id) {
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	    TransmitterName = "KLDSKP_LVTMA";
+	    break;
+	case RHD_OUTPUT_UNIPHYA:
+	    TransmitterName = "UNIPHYA";
+	    break;
+	case RHD_OUTPUT_UNIPHYB:
+	    TransmitterName = "UNIPHYB";
+	    break;
+	default:
+	    return FALSE;
+    }
+    switch (Alloc) {
+	case RHD_OUTPUT_ALLOC:
+
+	    if (Private->EncoderID != ENCODER_NONE)
+		return TRUE;
+
+	    /*
+	     * LVTMA can only use DIG2. Thus exclude
+	     * DIG1 for LVTMA and prefer it for the
+	     * UNIPHYs.
+	     */
+	    if (Output->Id == RHD_OUTPUT_KLDSKP_LVTMA) {
+		if (!rhdPtr->DigEncoderOutput[1]) {
+		    rhdPtr->DigEncoderOutput[1] = Output;
+		    Private->EncoderID = ENCODER_DIG2;
+		    xf86DrvMsg(Output->scrnIndex, X_INFO,
+			       "Mapping DIG2 encoder to %s\n",TransmitterName);
+		return TRUE;
+		} else
+		    return FALSE;
+	    } else {
+		struct ATOMTransmitterPrivate *transPrivate =
+		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
+		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
+		if (!rhdPtr->DigEncoderOutput[0]) {
+		    rhdPtr->DigEncoderOutput[0] = Output;
+		    Private->EncoderID = ENCODER_DIG1;
+		    atc->Encoder = atomEncoderDIG1;
+		    xf86DrvMsg(Output->scrnIndex, X_INFO,
+			       "Mapping DIG1 encoder to %s\n",TransmitterName);
+		    return TRUE;
+		} else if (!rhdPtr->DigEncoderOutput[1]) {
+		    rhdPtr->DigEncoderOutput[1] = Output;
+		    Private->EncoderID = ENCODER_DIG2;
+		    atc->Encoder = atomEncoderDIG2;
+		    xf86DrvMsg(Output->scrnIndex, X_INFO,
+			       "Mapping DIG2 encoder to %s\n",TransmitterName);
+		    return TRUE;
+		} else
+		    return FALSE;
+	    }
+
+	case RHD_OUTPUT_FREE:
+		Private->EncoderID = ENCODER_NONE;
+	    if (rhdPtr->DigEncoderOutput[0] == Output) {
+		rhdPtr->DigEncoderOutput[0] = NULL;
+		return TRUE;
+	    } else if (rhdPtr->DigEncoderOutput[1] == Output) {
+		rhdPtr->DigEncoderOutput[1] = NULL;
+		return TRUE;
+	    } else
+		return FALSE;
+	    break;
+	default:
+	    return FALSE;
+    }
+}
+
+/*
+ *
+ */
 struct rhdOutput *
 RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 {
@@ -1415,17 +1570,18 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Output->Restore = DigRestore;
     Output->Destroy = DigDestroy;
     Output->Property = DigPropertyControl;
+    Output->AllocFree = DigAllocFree;
 
     Private = xnfcalloc(sizeof(struct DIGPrivate), 1);
     Output->Private = Private;
 
     Private->Coherent = FALSE;
+    Private->EncoderID = ENCODER_NONE;
 
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
 #if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 	    Output->Name = "UNIPHY_A";
-	    Private->EncoderID = ENCODER_DIG1;
 	    Private->Transmitter.Private =
 		(struct ATOMTransmitterPrivate *)xnfcalloc(sizeof (struct ATOMTransmitterPrivate), 1);
 
@@ -1442,8 +1598,8 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
 		atc->Coherent = Private->Coherent;
-		atc->Encoder = atomEncoderDIG1;
 		atc->Link = atomTransLinkA;
+		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
 		    AtomBiosArgRec data;
 		    data.val = 1;
@@ -1471,7 +1627,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	case RHD_OUTPUT_UNIPHYB:
 #if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 	    Output->Name = "UNIPHY_B";
-	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
 		(struct atomTransmitterPrivate *)xnfcalloc(sizeof (struct ATOMTransmitterPrivate), 1);
 
@@ -1488,8 +1643,8 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
 		atc->Coherent = Private->Coherent;
-		atc->Encoder = atomEncoderDIG2;
 		atc->Link = atomTransLinkB;
+		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
 		    AtomBiosArgRec data;
 		    data.val = 2;
@@ -1516,7 +1671,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSKP_LVTMA";
-	    Private->EncoderID = ENCODER_DIG2;
 	    Private->Transmitter.Private =
 		(struct LVTMATransmitterPrivate *)xnfcalloc(sizeof (struct LVTMATransmitterPrivate), 1);
 

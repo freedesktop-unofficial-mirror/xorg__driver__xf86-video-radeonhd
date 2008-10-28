@@ -245,6 +245,7 @@ enum atomTransmitterAction {
 };
 
 enum atomEncoder {
+    atomEncoderNone,
     atomEncoderDACA,
     atomEncoderDACB,
     atomEncoderTV,

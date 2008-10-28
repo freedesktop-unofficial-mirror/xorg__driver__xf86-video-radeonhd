@@ -2011,7 +2011,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Unable to attach a"
 			   " monitor to connector \"%s\"\n", Connector->Name);
 		Output->Active = FALSE;
-	    } else {
+	    } else if (!Output->AllocFree || Output->AllocFree(Output, RHD_OUTPUT_ALLOC)){
 		Connector->Monitor = Monitor;
 
 		Output->Active = TRUE;
