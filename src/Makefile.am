@@ -133,6 +133,7 @@ radeonhd_drv_la_LIBADD += libatom.la
 endif
 
 if MAINTAINER_MODE
+if HAVE_SED_WITH_REASONABLE_SUBSTITUTION
 SRCMAN = $(top_srcdir)/man/radeonhd.man
 CLEANFILES += radeonhd.man.new
 radeonhd.man.new: rhd_id.c $(SRCMAN)
@@ -158,9 +159,9 @@ README.new: rhd_id.c $(top_srcdir)/README
 			-e '/^[ 	]*\/\* END_DEVICE_LIST marker - do not delete \*\/ *$$/,$$d' \
 			-e '/^[ 	]\{1,\}xf86Msg(X_NONE,/d' \
 			-e '/^[ 	]\{1,\}\/\*/d' \
-			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*;\)\\n"$$/  * \1:	\2/' \
-			-e 's/^[ 	]\{1,\}"\\t\\t\(.*\)\.\\n"\();\)\{0,1\}$$/         	\1/' \
-			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*\)\.\\n"\();\)\{0,1\}$$/  * \1:	\2/' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*;\)\\n"$$/  * \1:\t\2/' \
+			-e 's/^[ 	]\{1,\}"\\t\\t\(.*\)\.\\n"\();\)\{0,1\}$$/         \t\1/' \
+			-e 's/^[ 	]\{1,\}"\\t\([A-Z0-9]\{1,\}\) \{1,\}: \(.*\)\.\\n"\();\)\{0,1\}$$/  * \1:\t\2/' \
 			"$(srcdir)/rhd_id.c"; \
 		$(SED) -n '/^END_DEVICE_LIST$$/,$$p' "$(SRCREADME)" \
 	) > README.new
@@ -189,4 +190,5 @@ all-local: radeonhd.man.new README.new
 		echo "              $(srcdir)/rhd_id.c"; \
 		exit 1; \
 	fi
+endif
 endif

@@ -17,8 +17,25 @@ AM_MAINTAINER_MODE
 # Program checks.
 AC_DISABLE_STATIC
 AC_PROG_CC
+
 dnl Define SED var without requiring AC_PROG_SED (new in autoconf-2.59b)
 m4_ifdef([AC_PROG_SED], [AC_PROG_SED], [AC_SUBST([SED], [${SED-sed}])])
+
+AC_MSG_CHECKING([whether $SED can substitute tabs and newlines for text])
+dnl One tab, a letter and two newlines
+cat>sed-test.1<<EOF
+	y
+
+EOF
+echo x | sed 's/x/\ty\n/' > sed-test.2
+if cmp -s sed-test.1 sed-test.2; then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+fi
+AM_CONDITIONAL([HAVE_SED_WITH_REASONABLE_SUBSTITUTION], [cmp -s sed-test.1 sed-test.2])
+rm -f sed-test.1 sed-test.2
+
 CXX=no
 F77=no
 AC_PROG_LIBTOOL
