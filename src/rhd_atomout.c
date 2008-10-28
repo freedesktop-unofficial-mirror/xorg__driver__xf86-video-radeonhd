@@ -959,16 +959,25 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    break;
 
 	case RHD_OUTPUT_UNIPHYA:
+	case RHD_OUTPUT_UNIPHYB:
 	    Output->AllocFree = RHDAtomOutputAllocFree;
-	    EncoderConfig->u.dig.Link = atomTransLinkA;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
 		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterPCIEPHY;
 	    else
 		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
 
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->Link = atomTransLinkA;
 	    TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
+	    switch (OutputType) {
+		case RHD_OUTPUT_UNIPHYA:
+		    TransmitterConfig->Link = EncoderConfig->u.dig.Link = atomTransLinkA;
+		    break;
+		case RHD_OUTPUT_UNIPHYB:
+		    TransmitterConfig->Link = EncoderConfig->u.dig.Link = atomTransLinkB;
+		    break;
+		default:
+		    break; /* don't get here */
+	    }
 
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
 		AtomBiosArgRec data;
@@ -988,55 +997,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		LVDSInfoRetrieve(rhdPtr, Private);
 	    else
 		TMDSInfoRetrieve(rhdPtr, Private);
-
-	    switch (ConnectorType) {
-		case RHD_CONNECTOR_DVI:
-		case RHD_CONNECTOR_DVI_SINGLE:
-		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
-		    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
-		    break;
-#if 0
-		case RHD_CONNECTOR_DP:
-		case RHD_CONNECTOR_DP_DUAL:
-		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDP;
-		    break;
-		case RHD_CONNECTOR_HDMI_A:
-		case RHD_CONNECTOR_HDMI_B:
-		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomHDMI;
-		    break;
-#endif
-		default:
-		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: Unknown connector type\n",__func__);
-		    xfree(Output);
-		    xfree(Private);
-		    return NULL;
-	    }
-	    break;
-	case RHD_OUTPUT_UNIPHYB:
-	    Output->AllocFree = RHDAtomOutputAllocFree;
-	    EncoderConfig->u.dig.Link = atomTransLinkB;
-	    if (RHDIsIGP(rhdPtr->ChipSet))
-		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterPCIEPHY;
-	    else
-		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
-
-	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->Link = atomTransLinkB;
-	    TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
-
-	    if (RHDIsIGP(rhdPtr->ChipSet)) {
-		AtomBiosArgRec data;
-		data.val = 1;
-		if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_PCIE_LANES,
-				    &data) == ATOM_SUCCESS)
-		    TransmitterConfig->Lanes = data.pcieLanes.Chassis;
-		/* only do 'chassis' for now */
-		else {
-		    xfree(Private);
-		    xfree(Output);
-		    return NULL;
-		}
-	    }
 
 	    switch (ConnectorType) {
 		case RHD_CONNECTOR_DVI:
