@@ -269,6 +269,7 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x95C2, RHD_M82   ), /* ATI Mobility Radeon HD 3430 (M82) */
     RHD_DEVICE_MATCH(  0x95C4, RHD_M82   ), /* Mobility Radeon HD 3400 Series (M82)  */
     RHD_DEVICE_MATCH(  0x95C5, RHD_RV620 ), /* ATI Radeon HD 3450 */
+    RHD_DEVICE_MATCH(  0x95C6, RHD_RV620 ), /* ATI Radeon HD 3450 */
     RHD_DEVICE_MATCH(  0x95C7, RHD_RV620 ), /* ATI Radeon HD 3430 */
     RHD_DEVICE_MATCH(  0x95CC, RHD_RV620 ), /* Fire PRO Professional Graphics ASIC  */
     RHD_DEVICE_MATCH(  0x95CD, RHD_RV620 ), /* ATI FireMV 2450  */
