@@ -507,7 +507,8 @@ RHDCursorsInit(RHDPtr rhdPtr)
 	Cursor->RegOffset = i * 0x0800;
 
 	/* grab our cursor FB */
-	Cursor->Base = RHDAllocFb(rhdPtr, size, "Cursor Image");
+	if (!rhdPtr->swCursor.val.bool)
+	    Cursor->Base = RHDAllocFb(rhdPtr, size, "Cursor Image");
 	ASSERT(Cursor->Base != -1);
 
 	rhdPtr->Crtc[i]->Cursor = Cursor;	/* HW is fixed anyway */
