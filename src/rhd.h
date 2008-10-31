@@ -384,7 +384,7 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
                       OptFreqUnits expectedUnits, RHDOptPtr optp, double def);
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
-enum rhdOptStatus rhdParseBooleanOption(struct RHDOpt *Option, char *Name);
+enum rhdOptStatus RhdParseBooleanOption(struct RHDOpt *Option, char *Name);
 char *RhdAppendString(char *s1, const char *s2);
 void RhdAssertFailed(const char *str,
 		     const char *file, int line, const char *func) NORETURN;
