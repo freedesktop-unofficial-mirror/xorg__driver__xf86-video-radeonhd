@@ -1284,7 +1284,6 @@ struct rhdOutput *
 RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 {
     struct rhdOutput *Output;
-
     RHDFUNC(rhdPtr);
 
     /* Stop weird connector types */
@@ -1327,6 +1326,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
     } else {
 	struct rhdTMDSBPrivate *Private = xnfcalloc(sizeof(struct rhdTMDSBPrivate), 1);
+	int from;
 
 	Output->Name = "TMDS B";
 
@@ -1342,7 +1342,20 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Private = Private;
 
 	Private->RunsDualLink = FALSE;
-	Private->Coherent = FALSE;
+	from = X_CONFIG;
+	switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	    case RHD_OPTION_DEFAULT:
+		from = X_DEFAULT;
+		Private->Coherent = FALSE;
+		break;
+	    case RHD_OPTION_ON:
+		Private->Coherent = TRUE;
+		break;
+	    case RHD_OPTION_OFF:
+		Private->Coherent = FALSE;
+		break;
+	}
+	xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
     }
 
     return Output;

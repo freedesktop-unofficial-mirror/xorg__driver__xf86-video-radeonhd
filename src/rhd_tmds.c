@@ -519,6 +519,7 @@ RHDTMDSAInit(RHDPtr rhdPtr)
 {
     struct rhdOutput *Output;
     struct rhdTMDSPrivate *Private;
+    int from;
 
     RHDFUNC(rhdPtr);
 
@@ -539,7 +540,20 @@ RHDTMDSAInit(RHDPtr rhdPtr)
 
     Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
     Private->RunsDualLink = FALSE;
-    Private->Coherent = FALSE;
+    from = X_CONFIG;
+    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	case RHD_OPTION_DEFAULT:
+	    from = X_DEFAULT;
+	    Private->Coherent = FALSE;
+	    break;
+	case RHD_OPTION_ON:
+	    Private->Coherent = TRUE;
+	    break;
+	case RHD_OPTION_OFF:
+	    Private->Coherent = FALSE;
+	    break;
+    }
+    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
     Private->PowerState = RHD_POWER_UNKNOWN;
     Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 

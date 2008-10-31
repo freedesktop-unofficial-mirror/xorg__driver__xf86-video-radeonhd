@@ -589,7 +589,6 @@ TMDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
     Private->TemporalDither = FALSE;
     Private->SpatialDither = FALSE;
     Private->GreyLevel = 0;
-    Private->Coherent = FALSE;
     Private->BlLevel = -1;
 
     return TRUE;
@@ -952,8 +951,22 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		LVDSInfoRetrieve(rhdPtr, Private);
 		Private->Hdmi = NULL;
 	    } else {
+		int from = X_CONFIG;
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
 		TMDSInfoRetrieve(rhdPtr, Private);
+		switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+		    case RHD_OPTION_DEFAULT:
+			from = X_DEFAULT;
+			Private->Coherent = FALSE;
+			break;
+		    case RHD_OPTION_ON:
+			Private->Coherent = TRUE;
+			break;
+		    case RHD_OPTION_OFF:
+			Private->Coherent = FALSE;
+			break;
+		}
+		xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
 		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    }
 	    break;

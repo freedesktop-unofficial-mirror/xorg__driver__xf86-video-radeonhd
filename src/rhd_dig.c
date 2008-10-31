@@ -1554,6 +1554,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     struct rhdOutput *Output;
     struct DIGPrivate *Private;
     struct DIGEncoder *Encoder;
+    int from;
 
     RHDFUNC(rhdPtr);
 
@@ -1574,8 +1575,21 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
     Private = xnfcalloc(sizeof(struct DIGPrivate), 1);
     Output->Private = Private;
+    from = X_CONFIG;
+    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	case RHD_OPTION_DEFAULT:
+	    from = X_DEFAULT;
+	    Private->Coherent = FALSE;
+	    break;
+	case RHD_OPTION_ON:
+	    Private->Coherent = TRUE;
+	    break;
+	case RHD_OPTION_OFF:
+	    Private->Coherent = FALSE;
+	    break;
+    }
+    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
 
-    Private->Coherent = FALSE;
     Private->EncoderID = ENCODER_NONE;
 
     switch (outputType) {
