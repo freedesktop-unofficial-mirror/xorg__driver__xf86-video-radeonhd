@@ -584,7 +584,8 @@ rhdBIOSScratchSetDeviceForOutput(struct rhdOutput *Output)
 	    switch (Output->OutputDriverPrivate->OutputDevices[i].DeviceId) {
 		case atomCrtc1:
 		case atomCrtc2:
-		    if (Output->SensedType == RHD_SENSED_VGA)
+		    if (Output->SensedType == RHD_SENSED_VGA
+			|| Output->SensedType == RHD_SENSED_NONE) /* if nothing was sensed default to VGA */
 			break;
 		    i++;
 		    continue;
