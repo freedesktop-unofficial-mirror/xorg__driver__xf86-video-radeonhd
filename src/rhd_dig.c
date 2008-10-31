@@ -804,16 +804,22 @@ digProbeEncoder(struct rhdOutput *Output)
 
 	switch (Output->Id) {
 	    case RHD_OUTPUT_UNIPHYA:
-		if (swap)
+		if (swap) {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYA\n");
 		    return ENCODER_DIG2;
-		else
+		} else {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYA\n");
 		    return ENCODER_DIG1;
+		}
 		break;
 	    case RHD_OUTPUT_UNIPHYB:
-		if (swap)
+		if (swap) {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYB\n");
 		    return ENCODER_DIG1;
-		else
+		} else {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYB\n");
 		    return ENCODER_DIG2;
+		}
 		break;
 	    default:
 		return ENCODER_NONE; /* should not get here */
