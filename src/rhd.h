@@ -232,6 +232,8 @@ typedef struct RHDRec {
     unsigned int        FbIntAddress; /* card internal address of FB */
     unsigned int        FbPCIAddress; /* physical address of FB */
 
+    Bool		directRenderingEnabled;
+
     /* Some simplistic memory handling */
 #define ALIGN(x,align)	(((x)+(align)-1)&~((align)-1))
 #define RHD_FB_ALIGNMENT 0x1000

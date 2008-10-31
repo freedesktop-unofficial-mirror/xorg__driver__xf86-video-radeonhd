@@ -1121,7 +1121,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef USE_DRI
     if (DriScreenInited)
-	RHDDRIFinishScreenInit(pScreen);
+	rhdPtr->directRenderingEnabled = RHDDRIFinishScreenInit(pScreen);
 #endif
 
     /* Initialize command submission backend */

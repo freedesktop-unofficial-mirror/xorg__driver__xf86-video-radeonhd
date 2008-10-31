@@ -1110,6 +1110,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 
     RHDFUNC(rhdPtr);
 
+    rhdPtr->directRenderingEnabled = FALSE;
+
     if (!rhdPtr->useDRI.val.bool) {
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by"
 		   " default. Use Option \"DRI\" to enable.\n");
@@ -1717,10 +1719,9 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 	rhdDRI->pVisualConfigsPriv = NULL;
     }
 
-    xfree(rhdDRI);
-    rhdPtr->dri = NULL;
+    rhdPtr->directRenderingEnabled = FALSE;
 
-    return FALSE;
+    return TRUE;
 }
 
 
@@ -1941,3 +1942,4 @@ RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer)
 	       "%s: Unable to retrieve the indirect Buffer at address %p!\n",
 	       __func__, Buffer);
 }
+
