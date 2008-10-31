@@ -171,7 +171,7 @@ typedef struct _rhdI2CRec *rhdI2CPtr;
 typedef struct _atomBiosHandle *atomBiosHandlePtr;
 typedef struct _rhdShadowRec *rhdShadowPtr;
 
-typedef struct _RHDopt {
+typedef struct RHDOpt {
     Bool set;
     union  {
         Bool bool;
@@ -224,6 +224,7 @@ typedef struct RHDRec {
     RHDOpt		unverifiedFeatures;
     RHDOpt		audio;
     RHDOpt		hdmi;
+    RHDOpt		coherent;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
@@ -338,6 +339,12 @@ enum atomSubSystem {
     atomUsageAny
 };
 
+enum rhdOptStatus {
+    RHD_OPTION_DEFAULT,
+    RHD_OPTION_OFF,
+    RHD_OPTION_ON
+};
+
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
 extern unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
@@ -377,6 +384,7 @@ void RhdGetOptValFreq(const OptionInfoRec *table, int token,
                       OptFreqUnits expectedUnits, RHDOptPtr optp, double def);
 void RhdGetOptValString(const OptionInfoRec *table, int token,
                         RHDOptPtr optp, char *def);
+enum rhdOptStatus rhdParseBooleanOption(struct RHDOpt *Option, char *Name);
 char *RhdAppendString(char *s1, const char *s2);
 void RhdAssertFailed(const char *str,
 		     const char *file, int line, const char *func) NORETURN;

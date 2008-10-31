@@ -250,7 +250,8 @@ typedef enum {
 #endif
     OPTION_UNVERIFIED_FEAT,
     OPTION_AUDIO,
-    OPTION_HDMI
+    OPTION_HDMI,
+    OPTION_COHERENT
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -279,6 +280,7 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_AUDIO,		   "Audio",	           OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_HDMI,		   "HDMI",	           OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_COHERENT,             "COHERENT",		   OPTV_ANYSTR,  {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -2769,7 +2771,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->audio, TRUE);
     RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,
 			&rhdPtr->hdmi, "none");
-
+    RhdGetOptValString(rhdPtr->Options, OPTION_COHERENT,
+		       &rhdPtr->coherent, NULL);
 #ifdef ATOM_BIOS
     rhdParseAtomBIOSUsage(pScrn);
 #endif
@@ -2792,6 +2795,7 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 	"     This shall only be used to work around broken connector tables.\n"
 	"     Please report your findings to radeonhd@opensuse.org\n");
 }
+
 
 /*
  *  rhdDoReadPCIBios(): do the actual reading, return size and copy in ptr

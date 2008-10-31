@@ -114,6 +114,41 @@ RhdGetOptValString(const OptionInfoRec *table, int token,
 	optp->set = TRUE;
 }
 
+/*
+ *
+ */
+enum rhdOptStatus
+RhdParseBooleanOption(struct RHDOpt *Option, char *outputName)
+{
+    if (Option->set) {
+	char *ptr = Option->val.string;
+
+	    while (*ptr != '\0') {
+		while (isspace(*ptr))
+		    ptr++;
+		if (*ptr == '\0')
+		    break;
+
+		if (!strncasecmp(outputName,ptr,strlen(outputName))) {
+		    ptr += strlen(outputName);
+		    if (isspace(*ptr) || *ptr == '=') {
+			ptr++;
+		    }
+		    if (!strncasecmp("off",ptr,3) || !strncasecmp("0",ptr,1) || !strncasecmp("no",ptr,2)) {
+			return RHD_OPTION_OFF;
+		    } else if (!strncasecmp("on",ptr,2) || !strncasecmp("1",ptr,1) || !strncasecmp("yes",ptr,3))  {
+			return RHD_OPTION_ON;
+		    } else
+			return RHD_OPTION_DEFAULT;
+		} else
+		    while (*ptr != '\0' || !isspace(*ptr))
+			ptr++;
+		if (*ptr != '\0')
+		    break;
+	    }
+    }
+    return RHD_OPTION_DEFAULT;
+}
 
 void
 RhdDebugDump(int scrnIndex, unsigned char *start, int size)
