@@ -1615,8 +1615,7 @@ RHDRandrModeInit(ScrnInfoPtr pScrn)
     rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
     rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
 
-    RHDAllIdle(pScrn);
-
+    RHDPrepareMode(rhdPtr);
     ret = xf86SetDesiredModes(pScrn);
     RHDDebugRandrState(rhdPtr, "POST-ModeInit");
 

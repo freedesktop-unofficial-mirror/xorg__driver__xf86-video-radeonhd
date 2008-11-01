@@ -157,7 +157,7 @@ static void     rhdRestore(RHDPtr rhdPtr);
 static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
 static void     rhdModeDPISet(ScrnInfoPtr pScrn);
-static void	rhdPrepareMode(RHDPtr rhdPtr);
+static void     rhdAllIdle(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static void	rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
@@ -1064,9 +1064,18 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (!miSetPixmapDepths())
 	return FALSE;
 
+    /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+	if (!RHDShadowScreenInit(pScreen)) {
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "ShadowFB initialisation failed."
+		       " Continuing without ShadowFB.\n");
+	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	}
+    }
+
     /* disable all memory accesses for MC setup */
     RHDVGADisable(rhdPtr);
-    rhdPrepareMode(rhdPtr);
+    rhdAllIdle(rhdPtr);
 
     /* now set up the MC - has to be done before DRI init */
     RHDMCSetup(rhdPtr);
@@ -1079,15 +1088,6 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	DriScreenInited = RHDDRIScreenInit(pScreen);
 #endif
 
-    /* Setup memory to which we draw; either shadow (RAM) or scanout (FB) */
-    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
-	if (!RHDShadowScreenInit(pScreen)) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "ShadowFB initialisation failed."
-		       " Continuing without ShadowFB.\n");
-	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
-	}
-    }
-
     /* shadowfb is allowed to fail gracefully too */
     if ((rhdPtr->AccelMethod != RHD_ACCEL_SHADOWFB) &&
 	!fbScreenInit(pScreen, (CARD8 *) rhdPtr->FbBase + rhdPtr->FbScanoutStart,
@@ -1098,6 +1098,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	return FALSE;
     }
 
+    /* must be done after fbScreenInit() */
     if (pScrn->depth > 8) {
         /* Fixup RGB ordering */
         visual = pScreen->visuals + pScreen->numVisuals;
@@ -1177,6 +1178,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     RHDAtomBIOSScratchSetAccelratorMode(rhdPtr, TRUE);
 #endif
 
+    RHDPrepareMode(rhdPtr);
     /* now init the new mode */
     if (rhdPtr->randr)
 	RHDRandrModeInit(pScrn);
@@ -1233,22 +1235,17 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     return TRUE;
 }
 
-void
-RHDAllIdle(ScrnInfoPtr pScrn)
+static void
+rhdAllIdle(RHDPtr rhdPtr)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
     int i;
-    struct rhdCrtc *Crtc;
 
     /* stop scanout */
-    for (i = 0; i < 2; i++) {
-	Crtc = rhdPtr->Crtc[i];
-	if (pScrn->scrnIndex == Crtc->scrnIndex)
-	    Crtc->Power(Crtc, RHD_POWER_RESET);
-    }
+    for (i = 0; i < 2; i++)
+	rhdPtr->Crtc[i]->Power(rhdPtr->Crtc[i], RHD_POWER_RESET);
 
     if (!RHDMCIdle(rhdPtr, 1000))
-	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "MC not idle\n");
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "MC not idle\n");
 
 }
 
@@ -1308,7 +1305,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	RHDCSStop(rhdPtr->CS);
 
     if (pScrn->vtSema)
-	RHDAllIdle(pScrn);
+	rhdAllIdle(rhdPtr);
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
@@ -1342,6 +1339,13 @@ RHDEnterVT(int scrnIndex, int flags)
     RHDFUNC(rhdPtr);
 
     rhdSave(rhdPtr);
+
+    /* disable all memory accesses for MC setup */
+    RHDVGADisable(rhdPtr);
+    rhdAllIdle(rhdPtr);
+
+    /* now set up the MC - has to be done before DRI init */
+    RHDMCSetup(rhdPtr);
 
 #ifdef ATOM_BIOS
     /* Set accelerator mode in the BIOSScratch registers */
@@ -1412,7 +1416,7 @@ RHDLeaveVT(int scrnIndex, int flags)
     if (rhdPtr->CS)
 	RHDCSStop(rhdPtr->CS);
 
-    RHDAllIdle(pScrn);
+    rhdAllIdle(rhdPtr);
 
     rhdRestore(rhdPtr);
 }
@@ -1430,7 +1434,7 @@ RHDSwitchMode(int scrnIndex, DisplayModePtr mode, int flags)
     if (rhdPtr->randr)
 	RHDRandrSwitchMode(pScrn, mode);
     else {
-	rhdPrepareMode(rhdPtr);
+	RHDPrepareMode(rhdPtr);
 	rhdSetMode(xf86Screens[scrnIndex], mode);
     }
 
@@ -2260,17 +2264,16 @@ rhdModeLayoutPrint(RHDPtr rhdPtr)
 /*
  *
  */
-static void
-rhdPrepareMode(RHDPtr rhdPtr)
+void
+RHDPrepareMode(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
+    /* Stop crap from being shown: gets reenabled through SaveScreen */
+    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
+    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
     /* no active outputs == no mess */
     RHDOutputsPower(rhdPtr, RHD_POWER_RESET);
-
-    /* Disable CRTCs to stop noise from appearing. */
-    rhdPtr->Crtc[0]->Power(rhdPtr->Crtc[0], RHD_POWER_RESET);
-    rhdPtr->Crtc[1]->Power(rhdPtr->Crtc[1], RHD_POWER_RESET);
 }
 
 /*
@@ -2284,11 +2287,6 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     RHDFUNC(rhdPtr);
     pScrn->vtSema = TRUE;
 
-    /* Stop crap from being shown: gets reenabled through SaveScreen */
-    rhdPtr->Crtc[0]->Blank(rhdPtr->Crtc[0], TRUE);
-    rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
-
-    rhdPrepareMode(rhdPtr);
     rhdSetMode(pScrn, mode);
 }
 

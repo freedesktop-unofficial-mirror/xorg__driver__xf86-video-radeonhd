@@ -349,7 +349,7 @@ enum rhdOptStatus {
 /* Some handy functions that makes life so much more readable */
 extern unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);
 extern Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Connector);
-extern void RHDAllIdle(ScrnInfoPtr pScrn);
+extern void RHDPrepareMode(RHDPtr rhdPtr);
 extern Bool RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList, enum atomSubSystem subsys);
 
 extern CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);

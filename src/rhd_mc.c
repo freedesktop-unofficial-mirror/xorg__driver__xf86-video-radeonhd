@@ -414,7 +414,7 @@ RHDMCSetup(RHDPtr rhdPtr)
     ASSERT((RHDRegRead(rhdPtr, D2VGA_CONTROL) & D2VGA_MODE_ENABLE) != D2VGA_MODE_ENABLE);
     ASSERT((RHDRegRead(rhdPtr, D1CRTC_CONTROL) & 0x1) != 0x1);
     ASSERT((RHDRegRead(rhdPtr, D2CRTC_CONTROL) & 0x1) != 0x1);
-    ASSERT(RHDMCIdle(rhdPtr, 10000));
+    ASSERT(RHDMCIdle(rhdPtr, 1));
 
     MC->SetupMC(rhdPtr);
 }
