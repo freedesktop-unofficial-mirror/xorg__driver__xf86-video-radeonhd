@@ -1064,6 +1064,13 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if (!miSetPixmapDepths())
 	return FALSE;
 
+    /* disable all memory accesses for MC setup */
+    RHDVGADisable(rhdPtr);
+    rhdPrepareMode(rhdPtr);
+
+    /* now set up the MC - has to be done before DRI init */
+    RHDMCSetup(rhdPtr);
+
 #ifdef USE_DRI
     /* Setup DRI after visuals have been established, but before fbScreenInit is
      * called.  fbScreenInit will eventually call the driver's InitGLXVisuals
@@ -2282,13 +2289,6 @@ rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode)
     rhdPtr->Crtc[1]->Blank(rhdPtr->Crtc[1], TRUE);
 
     rhdPrepareMode(rhdPtr);
-
-    /* now disable our VGA Mode */
-    RHDVGADisable(rhdPtr);
-
-    /* now set up the MC */
-    RHDMCSetup(rhdPtr);
-
     rhdSetMode(pScrn, mode);
 }
 
