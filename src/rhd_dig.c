@@ -805,19 +805,19 @@ digProbeEncoder(struct rhdOutput *Output)
 	switch (Output->Id) {
 	    case RHD_OUTPUT_UNIPHYA:
 		if (swap) {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYA\n");
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYA\n",__func__);
 		    return ENCODER_DIG2;
 		} else {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYA\n");
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYA\n",__func__);
 		    return ENCODER_DIG1;
 		}
 		break;
 	    case RHD_OUTPUT_UNIPHYB:
 		if (swap) {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYB\n");
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYB\n",__func__);
 		    return ENCODER_DIG1;
 		} else {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYB\n");
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYB\n",__func__);
 		    return ENCODER_DIG2;
 		}
 		break;
@@ -849,8 +849,26 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 
     atc->Coherent = Private->Coherent;
 
-    if (atc->Encoder == atomEncoderNone)
-	atc->Encoder = (digProbeEncoder(Output) == ENCODER_DIG1) ? atomEncoderDIG1 : atomEncoderDIG2;
+    if (atc->Encoder == atomEncoderNone) {
+	switch (digProbeEncoder(Output)) {
+	    case ENCODER_DIG1:
+		if (rhdPtr->DigEncoderOutput[0]) {
+		    RHDDebug(Output->scrnIndex,"%s: DIG1 for %s already taken\n",__func__,Output->Name);
+		    return;
+		}
+		atc->Encoder = atomEncoderDIG1;
+		break;
+	    case ENCODER_DIG2:
+		if (rhdPtr->DigEncoderOutput[1]) {
+		    RHDDebug(Output->scrnIndex,"%s: DIG2 for %s already taken\n",__func__,Output->Name);
+		    return;
+		}
+		atc->Encoder = atomEncoderDIG2;
+		break;
+	    default:
+		return;
+	}
+    }
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -1077,8 +1095,26 @@ EncoderPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
 
-    if (EncoderID == ENCODER_NONE)
+    if (EncoderID == ENCODER_NONE) {
+	RHDPtr rhdPtr = RHDPTRI(Output);
 	EncoderID = digProbeEncoder(Output);
+	switch (EncoderID) {
+	    case ENCODER_DIG1:
+		if (rhdPtr->DigEncoderOutput[0]) {
+		    RHDDebug(Output->scrnIndex,"%s: DIG1 for %s already taken\n",__func__,Output->Name);
+		    return;
+		}
+		break;
+	    case ENCODER_DIG2:
+		if (rhdPtr->DigEncoderOutput[1]) {
+		    RHDDebug(Output->scrnIndex,"%s: DIG2 for %s already taken\n",__func__,Output->Name);
+		    return;
+		}
+		break;
+	    default:
+		return;
+	}
+    }
 
     off = (EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
