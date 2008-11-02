@@ -1952,7 +1952,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     struct rhdOutput *Output;
     struct rhdConnector *Connector;
     Bool Found = FALSE;
-    char *ignore = NULL;
+    RHDOpt ignore;
     Bool ConnectorIsDMS59 = FALSE;
     int i = 0;
 
@@ -1973,7 +1973,7 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
     }
 
     /* quick and dirty option so that some output choice exists */
-    ignore = xf86GetOptValString(rhdPtr->Options, OPTION_IGNORECONNECTOR);
+    RhdGetOptValString (rhdPtr->Options, OPTION_IGNORECONNECTOR, &ignore, "");
 
     /* handle cards with DMS-59 connectors appropriately. The DMS-59 to VGA
        adapter does not raise HPD at all, so we need a fallback there. */
@@ -1991,10 +1991,15 @@ rhdModeLayoutSelect(RHDPtr rhdPtr)
 	if (!Connector)
 	    continue;
 
-	if (ignore && !strcasecmp(Connector->Name, ignore)) {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		       "Skipping connector \"%s\"\n", ignore);
-	    continue;
+	switch(RhdParseBooleanOption(&ignore, Connector->Name)) {
+	    case RHD_OPTION_ON:
+	    case RHD_OPTION_DEFAULT:
+		xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		           "Skipping connector \"%s\"\n", Connector->Name);
+		continue;
+	    case RHD_OPTION_OFF:
+	    case RHD_OPTION_NOT_SET:
+		break;
 	}
 
 	if (Connector->HPDCheck) {
