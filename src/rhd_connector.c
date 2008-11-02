@@ -493,15 +493,19 @@ Bool RHDConnectorEnableHDMI(struct rhdConnector *Connector)
     RHDPtr rhdPtr = RHDPTRI(Connector);
     RHDFUNC(rhdPtr);
 
-    /* ask connected monitor if it supports HDMI */
-    /* TODO: Not implemented yet! */
-
     /* check if user forced HDMI on this connector */
-    if(rhdPtr->hdmi.set && (
-	strcasecmp(rhdPtr->hdmi.val.string, Connector->Name) == 0 ||
-	strcasecmp(rhdPtr->hdmi.val.string, "all") == 0))
-    {
-	return TRUE;
+    switch(RhdParseBooleanOption(&rhdPtr->hdmi, Connector->Name)) {
+	case RHD_OPTION_ON:
+	case RHD_OPTION_DEFAULT:
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Enabling HDMI on %s because of config option\n", Connector->Name);
+	    return TRUE;
+	case RHD_OPTION_OFF:
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Disabling HDMI on %s because of config option\n", Connector->Name);
+	    return FALSE;
+	case RHD_OPTION_NOT_SET:
+	    /* ask connected monitor if it supports HDMI */
+	    /* TODO: Not implemented yet! */
+	    return FALSE;
     }
 
     return FALSE;
