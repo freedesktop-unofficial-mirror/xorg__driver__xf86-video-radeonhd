@@ -955,6 +955,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
 		TMDSInfoRetrieve(rhdPtr, Private);
 		switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+		    case RHD_OPTION_NOT_SET:
 		    case RHD_OPTION_DEFAULT:
 			from = X_DEFAULT;
 			Private->Coherent = FALSE;

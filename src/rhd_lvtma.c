@@ -1344,6 +1344,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Private->RunsDualLink = FALSE;
 	from = X_CONFIG;
 	switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	    case RHD_OPTION_NOT_SET:
 	    case RHD_OPTION_DEFAULT:
 		from = X_DEFAULT;
 		Private->Coherent = FALSE;

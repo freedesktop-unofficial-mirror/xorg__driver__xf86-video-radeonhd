@@ -342,6 +342,7 @@ enum atomSubSystem {
 };
 
 enum rhdOptStatus {
+    RHD_OPTION_NOT_SET,
     RHD_OPTION_DEFAULT,
     RHD_OPTION_OFF,
     RHD_OPTION_ON
