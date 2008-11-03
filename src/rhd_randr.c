@@ -1286,7 +1286,6 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
     }
 
 #endif /* USE_EXA */
-#ifdef USE_XAA
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	int Align = (4096 + OctPerPixel - 1) / OctPerPixel;
 	Size = (Size + OctPerPixel - 1) / OctPerPixel;
@@ -1307,7 +1306,6 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
 		 + rhdRRCrtc->u.MemXAA->offset * OctPerPixel);
     }
 
-#endif /* USE_XAA */
     return NULL;
 }
 
@@ -1359,12 +1357,10 @@ rhdRRCrtcShadowDestroy(xf86CrtcPtr crtc, PixmapPtr RPixmap, void *Data)
 	}
 
 #endif /* USE_EXA */
-#ifdef USE_XAA
 	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	    xf86FreeOffscreenLinear(rhdRRCrtc->u.MemXAA);
 	    rhdRRCrtc->u.MemXAA = NULL;
 	}
-#endif /* USE_XAA */
     }
 }
 
