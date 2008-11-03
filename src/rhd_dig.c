@@ -1126,6 +1126,8 @@ EncoderPower(struct rhdOutput *Output, int Power)
 
     switch (Power) {
 	case RHD_POWER_ON:
+	    RHDDebug(Output->scrnIndex,"%s(RHD_POWER_ON, %i)\n",__func__,
+		     EncoderID);
 	    /* enable DIG */
 	    RHDRegMask(Output, off + RV620_DIG1_CNTL, 0x10, 0x10);
 	    RHDRegMask(Output, (EncoderID == ENCODER_DIG2)
@@ -1136,6 +1138,8 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	case RHD_POWER_RESET:
 	case RHD_POWER_SHUTDOWN:
 	default:
+	    RHDDebug(Output->scrnIndex,"%s(RHD_POWER_SHUTDOWN, %i)\n",__func__,
+		     EncoderID);
 	    /* disable differential clock driver */
 	    if (EncoderID == ENCODER_DIG1)
 		RHDRegMask(Output, RV620_EXT1_DIFF_POST_DIV_CNTL,
