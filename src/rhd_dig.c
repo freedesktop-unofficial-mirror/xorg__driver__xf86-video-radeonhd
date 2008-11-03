@@ -1590,13 +1590,40 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 /*
  *
  */
+static Bool
+rhdDIGSetCoherent(RHDPtr rhdPtr,struct rhdOutput *Output)
+{
+    Bool coherent;
+    int  from = X_CONFIG;
+
+    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	case RHD_OPTION_NOT_SET:
+	case RHD_OPTION_DEFAULT:
+	    from = X_DEFAULT;
+	    coherent = FALSE;
+	    break;
+	case RHD_OPTION_ON:
+	    coherent = TRUE;
+	    break;
+	case RHD_OPTION_OFF:
+	    coherent = FALSE;
+	    break;
+    }
+    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",
+	       Output->Name,coherent ? "" : "in");
+
+    return coherent;
+}
+
+/*
+ *
+ */
 struct rhdOutput *
 RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 {
     struct rhdOutput *Output;
     struct DIGPrivate *Private;
     struct DIGEncoder *Encoder;
-    int from;
 
     RHDFUNC(rhdPtr);
 
@@ -1617,21 +1644,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
     Private = xnfcalloc(sizeof(struct DIGPrivate), 1);
     Output->Private = Private;
-    from = X_CONFIG;
-    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
-	case RHD_OPTION_NOT_SET:
-	case RHD_OPTION_DEFAULT:
-	    from = X_DEFAULT;
-	    Private->Coherent = FALSE;
-	    break;
-	case RHD_OPTION_ON:
-	    Private->Coherent = TRUE;
-	    break;
-	case RHD_OPTION_OFF:
-	    Private->Coherent = FALSE;
-	    break;
-    }
-    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
 
     Private->EncoderID = ENCODER_NONE;
 
@@ -1654,7 +1666,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->Coherent = Private->Coherent;
+		atc->Coherent = Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
 		atc->Link = atomTransLinkA;
 		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1699,7 +1711,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->Coherent = Private->Coherent;
+		atc->Coherent = Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
 		atc->Link = atomTransLinkB;
 		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1728,9 +1740,9 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSKP_LVTMA";
+	    Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
 	    Private->Transmitter.Private =
 		(struct LVTMATransmitterPrivate *)xnfcalloc(sizeof (struct LVTMATransmitterPrivate), 1);
-
 	    Private->Transmitter.Sense = NULL;
 	    Private->Transmitter.ModeValid = LVTMATransmitterModeValid;
 	    if (ConnectorType != RHD_CONNECTOR_PANEL) {
@@ -1756,6 +1768,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    xfree(Output);
 	    return NULL;
     }
+
 
     Encoder = (struct DIGEncoder *)(xnfcalloc(sizeof (struct DIGEncoder),1));
     Private->Encoder.Private = Encoder;
