@@ -141,9 +141,9 @@ RhdParseBooleanOption(struct RHDOpt *Option, char *outputName)
 		    } else
 			return RHD_OPTION_DEFAULT;
 		} else
-		    while (*ptr != '\0' || !isspace(*ptr))
+		    while (*ptr != '\0' && !isspace(*ptr))
 			ptr++;
-		if (*ptr != '\0')
+		if (*ptr == '\0')
 		    break;
 	    }
     }
