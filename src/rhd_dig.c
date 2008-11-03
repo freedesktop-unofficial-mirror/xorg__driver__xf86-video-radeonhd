@@ -1619,6 +1619,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Output->Private = Private;
     from = X_CONFIG;
     switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
+	case RHD_OPTION_NOT_SET:
 	case RHD_OPTION_DEFAULT:
 	    from = X_DEFAULT;
 	    Private->Coherent = FALSE;
