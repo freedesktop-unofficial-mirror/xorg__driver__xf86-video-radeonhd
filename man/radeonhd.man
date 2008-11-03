@@ -413,8 +413,8 @@ individually. The string is a space separated list of
 Possible  values for 
 .B <output_transmitter> 
 are: 
-.B TMDS A, 
-.B TMDS B,
+.B TMDS_A, 
+.B TMDS_B,
 .B  UNIPHY_A,
 .B UNIPHY_B,
 .B AtomOutputTMDSA,
