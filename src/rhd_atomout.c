@@ -865,7 +865,10 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    else
 		Private->DualLink = FALSE;
 
-	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
+	    if (ConnectorType != RHD_CONNECTOR_PANEL)
+		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
+	    else
+		Private->Hdmi = NULL;
 
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS, Private->EncoderId);
 	    switch (Private->EncoderVersion.cref) {
@@ -1018,6 +1021,9 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
 		    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 		    break;
+		case RHD_CONNECTOR_PANEL:
+		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomLVDS;
+		    break;
 #if 0
 		case RHD_CONNECTOR_DP:
 		case RHD_CONNECTOR_DP_DUAL:
@@ -1070,14 +1076,43 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 				     Bool (**PropertyFunc)(struct rhdOutput *Output,
 							   enum rhdPropertyAction Action,
 							   enum rhdOutputProperty Property,
-							   union rhdPropertyData *val))
+							   union rhdPropertyData *val), void **PrivatePtr)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
     int BlLevel;
+    struct rhdAtomOutputPrivate *Private;
+    struct atomTransmitterConfig *TransmitterConfig;
 
     RHDFUNC(Output);
 
+    Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
+
+    switch (Output->Id) {
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	    /* We set up a those parameters although they may never be needed for BL control */
+	    Private->TransmitterId = atomTransmitterLVTMA;
+	    TransmitterConfig = &Private->TransmitterConfig;
+	    TransmitterConfig->Link = atomTransLinkA;
+	    TransmitterConfig->Mode = atomLVDS;
+	    if (rhdPtr->DigEncoderOutput[0] == Output)
+		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderDIG1;
+	    else if (rhdPtr->DigEncoderOutput[1] == Output)
+		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderDIG2;
+	    else
+		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
+	    LVDSInfoRetrieve(rhdPtr, Private);
+	    Private->PixelClock = 0;
+	    Private->Hdmi = NULL;
+	    break;
+	case RHD_OUTPUT_LVTMA:
+	    Private->OutputControlId = atomLCDOutput;
+	    break;
+	default:
+	    xfree(Private);
+	    return 0;
+    }
     *PropertyFunc = atomLVDSPropertyControl;
+    *PrivatePtr = Private;
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
 
     return BlLevel;

@@ -65,7 +65,11 @@ struct transmitter {
     void (*Destroy) (struct rhdOutput *Output);
     Bool (*Property) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
-
+#ifdef NOT_YET
+    Bool (*WrappedPropertyCallback) (struct rhdOutput *Output,
+		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
+    void *PropertyPrivate;
+#endif
     void *Private;
 };
 
@@ -1597,7 +1601,7 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 static Bool
 rhdDIGSetCoherent(RHDPtr rhdPtr,struct rhdOutput *Output)
 {
-    Bool coherent;
+    Bool coherent = FALSE;
     int  from = X_CONFIG;
 
     switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
@@ -1618,6 +1622,30 @@ rhdDIGSetCoherent(RHDPtr rhdPtr,struct rhdOutput *Output)
 
     return coherent;
 }
+
+/*
+ *
+ */
+#ifdef NOT_YET
+static Bool
+digTransmitterPropertyWrapper(struct rhdOutput *Output,
+			      enum rhdPropertyAction Action,
+			      enum rhdOutputProperty Property,
+			      union rhdPropertyData *val)
+{
+    struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+    void *storePrivate = Output->Private;
+    Bool (*func)(struct rhdOutput *,enum rhdPropertyAction, enum rhdOutputProperty,
+		  union rhdPropertyData *) = Private->Transmitter.WrappedPropertyCallback;
+    Bool ret;
+
+    Output->Private = Private->Transmitter.PropertyPrivate;
+    ret = func(Output, Action, Property, val);
+    Output->Private = storePrivate;
+
+    return ret;
+}
+#endif
 
 /*
  *
@@ -1788,8 +1816,14 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->EncoderMode = LVDS;
 	    GetLVDSInfo(rhdPtr, Private);
 #ifdef ATOM_BIOS
-	    if (Private->BlLevel < 0)
-		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->Transmitter.Property);
+#ifdef NOT_YET
+	    if (Private->BlLevel < 0) {
+		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->Transmitter.WrappedPropertyCallback,
+		    &Private->Transmitter.PropertyPrivate);
+		if (Private->Transmitter.PropertyPrivate)
+		    Private->Transmitter.Property = digTransmitterPropertyWrapper;
+	    }
+#endif
 #endif
 	    Private->Hdmi = NULL;
 	    break;
