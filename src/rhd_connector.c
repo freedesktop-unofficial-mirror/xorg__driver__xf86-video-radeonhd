@@ -445,7 +445,7 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
 	  "RHD_CONNECTOR_TV", "RHD_CONNECTOR_PCIE" };
 
     const char *ddc_name[] =
-	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3" };
+	{ "RHD_DDC_0", "RHD_DDC_1", "RHD_DDC_2", "RHD_DDC_3", "RHD_DDC_4" };
 
     const char *hpd_name_normal[] =
 	{ "RHD_HPD_NONE", "RHD_HPD_0", "RHD_HPD_1", "RHD_HPD_2", "RHD_HPD_3" };
@@ -457,7 +457,8 @@ RhdPrintConnectorInfo(int scrnIndex, struct rhdConnectorInfo *cp)
     const char *output_name[] =
 	{ "RHD_OUTPUT_NONE", "RHD_OUTPUT_DACA", "RHD_OUTPUT_DACB", "RHD_OUTPUT_TMDSA",
 	  "RHD_OUTPUT_LVTMA", "RHD_OUTPUT_DVO", "RHD_OUTPUT_KLDSKP_LVTMA",
-	  "RHD_OUTPUT_UNIPHYA", "RHD_OUTPUT_UNIPHYB" };
+	  "RHD_OUTPUT_UNIPHYA", "RHD_OUTPUT_UNIPHYB", "RHD_OUTPUT_UNIPHYC", "RHD_OUTPUT_UNIPHYD",
+	  "RHD_OUTPUT_UNIPHYE", "RHD_OUTPUT_UNIPHYF" };
     const char **hpd_name;
 
     switch (rhdPtr->hpdUsage) {

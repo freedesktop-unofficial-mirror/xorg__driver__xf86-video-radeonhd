@@ -134,6 +134,10 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
     case RHD_OUTPUT_LVDS:
     case RHD_OUTPUT_UNIPHYA:
     case RHD_OUTPUT_UNIPHYB:
+    case RHD_OUTPUT_UNIPHYC:
+    case RHD_OUTPUT_UNIPHYD:
+    case RHD_OUTPUT_UNIPHYE:
+    case RHD_OUTPUT_UNIPHYF:
 #if RHD_OUTPUT_LVTMB != RHD_OUTPUT_LVDS
     case RHD_OUTPUT_LVTMB:
 #endif
@@ -1132,7 +1136,12 @@ rhdRROutputGetModes(xf86OutputPtr output)
 	rout->Output->Id == RHD_OUTPUT_LVTMA ||
 	rout->Output->Id == RHD_OUTPUT_KLDSKP_LVTMA ||
 	rout->Output->Id == RHD_OUTPUT_UNIPHYA ||
-	rout->Output->Id == RHD_OUTPUT_UNIPHYB)
+	rout->Output->Id == RHD_OUTPUT_UNIPHYB ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYC ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYD ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYE ||
+	rout->Output->Id == RHD_OUTPUT_UNIPHYF
+	)
 	rout->Connector->Monitor->ReducedAllowed = TRUE;
     /* Allow user overrides */
     if (rhdPtr->forceReduced.set)
@@ -1366,6 +1375,10 @@ consolidateRandrOutputNames(rhdRandrOutputPtr *rop, int num)
 		    case RHD_OUTPUT_KLDSKP_LVTMA:
 		    case RHD_OUTPUT_UNIPHYA:
 		    case RHD_OUTPUT_UNIPHYB:
+		    case RHD_OUTPUT_UNIPHYC:
+		    case RHD_OUTPUT_UNIPHYD:
+		    case RHD_OUTPUT_UNIPHYE:
+		    case RHD_OUTPUT_UNIPHYF:
 			outname = "digital";
 			break;
 		    default:

@@ -122,6 +122,8 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 		case atomDFP2:
 		case atomLCD2:
 		case atomDFP3:
+		case atomDFP4:
+		case atomDFP5:
 		    EncoderConfig->u.dvo.digital = TRUE;
 		    /* @@@ no digital attributes, yet */
 		    break;
@@ -205,6 +207,10 @@ rhdSetEncoderTransmitterConfig(struct rhdOutput *Output, int PixelClock)
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	    if (Output->Connector && PixelClock > 0) {
 		if (Output->Connector->Type == RHD_CONNECTOR_DVI
 #if 0
@@ -252,6 +258,10 @@ atomSetBacklightFromBIOSScratch(struct rhdOutput *Output)
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	    rhdSetEncoderTransmitterConfig(Output, Private->PixelClock);
 	    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 					      atomTransLcdBlBrightness, &Private->TransmitterConfig))
@@ -317,6 +327,10 @@ rhdAtomOutputSet(struct rhdOutput *Output, DisplayModePtr Mode)
     switch (Output->Id) {
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+ 	case RHD_OUTPUT_UNIPHYC:
+ 	case RHD_OUTPUT_UNIPHYD:
+ 	case RHD_OUTPUT_UNIPHYE:
+ 	case RHD_OUTPUT_UNIPHYF:
 #if 1
 	    rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId, atomTransInit,
 					 &Private->TransmitterConfig);
@@ -391,6 +405,10 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
+		case RHD_OUTPUT_UNIPHYC:
+		case RHD_OUTPUT_UNIPHYD:
+		case RHD_OUTPUT_UNIPHYE:
+		case RHD_OUTPUT_UNIPHYF:
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransEnable, &Private->TransmitterConfig)) {
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransEnable)");
@@ -413,6 +431,10 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
+		case RHD_OUTPUT_UNIPHYC:
+		case RHD_OUTPUT_UNIPHYD:
+		case RHD_OUTPUT_UNIPHYE:
+		case RHD_OUTPUT_UNIPHYF:
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
 						      atomTransDisableOutput, &Private->TransmitterConfig))
 			ERROR_MSG("rhdAtomDigTransmitterControl(atomTransDisableOutput)");
@@ -429,6 +451,10 @@ rhdAtomOutputPower(struct rhdOutput *Output, int Power)
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		case RHD_OUTPUT_UNIPHYA:
 		case RHD_OUTPUT_UNIPHYB:
+		case RHD_OUTPUT_UNIPHYC:
+		case RHD_OUTPUT_UNIPHYD:
+		case RHD_OUTPUT_UNIPHYE:
+		case RHD_OUTPUT_UNIPHYF:
 		    if (Private->EncoderId == atomEncoderNone)
 			break;
 		    if (!rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, Private->TransmitterId,
@@ -723,6 +749,18 @@ RHDAtomOutputAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 	case RHD_OUTPUT_UNIPHYB:
 	    TransmitterName = "KLDSKP_UNIPHYB";
 	    break;
+	case RHD_OUTPUT_UNIPHYC:
+	    TransmitterName = "KLDSKP_UNIPHYC";
+	    break;
+	case RHD_OUTPUT_UNIPHYD:
+	    TransmitterName = "KLDSKP_UNIPHYD";
+	    break;
+	case RHD_OUTPUT_UNIPHYE:
+	    TransmitterName = "KLDSKP_UNIPHYE";
+	    break;
+	case RHD_OUTPUT_UNIPHYF:
+	    TransmitterName = "KLDSKP_UNIPHYF";
+	    break;
 	default:
 	    return TRUE;
     }
@@ -806,6 +844,18 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    break;
 	case RHD_OUTPUT_UNIPHYB:
 	    OutputName = "UniphyB";
+	    break;
+	case RHD_OUTPUT_UNIPHYC:
+	    OutputName = "UniphyC";
+	    break;
+	case RHD_OUTPUT_UNIPHYD:
+	    OutputName = "UniphyD";
+	    break;
+	case RHD_OUTPUT_UNIPHYE:
+	    OutputName = "UniphyE";
+	    break;
+	case RHD_OUTPUT_UNIPHYF:
+	    OutputName = "UniphyF";
 	    break;
     }
 
@@ -977,23 +1027,51 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	    Output->AllocFree = RHDAtomOutputAllocFree;
 	    if (RHDIsIGP(rhdPtr->ChipSet))
 		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterPCIEPHY;
-	    else
-		EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
+	    else {
+		switch (OutputType) {
+		    case RHD_OUTPUT_UNIPHYA:
+		    case RHD_OUTPUT_UNIPHYB:
+			EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY;
+			break;
+		    case RHD_OUTPUT_UNIPHYC:
+		    case RHD_OUTPUT_UNIPHYD:
+			EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY1;
+			break;
+		    case RHD_OUTPUT_UNIPHYE:
+		    case RHD_OUTPUT_UNIPHYF:
+			EncoderConfig->u.dig.Transmitter = Private->TransmitterId = atomTransmitterUNIPHY2;
+			break;
+		    default:
+			xfree(Private);
+			xfree(Output);
+			return NULL;
+		}
+	    }
 
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
 	    switch (OutputType) {
 		case RHD_OUTPUT_UNIPHYA:
+		case RHD_OUTPUT_UNIPHYC:
+		case RHD_OUTPUT_UNIPHYE:
 		    TransmitterConfig->Link = EncoderConfig->u.dig.Link = atomTransLinkA;
 		    break;
 		case RHD_OUTPUT_UNIPHYB:
+		case RHD_OUTPUT_UNIPHYD:
+		case RHD_OUTPUT_UNIPHYF:
 		    TransmitterConfig->Link = EncoderConfig->u.dig.Link = atomTransLinkB;
 		    break;
 		default:
-		    break; /* don't get here */
+		    xfree(Private);
+		    xfree(Output);
+		    return NULL;
 	    }
 
 	    if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1089,10 +1167,23 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 
     switch (Output->Id) {
 	case RHD_OUTPUT_KLDSKP_LVTMA:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	    /* We set up a those parameters although they may never be needed for BL control */
-	    Private->TransmitterId = atomTransmitterLVTMA;
+	    switch (Output->Id) {
+		case RHD_OUTPUT_KLDSKP_LVTMA:
+		    Private->TransmitterId = atomTransmitterLVTMA;
+		    break;
+		case RHD_OUTPUT_UNIPHYE:
+		    Private->TransmitterId = atomTransmitterUNIPHY2;
+		    TransmitterConfig->Link = atomTransLinkA;
+		    break;
+		case RHD_OUTPUT_UNIPHYF:
+		    Private->TransmitterId = atomTransmitterUNIPHY2;
+		    TransmitterConfig->Link = atomTransLinkB;
+		    break;
+	    }
 	    TransmitterConfig = &Private->TransmitterConfig;
-	    TransmitterConfig->Link = atomTransLinkA;
 	    TransmitterConfig->Mode = atomLVDS;
 	    if (rhdPtr->DigEncoderOutput[0] == Output)
 		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderDIG1;
