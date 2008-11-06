@@ -170,6 +170,21 @@ Radeon HD 3100/3200/3300 Series
 .TP 8
 .B RV770
 Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
+.TP 8
+.B R700
+Radeon R700
+.TP 8
+.B M98
+Radeon M98 Mobility
+.TP 8
+.B RV730
+Radeon HD4670, HD4650
+.TP 8
+.B M96
+Radeon M96 Mobility
+.TP 8
+.B RV710
+Radeon HD4570, HD4350
 .\" END_DEVICE_LIST marker - do not delete
 .PD
 .\"
