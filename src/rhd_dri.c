@@ -381,8 +381,6 @@ static void RHDEnterServer(ScreenPtr pScreen)
     if (rhdPtr->EXAInfo)
 	exaMarkSync(pScrn->pScreen);
 #endif
-    if (rhdPtr->XAAInfo)
-	SET_SYNC_FLAG(rhdPtr->XAAInfo);
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScreen)) {
