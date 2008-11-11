@@ -1245,7 +1245,6 @@ Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn)
 	rhdPtr->FbFreeStart = old_freeoffset;
 	rhdPtr->FbFreeSize  = old_freesize;
 
-	/* return RHDDRICloseScreen(pScrn->pScreen); */
 	/* so far we are called from PreInit(): if we fail we free the DRI struct */
 	xfree(rhdPtr->dri);
 	rhdPtr->dri = NULL;
@@ -1348,12 +1347,15 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
      * in the SAREA header */
     if (sizeof(XF86DRISAREARec)+sizeof(drm_radeon_sarea_t) > SAREA_MAX) {
 	ErrorF("Data does not fit in SAREA\n");
-	return RHDDRICloseScreen(pScreen);
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
     }
     pDRIInfo->SAREASize = SAREA_MAX;
 
-    if (!(pRADEONDRI = (RADEONDRIPtr)xcalloc(sizeof(RADEONDRIRec),1)))
-	return RHDDRICloseScreen(pScreen);
+    if (!(pRADEONDRI = (RADEONDRIPtr)xcalloc(sizeof(RADEONDRIRec),1))) {
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
+    }
 
     pDRIInfo->devPrivate     = pRADEONDRI;
     pDRIInfo->devPrivateSize = sizeof(RADEONDRIRec);
@@ -1376,7 +1378,8 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
     if (!DRIScreenInit(pScreen, pDRIInfo, &rhdDRI->drmFD)) {
 	xf86DrvMsg(pScreen->myNum, X_ERROR,
 		   "[dri] DRIScreenInit failed.  Disabling DRI.\n");
-	return RHDDRICloseScreen(pScreen);
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
     }
 
     /* Initialize AGP */
@@ -1387,7 +1390,8 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
 	xf86DrvMsg(pScreen->myNum, X_INFO,
 		   "[agp] You may want to make sure the agpgart kernel "
 		   "module\nis loaded before the radeon kernel module.\n");
-	return RHDDRICloseScreen(pScreen);
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
     }
 
     /* Initialize PCI */
@@ -1395,17 +1399,22 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
 	!RHDDRIPciInit(rhdDRI, pScreen)) {
 	xf86DrvMsg(pScreen->myNum, X_ERROR,
 		   "[pci] PCI failed to initialize. Disabling the DRI.\n" );
-	return RHDDRICloseScreen(pScreen);
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
     }
 
     /* DRIScreenInit doesn't add all the common mappings.  Add additional
      * mappings here. */
-    if (!RHDDRIMapInit(rhdPtr, pScreen))
-	return RHDDRICloseScreen(pScreen);
+    if (!RHDDRIMapInit(rhdPtr, pScreen)) {
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
+    }
 
     /* FIXME: When are these mappings unmapped? */
-    if (!RHDInitVisualConfigs(pScreen))
-	return RHDDRICloseScreen(pScreen);
+    if (!RHDInitVisualConfigs(pScreen)) {
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
+    }
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "[dri] Visual configs initialized\n");
 
@@ -1413,7 +1422,8 @@ Bool RHDDRIScreenInit(ScreenPtr pScreen)
     if (RHDDRISetParam(pScrn, RADEON_SETPARAM_NEW_MEMMAP, 1) < 0) {
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		   "[drm] failed to enable new memory map\n");
-	return RHDDRICloseScreen(pScreen);
+	RHDDRICloseScreen(pScreen);
+	return FALSE;
     }
 
     return TRUE;
