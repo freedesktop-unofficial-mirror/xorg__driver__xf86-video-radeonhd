@@ -1061,12 +1061,15 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    i2cRec.probe.i2cBusPtr = rout->Connector->DDC;
 	    if (RHDI2CFunc(rhdPtr->scrnIndex, rhdPtr->I2C,RHD_I2C_PROBE_ADDR,&i2cRec)
 		== RHD_I2C_SUCCESS) {
-		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",rout->Output->Name);
+		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",
+			 rout->Output->Name);
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
-	    }  else
-		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned disconnected\n",rout->Output->Name);
+	    } else {
+		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned disconnected\n",
+			 rout->Output->Name);
 		return XF86OutputStatusDisconnected;
+	    }
 	}
 	rout->Output->Connector = rout->Connector; /* @@@ */
 	return XF86OutputStatusUnknown;
