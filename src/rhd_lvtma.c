@@ -704,12 +704,19 @@ LVDSInfoRetrieve(RHDPtr rhdPtr)
 static void
 LVDSDestroy(struct rhdOutput *Output)
 {
+
+    struct LVDSPrivate *Private = (struct LVDSPrivate *) Output->Private;
+
     RHDFUNC(Output);
 
-    if (!Output->Private)
+    if (!Private)
 	return;
 
-    xfree(Output->Private);
+#ifdef NOT_YET
+    if (Private->PropertyPrivate)
+	RhdAtomDestroyBacklightControlProperty(Output, Private->PropertyPrivate);
+#endif
+    xfree(Private);
     Output->Private = NULL;
 }
 
@@ -780,7 +787,7 @@ RS600VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
     struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
 
     RHDFUNC(Output);
-#ifdef NOT_YET
+#ifdef NOTYET
     if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
 	int clock = Mode->SynthClock;
 
@@ -820,7 +827,7 @@ RS690VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
     CARD32 rev = (RHDRegRead(Output, CONFIG_CNTL) && RS69_CFG_ATI_REV_ID_MASK) >> RS69_CFG_ATI_REV_ID_SHIFT;
 
     if (rev < 3) {
-#ifdef NOT_YET
+#ifdef NOTYET
 	if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
 	    if (Mode->SynthClock > 75000) {
 		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0xa001632f);
@@ -857,7 +864,7 @@ RS690VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 	    }
 	}
     } else {
-#ifdef NOT_YET
+#ifdef NOTYET
 	if (Output->Connector == RHD_CONNECTOR_HDMI || Output->Connector == RHD_CONNECTOR_HDMI_DUAL) {
 	    if (Mode->SynthClock <= 75000) {
 		RHDRegWrite(Output, LVTMA_R600_MACRO_CONTROL, 0x0002612f);

@@ -1170,6 +1170,7 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 	case RHD_OUTPUT_UNIPHYE:
 	case RHD_OUTPUT_UNIPHYF:
 	    /* We set up a those parameters although they may never be needed for BL control */
+	    TransmitterConfig = &Private->TransmitterConfig;
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		    Private->TransmitterId = atomTransmitterLVTMA;
@@ -1182,6 +1183,8 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 		    Private->TransmitterId = atomTransmitterUNIPHY2;
 		    TransmitterConfig->Link = atomTransLinkB;
 		    break;
+		default:
+		    return 0;  /* never get here */
 	    }
 	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Mode = atomLVDS;
@@ -1207,6 +1210,13 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
 
     return BlLevel;
+}
+
+void
+RhdAtomDestroyBacklightControlProperty(struct rhdOutput *Output, void *PrivatePtr)
+{
+    if (PrivatePtr)
+	xfree(PrivatePtr);
 }
 
 #endif /* ATOM_BIOS && ATOM_BIOS_PARSER */

@@ -1507,7 +1507,10 @@ DigDestroy(struct rhdOutput *Output)
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
     RHDHdmiDestroy(Private->Hdmi);
-
+#ifdef NOT_YET
+    if (Transmitter->PropertyPrivate)
+	RhdAtomDestroyBacklightControlProperty(Output, Transmitter->PropertyPrivate);
+#endif
     xfree(Private);
     Output->Private = NULL;
 }
@@ -1818,8 +1821,9 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 #ifdef ATOM_BIOS
 #ifdef NOT_YET
 	    if (Private->BlLevel < 0) {
-		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->Transmitter.WrappedPropertyCallback,
-		    &Private->Transmitter.PropertyPrivate);
+		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output,
+									&Private->Transmitter.WrappedPropertyCallback,
+									&Private->Transmitter.PropertyPrivate);
 		if (Private->Transmitter.PropertyPrivate)
 		    Private->Transmitter.Property = digTransmitterPropertyWrapper;
 	    }

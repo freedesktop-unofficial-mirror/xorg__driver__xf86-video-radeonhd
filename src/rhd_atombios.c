@@ -2295,7 +2295,7 @@ rhdAtomBlankCRTC(atomBiosHandlePtr handle, enum atomCrtc id, struct atomCrtcBlan
 	xf86DrvMsg(handle->scrnIndex, X_INFO, "BlankCRTC Successful\n");
 	return TRUE;
     }
-    xf86DrvMsg(handle->scrnIndex, X_INFO, "SetCRTC_OverScan Failed\n");
+    xf86DrvMsg(handle->scrnIndex, X_INFO, "BlankCRTC Failed\n");
     return FALSE;
 }
 
