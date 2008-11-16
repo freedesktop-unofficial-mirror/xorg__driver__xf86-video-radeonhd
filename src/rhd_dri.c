@@ -1153,6 +1153,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     rhdDRI->ringSize      = RHD_DEFAULT_RING_SIZE;
     rhdDRI->bufSize       = RHD_DEFAULT_BUFFER_SIZE;
 
+    rhdDRI->drmFD         = -1;
+
     rhdDRI->gartLocation  = 0;
 
 #if 0
@@ -1708,6 +1710,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 
     /* De-allocate all DRI resources */
     DRICloseScreen(pScreen);
+    rhdDRI->drmFD = -1;
 
     /* De-allocate all DRI data structures */
     if (rhdDRI->pDRIInfo) {
