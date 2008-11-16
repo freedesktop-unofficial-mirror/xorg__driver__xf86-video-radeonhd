@@ -756,6 +756,17 @@ ATOMTransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 /*
  *
  */
+void
+rhdPrintDigDebug(RHDPtr rhdPtr, const char *name)
+{
+    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_INFO, 7, "%s: DIGn_CNTL: n=1: 0x%x n=2: 0x%x\n",
+	   name, RHDRegRead(rhdPtr, RV620_DIG1_CNTL),
+	   RHDRegRead(rhdPtr, DIG2_OFFSET + RV620_DIG1_CNTL));
+}
+
+/*
+ *
+ */
 static void
 ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
@@ -769,6 +780,8 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     atc->Coherent = Private->Coherent;
     atc->PixelClock = Mode->SynthClock;
+
+    rhdPrintDigDebug(rhdPtr,__func__);
 
     if (Private->RunDualLink) {
 	atc->Mode = atomDualLink;
@@ -792,6 +805,7 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
 
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
 				 atomTransSetup, atc);
+    rhdPrintDigDebug(rhdPtr,__func__);
 }
 
 /*
@@ -846,6 +860,8 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 
     RHDFUNC(Output);
 
+    rhdPrintDigDebug(rhdPtr,__func__);
+
     if (Private->RunDualLink)
 	atc->LinkCnt = atomDualLink;
     else
@@ -895,6 +911,7 @@ ATOMTransmitterPower(struct rhdOutput *Output, int Power)
 					 atomTransDisable, atc);
 	    break;
     }
+    rhdPrintDigDebug(rhdPtr,__func__);
 }
 
 /*
@@ -1024,12 +1041,16 @@ static void
 EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
+    RHDPtr rhdPtr = RHDPTRI(Output);
     CARD32 off;
 
     RHDFUNC(Output);
 
     ASSERT(Private->EncoderID != ENCODER_NONE);
     off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
+
+    ErrorF("off=0x%x ",off);
+    rhdPrintDigDebug(rhdPtr,__func__);
 
     RHDRegMask(Output, off + RV620_DIG1_CNTL, Output->Crtc->Id,
 	       RV62_DIG_SOURCE_SELECT);
@@ -1085,6 +1106,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	       | RV62_DIG_DUAL_LINK_ENABLE
 	       | RV62_DIG_STEREOSYNC_SELECT
 	       | RV62_DIG_SOURCE_SELECT);
+    rhdPrintDigDebug(rhdPtr,__func__);
 }
 
 /*
@@ -1096,11 +1118,11 @@ EncoderPower(struct rhdOutput *Output, int Power)
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     CARD32 off;
     enum encoderID EncoderID = Private->EncoderID;
+    RHDPtr rhdPtr = RHDPTRI(Output);
 
     RHDFUNC(Output);
 
     if (EncoderID == ENCODER_NONE) {
-	RHDPtr rhdPtr = RHDPTRI(Output);
 	EncoderID = digProbeEncoder(Output);
 	switch (EncoderID) {
 	    case ENCODER_DIG1:
@@ -1127,7 +1149,8 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	       0x3 << ((EncoderID == ENCODER_DIG2)
 		       ? RV62_SYMCLKB_SRC_SHIFT
 		       : RV62_SYMCLKA_SRC_SHIFT));
-
+    ErrorF("off=0x%x ",off);
+    rhdPrintDigDebug(rhdPtr,__func__);
     switch (Power) {
 	case RHD_POWER_ON:
 	    RHDDebug(Output->scrnIndex,"%s(RHD_POWER_ON, %i)\n",__func__,
@@ -1138,6 +1161,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
 		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       RV62_PCLK_DIGA_ON, RV62_PCLK_DIGA_ON); /* @@@ */
+	    rhdPrintDigDebug(rhdPtr,__func__);
 	    return;
 	case RHD_POWER_RESET:
 	case RHD_POWER_SHUTDOWN:
@@ -1159,6 +1183,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
 		       ? RV620_DCCG_PCLK_DIGB_CNTL
 		       : RV620_DCCG_PCLK_DIGA_CNTL,
 		       0, RV62_PCLK_DIGA_ON); /* @@@ */
+	    rhdPrintDigDebug(rhdPtr,__func__);
 	    return;
     }
 }
