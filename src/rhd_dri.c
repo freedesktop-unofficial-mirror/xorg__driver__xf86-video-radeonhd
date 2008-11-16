@@ -1589,6 +1589,9 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     RHDFUNC(rhdPtr);
 
+    if (rhdDRI->drmFD == -1)
+	return;
+
     if (rhdPtr->cardType == RHD_CARD_AGP) {
 	if (!RHDSetAgpMode(rhdDRI, pScreen))
 	    return;
@@ -1620,6 +1623,9 @@ void RHDDRILeaveVT(ScreenPtr pScreen)
     struct rhdDri *rhdDRI   = rhdPtr->dri;
 
     RHDFUNC(rhdPtr);
+
+    if (rhdDRI->drmFD == -1)
+	return;
 
     RHDDRISetVBlankInterrupt (pScrn, FALSE);
     DRILock(pScrn->pScreen, 0);
