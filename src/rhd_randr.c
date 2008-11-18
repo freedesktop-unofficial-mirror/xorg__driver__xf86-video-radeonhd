@@ -402,7 +402,21 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
     rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
     RHDPLLSet(Crtc->PLL, Mode->Clock);		/* This also powers up PLL */
     Crtc->LUTSelect(Crtc, Crtc->LUT);
+
+    /*
+     * RandR is able to bring up new Crtcs, but can't be bothered to set up
+     * a cmap on them.
+     *
+     * The pScreen check tells us whether we are still in PreInit. If we are
+     * still in PreInit, the xserver will still do the right thing and call
+     * LoadPalette accordingly after the modeset. VT switch will also do the
+     * right thing still, but at that time no new CRTC gets initialised, so
+     * LUT->Initialised is either set, or the current function isn't called.
+     */
+    if (!Crtc->LUT->Initialised && pScrn->pScreen)
+	RHDLUTCopyForRR(Crtc->LUT);
 }
+
 static void
 rhdRRCrtcCommit(xf86CrtcPtr crtc)
 {
