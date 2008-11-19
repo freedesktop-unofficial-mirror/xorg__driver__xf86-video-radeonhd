@@ -226,6 +226,8 @@ The default is
 .BR "depending on the chipset" ,
 driver version, and state of acceleration techniques and tries to give the best
 user experience.
+.br
+Rotation isn't supported for the AccelMethods \*qnone\*q and \*qshadowfb\*q.
 .RE
 .TP
 .BI "Option \*qDRI\*q"
@@ -624,6 +626,8 @@ application typically always resets the framebuffer size with every action,
 .BR --fb " <width>" x <height>
 has to be added on every invocation, unless there is an additional output
 configured that is using this size as its resolution.
+.br
+This property cannot be changed when in a rotated mode.
 .\"
 .\"
 .SH KNOWN BUGS
