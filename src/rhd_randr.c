@@ -190,8 +190,10 @@ rhdGetConnectorType(rhdRandrOutputPtr ro)
 
 /* Set crtc pos according to mouse pos and panning information */
 static void
-rhdUpdateCrtcPos(struct rhdCrtc *Crtc, int x, int y)
+rhdUpdateCrtcPos(RHDPtr rhdPtr, struct rhdCrtc *Crtc, int x, int y)
 {
+    int i;
+
     if (Crtc->MaxX > 0) {
 	int cx = Crtc->X, cy = Crtc->Y;
 	int w  = Crtc->CurrentMode->HDisplay;
@@ -206,6 +208,13 @@ rhdUpdateCrtcPos(struct rhdCrtc *Crtc, int x, int y)
 	    cy = y < Crtc->MaxY ? y-h+1 : Crtc->MaxY-h;
 	if (cx != Crtc->X || cy != Crtc->Y)
 	    Crtc->FrameSet(Crtc, cx, cy);
+	for (i = 0; i < 2; i++) {
+	    xf86CrtcPtr crtc = (xf86CrtcPtr) rhdPtr->randr->RandrCrtc[i];
+	    if (Crtc == ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc) {
+		crtc->x = cx;
+		crtc->y = cy;
+	    }
+	}
     }
 }
 
@@ -416,7 +425,7 @@ rhdRRCrtcModeSet(xf86CrtcPtr  crtc,
 	rhdCrtc->ScaleSet(rhdCrtc, RHD_CRTC_SCALE_TYPE_NONE, Mode, NULL);
 
     rhdCrtc->FrameSet(rhdCrtc, x, y);
-    rhdUpdateCrtcPos(rhdCrtc, rhdCrtc->Cursor->X, rhdCrtc->Cursor->Y);
+    rhdUpdateCrtcPos(rhdPtr, rhdCrtc, rhdCrtc->Cursor->X, rhdCrtc->Cursor->Y);
     RHDPLLSet(rhdCrtc->PLL, Mode->Clock);		/* This also powers up PLL */
     rhdCrtc->LUTSelect(rhdCrtc, rhdCrtc->LUT);
 
@@ -1216,7 +1225,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	    Crtc->MinY = y;
 	    Crtc->MaxX = x + w;
 	    Crtc->MaxY = y + h;
-	    rhdUpdateCrtcPos(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
+	    rhdUpdateCrtcPos(rhdPtr, Crtc, Crtc->Cursor->X, Crtc->Cursor->Y);
 	    RHDDebug(rhdPtr->scrnIndex, "%s: PanningArea %d/%d - %d/%d\n",
 		     x, y, x+w, y+h);
 	    return TRUE;
@@ -1265,8 +1274,8 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
     int		      OctPerPixel = pScrn->bitsPerPixel >> 3;
     int               Size = (pScrn->displayWidth * OctPerPixel) * Height;
 
-    if (rhdPtr->AccelMethod == RHD_ACCEL_NONE
-	|| rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB
+	|| rhdPtr->AccelMethod == RHD_ACCEL_NONE)
 	return NULL;
 
 #ifdef USE_EXA
@@ -1820,7 +1829,7 @@ rhdRRPointerMoved(int scrnIndex, int x, int y)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 	if (Crtc->scrnIndex == scrnIndex && Crtc->Active)
-	    rhdUpdateCrtcPos(Crtc, x + pScrn->frameX0, y + pScrn->frameY0);
+	    rhdUpdateCrtcPos(rhdPtr, Crtc, x + pScrn->frameX0, y + pScrn->frameY0);
     }
     UNWRAP_SCRNINFO(PointerMoved);
     pScrn->PointerMoved(scrnIndex, x, y);
