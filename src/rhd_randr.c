@@ -1210,8 +1210,20 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
     if (property == atomPanningArea) {
 	int w = 0, h = 0, x = 0, y = 0;
 	struct rhdCrtc *Crtc = rout->Output->Crtc;
+	int i;
+
 	if (!Crtc)
 	    return FALSE;
+	for (i = 0; i < 2; i++) {
+	    xf86CrtcPtr crtc = (xf86CrtcPtr) rhdPtr->randr->RandrCrtc[i];
+	    if (Crtc == ((struct rhdRandrCrtc *)crtc->driver_private)->rhdCrtc) {
+		/* Don't allow panning while rotated */
+		if (crtc->rotation != RR_Rotate_0)
+		    return FALSE;
+		else
+		    break;
+	    }
+	}
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
 	switch (sscanf(value->data, "%dx%d+%d+%d", &w, &h, &x, &y)) {
