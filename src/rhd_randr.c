@@ -1515,7 +1515,7 @@ static const xf86CrtcConfigFuncsRec rhdRRCrtcConfigFuncs = {
     rhdRRXF86CrtcResize
 };
 
-static const xf86CrtcFuncsRec rhdRRCrtcFuncs = {
+static xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     rhdRRCrtcDpms,
     NULL, NULL,						/* Save,Restore */
     rhdRRCrtcLock, rhdRRCrtcUnlock,
@@ -1856,6 +1856,12 @@ RHDRandrScreenInit(ScreenPtr pScreen)
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     RHDFUNC(rhdPtr);
+
+    if (rhdPtr->AccelMethod == RHD_ACCEL_NONE || rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB) {
+	rhdRRCrtcFuncs.shadow_allocate = NULL;
+	rhdRRCrtcFuncs.shadow_create = NULL;
+	rhdRRCrtcFuncs.shadow_destroy = NULL;
+    }
 
     if (!xf86CrtcScreenInit(pScreen))
 	return FALSE;
