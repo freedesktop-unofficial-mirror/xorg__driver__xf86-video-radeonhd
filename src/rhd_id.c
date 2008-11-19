@@ -665,6 +665,7 @@ rhdCards[] =
     /* 0x7186 : M64 : Mobility Radeon X1450 */
     /* 0x7187 : RV516 : Radeon X1300/X1550 */
     { 0x7187, 0x174B, 0x3000, "RV516 : Radeon X1300/X1550", RHD_CARD_FLAG_HPDSWAP, ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
+    { 0x7187, 0x1458, 0x215C, "RV516 : Radeon X1300/X1550", RHD_CARD_FLAG_DMS59,  ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
     /* 0x7188 : M64 : Mobility Radeon X2300 */
     /* 0x718A : M64 : Mobility Radeon X2300 */
     /* 0x718B : M62 : Mobility Radeon X1350 */
