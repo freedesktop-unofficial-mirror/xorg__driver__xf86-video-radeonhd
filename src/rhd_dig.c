@@ -1049,7 +1049,6 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
     ASSERT(Private->EncoderID != ENCODER_NONE);
     off = (Private->EncoderID == ENCODER_DIG2) ? DIG2_OFFSET : DIG1_OFFSET;
 
-    ErrorF("off=0x%x ",off);
     rhdPrintDigDebug(rhdPtr,__func__);
 
     RHDRegMask(Output, off + RV620_DIG1_CNTL, Output->Crtc->Id,
@@ -1149,7 +1148,7 @@ EncoderPower(struct rhdOutput *Output, int Power)
 	       0x3 << ((EncoderID == ENCODER_DIG2)
 		       ? RV62_SYMCLKB_SRC_SHIFT
 		       : RV62_SYMCLKA_SRC_SHIFT));
-    ErrorF("off=0x%x ",off);
+
     rhdPrintDigDebug(rhdPtr,__func__);
     switch (Power) {
 	case RHD_POWER_ON:
