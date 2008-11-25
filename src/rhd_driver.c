@@ -2398,8 +2398,7 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDRestoreMC(rhdPtr);
 
-    if (rhdPtr->CursorInfo)
-	rhdRestoreCursor(pScrn);
+    rhdRestoreCursor(pScrn);
 
     RHDPLLsRestore(rhdPtr);
     RHDAudioRestore(rhdPtr);
