@@ -418,6 +418,15 @@ RHDIsIGP(enum RHD_CHIPSETS chipset)
 # define DEVINFO_EMPTY   { { atomNone, atomNone } }
 #endif
 
+/* Radeon X1300 0x7187:0x1545:0x1930 */
+#define VGA_A0_TV_B_DVI_B11 \
+    {  { RHD_CONNECTOR_VGA, "VGA CRT1", RHD_DDC_0, RHD_HPD_NONE,    \
+	{ RHD_OUTPUT_DACA, RHD_OUTPUT_NONE }}, 			    \
+    { RHD_CONNECTOR_TV, "SVIDEO TV1", RHD_DDC_NONE, RHD_HPD_NONE,   \
+	{ RHD_OUTPUT_DACB, RHD_OUTPUT_NONE }},			    \
+    { RHD_CONNECTOR_DVI, "DVI-D DFP3", RHD_DDC_1, RHD_HPD_1,	    \
+	{ RHD_OUTPUT_LVTMA, RHD_OUTPUT_NONE }}}
+
 /* Sapphire X1550 reports 2x DVI-I but has only 1 VGA and 1 DVI */
 #define VGA_A0_DVI_BB11 \
   { {RHD_CONNECTOR_VGA, "VGA", RHD_DDC_0, RHD_HPD_NONE, \
@@ -666,6 +675,7 @@ rhdCards[] =
     /* 0x7187 : RV516 : Radeon X1300/X1550 */
     { 0x7187, 0x174B, 0x3000, "RV516 : Radeon X1300/X1550", RHD_CARD_FLAG_HPDSWAP, ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
     { 0x7187, 0x1458, 0x215C, "RV516 : Radeon X1300/X1550", RHD_CARD_FLAG_DMS59,  ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
+    { 0x7187, 0x1545, 0x1930, "RV516 : Radeon X1300", RHD_CARD_FLAG_NONE, VGA_A0_TV_B_DVI_B11, DEVINFO_EMPTY },
     /* 0x7188 : M64 : Mobility Radeon X2300 */
     /* 0x718A : M64 : Mobility Radeon X2300 */
     /* 0x718B : M62 : Mobility Radeon X1350 */
