@@ -499,6 +499,14 @@ rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
     return TRUE;
 }
 
+static void
+rhdRRCrtcPan(xf86CrtcPtr  crtc, int x, int y)
+{
+    struct rhdCrtc  *rhdCrtc  = ((struct rhdRandrCrtc*) (crtc->driver_private))->rhdCrtc;
+
+    rhdCrtc->FrameSet(rhdCrtc, x, y);
+}
+
 
 /*
  * xf86Output callback functions
@@ -1549,6 +1557,10 @@ static xf86CrtcFuncsRec rhdRRCrtcFuncs = {
 #ifdef XF86CRTCFUNCS_HAS_SETMODEMAJOR
     /* set_mode_major */
     , NULL
+#endif
+#if XF86_CRTC_VERSION >= 2
+    /* pan */
+    , rhdRRCrtcPan
 #endif
 };
 
