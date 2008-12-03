@@ -977,13 +977,40 @@ rhdRROutputCommit(xf86OutputPtr out)
     RHDDebugRandrState(rhdPtr, rout->Name);
 }
 
+/*
+ * This function looks for other outputs on the connector rout is connected to.
+ * If one of those outputs can be sensed and is sensed the function will return
+ * one of those.
+ */
+static rhdRandrOutputPtr
+rhdRROtherOutputOnConnectorHelper(RHDPtr rhdPtr, rhdRandrOutputPtr rout)
+{
+    xf86OutputPtr    *ro;
+
+    for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
+	rhdRandrOutputPtr o =
+	    (rhdRandrOutputPtr) (*ro)->driver_private;
+	if (o != rout &&
+	    o->Connector == rout->Connector &&
+	    o->Output->Sense) {
+	    /* Yes, this looks wrong, but is correct */
+	    enum rhdSensedOutput SensedType =
+		o->Output->Sense(o->Output, o->Connector);
+	    if (SensedType != RHD_SENSED_NONE) {
+		RHDOutputPrintSensedType(o->Output);
+		return o;
+	    }
+	}
+    }
+    return NULL;
+}
+
 /* Probe for a connected output. */
 static xf86OutputStatus
 rhdRROutputDetect(xf86OutputPtr output)
 {
     RHDPtr            rhdPtr = RHDPTR(output->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) output->driver_private;
-    xf86OutputPtr    *ro;
 
     RHDDebug(rhdPtr->scrnIndex, "%s: Output %s\n", __func__, rout->Name);
 
@@ -1015,22 +1042,8 @@ rhdRROutputDetect(xf86OutputPtr output)
 		 * Check if there is another output attached to this connector
 		 * and use Sense() on that one to verify whether something
 		 * is attached to this one */
-
-		for (ro = rhdPtr->randr->RandrOutput; *ro; ro++) {
-		    rhdRandrOutputPtr o =
-			(rhdRandrOutputPtr) (*ro)->driver_private;
-		    if (o != rout &&
-			o->Connector == rout->Connector &&
-			o->Output->Sense) {
-			/* Yes, this looks wrong, but is correct */
-			enum rhdSensedOutput SensedType =
-			    o->Output->Sense(o->Output, o->Connector);
-			if (SensedType != RHD_SENSED_NONE) {
-			    RHDOutputPrintSensedType(o->Output);
-			    return XF86OutputStatusDisconnected;
-			}
-		    }
-		}
+		if (rhdRROtherOutputOnConnectorHelper(rhdPtr, rout))
+		    return XF86OutputStatusDisconnected;
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
 	    }
@@ -1077,8 +1090,14 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    i2cRec.probe.i2cBusPtr = rout->Connector->DDC;
 	    if (RHDI2CFunc(rhdPtr->scrnIndex, rhdPtr->I2C,RHD_I2C_PROBE_ADDR,&i2cRec)
 		== RHD_I2C_SUCCESS) {
+		rhdRandrOutputPtr rout_tmp;
 		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned connected\n",
 			 rout->Output->Name);
+		if ((rout_tmp = rhdRROtherOutputOnConnectorHelper(rhdPtr, rout))) {
+		RHDDebug(rout->Output->scrnIndex, "Output %s on same connector already connected\n",
+			 rout_tmp->Output->Name);
+		    return XF86OutputStatusDisconnected;
+		}
 		rout->Output->Connector = rout->Connector; /* @@@ */
 		return XF86OutputStatusConnected;
 	    } else {
