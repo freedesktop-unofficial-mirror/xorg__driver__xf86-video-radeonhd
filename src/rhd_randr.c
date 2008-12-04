@@ -500,7 +500,7 @@ rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
 }
 
 static void
-rhdRRCrtcPan(xf86CrtcPtr  crtc, int x, int y)
+rhdRRCrtcSetOrigin(xf86CrtcPtr  crtc, int x, int y)
 {
     struct rhdCrtc  *rhdCrtc  = ((struct rhdRandrCrtc*) (crtc->driver_private))->rhdCrtc;
 
@@ -1559,8 +1559,8 @@ static xf86CrtcFuncsRec rhdRRCrtcFuncs = {
     , NULL
 #endif
 #if XF86_CRTC_VERSION >= 2
-    /* pan */
-    , rhdRRCrtcPan
+    /* set_origin */
+    , rhdRRCrtcSetOrigin
 #endif
 };
 
