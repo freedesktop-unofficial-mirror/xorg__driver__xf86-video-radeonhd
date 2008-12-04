@@ -44,7 +44,6 @@
 #define RHD_NAME "RADEONHD"
 #define RHD_DRIVER_NAME "radeonhd"
 
-
 enum RHD_CHIPSETS {
     RHD_UNKNOWN = 0,
     /* R500 */
@@ -158,6 +157,13 @@ union rhdPropertyData
 # define PCI_DEV(x)	((x)->dev)
 # define PCI_FUNC(x)	((x)->func)
 typedef struct pci_device *pciVideoPtr;
+#endif
+
+#ifndef NO_ASSERT
+enum debugFlags {
+    VGA_SETUP,
+    MC_SETUP
+};
 #endif
 
 enum rhdCardType {
@@ -325,6 +331,12 @@ typedef struct RHDRec {
     CARD32		UseAtomFlags;
 
     struct rhdOutput *DigEncoderOutput[2];
+# define RHD_CHECKDEBUGFLAG(rhdPtr, FLAG) (rhdPtr->DebugFlags & (1 << FLAG))
+#ifndef NO_ASSERT
+# define RHD_SETDEBUGFLAG(rhdPtr, FLAG) (rhdPtr->DebugFlags |= (1 << FLAG))
+# define RHD_UNSETDEBUGFLAG(rhdPtr, FLAG) (rhdPtr->DebugFlags &= ~((CARD32)1 << FLAG))
+    CARD32 DebugFlags;
+#endif
 } RHDRec, *RHDPtr;
 
 #define RHDPTR(p) 	((RHDPtr)((p)->driverPrivate))

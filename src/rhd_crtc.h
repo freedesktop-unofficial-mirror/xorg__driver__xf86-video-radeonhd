@@ -108,7 +108,7 @@ struct rhdCrtc {
     void (*LUTRestore) (struct rhdCrtc *Crtc);
     void (*LUTDestroy) (struct rhdCrtc *Crtc);
 
-    void (*Power) (struct rhdCrtc *Crtc, int Power);
+    Bool (*Power) (struct rhdCrtc *Crtc, int Power);
     void (*Blank) (struct rhdCrtc *Crtc, Bool Blank);
 };
 

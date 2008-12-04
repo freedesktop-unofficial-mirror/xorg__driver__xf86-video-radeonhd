@@ -29,7 +29,7 @@ extern void RHDMCInit(RHDPtr rhdPtr);
 extern void RHDMCDestroy(RHDPtr rhdPtr);
 extern void RHDMCSave(RHDPtr rhdPtr);
 extern void RHDMCRestore(RHDPtr rhdPtr);
-extern void RHDMCSetup(RHDPtr rhdPtr);
+extern Bool RHDMCSetup(RHDPtr rhdPtr);
 extern Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
 extern void RHDTuneMCAccessForDisplay(RHDPtr rhdPtr, int Crtc, DisplayModePtr Mode,
 				DisplayModePtr ScaledToMode);

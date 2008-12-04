@@ -854,6 +854,9 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
     drmInfo.buffers_offset      = rhdDRI->bufHandle;
     drmInfo.gart_textures_offset= rhdDRI->gartTexHandle;
 
+    /* Make sure the MC has been set up before DRM_RADEON_CP_INIT is called */
+    ASSERT((RHD_CHECKDEBUGFLAG(rhdPtr, MC_SETUP)));
+
     if (drmCommandWrite(rhdDRI->drmFD, DRM_RADEON_CP_INIT,
 			&drmInfo, sizeof(drm_radeon_init_t)) < 0) {
 	xf86DrvMsg(pScreen->myNum, X_ERROR, "[dri] CP_INIT failed\n");

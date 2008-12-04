@@ -256,7 +256,7 @@ rhdAtomModeSet(struct rhdCrtc *Crtc, DisplayModePtr Mode)
 /*
  *
  */
-static void
+static Bool
 rhdAtomCrtcPower(struct rhdCrtc *Crtc, int Power)
 {
     RHDPtr rhdPtr = RHDPTRI(Crtc);
@@ -294,6 +294,13 @@ rhdAtomCrtcPower(struct rhdCrtc *Crtc, int Power)
     }
     data.Address = NULL;
     RHDAtomBiosFunc(Crtc->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
+
+    /*
+     * we always claim we succeeded here, after all, we know, AtomBIOS knows
+     * how to do things, right?
+     * Err, no, when we use AtomBIOS we should not have a clue how to find out.
+     */
+    return TRUE;
 }
 
 /*

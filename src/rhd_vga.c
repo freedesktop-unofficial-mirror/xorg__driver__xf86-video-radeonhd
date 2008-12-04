@@ -196,6 +196,7 @@ RHDVGARestore(RHDPtr rhdPtr)
     RHDRegWrite(rhdPtr, VGA_HDP_CONTROL, VGA->HDP_Control);
     RHDRegWrite(rhdPtr, D1VGA_CONTROL, VGA->D1_Control);
     RHDRegWrite(rhdPtr, D2VGA_CONTROL, VGA->D2_Control);
+    RHD_UNSETDEBUGFLAG(rhdPtr, VGA_SETUP);
 }
 
 /*
@@ -211,6 +212,7 @@ RHDVGADisable(RHDPtr rhdPtr)
     RHDRegMask(rhdPtr, VGA_HDP_CONTROL, 0x00010010, 0x00010010);
     RHDRegMask(rhdPtr, D1VGA_CONTROL, 0, D1VGA_MODE_ENABLE);
     RHDRegMask(rhdPtr, D2VGA_CONTROL, 0, D2VGA_MODE_ENABLE);
+    RHD_SETDEBUGFLAG(rhdPtr, VGA_SETUP);
 }
 
 /*

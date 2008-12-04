@@ -157,7 +157,7 @@ static void     rhdRestore(RHDPtr rhdPtr);
 static Bool     rhdModeLayoutSelect(RHDPtr rhdPtr);
 static void     rhdModeLayoutPrint(RHDPtr rhdPtr);
 static void     rhdModeDPISet(ScrnInfoPtr pScrn);
-static void     rhdAllIdle(RHDPtr rhdPtr);
+static Bool     rhdAllIdle(RHDPtr rhdPtr);
 static void     rhdModeInit(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static void	rhdSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode);
 static Bool     rhdMapMMIO(RHDPtr rhdPtr);
@@ -1075,10 +1075,13 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     /* disable all memory accesses for MC setup */
     RHDVGADisable(rhdPtr);
-    rhdAllIdle(rhdPtr);
 
-    /* now set up the MC - has to be done before DRI init */
-    RHDMCSetup(rhdPtr);
+    if (!rhdAllIdle(rhdPtr))
+	return FALSE;
+
+    /* now set up the MC - has to be done after AllIdle and before DRI init */
+    if (!RHDMCSetup(rhdPtr))
+	return FALSE;
 
 #ifdef USE_DRI
     /* Setup DRI after visuals have been established, but before fbScreenInit is
@@ -1240,18 +1243,27 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     return TRUE;
 }
 
-static void
+static Bool
 rhdAllIdle(RHDPtr rhdPtr)
 {
     int i;
 
+    /* Make sure that VGA has been disabled before calling AllIdle() */
+    ASSERT(RHD_CHECKDEBUGFLAG(rhdPtr, VGA_SETUP));
+
     /* stop scanout */
     for (i = 0; i < 2; i++)
-	rhdPtr->Crtc[i]->Power(rhdPtr->Crtc[i], RHD_POWER_RESET);
+	if (!rhdPtr->Crtc[i]->Power(rhdPtr->Crtc[i], RHD_POWER_RESET)) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: unable to stop CRTC: cannot idle MC\n",
+		       __func__);
+	    return FALSE;
+	}
 
-    if (!RHDMCIdle(rhdPtr, 1000))
-	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "MC not idle\n");
-
+    if (!RHDMCIdle(rhdPtr, 1000)) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "MC not idle\n");
+	return FALSE;
+    }
+    return TRUE;
 }
 
 /*
@@ -1283,7 +1295,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-
+    Bool Idle = TRUE; /* yes, this is correct! */
+    
     /* Make sure our CS and 2D status is clean before destroying it */
     rhdEngineIdle(pScrn);
 
@@ -1310,11 +1323,15 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	RHDCSStop(rhdPtr->CS);
 
     if (pScrn->vtSema)
-	rhdAllIdle(rhdPtr);
+	Idle = rhdAllIdle(rhdPtr);
 
 #ifdef USE_DRI
-    if (rhdPtr->dri)
-	RHDDRICloseScreen(pScreen);
+    if (rhdPtr->dri) {
+	if (Idle)
+	    RHDDRICloseScreen(pScreen);
+	else
+	    xf86DrvMsg(scrnIndex, X_ERROR, "MC not idle, cannot close DRI\n");
+    }
 #endif
     if (pScrn->vtSema)
 	rhdRestore(rhdPtr);
@@ -1347,7 +1364,9 @@ RHDEnterVT(int scrnIndex, int flags)
 
     /* disable all memory accesses for MC setup */
     RHDVGADisable(rhdPtr);
-    rhdAllIdle(rhdPtr);
+
+    if (!rhdAllIdle(rhdPtr))
+	return FALSE;
 
     /* now set up the MC - has to be done before DRI init */
     RHDMCSetup(rhdPtr);
@@ -2413,6 +2432,7 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDVGARestore(rhdPtr);
 
+    /* restore after restoring CRTCs - check rhd_crtc.c for why */
     RHDCrtcRestore(rhdPtr->Crtc[0]);
     RHDCrtcRestore(rhdPtr->Crtc[1]);
 

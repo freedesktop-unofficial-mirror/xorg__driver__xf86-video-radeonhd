@@ -1,7 +1,8 @@
 /*
- * Copyright 2007-2008  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007-2008  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007-2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -659,7 +660,8 @@ RHDMCRestore(RHDPtr rhdPtr)
     struct rhdMC *MC = rhdPtr->MC;
 
     ASSERT(MC);
-
+    RHD_UNSETDEBUGFLAG(rhdPtr, MC_SETUP);
+    
     RHDFUNC(rhdPtr);
 
     if (!MC->Stored) {
@@ -691,7 +693,7 @@ RHDMCIdle(RHDPtr rhdPtr, CARD32 count)
     do {
 	if (MC->Idle(MC))
 	    return TRUE;
-	usleep(10);
+	usleep(1000);
     } while (count--);
 
     RHDDebug(rhdPtr->scrnIndex, "%s: MC not idle\n",__func__);
@@ -718,7 +720,7 @@ RHDGetFBLocation(RHDPtr rhdPtr, CARD32 *size)
 /*
  * Make sure that nothing is accessing memory anymore before calling this.
  */
-void
+Bool
 RHDMCSetup(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
@@ -726,13 +728,14 @@ RHDMCSetup(RHDPtr rhdPtr)
     CARD32 Size;
 
     ASSERT(MC);
-
+    RHD_SETDEBUGFLAG(rhdPtr, MC_SETUP);
+    
     RHDFUNC(rhdPtr);
 
     if (!MC->Idle(MC)) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: MC is still not idle!!!\n", __func__);
-	return;
+		   "%s: Cannot setup MC: not idle!!!\n", __func__);
+	return FALSE;
     }
 
     OldAddress = MC->GetFBLocation(MC, &Size);
@@ -747,6 +750,8 @@ RHDMCSetup(RHDPtr rhdPtr)
 	     OldAddress, rhdPtr->FbIntAddress, Size);
 
     MC->Setup(MC, rhdPtr->FbIntAddress, Size);
+
+    return TRUE;
 }
 
 /*
