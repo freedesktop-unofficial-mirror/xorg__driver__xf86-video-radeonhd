@@ -29,11 +29,11 @@ extern void RHDMCInit(RHDPtr rhdPtr);
 extern void RHDMCDestroy(RHDPtr rhdPtr);
 extern void RHDMCSave(RHDPtr rhdPtr);
 extern void RHDMCRestore(RHDPtr rhdPtr);
-extern Bool RHDMCSetup(RHDPtr rhdPtr);
-extern Bool RHDMCIdle(RHDPtr rhdPtr, CARD32 count);
-extern void RHDTuneMCAccessForDisplay(RHDPtr rhdPtr, int Crtc, DisplayModePtr Mode,
+extern Bool RHDMCSetupFBLocation(RHDPtr rhdPtr, CARD64 Address, CARD32 Size);
+extern Bool RHDMCIdleWait(RHDPtr rhdPtr, CARD32 count);
+extern void RHDMCTuneAccessForDisplay(RHDPtr rhdPtr, int Crtc, DisplayModePtr Mode,
 				DisplayModePtr ScaledToMode);
-extern CARD64 RHDGetFBLocation(RHDPtr rhdPtr, CARD32 *size);
+extern CARD64 RHDMCGetFBLocation(RHDPtr rhdPtr, CARD32 *size);
 
 extern Bool RHD_MC_IGP_SideportMemoryPresent(RHDPtr rhdPtr);
 

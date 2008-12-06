@@ -1080,7 +1080,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	return FALSE;
 
     /* now set up the MC - has to be done after AllIdle and before DRI init */
-    if (!RHDMCSetup(rhdPtr))
+    if (!RHDMCSetupFBLocation(rhdPtr, rhdPtr->FbIntAddress, rhdPtr->FbIntSize))
 	return FALSE;
 
 #ifdef USE_DRI
@@ -1259,7 +1259,7 @@ rhdAllIdle(RHDPtr rhdPtr)
 	    return FALSE;
 	}
 
-    if (!RHDMCIdle(rhdPtr, 1000)) {
+    if (!RHDMCIdleWait(rhdPtr, 1000)) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "MC not idle\n");
 	return FALSE;
     }
@@ -1369,7 +1369,7 @@ RHDEnterVT(int scrnIndex, int flags)
 	return FALSE;
 
     /* now set up the MC - has to be done before DRI init */
-    RHDMCSetup(rhdPtr);
+    RHDMCSetupFBLocation(rhdPtr, rhdPtr->FbIntAddress, rhdPtr->FbIntSize);
 
 #ifdef ATOM_BIOS
     /* Set accelerator mode in the BIOSScratch registers */

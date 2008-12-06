@@ -786,7 +786,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0x00001010);
 	    break;
     }
-    RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
+    RHDMCTuneAccessForDisplay(rhdPtr, Crtc->Id, Mode,
 			ScaledToMode ? ScaledToMode : Mode);
 }
 

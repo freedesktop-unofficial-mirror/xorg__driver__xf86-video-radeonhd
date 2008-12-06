@@ -82,7 +82,7 @@ static CARD32
 rhdVGAFBOffsetGet(RHDPtr rhdPtr)
 {
     CARD32 FBSize, VGAFBOffset, VGAFBSize = 256 * 1024;
-    CARD64 FBAddress = RHDGetFBLocation(rhdPtr, &FBSize);
+    CARD64 FBAddress = RHDMCGetFBLocation(rhdPtr, &FBSize);
     CARD64 VGAFBAddress = RHDRegRead(rhdPtr, VGA_MEMORY_BASE_ADDRESS);
 
     if (VGAFBAddress < FBAddress)
@@ -101,7 +101,7 @@ rhdVGAFBOffsetGet(RHDPtr rhdPtr)
 
 /*
  * This is (usually) ok, as VGASave is called after the memory has been mapped,
- * but before the MC is set up. So the use of RHDGetFBLocation is correct in
+ * but before the MC is set up. So the use of RHDMCGetFBLocation is correct in
  * rhdVGAFBOffsetGet.
  */
 static void
