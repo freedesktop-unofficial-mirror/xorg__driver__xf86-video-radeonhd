@@ -231,8 +231,8 @@ Rotation isn't supported for the AccelMethods \*qnone\*q and \*qshadowfb\*q.
 .RE
 .TP
 .BI "Option \*qDRI\*q"
-Use this option to enable 3D acceleration using DRI (R5xx and RS6xx chips
-only for the moment).
+Use this option to enable 3D and Xv acceleration using DRI
+(R5xx and RS6xx chips only for the moment).
 Currently, the default is
 .BR off .
 .TP
