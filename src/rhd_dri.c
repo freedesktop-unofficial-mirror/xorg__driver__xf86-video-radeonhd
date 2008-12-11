@@ -57,6 +57,11 @@
 /* GLX/DRI/DRM definitions */
 #define _XF86DRI_SERVER_
 #include "dri.h"
+/* Workaround for header mismatches */
+#ifndef DEPRECATED
+#  define DEPRECATED __attribute__ ((deprecated))
+#  define __user
+#endif
 #include "radeon_drm.h"
 #include "GL/glxint.h"
 #include "GL/glxtokens.h"

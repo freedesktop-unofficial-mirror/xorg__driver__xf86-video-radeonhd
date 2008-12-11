@@ -190,6 +190,11 @@ CSMMIOInit(struct RhdCS *CS)
  */
 
 #include "xf86drm.h"
+/* Workaround for header mismatches */
+#ifndef DEPRECATED
+#  define DEPRECATED __attribute__ ((deprecated))
+#  define __user
+#endif
 #include "radeon_drm.h"
 
 #define R5XX_IDLE_RETRY 16 /* Fall out of idle loops after this count */
