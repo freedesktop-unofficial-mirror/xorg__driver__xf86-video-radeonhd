@@ -347,18 +347,6 @@ Use of this option is considered deprecated. The
 option is considered to be more flexible.
 .RE
 .TP
-.BI "Option \*qShadowFB\*q \*q" boolean \*q
-Enable or disable shadow framebuffer support. This greatly improves the
-speed of unaccelerated drivers. The default depends on chipset and
-acceleration state.
-.PP
-.RS
-.B NOTE:
-Use of this option is considered deprecated. The
-.B AccelMethod
-option is considered to be more flexible.
-.RE
-.TP
 .BI "Option \*qHPD\*q \*q" "auto|off|normal|swap" \*q
 Change the use of the hot plug detection (HPD) pins. On R5xx the according
 connector tables are often broken and have to be worked around.
