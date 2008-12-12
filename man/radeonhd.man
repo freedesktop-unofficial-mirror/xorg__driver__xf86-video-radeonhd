@@ -432,7 +432,7 @@ Possible  values for
 are: 
 .B TMDS_A, 
 .B TMDS_B,
-.B  UNIPHY_A,
+.B UNIPHY_A,
 .B UNIPHY_B,
 .B AtomOutputTMDSA,
 .B AtomOutputLVTMA,
@@ -441,7 +441,7 @@ are:
 .B  AtomOutputUniphyB. 
 The log file should be consulted 
 on which ones to use. The line:
-.B "Option \*qCoherent\*q \*qTMDS A=off TMDS B=on\*q"
+.B "Option \*qCoherent\*q \*qTMDS_A=off TMDS_B=on\*q"
 will set coherent mode to 
 .B off 
 for TMDS A and to 
@@ -489,9 +489,10 @@ The following properties can be queried with
 .B xrandr --prop
 and some of them can be set with
 .BR "xrandr --output" " <output> " --set " <property> <value> ."
-Those marked with RR13 are probably merged into a RandR 1.3 standard.
-Properties marked Read-Only are provided by the driver for informational
-purpose only, those marked Static won't change during runtime.
+Those marked with RR13 will be merged into a RandR 1.3 standard, though
+substantially changed.  Properties marked Read-Only are provided by the driver
+for informational purpose only, those marked Static won't change during
+runtime.
 .TP
 .BR RANDR_SIGNAL_FORMAT "   Read-Only RR13"
 .RS
@@ -628,6 +629,12 @@ has to be added on every invocation, unless there is an additional output
 configured that is using this size as its resolution.
 .br
 This property cannot be changed when in a rotated mode.
+.PP
+.B NOTE:
+Use of this option is considered deprecated.  The driver supports
+.B RandR 1.3
+panning, which is included in Xserver 1.6.  It is considerable more flexible,
+and should support rotated pans.
 .\"
 .\"
 .SH KNOWN BUGS
