@@ -1772,6 +1772,8 @@ rhdMapFB(RHDPtr rhdPtr)
 	    }
 	}
 	if (SetIGPMemory) {
+	    CARD32 FbMapSizePCI =  rhdPtr->FbMapSize;
+
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Mapping IGP memory @ 0x%8.8x\n",rhdPtr->FbPhysAddress);
 	    rhdPtr->FbMapSize = pScrn->videoRam * 1024;
 #ifdef XSERVER_LIBPCIACCESS
@@ -1790,6 +1792,9 @@ rhdMapFB(RHDPtr rhdPtr)
 			      rhdPtr->FbPhysAddress,
 			      rhdPtr->FbMapSize);
 #endif
+	    /* If mapping was unsuccessful restore old size */
+	    if (!rhdPtr->FbBase)
+		rhdPtr->FbMapSize = FbMapSizePCI;
 	} else {
 	    xf86DrvMsg(rhdPtr->scrnIndex, option, "Not Mapping IGP memory\n");
 	}
