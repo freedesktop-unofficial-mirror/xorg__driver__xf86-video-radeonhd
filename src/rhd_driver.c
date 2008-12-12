@@ -1843,6 +1843,7 @@ rhdUnmapFB(RHDPtr rhdPtr)
 
     if (!rhdPtr->FbBase)
 	return;
+
     switch (rhdPtr->ChipSet) {
    	case RHD_RS690:
 	case RHD_RS740:
@@ -1858,7 +1859,8 @@ rhdUnmapFB(RHDPtr rhdPtr)
 			    rhdPtr->FbMapSize);
 #endif
     }
-    rhdPtr->FbBase = 0;
+
+    rhdPtr->FbBase = NULL;
 }
 
 /*
@@ -2374,7 +2376,7 @@ rhdSave(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    RHDSaveMC(rhdPtr);
+    RHDMCSave(rhdPtr);
 
     RHDVGASave(rhdPtr);
 
@@ -2401,7 +2403,7 @@ rhdRestore(RHDPtr rhdPtr)
 
     RHDFUNC(rhdPtr);
 
-    RHDRestoreMC(rhdPtr);
+    RHDMCRestore(rhdPtr);
 
     rhdRestoreCursor(pScrn);
 
@@ -2521,9 +2523,10 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
 	ret = pciReadLong(rhdPtr->NBPciTag, RS78_NB_MC_IND_DATA);
 #endif
     }
-
+#ifdef RHD_DEBUG
     RHDDebug(scrnIndex,"%s(0x%08X) = 0x%08X\n",__func__,(unsigned int)addr,
 	     (unsigned int)ret);
+#endif
     return ret;
 }
 
@@ -2532,8 +2535,10 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
 
+#ifdef RHD_DEBUG
     RHDDebug(scrnIndex,"%s(0x%08X, 0x%08X)\n",__func__,(unsigned int)addr,
 	     (unsigned int)data);
+#endif
 
     if (rhdPtr->ChipSet < RHD_RS600) {
 	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr | MC_IND_WR_EN);

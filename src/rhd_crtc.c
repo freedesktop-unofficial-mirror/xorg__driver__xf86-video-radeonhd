@@ -782,7 +782,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    break;
     }
     RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
-			      ScaledToMode ? ScaledToMode : Mode);
+			ScaledToMode ? ScaledToMode : Mode);
 }
 
 /*

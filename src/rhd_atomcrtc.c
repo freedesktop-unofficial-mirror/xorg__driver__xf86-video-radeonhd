@@ -142,7 +142,7 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);
 
     RHDTuneMCAccessForDisplay(rhdPtr, Crtc->Id, Mode,
-			      ScaledToMode ? ScaledToMode : Mode);
+			ScaledToMode ? ScaledToMode : Mode);
 }
 
 /*
