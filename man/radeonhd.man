@@ -7,7 +7,7 @@
 .\"
 .\"
 .SH NAME
-radeonhd \- AMD GPG (ATI) R5xx/R6xx video driver
+radeonhd \- AMD GPG (ATI) R5xx/R6xx/R7xx video driver
 .\"
 .\"
 .SH SYNOPSIS
