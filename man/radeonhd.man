@@ -665,7 +665,7 @@ The radeonhd mailing list
 .IP " 3." 4
 Overview about radeonhd development code
 .RS 4
-\%http://gitweb.freedesktop.org/?p=xorg/driver/xf86-video-radeonhd
+\%http://cgit.freedesktop.org/xorg/driver/xf86-video-radeonhd/
 .RE
 .IP " 4." 4
 Query the bugtracker for radeonhd bugs
