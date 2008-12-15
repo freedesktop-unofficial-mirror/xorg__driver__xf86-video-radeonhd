@@ -245,7 +245,7 @@ is
 .TP
 .BI "Option \*qScaleType\*q \*q" none|center|scale|scale_keep_aspect_ratio|default \*q
 Sets the scaling mode for laptop flat panels when used together with an external
-screen. The scaling engine is capable of scaling both up and down.i
+screen. The scaling engine is capable of scaling both up and down.
 .RS
 .TP 9
 .PD 0
