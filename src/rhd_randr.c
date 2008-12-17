@@ -111,13 +111,13 @@ struct rhdRandrCrtc {
     } u;
 };
 
-#define ATOM_SIGNAL_FORMAT    "RANDR_SIGNAL_FORMAT"
-#define ATOM_CONNECTOR_TYPE   "RANDR_CONNECTOR_TYPE"
-#define ATOM_CONNECTOR_NUMBER "RANDR_CONNECTOR_NUMBER"
-#define ATOM_OUTPUT_NUMBER    "RANDR_OUTPUT_NUMBER"
-#define ATOM_PANNING_AREA     "RANDR_PANNING_AREA"
-#define ATOM_BACKLIGHT        "BACKLIGHT"
-#define ATOM_COHERENT         "COHERENT"
+#define ATOM_SIGNAL_FORMAT    "SignalFormat"
+#define ATOM_CONNECTOR_TYPE   "ConnectorType"
+#define ATOM_CONNECTOR_NUMBER "ConnectorNumber"
+#define ATOM_OUTPUT_NUMBER    "_OutputNumber"
+#define ATOM_PANNING_AREA     "_PanningArea"
+#define ATOM_BACKLIGHT        "_Backlight"
+#define ATOM_COHERENT         "_Coherent"
 
 static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
     atomOutputNumber, atomPanningArea, atomBacklight, atomCoherent;
