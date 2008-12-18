@@ -507,7 +507,7 @@ output.
 string
 .TP
 .IR Range/List :
-unknown VGA DVI DVI-I DVI-A DVI-D HDMI PANEL DisplayPort
+unknown VGA DVI DVI-I DVI-A DVI-D HDMI Panel DisplayPort
 .RE
 .RS
 .PD

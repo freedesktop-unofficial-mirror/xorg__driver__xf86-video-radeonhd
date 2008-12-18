@@ -119,12 +119,15 @@ struct rhdRandrCrtc {
 #define ATOM_BACKLIGHT        "_Backlight"
 #define ATOM_COHERENT         "_Coherent"
 
-static Atom atomSignalFormat, atomConnectorType, atomConnectorNumber,
-    atomOutputNumber, atomPanningArea, atomBacklight, atomCoherent;
+static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
+    atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent;
+// Missing all the TV stuff ATM
+static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
+static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
 
 
 /* Get RandR property values */
-static const char *
+static Atom
 rhdGetSignalFormat(rhdRandrOutputPtr ro)
 {
     switch (ro->Output->Id) {
@@ -134,10 +137,10 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
 	case RHD_CONNECTOR_VGA:
 	case RHD_CONNECTOR_DVI:
 	case RHD_CONNECTOR_DVI_SINGLE:
-	    return "VGA";
-	case RHD_CONNECTOR_TV:		/* TODO: depending on current format */
+	    return atom_VGA;
+	case RHD_CONNECTOR_TV:
 	default:
-	    return "unknown";
+	    return atom_unknown;	/* TODO */
 	}
     case RHD_OUTPUT_LVTMA:
     case RHD_OUTPUT_KLDSKP_LVTMA:
@@ -154,37 +157,46 @@ rhdGetSignalFormat(rhdRandrOutputPtr ro)
 	switch (ro->Connector->Type) {
 	case RHD_CONNECTOR_DVI:
 	case RHD_CONNECTOR_DVI_SINGLE:
-	    return "TMDS";
+	    return atom_TMDS;
 	case RHD_CONNECTOR_PANEL:
-	    return "LVDS";
+	    return atom_LVDS;
 	default:
-	    return "unknown";
+	    return atom_unknown;
 	}
     case RHD_OUTPUT_TMDSA:
 #if RHD_OUTPUT_TMDSB != RHD_OUTPUT_LVDS
     case RHD_OUTPUT_TMDSB:
 #endif
-	return "TMDS";
+	return atom_TMDS;
     default:
-	return "unknown";
+	return atom_unknown;
     }
 }
-static const char *
+static Atom
 rhdGetConnectorType(rhdRandrOutputPtr ro)
 {
     switch (ro->Connector->Type) {
     case RHD_CONNECTOR_VGA:
-	return "VGA";
+	return atom_VGA;
     case RHD_CONNECTOR_DVI:
-	return "DVI";			/* TODO: DVI-I/A/D / HDMI */
     case RHD_CONNECTOR_DVI_SINGLE:
-	return "DVI (single link)";
+#ifdef NOTYET
+	if (ro->Output->Connector == RHD_CONNECTOR_HDMI || ro->Output->Connector == RHD_CONNECTOR_HDMI_DUAL)
+	    return atom_HDMI;
+#endif
+	if (strncmp (ro->Connector->Name, "DVI-I", 5) == 0)
+	    return atom_DVII;
+	if (strncmp (ro->Connector->Name, "DVI-D", 5) == 0)
+	    return atom_DVID;
+	if (strncmp (ro->Connector->Name, "DVI-A", 5) == 0)
+	    return atom_DVIA;
+	return atom_DVI;
     case RHD_CONNECTOR_PANEL:
-	return "PANEL";
+	return atom_Panel;
     case RHD_CONNECTOR_TV:
-	return "TV";
+	return atom_TV;		/* TODO */
     default:
-	return "unknown";
+	return atom_unknown;
     }
 }
 
@@ -518,43 +530,89 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     RHDPtr rhdPtr          = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout = (rhdRandrOutputPtr) out->driver_private;
     struct rhdOutput *o;
-    const char       *val;
+    INT32             val;
     CARD32            num;
-    int              err;
-    INT32            range[2];
+    int               err;
+    INT32             range[2];
 
     RHDFUNC(rhdPtr);
 
-    /* Create atoms for potential RandR 1.3 properties */
-    atomSignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
-				   sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
-    atomConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
-				   sizeof(ATOM_CONNECTOR_TYPE)-1, TRUE);
-    atomConnectorNumber = MakeAtom(ATOM_CONNECTOR_NUMBER,
-				   sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
-    atomOutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
-				   sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
-    atomPanningArea     = MakeAtom(ATOM_PANNING_AREA,
-				   sizeof(ATOM_PANNING_AREA)-1, TRUE);
+    /* Create atoms for RandR 1.3 properties */
+    atom_SignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
+				    sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
+    atom_ConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
+				    sizeof(ATOM_CONNECTOR_TYPE)-1, TRUE);
+    atom_ConnectorNumber = MakeAtom(ATOM_CONNECTOR_NUMBER,
+				    sizeof(ATOM_CONNECTOR_NUMBER)-1, TRUE);
+    atom_OutputNumber    = MakeAtom(ATOM_OUTPUT_NUMBER,
+				    sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
+    atom_PanningArea     = MakeAtom(ATOM_PANNING_AREA,
+				    sizeof(ATOM_PANNING_AREA)-1, TRUE);
+
+    /* Create atoms for RandR 1.3 property values */
+    atom_unknown         = MakeAtom("unknown", 7, TRUE);
+    atom_VGA             = MakeAtom("VGA", 3, TRUE);
+    atom_TMDS            = MakeAtom("TMDS", 4, TRUE);
+    atom_LVDS            = MakeAtom("LVDS", 4, TRUE);
+    atom_DisplayPort     = MakeAtom("DisplayPort", 11, TRUE);
+    atom_TV              = MakeAtom("TV", 2, TRUE);
+    atom_DVI             = MakeAtom("DVI", 3, TRUE);
+    atom_DVII            = MakeAtom("DVI-I", 5, TRUE);
+    atom_DVID            = MakeAtom("DVI-D", 5, TRUE);
+    atom_DVIA            = MakeAtom("DVI-A", 5, TRUE);
+    atom_HDMI            = MakeAtom("HDMI", 4, TRUE);
 
     /* Set up properties */
-    RRConfigureOutputProperty(out->randr_output, atomSignalFormat,
+    val = rhdGetSignalFormat(rout);
+    /* TODO: for TV multiple signal formats will be possible */
+    RRConfigureOutputProperty(out->randr_output, atom_SignalFormat,
+			      FALSE, FALSE, TRUE, 1, &val);
+    RRChangeOutputProperty(out->randr_output, atom_SignalFormat,
+			   XA_ATOM, 32, PropModeReplace,
+			   1, &val, FALSE, FALSE);
+
+    val = rhdGetConnectorType(rout);
+    RRConfigureOutputProperty(out->randr_output, atom_ConnectorType,
 			      FALSE, FALSE, TRUE, 0, NULL);
-    RRConfigureOutputProperty(out->randr_output, atomConnectorType,
+    RRChangeOutputProperty(out->randr_output, atom_ConnectorType,
+			   XA_ATOM, 32, PropModeReplace,
+			   1, &val, FALSE, FALSE);
+
+    for (num = 0; num < RHD_CONNECTORS_MAX; num++)
+	if (rout->Connector == rhdPtr->Connector[num])
+	    break;
+    ASSERT(num < RHD_CONNECTORS_MAX);
+    num++;		/* For RANDR_CONNECTOR_NUMBER 0 is unknown */
+    RRConfigureOutputProperty(out->randr_output, atom_ConnectorNumber,
 			      FALSE, FALSE, TRUE, 0, NULL);
-    RRConfigureOutputProperty(out->randr_output, atomConnectorNumber,
-			      FALSE, FALSE, TRUE, 0, NULL);
-    RRConfigureOutputProperty(out->randr_output, atomPanningArea,
+    RRChangeOutputProperty(out->randr_output, atom_ConnectorNumber,
+			   XA_INTEGER, 32, PropModeReplace,
+			   1, &num, FALSE, FALSE);
+
+    for (num = 1, o = rhdPtr->Outputs; o; num++, o = o->Next)
+	if (rout->Output == o)
+	    break;
+    ASSERT(o);
+    RRConfigureOutputProperty(out->randr_output, atom_OutputNumber,
 			      FALSE, FALSE, FALSE, 0, NULL);
+    RRChangeOutputProperty(out->randr_output, atom_OutputNumber,
+			   XA_INTEGER, 32, PropModeReplace,
+			   1, &num, FALSE, FALSE);
+
+    RRConfigureOutputProperty(out->randr_output, atom_PanningArea,
+			      FALSE, FALSE, FALSE, 0, NULL);
+    RRChangeOutputProperty(out->randr_output, atom_PanningArea,
+			   XA_STRING, 8, PropModeReplace,
+			   0, NULL, FALSE, FALSE);
 
     if (rout->Output->Property) {
 	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_BACKLIGHT, NULL)) {
-	    atomBacklight = MakeAtom(ATOM_BACKLIGHT,
-				     sizeof(ATOM_BACKLIGHT)-1, TRUE);
+	    atom_Backlight = MakeAtom(ATOM_BACKLIGHT,
+				      sizeof(ATOM_BACKLIGHT)-1, TRUE);
 
 	    range[0] = 0;
 	    range[1] = 255;
-	    err = RRConfigureOutputProperty(out->randr_output, atomBacklight,
+	    err = RRConfigureOutputProperty(out->randr_output, atom_Backlight,
 					    FALSE, TRUE, FALSE, 2, range);
 	    if (err != 0)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
@@ -565,7 +623,7 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_BACKLIGHT, &val))
 		    val.integer = 255;
 
-		err = RRChangeOutputProperty(out->randr_output, atomBacklight,
+		err = RRChangeOutputProperty(out->randr_output, atom_Backlight,
 					     XA_INTEGER, 32, PropModeReplace,
 					     1, &val.integer, FALSE, FALSE);
 		if (err != 0)
@@ -575,12 +633,12 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 	    }
 	}
 	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_COHERENT, NULL)) {
-	    atomCoherent = MakeAtom(ATOM_COHERENT,
+	    atom_Coherent = MakeAtom(ATOM_COHERENT,
 				     sizeof(ATOM_COHERENT)-1, TRUE);
 
 	    range[0] = 0;
 	    range[1] = 1;
-	    err = RRConfigureOutputProperty(out->randr_output, atomCoherent,
+	    err = RRConfigureOutputProperty(out->randr_output, atom_Coherent,
 					    FALSE, TRUE, FALSE, 2, range);
 	    if (err != 0)
 		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
@@ -590,7 +648,7 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 
 		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_COHERENT, &val))
 		    val.Bool = 1;
-		err = RRChangeOutputProperty(out->randr_output, atomCoherent,
+		err = RRChangeOutputProperty(out->randr_output, atom_Coherent,
 					     XA_INTEGER, 32, PropModeReplace,
 					     1, &val.Bool, FALSE, FALSE);
 		if (err != 0)
@@ -600,33 +658,6 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 	    }
 	}
     }
-
-    val = rhdGetSignalFormat(rout);
-    RRChangeOutputProperty(out->randr_output, atomSignalFormat,
-			   XA_STRING, 8, PropModeReplace,
-			   strlen(val), (char *) val, FALSE, FALSE);
-    val = rhdGetConnectorType(rout);
-    RRChangeOutputProperty(out->randr_output, atomConnectorType,
-			   XA_STRING, 8, PropModeReplace,
-			   strlen(val), (char *) val, FALSE, FALSE);
-    for (num = 0; num < RHD_CONNECTORS_MAX; num++)
-	if (rout->Connector == rhdPtr->Connector[num])
-	    break;
-    ASSERT(num < RHD_CONNECTORS_MAX);
-    num++;		/* For RANDR_CONNECTOR_NUMBER 0 is unknown */
-    RRChangeOutputProperty(out->randr_output, atomConnectorNumber,
-			   XA_INTEGER, 32, PropModeReplace,
-			   1, &num, FALSE, FALSE);
-    for (num = 1, o = rhdPtr->Outputs; o; num++, o = o->Next)
-	if (rout->Output == o)
-	    break;
-    ASSERT(o);
-    RRChangeOutputProperty(out->randr_output, atomOutputNumber,
-			   XA_INTEGER, 32, PropModeReplace,
-			   1, &num, FALSE, FALSE);
-    RRChangeOutputProperty(out->randr_output, atomPanningArea,
-			   XA_STRING, 8, PropModeReplace,
-			   0, NULL, FALSE, FALSE);
 }
 
 /* Turns the output on/off, or sets intermediate power levels if available. */
@@ -956,7 +987,7 @@ rhdRROutputCommit(xf86OutputPtr out)
 {
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
-    const char       *val;
+    CARD32            val;
     char              buf[32];
     struct rhdCrtc   *rhdCrtc   = ((struct rhdRandrCrtc *)(out->crtc->driver_private))->rhdCrtc;
 
@@ -969,16 +1000,16 @@ rhdRROutputCommit(xf86OutputPtr out)
 
     /* Some outputs may have physical protocol changes (e.g. TV) */
     val = rhdGetSignalFormat(rout);
-    RRChangeOutputProperty(out->randr_output, atomConnectorType,
-			   XA_STRING, 8, PropModeReplace,
-			   strlen(val), (char *) val, TRUE, FALSE);
+    RRChangeOutputProperty(out->randr_output, atom_SignalFormat,
+			   XA_ATOM, 32, PropModeReplace,
+			   1, &val, TRUE, FALSE);
     /* Should be a crtc property */
     if (rhdCrtc->MaxX > rhdCrtc->MinX && rhdCrtc->MaxY > rhdCrtc->MinY)
 	sprintf(buf, "%dx%d+%d+%d", rhdCrtc->MaxX - rhdCrtc->MinX,
 		rhdCrtc->MaxY - rhdCrtc->MinY, rhdCrtc->MinX, rhdCrtc->MinY);
     else
 	buf[0] = 0;
-    RRChangeOutputProperty(out->randr_output, atomPanningArea,
+    RRChangeOutputProperty(out->randr_output, atom_PanningArea,
 			   XA_STRING, 8, PropModeReplace,
 			   strlen(buf), buf, TRUE, FALSE);
 
@@ -1234,7 +1265,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 
     RHDFUNC(rhdPtr);
 
-    if (property == atomPanningArea) {
+    if (property == atom_PanningArea) {
 	int w = 0, h = 0, x = 0, y = 0;
 	struct rhdCrtc *Crtc = rout->Output->Crtc;
 	int i;
@@ -1271,7 +1302,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	default:
 	    return FALSE;
 	}
-    } else if (property == atomBacklight) {
+    } else if (property == atom_Backlight) {
 	if (value->type != XA_INTEGER || value->format != 32) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
 	    return FALSE;
@@ -1283,7 +1314,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 					  RHD_OUTPUT_BACKLIGHT, &val);
 	}
 	return FALSE;
-    } else if (property == atomCoherent) {
+    } else if (property == atom_Coherent) {
 	if (value->type != XA_INTEGER || value->format != 32) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
 	    return FALSE;
@@ -1424,18 +1455,18 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 
     xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "In %s\n", __func__);
 
-    if (property == atomBacklight) {
+    if (property == atom_Backlight) {
 	if (rout->Output->Property == NULL)
 	    return FALSE;
 
 	if (!rout->Output->Property(rout->Output, rhdPropertyGet,
 				    RHD_OUTPUT_BACKLIGHT, &val))
 	    return FALSE;
-	err = RRChangeOutputProperty(out->randr_output, atomBacklight,
+	err = RRChangeOutputProperty(out->randr_output, atom_Backlight,
 				     XA_INTEGER, 32, PropModeReplace,
 				     1, &val.integer, FALSE, FALSE);
 
-    } else if (property == atomCoherent) {
+    } else if (property == atom_Coherent) {
 	if (rout->Output->Property == NULL)
 	    return FALSE;
 
@@ -1443,7 +1474,7 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 				    RHD_OUTPUT_COHERENT, &val))
 	    return FALSE;
 
-	err = RRChangeOutputProperty(out->randr_output, atomCoherent,
+	err = RRChangeOutputProperty(out->randr_output, atom_Coherent,
 				     XA_INTEGER, 32, PropModeReplace,
 				     1, &val.Bool, FALSE, FALSE);
     }
