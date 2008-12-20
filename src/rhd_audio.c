@@ -165,7 +165,7 @@ RHDAudioInit(RHDPtr rhdPtr)
 {
     RHDFUNC(rhdPtr);
 
-    if (rhdPtr->ChipSet >= RHD_R600) {
+    if (rhdPtr->ChipSet >= RHD_RS600) {
 	struct rhdAudio *Audio = (struct rhdAudio *) xnfcalloc(sizeof(struct rhdAudio), 1);
 
 	Audio->scrnIndex = rhdPtr->scrnIndex;
