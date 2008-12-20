@@ -56,6 +56,7 @@ struct rhdTMDSPrivate {
     Bool RunsDualLink;
     DisplayModePtr Mode;
     Bool Coherent;
+    Bool HdmiEnabled;
     int PowerState;
 
     struct rhdHdmi *Hdmi;
@@ -242,18 +243,21 @@ TMDSAPropertyControl(struct rhdOutput *Output,
     RHDFUNC(Output);
     switch (Action) {
 	case rhdPropertyCheck:
-	switch (Property) {
-	    case RHD_OUTPUT_COHERENT:
-		return TRUE;
-	    default:
-		return FALSE;
-	}
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		case RHD_OUTPUT_HDMI:
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
 		    val->Bool = Private->Coherent;
 		    return TRUE;
-		    break;
+		case RHD_OUTPUT_HDMI:
+		    val->Bool = Private->HdmiEnabled;
+		    return TRUE;
 		default:
 		    return FALSE;
 	    }
@@ -262,6 +266,18 @@ TMDSAPropertyControl(struct rhdOutput *Output,
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
 		    Private->Coherent = val->Bool;
+		    break;
+		case RHD_OUTPUT_HDMI:
+		    Private->HdmiEnabled = val->Bool;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertyCommit:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		case RHD_OUTPUT_HDMI:
 		    Output->Mode(Output, Private->Mode);
 		    Output->Power(Output, RHD_POWER_ON);
 		    break;
@@ -391,10 +407,7 @@ TMDSAPower(struct rhdOutput *Output, int Power)
 	} else
 	    RHDRegMask(Output, TMDSA_TRANSMITTER_ENABLE, 0x0000001F, 0x00001F1F);
 
-	if(Output->Connector != NULL && RHDConnectorEnableHDMI(Output->Connector))
-	    RHDHdmiEnable(Private->Hdmi, TRUE);
-	else
-	    RHDHdmiEnable(Private->Hdmi, FALSE);
+	RHDHdmiEnable(Private->Hdmi, Private->HdmiEnabled);
 	Private->PowerState = RHD_POWER_ON;
 	return;
 
@@ -519,7 +532,6 @@ RHDTMDSAInit(RHDPtr rhdPtr)
 {
     struct rhdOutput *Output;
     struct rhdTMDSPrivate *Private;
-    int from;
 
     RHDFUNC(rhdPtr);
 
@@ -540,21 +552,7 @@ RHDTMDSAInit(RHDPtr rhdPtr)
 
     Private = xnfcalloc(sizeof(struct rhdTMDSPrivate), 1);
     Private->RunsDualLink = FALSE;
-    from = X_CONFIG;
-    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
-	case RHD_OPTION_NOT_SET:
-	case RHD_OPTION_DEFAULT:
-	    from = X_DEFAULT;
-	    Private->Coherent = FALSE;
-	    break;
-	case RHD_OPTION_ON:
-	    Private->Coherent = TRUE;
-	    break;
-	case RHD_OPTION_OFF:
-	    Private->Coherent = FALSE;
-	    break;
-    }
-    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",Output->Name,Private->Coherent ? "" : "in");
+    Private->Coherent = FALSE;
     Private->PowerState = RHD_POWER_UNKNOWN;
     Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 

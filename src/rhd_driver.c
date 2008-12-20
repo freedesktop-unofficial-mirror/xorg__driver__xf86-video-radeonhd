@@ -1987,7 +1987,7 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 		/* Do this before sensing as AtomBIOS sense needs this info */
 		if ((Output->SensedType = Output->Sense(Output, Connector)) != RHD_SENSED_NONE) {
 		    RHDOutputPrintSensedType(Output);
-		    Output->Connector = Connector;
+		    RHDOutputAttachConnector(Output, Connector);
 		    break;
 		}
 	    }
@@ -1999,7 +1999,7 @@ rhdOutputConnectorCheck(struct rhdConnector *Connector)
 	for (i = 0; i < 2; i++) {
 	    Output = Connector->Output[i];
 	    if (Output && !Output->Sense) {
-		Output->Connector = Connector;
+		RHDOutputAttachConnector(Output, Connector);
 		break;
 	    }
 	}

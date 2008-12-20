@@ -122,7 +122,8 @@ enum RHD_TV_MODE {
 enum rhdPropertyAction {
     rhdPropertyCheck,
     rhdPropertyGet,
-    rhdPropertySet
+    rhdPropertySet,
+    rhdPropertyCommit
 };
 
 union rhdPropertyData

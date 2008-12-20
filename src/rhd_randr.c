@@ -118,9 +118,11 @@ struct rhdRandrCrtc {
 #define ATOM_PANNING_AREA     "_PanningArea"
 #define ATOM_BACKLIGHT        "_Backlight"
 #define ATOM_COHERENT         "_Coherent"
+#define ATOM_HDMI             "_HDMI"
 
 static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
-    atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent;
+    atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent,
+    atom_HdmiProperty;
 static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
 static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
 
@@ -660,6 +662,31 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 			       __func__, err);
 	    }
 	}
+	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_HDMI, NULL)) {
+	    atom_HdmiProperty = MakeAtom(ATOM_HDMI, sizeof(ATOM_HDMI)-1, TRUE);
+
+	    range[0] = 0;
+	    range[1] = 1;
+	    err = RRConfigureOutputProperty(out->randr_output, atom_HdmiProperty,
+					    FALSE, TRUE, FALSE, 2, range);
+	    if (err != 0)
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "RRConfigureOutputProperty error: %d\n", err);
+	    else {
+		union rhdPropertyData val;
+
+		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_HDMI, &val))
+		    val.Bool = 1;
+		err = RRChangeOutputProperty(out->randr_output, atom_HdmiProperty,
+					     XA_INTEGER, 32, PropModeReplace,
+					     1, &val.Bool, FALSE, FALSE);
+		if (err != 0)
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			       "In %s RRChangeOutputProperty error: %d\n",
+			       __func__, err);
+	    }
+	}
+
     }
 }
 
@@ -998,7 +1025,7 @@ rhdRROutputCommit(xf86OutputPtr out)
     ASSERT(rhdCrtc == rout->Output->Crtc);
 
     rout->Output->Active    = TRUE;
-    rout->Output->Connector = rout->Connector; /* @@@ */
+    RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
     rout->Output->Power(rout->Output, RHD_POWER_ON);
 
     /* Some outputs may have physical protocol changes (e.g. TV) */
@@ -1058,7 +1085,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 
     /* Assume that a panel is always connected */
     if (rout->Connector->Type == RHD_CONNECTOR_PANEL) {
-	rout->Output->Connector = rout->Connector; /* @@@ */
+        RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 	return XF86OutputStatusConnected;
     } else if (rout->Connector->Type ==  RHD_CONNECTOR_TV) /* until TV_OUT is fixed we bail here */
 	return XF86OutputStatusDisconnected;
@@ -1074,7 +1101,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 		     = rout->Output->Sense(rout->Output,
 					   rout->Connector)) != RHD_SENSED_NONE) {
 		    RHDOutputPrintSensedType(rout->Output);
-		    rout->Output->Connector = rout->Connector; /* @@@ */
+		    RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 		    return XF86OutputStatusConnected;
 		} else
 		    return XF86OutputStatusDisconnected;
@@ -1086,7 +1113,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 		 * is attached to this one */
 		if (rhdRROtherOutputOnConnectorHelper(rhdPtr, rout))
 		    return XF86OutputStatusDisconnected;
-		rout->Output->Connector = rout->Connector; /* @@@ */
+		RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 		return XF86OutputStatusConnected;
 	    }
 	} else {
@@ -1103,8 +1130,8 @@ rhdRROutputDetect(xf86OutputPtr output)
 			= rout->Output->Sense(rout->Output,
 					      rout->Connector);
 		    if (rout->Output->SensedType != RHD_SENSED_NONE) {
-			rout->Output->Connector = rout->Connector; /* @@@ */
 			RHDOutputPrintSensedType(rout->Output);
+			RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 			return XF86OutputStatusConnected;
 		    }
 		}
@@ -1119,8 +1146,8 @@ rhdRROutputDetect(xf86OutputPtr output)
 	    rout->Output->SensedType
 		= rout->Output->Sense(rout->Output, rout->Connector);
 	    if (rout->Output->SensedType != RHD_SENSED_NONE) {
-		    rout->Output->Connector = rout->Connector; /* @@@ */
 		    RHDOutputPrintSensedType(rout->Output);
+		    RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 		    return XF86OutputStatusConnected;
 	    } else
 		return XF86OutputStatusDisconnected;
@@ -1140,7 +1167,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 			 rout_tmp->Output->Name);
 		    return XF86OutputStatusDisconnected;
 		}
-		rout->Output->Connector = rout->Connector; /* @@@ */
+		RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 		return XF86OutputStatusConnected;
 	    } else {
 		RHDDebug(rout->Output->scrnIndex, "DDC Probing for Output %s returned disconnected\n",
@@ -1148,7 +1175,7 @@ rhdRROutputDetect(xf86OutputPtr output)
 		return XF86OutputStatusDisconnected;
 	    }
 	}
-	rout->Output->Connector = rout->Connector; /* @@@ */
+        RHDOutputAttachConnector(rout->Output, rout->Connector); /* @@@ */
 	return XF86OutputStatusUnknown;
     }
 }
@@ -1313,8 +1340,10 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	if (rout->Output->Property) {
 	    union rhdPropertyData val;
 	    val.integer = *(int*)(value->data);
-	    return rout->Output->Property(rout->Output, rhdPropertySet,
-					  RHD_OUTPUT_BACKLIGHT, &val);
+	    if(rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_BACKLIGHT, &val))
+		return rout->Output->Property(rout->Output, rhdPropertyCommit,
+					  RHD_OUTPUT_BACKLIGHT, NULL);
 	}
 	return FALSE;
     } else if (property == atom_Coherent) {
@@ -1325,8 +1354,24 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	if (rout->Output->Property) {
 	    union rhdPropertyData val;
 	    val.Bool = *(int*)(value->data);
-	    return rout->Output->Property(rout->Output, rhdPropertySet,
-					  RHD_OUTPUT_COHERENT, &val);
+	    if(rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_COHERENT, &val))
+		return rout->Output->Property(rout->Output, rhdPropertyCommit,
+					  RHD_OUTPUT_COHERENT, NULL);
+	}
+	return FALSE;
+    } else if (property == atom_HdmiProperty) {
+	if (value->type != XA_INTEGER || value->format != 32) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
+	    return FALSE;
+	}
+	if (rout->Output->Property) {
+	    union rhdPropertyData val;
+	    val.Bool = *(int*)(value->data);
+	    if(rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_HDMI, &val))
+		return rout->Output->Property(rout->Output, rhdPropertyCommit,
+					  RHD_OUTPUT_HDMI, NULL);
 	}
 	return FALSE;
     }

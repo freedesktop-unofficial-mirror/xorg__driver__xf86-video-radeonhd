@@ -162,13 +162,12 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 }
 
 static void
-LVDSSetBacklight(struct rhdOutput *Output, int level)
+LVDSSetBacklight(struct rhdOutput *Output)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
+    int level = Private->BlLevel;
 
     RHDFUNC(Output);
-
-    Private->BlLevel = level;
 
     RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV,
 	       0x144 << LVTMA_BL_MOD_REF_DI_SHIFT,
@@ -215,7 +214,16 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 		return FALSE;
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
-		    LVDSSetBacklight(Output, val->integer);
+		    Private->BlLevel = val->integer;
+		    return TRUE;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertyCommit:
+	    switch (Property) {
+		case RHD_OUTPUT_BACKLIGHT:
+		    LVDSSetBacklight(Output);
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -237,16 +245,20 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
     RHDFUNC(Output);
     switch (Action) {
 	case rhdPropertyCheck:
-	switch (Property) {
-	    case RHD_OUTPUT_COHERENT:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		case RHD_OUTPUT_HDMI:
 		    return TRUE;
-	    default:
-		return FALSE;
-	}
+	        default:
+		    return FALSE;
+	    }
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
 		    val->Bool =  Private->Coherent;
+		    return TRUE;
+		case RHD_OUTPUT_HDMI:
+		    val->Bool = Private->EncoderMode == TMDS_HDMI;
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -256,6 +268,18 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
 		    Private->Coherent = val->Bool;
+		    break;
+		case RHD_OUTPUT_HDMI:
+		    Private->EncoderMode = val->Bool ? TMDS_HDMI : TMDS_DVI;
+		    break;
+		default:
+		    return FALSE;
+	    }
+	    break;
+	case rhdPropertyCommit:
+	    switch (Property) {
+		case RHD_OUTPUT_COHERENT:
+		case RHD_OUTPUT_HDMI:
 		    Output->Mode(Output, Private->Mode);
 		    Output->Power(Output, RHD_POWER_ON);
 		    break;
@@ -1397,19 +1421,9 @@ DigPower(struct rhdOutput *Output, int Power)
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
     struct transmitter *Transmitter = &Private->Transmitter;
     struct encoder *Encoder = &Private->Encoder;
-    Bool enableHDMI;
 
     RHDDebug(Output->scrnIndex, "%s(%s,%s)\n",__func__,Output->Name,
 	     rhdPowerString[Power]);
-
-    if(Output->Connector != NULL) {
-	/* check if attached monitor supports HDMI */
-	enableHDMI = RHDConnectorEnableHDMI(Output->Connector);
-	if (enableHDMI && Private->EncoderMode == TMDS_DVI)
-	    Private->EncoderMode = TMDS_HDMI;
-	else if (!enableHDMI && Private->EncoderMode == TMDS_HDMI)
-	    Private->EncoderMode = TMDS_DVI;
-    }
 
     switch (Power) {
 	case RHD_POWER_ON:
@@ -1444,6 +1458,7 @@ DigPropertyControl(struct rhdOutput *Output,
     switch(Property) {
 	case RHD_OUTPUT_COHERENT:
 	case RHD_OUTPUT_BACKLIGHT:
+	case RHD_OUTPUT_HDMI:
 	{
 	    if (!Private->Transmitter.Property)
 		return FALSE;
@@ -1629,34 +1644,6 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 /*
  *
  */
-static Bool
-rhdDIGSetCoherent(RHDPtr rhdPtr,struct rhdOutput *Output)
-{
-    Bool coherent = FALSE;
-    int  from = X_CONFIG;
-
-    switch (RhdParseBooleanOption(&rhdPtr->coherent, Output->Name)) {
-	case RHD_OPTION_NOT_SET:
-	case RHD_OPTION_DEFAULT:
-	    from = X_DEFAULT;
-	    coherent = FALSE;
-	    break;
-	case RHD_OPTION_ON:
-	    coherent = TRUE;
-	    break;
-	case RHD_OPTION_OFF:
-	    coherent = FALSE;
-	    break;
-    }
-    xf86DrvMsg(rhdPtr->scrnIndex,from,"Setting %s to %scoherent\n",
-	       Output->Name,coherent ? "" : "in");
-
-    return coherent;
-}
-
-/*
- *
- */
 #ifdef NOT_YET
 static Bool
 digTransmitterPropertyWrapper(struct rhdOutput *Output,
@@ -1729,7 +1716,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->Coherent = Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
+		atc->Coherent = Private->Coherent = FALSE;
 		atc->Link = atomTransLinkA;
 		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1774,7 +1761,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
-		atc->Coherent = Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
+		atc->Coherent = Private->Coherent = FALSE;
 		atc->Link = atomTransLinkB;
 		atc->Encoder = atomEncoderNone;
 		if (RHDIsIGP(rhdPtr->ChipSet)) {
@@ -1803,7 +1790,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    Output->Name = "UNIPHY_KLDSKP_LVTMA";
-	    Private->Coherent = rhdDIGSetCoherent(rhdPtr, Output);
+	    Private->Coherent = FALSE;
 	    Private->Transmitter.Private =
 		(struct LVTMATransmitterPrivate *)xnfcalloc(sizeof (struct LVTMATransmitterPrivate), 1);
 	    Private->Transmitter.Sense = NULL;

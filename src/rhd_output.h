@@ -58,7 +58,8 @@ typedef enum rhdSensedOutput {
 
 enum rhdOutputProperty {
     RHD_OUTPUT_BACKLIGHT,
-    RHD_OUTPUT_COHERENT
+    RHD_OUTPUT_COHERENT,
+    RHD_OUTPUT_HDMI
 };
 
 enum rhdOutputAllocation {
@@ -113,6 +114,7 @@ void RHDOutputsSave(RHDPtr rhdPtr);
 void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
 void RHDOutputPrintSensedType(struct rhdOutput *Output);
+void RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connector);
 
 /* output local functions. */
 struct rhdOutput *RHDDACAInit(RHDPtr rhdPtr);
