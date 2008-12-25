@@ -151,9 +151,6 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 {
     RHDFUNC(Output);
 
-    if (Mode->Flags & V_INTERLACE)
-        return MODE_NO_INTERLACE;
-
     if (Output->Connector->Type == RHD_CONNECTOR_DVI_SINGLE
 	&& Mode->SynthClock > 165000)
 	return MODE_CLOCK_HIGH;
