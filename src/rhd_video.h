@@ -50,5 +50,6 @@ struct RHDPortPriv {
 
 extern void RHDRADEONDisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv);
 extern void RHDInitVideo(ScreenPtr pScreen);
+extern void R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv);
 
 #endif /* _RHD_VIDEO_H */

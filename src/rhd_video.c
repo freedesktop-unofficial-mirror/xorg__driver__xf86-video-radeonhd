@@ -2,7 +2,7 @@
  * Copyright 2008  Luc Verhaegen <lverhaegen@novell.com>
  * Copyright 2008  Matthias Hopf <mhopf@novell.com>
  * Copyright 2008  Egbert Eich   <eich@novell.com>
- * Copyright 2008  Alex Deucher
+ * Copyright 2008  Alex Deucher <alexander.deucher@amd.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -246,6 +246,11 @@ rhdQueryImageAttributes(ScrnInfoPtr pScrn, int id, CARD16 *w, CARD16 *h,
 	    *w = 2048;
 	if (*h > 2048)
 	    *h = 2048;
+    } else if (rhdPtr->ChipSet >= RHD_R600) {
+	if (*w > 8192)
+	    *w = 8192;
+	if (*h > 8192)
+	    *h = 8192;
     } else {
 	if (*w > 4096)
 	    *w = 4096;
@@ -564,11 +569,7 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
     pPriv->pDraw = pDraw;
 
-    /* The upload blit only supports multiples of 64 bytes */
-    if (rhdPtr->CS->Type == RHD_CS_CPDMA)
-	pPriv->BufferPitch = ALIGN(2 * width, 64);
-    else
-	pPriv->BufferPitch = ALIGN(2 * width, 16);
+    pPriv->BufferPitch = ALIGN(2 * width, 64);
 
     /*
      * Now, find out whether we have enough memory available.
@@ -609,7 +610,20 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	    int s3offset = s2offset + srcPitch2 * (height >> 1);
 
 	    if (id == FOURCC_YV12) {
-		if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+		if (rhdPtr->ChipSet >= RHD_R600) {
+		    // Y plane
+		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
+				     pPriv->BufferPitch, height);
+		    // UV plane
+		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + s2offset, srcPitch,
+				     pPriv->BufferPitch, height >> 1);
+#if 0
+		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s2offset,
+				     buf + s3offset, FBBuf, srcPitch,
+				     srcPitch2, pPriv->BufferPitch,
+				     height, width);
+#endif
+		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s2offset,
 					buf + s3offset, FBBuf, srcPitch,
 					srcPitch2, pPriv->BufferPitch,
@@ -620,7 +634,20 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 				     srcPitch2, pPriv->BufferPitch,
 				     height, width);
 	    } else {
-		if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+		if (rhdPtr->ChipSet >= RHD_R600) {
+		    // Y plane
+		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
+				     pPriv->BufferPitch, height);
+		    // UV plane
+		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + s2offset, srcPitch,
+				     pPriv->BufferPitch, height >> 1);
+#if 0
+		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s3offset,
+				     buf + s2offset, FBBuf, srcPitch,
+				     srcPitch2, pPriv->BufferPitch,
+				     height, width);
+#endif
+		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s3offset,
 					buf + s2offset, FBBuf, srcPitch,
 					srcPitch2, pPriv->BufferPitch,
@@ -636,7 +663,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
-	if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+	if (rhdPtr->ChipSet >= RHD_R600)
+	    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, 2 * width,
+			     pPriv->BufferPitch, height);
+	else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 	    R5xxXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width,
 				pPriv->BufferPitch, height);
 	else
@@ -664,7 +694,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     pPriv->w = width;
     pPriv->h = height;
 
-    RHDRADEONDisplayTexturedVideo(pScrn, pPriv);
+    if (rhdPtr->ChipSet >= RHD_R600)
+	R600DisplayTexturedVideo(pScrn, pPriv);
+    else
+	RHDRADEONDisplayTexturedVideo(pScrn, pPriv);
 
     return Success;
 }
@@ -681,6 +714,11 @@ static XF86VideoEncodingRec DummyEncodingRS600[1] =
 static XF86VideoEncodingRec DummyEncodingR500[1] =
 {
     { 0, "XV_IMAGE", 4096, 4096, {1, 1}}
+};
+
+static XF86VideoEncodingRec DummyEncodingR600[1] =
+{
+    { 0, "XV_IMAGE", 8192, 8192, {1, 1}}
 };
 
 #define NUM_FORMATS 3
@@ -726,6 +764,8 @@ rhdSetupImageTexturedVideo(ScreenPtr pScreen)
     if ((rhdPtr->ChipSet == RHD_RS690) || (rhdPtr->ChipSet == RHD_RS600) ||
 	(rhdPtr->ChipSet == RHD_RS740))
 	adapt->pEncodings = DummyEncodingRS600;
+    else if (rhdPtr->ChipSet >= RHD_R600)
+	adapt->pEncodings = DummyEncodingR600;
     else
 	adapt->pEncodings = DummyEncodingR500;
 
@@ -787,25 +827,23 @@ RHDInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-    if (rhdPtr->ChipSet < RHD_R600) {
-	if (rhdPtr->TwoDPrivate &&
-	    ((rhdPtr->CS->Type == RHD_CS_CP) ||
-	     (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
+    if (rhdPtr->TwoDPrivate &&
+	((rhdPtr->CS->Type == RHD_CS_CP) ||
+	 (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
 
-	    texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
+	texturedAdaptor = rhdSetupImageTexturedVideo(pScreen);
 
-	    adaptors[num_adaptors++] = texturedAdaptor;
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: Textured Video initialised.\n");
+	adaptors[num_adaptors++] = texturedAdaptor;
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: Textured Video initialised.\n");
 
-	    /* EXA could've initialised this already */
+	/* EXA could've initialised this already */
+	if (rhdPtr->ChipSet < RHD_R600) {
 	    if (!rhdPtr->ThreeDPrivate)
 		R5xx3DInit(pScrn);
-	} else
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: No Textured Video "
-		       "possible without the Command Processor.\n");
+	}
     } else
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		   "Xv: No Textured Video possible for %s.\n", pScrn->chipset);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Xv: No Textured Video "
+		   "possible without the Command Processor.\n");
 
     if (num_adaptors)
 	xf86XVScreenInit(pScreen, adaptors, num_adaptors);
