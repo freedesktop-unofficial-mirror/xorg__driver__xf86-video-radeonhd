@@ -118,6 +118,7 @@
 #include "rhd_cs.h"
 #include "rhd_audio.h"
 #include "r5xx_accel.h"
+#include "r6xx_accel.h"
 #include "rhd_video.h"
 
 #ifdef USE_DRI
@@ -1154,8 +1155,10 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    if (!R5xxEXAInit(pScrn, pScreen))
 		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
-	} else
-	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	} else {
+	    if (!R6xxEXAInit(pScrn, pScreen))
+		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	}
 	break;
 #endif /* USE_EXA */
     default:
@@ -1312,6 +1315,9 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxEXACloseScreen(pScreen);
 	    R5xxEXADestroy(pScrn);
+	} else {
+	    R6xxEXACloseScreen(pScreen);
+	    R6xxEXADestroy(pScrn);
 	}
     } else
 #endif /* USE_EXA */
@@ -2747,6 +2753,7 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
 
+#if 0
     if (rhdPtr->ChipSet >= RHD_R600) {
 	if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: HW 2D acceleration is"
@@ -2754,6 +2761,7 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 	}
     }
+#endif
     /* Now for some pretty print */
     switch (rhdPtr->AccelMethod) {
 #ifdef USE_EXA

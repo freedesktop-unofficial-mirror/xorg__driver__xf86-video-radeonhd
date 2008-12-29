@@ -216,6 +216,12 @@ DRMCPFlush(struct RhdCS *CS)
     if (!CP->DrmBuffer)
 	return;
 
+    while ((CS->Wptr * 4) & 0x3c) {
+	RHDCSGrab(CS, 1);
+	RHDCSWrite(CS, CP_PACKET2());
+	RHDCSAdvance(CS);
+    }
+
     indirect.idx = CP->DrmBuffer->idx;
     indirect.start = CS->Flushed * 4;
     indirect.end = CS->Wptr * 4;
@@ -227,6 +233,7 @@ DRMCPFlush(struct RhdCS *CS)
     /* make sure we are quadword aligned */
     if (CS->Wptr & 1)
 	CS->Wptr++;
+
 
     CS->Flushed = CS->Wptr;
 #ifdef RHD_CS_DEBUG
@@ -242,6 +249,12 @@ DRMCPBufferDiscard(struct RhdCS *CS)
 {
     struct RhdDRMCP *CP = CS->Private;
     struct drm_radeon_indirect indirect;
+
+    while ((CS->Wptr * 4) & 0x3c){
+	RHDCSGrab(CS, 1);
+	RHDCSWrite(CS, CP_PACKET2());
+	RHDCSAdvance(CS);
+    }
 
     indirect.idx = CP->DrmBuffer->idx;
     indirect.start = CS->Flushed * 4;

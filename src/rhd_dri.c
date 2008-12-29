@@ -81,6 +81,7 @@
 #include "rhd_dri.h"
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
+#include "r6xx_accel.h"
 #include "rhd_cs.h"
 
 #define IS_RADEONHD_DRIVER 1
@@ -120,7 +121,6 @@ typedef struct {
     /* Nothing here yet */
     int dummy;
 } RADEONDRIContextRec, *RADEONDRIContextPtr;
-
 
 /* driver data only needed by dri */
 struct rhdDri {
@@ -389,18 +389,32 @@ static void RHDEnterServer(ScreenPtr pScreen)
 
     pSAREAPriv = (drm_radeon_sarea_t *)DRIGetSAREAPrivate(pScreen);
     if (pSAREAPriv->ctx_owner != (signed) DRIGetContext(pScreen)) {
-	struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    struct R5xx3D *R5xx3D = rhdPtr->ThreeDPrivate;
 
-	if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
-	    R5xxDstCacheFlush(CS);
-	    R5xxZCacheFlush(CS);
-	    R5xxEngineWaitIdleFull(CS);
+	    if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
+		R5xxDstCacheFlush(CS);
+		R5xxZCacheFlush(CS);
+		R5xxEngineWaitIdleFull(CS);
 
-	    CS->Clean = RHD_CS_CLEAN_QUEUED;
+		CS->Clean = RHD_CS_CLEAN_QUEUED;
+	    }
+
+	    if (R5xx3D)
+		R5xx3D->XHas3DEngineState = FALSE;
+	} else {
+	    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+
+	    if (CS->Clean != RHD_CS_CLEAN_QUEUED) {
+		R6xxCacheFlush(CS);
+		R6xxEngineWaitIdleFull(CS);
+
+		CS->Clean = RHD_CS_CLEAN_QUEUED;
+	    }
+
+	    if (accel_state)
+		accel_state->XHas3DEngineState = FALSE;
 	}
-
-	if (R5xx3D)
-	    R5xx3D->XHas3DEngineState = FALSE;
     } else {
 	/* if the engine has been untouched, we need to track this too. */
 	if (CS->Clean != RHD_CS_CLEAN_QUEUED)
@@ -417,13 +431,18 @@ static void RHDEnterServer(ScreenPtr pScreen)
 static void RHDLeaveServer(ScreenPtr pScreen)
 {
     struct RhdCS *CS = RHDPTR(xf86Screens[pScreen->myNum])->CS;
+    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     /* The CP is always running, but if we've generated any CP commands
      * we must flush them to the kernel module now. */
     if (CS->Clean == RHD_CS_CLEAN_DONE) {
-
-	R5xxDstCacheFlush(CS);
-	R5xxZCacheFlush(CS);
+	    if (rhdPtr->ChipSet >= RHD_R600) {
+		R6xxCacheFlush(CS);
+	    } else {
+		R5xxDstCacheFlush(CS);
+		R5xxZCacheFlush(CS);
+	    }
 
 	RHDCSFlush(CS); /* was a Release... */
 
@@ -1901,7 +1920,8 @@ RHDDRMCPBuffer(int scrnIndex)
 	int ret = drmDMA(Dri->drmFD, &dma);
 	if (!ret) {
 	    buf = &Dri->buffers->list[indx];
-	    /* RHDDebug(scrnIndex, "%s: index %d, addr %p\n",  __func__, buf->idx, buf->address); */
+	    //xf86DrvMsg(scrnIndex, X_INFO, "%s: index %d, addr %p\n",  __func__, buf->idx, buf->address);
+	    buf->used = 0;
 	    return buf;
 	} else if (ret != -16)
 	    xf86DrvMsg(scrnIndex, X_ERROR, "%s: drmDMA returned %d\n",
@@ -1968,3 +1988,16 @@ RHDDRMIndirectBufferDiscard(int scrnIndex, CARD8 *Buffer)
 	       __func__, Buffer);
 }
 
+unsigned int
+RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn)
+{
+    RHDPtr         rhdPtr  = RHDPTR(pScrn);
+    struct rhdDri *rhdDRI    = rhdPtr->dri;
+
+    RHDFUNC(rhdPtr);
+
+    if (!rhdDRI->gartLocation)
+        return NULL;
+
+    return rhdDRI->gartLocation + rhdDRI->bufStart;
+}

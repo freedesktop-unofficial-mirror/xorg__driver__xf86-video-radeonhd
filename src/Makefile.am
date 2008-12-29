@@ -84,7 +84,7 @@ nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
 
 if USE_EXA
-radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c
+radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c r6xx_accel.c r600_exa.c r600_textured_videofuncs.c
 endif
 
 if USE_DRI
