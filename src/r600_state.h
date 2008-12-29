@@ -5,6 +5,10 @@
 
 typedef int bool_t;
 
+/* seriously ?! @#$%% */
+# define uint32_t CARD32
+# define uint64_t CARD64
+
 #define CLEAR(x) memset (&x, 0, sizeof(x))
 
 /* Sequencer / thread handling */
