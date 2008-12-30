@@ -369,7 +369,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     /* Interpolator setup */
     // export pixel color from VS
-    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
@@ -782,7 +782,7 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 
     /* Interpolator setup */
     // export tex coord from VS
-    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
@@ -2424,7 +2424,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     /* Interpolator setup */
     if (pMask) {
 	// export 2 tex coords from VS
-	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (2 << VS_EXPORT_COUNT_shift));
+	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((2 - 1) << VS_EXPORT_COUNT_shift));
 	// src = semantic id 0; mask = semantic id 1
 	ereg  (accel_state->ib, SPI_VS_OUT_ID_0, ((0 << SEMANTIC_0_shift) |
 						  (1 << SEMANTIC_1_shift)));
@@ -2432,7 +2432,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0, (2 << NUM_INTERP_shift));
     } else {
 	// export 1 tex coords from VS
-	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
 	// src = semantic id 0
 	ereg  (accel_state->ib, SPI_VS_OUT_ID_0,   (0 << SEMANTIC_0_shift));
 	// input 1 tex coords from VS
