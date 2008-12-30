@@ -368,15 +368,21 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
+    // export pixel color from VS
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+    ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
+
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
-    ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (((2 - 1) << NUM_INTERP_shift)));
+    // input color from VS
+    ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (1 << NUM_INTERP_shift));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
+    // color semantic id 0 -> GPR[0]
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
-						 (0x03 << DEFAULT_VAL_shift)	|
-						 FLAT_SHADE_bit			|
-						 SEL_CENTROID_bit));
-    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                /* FLAT_SHADE_ENA_bit | */ 0);
+								  (0x03 << DEFAULT_VAL_shift)	|
+								  //FLAT_SHADE_bit		|
+								  SEL_CENTROID_bit));
+    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                /* FLAT_SHADE_ENA_bit | */0);
 
     accel_state->solid_fg = (uint32_t)fg;
 
@@ -775,15 +781,20 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
+    // export tex coord from VS
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+    ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
+
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
+    // input tex coord from VS
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 ((1 << NUM_INTERP_shift)));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
+    // color semantic id 0 -> GPR[0]
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
-									     (0x03 << DEFAULT_VAL_shift)	|
-									     //FLAT_SHADE_bit			|
-									     SEL_CENTROID_bit));
-    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                /* FLAT_SHADE_ENA_bit | */ 0);
+								  (0x01 << DEFAULT_VAL_shift)	|
+								  SEL_CENTROID_bit));
+    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                0);
 
     accel_state->vb_index = 0;
 
@@ -1631,7 +1642,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			    CF_INST(SQ_CF_INST_VTX),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-	//1
+	//1 - dst
 	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 					  TYPE(SQ_EXPORT_POS),
 					  RW_GPR(2),
@@ -1649,7 +1660,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       CF_INST(SQ_CF_INST_EXPORT_DONE),
 					       WHOLE_QUAD_MODE(0),
 					       BARRIER(1));
-	//2
+	//2 - src
 	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 					  TYPE(SQ_EXPORT_PARAM),
 					  RW_GPR(1),
@@ -1664,10 +1675,10 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       BURST_COUNT(0),
 					       END_OF_PROGRAM(0),
 					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT_DONE),
+					       CF_INST(SQ_CF_INST_EXPORT),
 					       WHOLE_QUAD_MODE(0),
 					       BARRIER(0));
-	//3
+	//3 - mask
 	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 					  TYPE(SQ_EXPORT_PARAM),
 					  RW_GPR(0),
@@ -1773,7 +1784,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			    CF_INST(SQ_CF_INST_VTX),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-	//1
+	//1 - dst
 	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 					  TYPE(SQ_EXPORT_POS),
 					  RW_GPR(1),
@@ -1791,7 +1802,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       CF_INST(SQ_CF_INST_EXPORT_DONE),
 					       WHOLE_QUAD_MODE(0),
 					       BARRIER(1));
-	//2
+	//2 - src
 	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 					  TYPE(SQ_EXPORT_PARAM),
 					  RW_GPR(0),
@@ -2133,7 +2144,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
 			     RESOURCE_ID(0),
-			     SRC_GPR(1),
+			     SRC_GPR(0),
 			     SRC_REL(ABSOLUTE),
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(1),
@@ -2160,7 +2171,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
 			     RESOURCE_ID(0),
-			     SRC_GPR(0),
+			     SRC_GPR(1),
 			     SRC_REL(ABSOLUTE),
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(0),
@@ -2238,12 +2249,12 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       BARRIER(1));
 
 
-	//2/3
+	//2/3 - src
 	ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
 			     RESOURCE_ID(0),
-			     SRC_GPR(1),
+			     SRC_GPR(0),
 			     SRC_REL(ABSOLUTE),
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(0),
@@ -2411,22 +2422,32 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
-    /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
-     * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
-    if (pMask)
-	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (((3 - 1) << NUM_INTERP_shift)));
-    else
-	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (((2 - 1) << NUM_INTERP_shift)));
+    if (pMask) {
+	// export 2 tex coords from VS
+	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (2 << VS_EXPORT_COUNT_shift));
+	// src = semantic id 0; mask = semantic id 1
+	ereg  (accel_state->ib, SPI_VS_OUT_ID_0, ((0 << SEMANTIC_0_shift) |
+						  (1 << SEMANTIC_1_shift)));
+	// input 2 tex coords from VS
+	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0, (2 << NUM_INTERP_shift));
+    } else {
+	// export 1 tex coords from VS
+	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+	// src = semantic id 0
+	ereg  (accel_state->ib, SPI_VS_OUT_ID_0,   (0 << SEMANTIC_0_shift));
+	// input 1 tex coords from VS
+	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0, (1 << NUM_INTERP_shift));
+    }
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
+    // SPI_PS_INPUT_CNTL_0 maps to GPR[0] - load with semantic id 0
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
-								  (0x03 << DEFAULT_VAL_shift)	|
-								  //FLAT_SHADE_bit			|
+								  (0x01 << DEFAULT_VAL_shift)	|
 								  SEL_CENTROID_bit));
+    // SPI_PS_INPUT_CNTL_1 maps to GPR[1] - load with semantic id 1
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (1 <<2),       ((1    << SEMANTIC_shift)	|
-								  (0x03 << DEFAULT_VAL_shift)	|
-								  //FLAT_SHADE_bit			|
+								  (0x01 << DEFAULT_VAL_shift)	|
 								  SEL_CENTROID_bit));
-    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                /* FLAT_SHADE_ENA_bit | */ 0);
+    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                0);
 
     accel_state->vb_index = 0;
 
