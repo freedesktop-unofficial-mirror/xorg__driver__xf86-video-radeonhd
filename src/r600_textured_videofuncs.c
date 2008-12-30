@@ -875,7 +875,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
-    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (1 << VS_EXPORT_COUNT_shift));
+    // export tex coords from VS
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
