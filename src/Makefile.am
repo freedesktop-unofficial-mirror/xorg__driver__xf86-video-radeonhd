@@ -23,6 +23,12 @@ radeonhd_drv_la_SOURCES = \
 	r5xx_accel.h \
 	r5xx_regs.h \
 	r5xx_xaa.c \
+	r600_reg.h \
+	r600_reg_auto_r6xx.h \
+	r600_reg_r6xx.h \
+	r600_reg_r7xx.h \
+	r600_shader.h \
+	r600_state.h \
 	radeon_3d.c \
 	radeon_textured_videofuncs.c \
 	rhd_atombios.c \
@@ -84,7 +90,9 @@ nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h
 
 if USE_EXA
-radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c r6xx_accel.c r600_exa.c r600_textured_videofuncs.c
+radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c
+radeonhd_drv_la_SOURCES += r6xx_accel.c r6xx_accel.h
+radeonhd_drv_la_SOURCES += r600_exa.c r600_textured_videofuncs.c
 endif
 
 if USE_DRI
