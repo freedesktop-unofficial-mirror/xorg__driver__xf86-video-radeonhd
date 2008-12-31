@@ -768,12 +768,12 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
     /* Shader */
     vs_conf.shader_addr         = vs_addr;
-    vs_conf.num_gprs            = 4;
+    vs_conf.num_gprs            = 2;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
     ps_conf.shader_addr         = ps_addr;
-    ps_conf.num_gprs            = 1;
+    ps_conf.num_gprs            = 3;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
     ps_conf.clamp_consts        = 0;
