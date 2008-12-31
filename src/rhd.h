@@ -241,7 +241,7 @@ typedef struct RHDRec {
     pointer             FbBase;   /* map base of fb   */
     unsigned int        FbPhysAddress; /* card PCI BAR address of FB */
     unsigned int        FbIntAddress; /* card internal address of FB */
-    unsigned int        FbIntSize; /* card internal FB aperture size */
+    CARD32              FbIntSize; /* card internal FB aperture size */
     unsigned int        FbPCIAddress; /* physical address of FB */
 
     Bool		directRenderingEnabled;
