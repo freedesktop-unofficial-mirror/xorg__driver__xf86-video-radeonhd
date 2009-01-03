@@ -494,9 +494,9 @@ rhdRRCrtcGammaSet(xf86CrtcPtr crtc, CARD16 *red, CARD16 *green, CARD16 *blue,
     /* thanks so very much */
     for (i = 0; i < size; i++) {
 	indices[i] = i;
-	colors[i].red = red[i];
-	colors[i].green = green[i];
-	colors[i].blue = blue[i];
+	colors[i].red = red[i] >> 6;
+	colors[i].green = green[i] >> 6;
+	colors[i].blue = blue[i] >> 6;
     }
 
     rhdCrtc->LUT->Set(rhdCrtc->LUT, size, indices, colors);

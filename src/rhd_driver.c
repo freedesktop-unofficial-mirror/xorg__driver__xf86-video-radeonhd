@@ -1215,7 +1215,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     if(!miCreateDefColormap(pScreen))
 	return FALSE;
     /* fixme */
-    if (!xf86HandleColormaps(pScreen, 256, pScrn->rgbBits,
+    /* Support 10-bits of precision in LUT */
+    if (!xf86HandleColormaps(pScreen, 256, 10,
                          RHDLoadPalette, NULL,
                          CMAP_PALETTED_TRUECOLOR | CMAP_RELOAD_ON_MODE_SWITCH))
 	return FALSE;

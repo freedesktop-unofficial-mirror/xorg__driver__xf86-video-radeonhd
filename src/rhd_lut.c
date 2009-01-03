@@ -158,8 +158,8 @@ LUTxSet(struct rhdLUT *LUT, int numColors, int *indices, LOCO *colors)
 	for (i = 0; i < numColors; i++) {
 	    index = indices[i];
 	    RHDRegWrite(LUT, DC_LUT_RW_INDEX, index);
-	    RHDRegWrite(LUT, DC_LUT_30_COLOR, (colors[index].red << 22) |
-			(colors[index].green << 12) | (colors[index].blue << 2));
+	    RHDRegWrite(LUT, DC_LUT_30_COLOR, (colors[index].red << 20) |
+			(colors[index].green << 10) | (colors[index].blue));
 	}
 	break;
     case 16:
@@ -333,9 +333,9 @@ RHDLUTCopyForRR(struct rhdLUT *LUT)
 
 	    entry = RHDRegRead(LUT, DC_LUT_30_COLOR);
 
-	    colors[i].red = (entry >> 22) & 0xFF;
-	    colors[i].green = (entry >> 12) & 0xFF;
-	    colors[i].blue = (entry >> 2) & 0xFF;
+	    colors[i].red = (entry >> 20) & 0x3FF;
+	    colors[i].green = (entry >> 10) & 0x3FF;
+	    colors[i].blue = (entry) & 0x3FF;
 	}
 	LUT->Set(LUT, 0x100, indices, colors);
 	break;
