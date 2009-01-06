@@ -3008,6 +3008,9 @@ rhdGetCardType(RHDPtr rhdPtr)
 {
     CARD32 cmd_stat;
 
+    if (rhdPtr->ChipSet == RHD_RS780)
+	return RHD_CARD_PCIE;
+
 #ifdef XSERVER_LIBPCIACCESS
     pci_device_cfg_read_u32(rhdPtr->PciInfo, &cmd_stat, PCI_CMD_STAT_REG);
 #else
