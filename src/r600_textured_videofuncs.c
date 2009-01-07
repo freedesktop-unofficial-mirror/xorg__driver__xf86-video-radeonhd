@@ -781,7 +781,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     ps_setup                    (pScrn, accel_state->ib, &ps_conf);
 
     // PS alu constants
-    set_alu_consts(pScrn, accel_state->ib, 0x3e0 >> 2, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
+    set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
 
     /* Texture */
     // Y texture
