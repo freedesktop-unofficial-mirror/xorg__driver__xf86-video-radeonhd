@@ -611,11 +611,12 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
 	    if (id == FOURCC_YV12) {
 		if (rhdPtr->ChipSet >= RHD_R600) {
+		    pPriv->BufferPitch = ALIGN(width, 64);
 		    // Y plane
 		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
 				     pPriv->BufferPitch, height);
 		    // UV plane
-		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + s2offset, srcPitch,
+		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + (pPriv->BufferPitch * height), srcPitch,
 				     pPriv->BufferPitch, height >> 1);
 #if 0
 		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s2offset,
@@ -635,11 +636,12 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 				     height, width);
 	    } else {
 		if (rhdPtr->ChipSet >= RHD_R600) {
+		    pPriv->BufferPitch = ALIGN(width, 64);
 		    // Y plane
 		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
 				     pPriv->BufferPitch, height);
 		    // UV plane
-		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + s2offset, srcPitch,
+		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + (pPriv->BufferPitch * height), srcPitch,
 				     pPriv->BufferPitch, height >> 1);
 #if 0
 		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s3offset,
