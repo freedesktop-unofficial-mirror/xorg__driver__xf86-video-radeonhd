@@ -256,8 +256,8 @@ the panel resolution.
 .TP
 .B center
 means not to scale but center the image on the panel i.e. apply a black frame
-around the image on the panel in case the panel resolution is lower than the
-one of the external display.
+around the image on the panel if the resolution of the external display is
+lower than the panel resolution.
 .TP
 .B scale
 means to always scale to the resolution of the external display filling
