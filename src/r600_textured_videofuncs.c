@@ -728,7 +728,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     CLEAR (vtx_res);
 
     dst_pitch = exaGetPixmapPitch(pPixmap) / (pPixmap->drawable.bitsPerPixel / 8);
-    src_pitch = pPriv->BufferPitch / 2;
+    src_pitch = pPriv->BufferPitch;
 
     // bad pitch
     if (src_pitch & 63)
