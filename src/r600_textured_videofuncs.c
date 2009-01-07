@@ -773,7 +773,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
     ps_conf.shader_addr         = ps_addr;
-    ps_conf.num_gprs            = 3;
+    ps_conf.num_gprs            = 4;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
     ps_conf.clamp_consts        = 0;
@@ -796,9 +796,9 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
     tex_res.format              = FMT_8;
     tex_res.dst_sel_x           = SQ_SEL_X;
-    tex_res.dst_sel_y           = SQ_SEL_Y;
-    tex_res.dst_sel_z           = SQ_SEL_Z;
-    tex_res.dst_sel_w           = SQ_SEL_W;
+    tex_res.dst_sel_y           = SQ_SEL_0;
+    tex_res.dst_sel_z           = SQ_SEL_0;
+    tex_res.dst_sel_w           = SQ_SEL_0;
 
     tex_res.request_size        = 1;
     tex_res.base_level          = 0;
@@ -814,8 +814,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     tex_res.pitch               = src_pitch;
     tex_res.dst_sel_x           = SQ_SEL_X;
     tex_res.dst_sel_y           = SQ_SEL_Y;
-    tex_res.dst_sel_z           = SQ_SEL_Z;
-    tex_res.dst_sel_w           = SQ_SEL_W;
+    tex_res.dst_sel_z           = SQ_SEL_0;
+    tex_res.dst_sel_w           = SQ_SEL_0;
     tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
     tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
