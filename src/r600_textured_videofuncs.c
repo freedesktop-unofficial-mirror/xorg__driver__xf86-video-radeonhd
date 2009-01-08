@@ -787,8 +787,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     // Y texture
     tex_res.id                  = 0;
     tex_res.w                   = pPriv->w;
-    tex_res.h                   = pPriv->h;
-    tex_res.pitch               = src_pitch;
+    tex_res.h                   = pPriv->h >> 1;
+    tex_res.pitch               = src_pitch * 2;
     tex_res.depth               = 0;
     tex_res.dim                 = SQ_TEX_DIM_2D;
     tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress;
@@ -804,18 +804,21 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     tex_res.base_level          = 0;
     tex_res.last_level          = 0;
     tex_res.perf_modulation     = 0;
+    tex_res.interlaced          = 0;
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     // UV texture
     tex_res.id                  = 1;
     tex_res.format              = FMT_8_8;
     tex_res.w                   = pPriv->w >> 1;
-    tex_res.h                   = pPriv->h >> 1;
+    tex_res.h                   = pPriv->h >> 2;
     tex_res.pitch               = src_pitch;
     tex_res.dst_sel_x           = SQ_SEL_X;
     tex_res.dst_sel_y           = SQ_SEL_Y;
     tex_res.dst_sel_z           = SQ_SEL_0;
     tex_res.dst_sel_w           = SQ_SEL_0;
+    tex_res.interlaced          = 0;
+    // XXX tex bases need to be 256B aligned
     tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
     tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);

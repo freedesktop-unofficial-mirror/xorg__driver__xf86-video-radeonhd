@@ -516,6 +516,43 @@ R5xxXvCopyPlanar(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 #endif
 }
 
+static void
+CopyPlanartoNV12(unsigned char *y_src, unsigned char *u_src, unsigned char *v_src,
+		 unsigned char *dst,
+		 int srcPitch, int srcPitch2, int dstPitch,
+		 int w, int h)
+{
+    int i, j;
+#if 1
+    /* Y */
+    if (srcPitch == dstPitch) {
+        memcpy(dst, y_src, srcPitch * h);
+	dst += (dstPitch * h);
+    } else {
+	for (i = 0; i < h; i++) {
+            memcpy(dst, y_src, srcPitch);
+            y_src += srcPitch;
+            dst += dstPitch;
+        }
+    }
+#endif
+    /* UV */
+    for (i = 0; i < (h >> 1); i++) {
+	unsigned char *u = u_src;
+	unsigned char *v = v_src;
+	unsigned char *uv = dst;
+
+	for (j = 0; j < srcPitch2; j++) {
+	    uv[0] = u[j];
+	    uv[1] = v[j];
+	    uv += 2;
+	}
+	dst += dstPitch;
+	u_src += srcPitch2;
+	v_src += srcPitch2;
+    }
+}
+
 /*
  *
  */
@@ -595,6 +632,11 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	return BadAlloc;
     }
 
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	pPriv->BufferPitch = ALIGN(width, 64);
+	pPriv->BufferOffset = (pPriv->BufferOffset + 255) & ~255;
+    }
+
     /*
      * Now copy the buffer to the framebuffer, and convert to planar when necessary.
      */
@@ -611,19 +653,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
 	    if (id == FOURCC_YV12) {
 		if (rhdPtr->ChipSet >= RHD_R600) {
-		    pPriv->BufferPitch = ALIGN(width, 64);
-		    // Y plane
-		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
-				     pPriv->BufferPitch, height);
-		    // UV plane
-		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + (pPriv->BufferPitch * height), srcPitch,
-				     pPriv->BufferPitch, height >> 1);
-#if 0
-		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s2offset,
-				     buf + s3offset, FBBuf, srcPitch,
-				     srcPitch2, pPriv->BufferPitch,
-				     height, width);
-#endif
+		    CopyPlanartoNV12(buf, buf + s3offset, buf + s2offset,
+				     FBBuf,
+				     srcPitch, srcPitch2, pPriv->BufferPitch,
+				     width, height);
 		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s2offset,
 					buf + s3offset, FBBuf, srcPitch,
@@ -636,19 +669,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 				     height, width);
 	    } else {
 		if (rhdPtr->ChipSet >= RHD_R600) {
-		    pPriv->BufferPitch = ALIGN(width, 64);
-		    // Y plane
-		    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, srcPitch,
-				     pPriv->BufferPitch, height);
-		    // UV plane
-		    R5xxXvCopyPacked(rhdPtr, buf + s2offset, FBBuf + (pPriv->BufferPitch * height), srcPitch,
-				     pPriv->BufferPitch, height >> 1);
-#if 0
-		    R5xxXvCopyPlanar(rhdPtr, buf, buf + s3offset,
-				     buf + s2offset, FBBuf, srcPitch,
-				     srcPitch2, pPriv->BufferPitch,
-				     height, width);
-#endif
+		    CopyPlanartoNV12(buf, buf + s2offset, buf + s3offset,
+				     FBBuf,
+				     srcPitch, srcPitch2, pPriv->BufferPitch,
+				     width, height);
 		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s3offset,
 					buf + s2offset, FBBuf, srcPitch,
