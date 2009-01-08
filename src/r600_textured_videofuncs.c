@@ -75,9 +75,9 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     uint64_t vb_addr;
 
     static float ps_alu_consts[] = {
-	    1.0,  0.0,      1.13983, 0.0, // r - c[0]
-	    1.0, -0.39465, -0.5806,  0.0, // g - c[1]
-	    1.0,  2.03211,  0.0,     0.0, // b - c[2]
+	1.0,  0.0,      1.13983,  -1.13983/2, // r - c[0]
+	1.0, -0.39465, -0.5806,  (0.39465+0.5806)/2, // g - c[1]
+	1.0,  2.03211,  0.0,     -2.03211/2, // b - c[2]
     };
 
     //0
@@ -675,7 +675,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			 DST_SEL_X(SQ_SEL_X),
 			 DST_SEL_Y(SQ_SEL_MASK),
 			 DST_SEL_Z(SQ_SEL_MASK),
-			 DST_SEL_W(SQ_SEL_W),
+			 DST_SEL_W(SQ_SEL_1),
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -701,8 +701,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
 			 DST_SEL_X(SQ_SEL_MASK),
-			 DST_SEL_Y(SQ_SEL_Y),
-			 DST_SEL_Z(SQ_SEL_Z),
+			 DST_SEL_Y(SQ_SEL_X),
+			 DST_SEL_Z(SQ_SEL_Y),
 			 DST_SEL_W(SQ_SEL_MASK),
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
@@ -866,7 +866,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	return;
     }
 
-    cb_conf.comp_swap = 0;
+    cb_conf.comp_swap = 1;
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
