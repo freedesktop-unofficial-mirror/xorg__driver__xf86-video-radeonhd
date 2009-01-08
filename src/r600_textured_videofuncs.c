@@ -73,6 +73,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     draw_config_t   draw_conf;
     vtx_resource_t  vtx_res;
     uint64_t vb_addr;
+    int uv_offset;
 
     static float ps_alu_consts[] = {
 	1.0,  0.0,      1.13983,  -1.13983/2, // r - c[0]
@@ -787,8 +788,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     // Y texture
     tex_res.id                  = 0;
     tex_res.w                   = pPriv->w;
-    tex_res.h                   = pPriv->h >> 1;
-    tex_res.pitch               = src_pitch * 2;
+    tex_res.h                   = pPriv->h;
+    tex_res.pitch               = src_pitch;
     tex_res.depth               = 0;
     tex_res.dim                 = SQ_TEX_DIM_2D;
     tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress;
@@ -808,19 +809,22 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     // UV texture
+    uv_offset = src_pitch * pPriv->h;
+    uv_offset = (uv_offset + 255) & ~255;
+
     tex_res.id                  = 1;
     tex_res.format              = FMT_8_8;
     tex_res.w                   = pPriv->w >> 1;
-    tex_res.h                   = pPriv->h >> 2;
-    tex_res.pitch               = src_pitch;
+    tex_res.h                   = pPriv->h >> 1;
+    tex_res.pitch               = src_pitch >> 1;
     tex_res.dst_sel_x           = SQ_SEL_X;
     tex_res.dst_sel_y           = SQ_SEL_Y;
     tex_res.dst_sel_z           = SQ_SEL_0;
     tex_res.dst_sel_w           = SQ_SEL_0;
     tex_res.interlaced          = 0;
     // XXX tex bases need to be 256B aligned
-    tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
-    tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress + (src_pitch * pPriv->h);
+    tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + uv_offset;
+    tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress + uv_offset;
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     // Y sampler
