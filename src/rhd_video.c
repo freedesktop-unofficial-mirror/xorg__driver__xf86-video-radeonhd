@@ -523,7 +523,7 @@ CopyPlanartoNV12(unsigned char *y_src, unsigned char *u_src, unsigned char *v_sr
 		 int w, int h)
 {
     int i, j;
-#if 1
+
     /* Y */
     if (srcPitch == dstPitch) {
         memcpy(dst, y_src, srcPitch * h);
@@ -535,7 +535,11 @@ CopyPlanartoNV12(unsigned char *y_src, unsigned char *u_src, unsigned char *v_sr
             dst += dstPitch;
         }
     }
-#endif
+
+    /* tex base need 256B alignment */
+    if (h & 1)
+	dst += dstPitch;
+
     /* UV */
     for (i = 0; i < (h >> 1); i++) {
 	unsigned char *u = u_src;
@@ -606,7 +610,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 
     pPriv->pDraw = pDraw;
 
-    pPriv->BufferPitch = ALIGN(2 * width, 64);
+    if (rhdPtr->ChipSet >= RHD_R600)
+	pPriv->BufferPitch = ALIGN(2 * width, 128);
+    else
+	pPriv->BufferPitch = ALIGN(2 * width, 64);
 
     /*
      * Now, find out whether we have enough memory available.
@@ -633,7 +640,7 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     }
 
     if (rhdPtr->ChipSet >= RHD_R600) {
-	pPriv->BufferPitch = ALIGN(width, 64);
+	pPriv->BufferPitch = ALIGN(width, 128);
 	pPriv->BufferOffset = (pPriv->BufferOffset + 255) & ~255;
     }
 
