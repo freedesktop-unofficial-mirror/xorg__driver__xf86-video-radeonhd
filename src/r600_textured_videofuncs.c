@@ -870,7 +870,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	return;
     }
 
-    cb_conf.comp_swap = 1;
+    cb_conf.comp_swap = 0;
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
