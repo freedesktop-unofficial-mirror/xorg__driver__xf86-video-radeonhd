@@ -380,9 +380,9 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     // color semantic id 0 -> GPR[0]
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
 								  (0x03 << DEFAULT_VAL_shift)	|
-								  //FLAT_SHADE_bit		|
+								  FLAT_SHADE_bit		|
 								  SEL_CENTROID_bit));
-    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                /* FLAT_SHADE_ENA_bit | */0);
+    ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                FLAT_SHADE_ENA_bit | 0);
 
     accel_state->solid_fg = (uint32_t)fg;
 
