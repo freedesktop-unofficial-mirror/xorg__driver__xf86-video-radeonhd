@@ -126,7 +126,7 @@ inline void ereg (drmBufPtr ib, uint32_t reg, uint32_t val)
 /* Flush the indirect buffer to the kernel for submission to the card */
 void R600CPFlushIndirect(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
     drmBufPtr          buffer = ib;
     int                start  = 0;
     drm_radeon_indirect_t  indirect;
@@ -156,7 +156,7 @@ void R600CPFlushIndirect(ScrnInfoPtr pScrn, drmBufPtr ib)
 void
 wait_3d_idle_clean(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     //flush caches, don't generate timestamp
     pack3 (ib, IT_EVENT_WRITE, 1);
@@ -168,7 +168,7 @@ wait_3d_idle_clean(ScrnInfoPtr pScrn, drmBufPtr ib)
 void
 wait_3d_idle(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, WAIT_UNTIL,                          WAIT_3D_IDLE_bit);
 
@@ -178,7 +178,7 @@ static void
 reset_cb(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
     int i;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     pack0 (ib, CB_COLOR0_INFO, 8);
     for (i = 0; i < 8; i++)
@@ -189,7 +189,7 @@ static void
 reset_td_samplers(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
     int i;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     wait_3d_idle(pScrn, ib);
 
@@ -207,7 +207,7 @@ static void
 reset_sampler_const (ScrnInfoPtr pScrn, drmBufPtr ib)
 {
     int i;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     for (i = 0; i < SQ_TEX_SAMPLER_WORD_all_num; i++) {
 	pack0 (ib, SQ_TEX_SAMPLER_WORD + i * SQ_TEX_SAMPLER_WORD_offset, 3);
@@ -221,7 +221,7 @@ static void
 reset_dx9_alu_consts(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
     int i;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     const int count = SQ_ALU_CONSTANT_all_num * (SQ_ALU_CONSTANT_offset >> 2);
 
@@ -234,7 +234,7 @@ static void
 reset_bool_loop_const(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
     int i;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     for (i = 0; i < SQ_BOOL_CONST_0_num; i++)
 	ereg (ib, SQ_BOOL_CONST_0 + (i << 2), 0);
@@ -377,7 +377,7 @@ set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf)
 void
 cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, CP_COHER_CNTL,                       0x19800000);
     ereg  (ib, CP_COHER_SIZE,                       0xFFFFFFFF);
@@ -399,7 +399,7 @@ void
 fs_setup(ScrnInfoPtr pScrn, drmBufPtr ib, shader_config_t *fs_conf)
 {
     uint32_t sq_pgm_resources;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_pgm_resources = ((fs_conf->num_gprs << NUM_GPRS_shift) |
 			(fs_conf->stack_size << STACK_SIZE_shift));
@@ -416,7 +416,7 @@ void
 vs_setup(ScrnInfoPtr pScrn, drmBufPtr ib, shader_config_t *vs_conf)
 {
     uint32_t sq_pgm_resources;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_pgm_resources = ((vs_conf->num_gprs << NUM_GPRS_shift) |
 			(vs_conf->stack_size << STACK_SIZE_shift));
@@ -437,7 +437,7 @@ void
 ps_setup(ScrnInfoPtr pScrn, drmBufPtr ib, shader_config_t *ps_conf)
 {
     uint32_t sq_pgm_resources;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_pgm_resources = ((ps_conf->num_gprs << NUM_GPRS_shift) |
 			(ps_conf->stack_size << STACK_SIZE_shift));
@@ -462,7 +462,7 @@ set_alu_consts(ScrnInfoPtr pScrn, drmBufPtr ib, int offset, int count, float *co
 {
     int i;
     const int countreg = count * (SQ_ALU_CONSTANT_offset >> 2);
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     pack0 (ib, SQ_ALU_CONSTANT + offset * SQ_ALU_CONSTANT_offset, countreg);
     for (i = 0; i < countreg; i++)
@@ -473,7 +473,7 @@ void
 set_vtx_resource(ScrnInfoPtr pScrn, drmBufPtr ib, vtx_resource_t *res)
 {
     uint32_t sq_vtx_constant_word2;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_vtx_constant_word2 = ((((res->vb_addr) >> 32) & BASE_ADDRESS_HI_mask) |
 			     ((res->vtx_size_dw << 2) << SQ_VTX_CONSTANT_WORD2_0__STRIDE_shift) |
@@ -504,7 +504,7 @@ set_tex_resource(ScrnInfoPtr pScrn, drmBufPtr ib, tex_resource_t *tex_res)
 {
     uint32_t sq_tex_resource_word0, sq_tex_resource_word1, sq_tex_resource_word4;
     uint32_t sq_tex_resource_word5, sq_tex_resource_word6;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_tex_resource_word0 = ((tex_res->dim << DIM_shift) |
 			     (tex_res->tile_mode << SQ_TEX_RESOURCE_WORD0_0__TILE_MODE_shift));
@@ -566,7 +566,7 @@ void
 set_tex_sampler (ScrnInfoPtr pScrn, drmBufPtr ib, tex_sampler_t *s)
 {
     uint32_t sq_tex_sampler_word0, sq_tex_sampler_word1, sq_tex_sampler_word2;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     sq_tex_sampler_word0 = ((s->clamp_x       << SQ_TEX_SAMPLER_WORD0_0__CLAMP_X_shift)		|
 			    (s->clamp_y       << CLAMP_Y_shift)					|
@@ -615,7 +615,7 @@ set_tex_sampler (ScrnInfoPtr pScrn, drmBufPtr ib, tex_sampler_t *s)
 void
 set_screen_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, PA_SC_SCREEN_SCISSOR_TL,              ((x1 << PA_SC_SCREEN_SCISSOR_TL__TL_X_shift) |
 						  (y1 << PA_SC_SCREEN_SCISSOR_TL__TL_Y_shift)));
@@ -626,7 +626,7 @@ set_screen_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int 
 void
 set_vport_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int id, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, PA_SC_VPORT_SCISSOR_0_TL +
 	   id * PA_SC_VPORT_SCISSOR_0_TL_offset, ((x1 << PA_SC_VPORT_SCISSOR_0_TL__TL_X_shift) |
@@ -640,7 +640,7 @@ set_vport_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int id, int x1, int y1, int x
 void
 set_generic_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, PA_SC_GENERIC_SCISSOR_TL,            ((x1 << PA_SC_GENERIC_SCISSOR_TL__TL_X_shift) |
 						 (y1 << PA_SC_GENERIC_SCISSOR_TL__TL_Y_shift) |
@@ -652,7 +652,7 @@ set_generic_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int
 void
 set_window_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, PA_SC_WINDOW_SCISSOR_TL,             ((x1 << PA_SC_WINDOW_SCISSOR_TL__TL_X_shift) |
 						 (y1 << PA_SC_WINDOW_SCISSOR_TL__TL_Y_shift) |
@@ -664,7 +664,7 @@ set_window_scissor(ScrnInfoPtr pScrn, drmBufPtr ib, int x1, int y1, int x2, int 
 void
 set_clip_rect(ScrnInfoPtr pScrn, drmBufPtr ib, int id, int x1, int y1, int x2, int y2)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, PA_SC_CLIPRECT_0_TL +
 	   id * PA_SC_CLIPRECT_0_TL_offset,     ((x1 << PA_SC_CLIPRECT_0_TL__TL_X_shift) |
@@ -685,7 +685,7 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     shader_config_t fs_conf;
     sq_config_t sq_conf;
     int i;
-    uint32_t reg;
+//    uint32_t reg;
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
 
@@ -1018,7 +1018,7 @@ void
 draw_immd(ScrnInfoPtr pScrn, drmBufPtr ib, draw_config_t *draw_conf, uint32_t *indices)
 {
     uint32_t i, count;
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, VGT_PRIMITIVE_TYPE, draw_conf->prim_type);
     pack3 (ib, IT_INDEX_TYPE, 1);
@@ -1053,7 +1053,7 @@ draw_immd(ScrnInfoPtr pScrn, drmBufPtr ib, draw_config_t *draw_conf, uint32_t *i
 void
 draw_auto(ScrnInfoPtr pScrn, drmBufPtr ib, draw_config_t *draw_conf)
 {
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
 
     ereg  (ib, VGT_PRIMITIVE_TYPE, draw_conf->prim_type);
     pack3 (ib, IT_INDEX_TYPE, 1);

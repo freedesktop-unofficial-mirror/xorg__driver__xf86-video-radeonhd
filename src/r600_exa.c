@@ -403,7 +403,7 @@ R600Solid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     struct r6xx_solid_vertex vertex[3];
-    struct r6xx_solid_vertex *solid_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+    struct r6xx_solid_vertex *solid_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
     vertex[0].x = (float)x1;
     vertex[0].y = (float)y1;
@@ -856,7 +856,7 @@ R600AppendCopyVertex(ScrnInfoPtr pScrn,
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    struct r6xx_copy_vertex *copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+    struct r6xx_copy_vertex *copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
     struct r6xx_copy_vertex vertex[3];
 
     vertex[0].x = (float)dstX;
@@ -991,7 +991,7 @@ R600OverlapCopy(PixmapPtr pDst,
 				      dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
 				      accel_state->rop, accel_state->planemask);
 
-		    copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+		    copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
 		    vertex[0].x = (float)(dstX + i - 1);
 		    vertex[0].y = (float)dstY;
@@ -1030,7 +1030,7 @@ R600OverlapCopy(PixmapPtr pDst,
 				      dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
 				      accel_state->rop, accel_state->planemask);
 
-		    copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+		    copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
 		    vertex[0].x = (float)(dstX + i);
 		    vertex[0].y = (float)(dstY);
@@ -1071,7 +1071,7 @@ R600OverlapCopy(PixmapPtr pDst,
 				      dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
 				      accel_state->rop, accel_state->planemask);
 
-		    copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+		    copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
 		    vertex[0].x = (float)dstX;
 		    vertex[0].y = (float)(dstY + i);
@@ -1110,7 +1110,7 @@ R600OverlapCopy(PixmapPtr pDst,
 				      dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
 				      accel_state->rop, accel_state->planemask);
 
-		    copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+		    copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
 		    vertex[0].x = (float)dstX;
 		    vertex[0].y = (float)(dstY + i - 1);
@@ -1149,7 +1149,7 @@ R600OverlapCopy(PixmapPtr pDst,
 			  dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
 			  accel_state->rop, accel_state->planemask);
 
-	copy_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+	copy_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 
 	vertex[0].x = (float)dstX;
 	vertex[0].y = (float)dstY;
@@ -1353,7 +1353,7 @@ static Bool R600CheckCompositeTexture(PicturePtr pPict,
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i;
+    unsigned int i;
     int max_tex_w, max_tex_h;
 
     max_tex_w = 8192;
@@ -1403,7 +1403,7 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
-    int i;
+    unsigned int i;
     tex_resource_t  tex_res;
     tex_sampler_t   tex_samp;
 
@@ -1534,14 +1534,14 @@ static Bool R600CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 			       PicturePtr pDstPicture)
 {
     uint32_t tmp1;
-    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+//    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
     PixmapPtr pSrcPixmap, pDstPixmap;
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+//    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
     int max_tex_w, max_tex_h, max_dst_w, max_dst_h;
 
     /* Check for unsupported compositing operations. */
-    if (op >= sizeof(R600BlendOp) / sizeof(R600BlendOp[0]))
+    if (op >= (int) (sizeof(R600BlendOp) / sizeof(R600BlendOp[0])))
 	RADEON_FALLBACK(("Unsupported Composite op 0x%x\n", op));
 
     pSrcPixmap = RADEONGetDrawablePixmap(pSrcPicture->pDrawable);
@@ -1612,8 +1612,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     uint32_t blendcntl, dst_format;
-    int src_color, src_alpha;
-    int mask_color, mask_alpha;
+//    int src_color, src_alpha;
+//    int mask_color, mask_alpha;
     uint32_t src_pitch, dst_pitch, src_offset, dst_offset;
     cb_config_t cb_conf;
     shader_config_t vs_conf, ps_conf;
@@ -2463,7 +2463,7 @@ static void R600Composite(PixmapPtr pDst,
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    struct r6xx_comp_vertex *comp_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+    struct r6xx_comp_vertex *comp_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
     struct r6xx_comp_vertex vertex[3];
     xPointFixed srcTopLeft, srcTopRight, srcBottomLeft, srcBottomRight;
     xPointFixed maskTopLeft, maskTopRight, maskBottomLeft, maskBottomRight;
@@ -2615,8 +2615,8 @@ R600UploadToScreen(PixmapPtr pDst, int x, int y, int w, int h,
 {
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    uint8_t *dst = rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pDst);
+//    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+    uint8_t *dst = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pDst));
     int dst_pitch = exaGetPixmapPitch(pDst);
     int bpp = pDst->drawable.bitsPerPixel;
 
@@ -2641,8 +2641,8 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 {
     ScrnInfoPtr pScrn = xf86Screens[pSrc->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    uint8_t *src = rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc);
+//    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+    uint8_t *src = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc));
     int	src_pitch = exaGetPixmapPitch(pSrc);
     int	bpp = pSrc->drawable.bitsPerPixel;
 
@@ -2690,13 +2690,13 @@ R6xxEXADestroy(ScrnInfoPtr pScrn)
 void
 R6xxCacheFlush(struct RhdCS *CS)
 {
-    // nop
+    CS = CS; // nop - avoid compiler warning
 }
 
 void
 R6xxEngineWaitIdleFull(struct RhdCS *CS)
 {
-    //nop
+    CS = CS; // nop - avoid compiler warning
 }
 
 static int

@@ -2002,7 +2002,7 @@ RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn)
     RHDFUNC(rhdPtr);
 
     if (!rhdDRI->gartLocation)
-        return NULL;
+        return 0;
 
     return rhdDRI->gartLocation + rhdDRI->bufStart;
 }

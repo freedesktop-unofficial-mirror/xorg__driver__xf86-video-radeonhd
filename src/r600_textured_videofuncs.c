@@ -901,7 +901,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     while (nBox--) {
 	int srcX, srcY, srcw, srch;
 	int dstX, dstY, dstw, dsth;
-	struct r6xx_copy_vertex *xv_vb = (pointer)(char*)accel_state->ib->address + (accel_state->ib->total / 2);
+	struct r6xx_copy_vertex *xv_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 	struct r6xx_copy_vertex vertex[3];
 
 	dstX = pBox->x1 + dstxoff;
