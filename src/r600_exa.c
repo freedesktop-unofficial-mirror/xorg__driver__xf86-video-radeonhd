@@ -2736,7 +2736,7 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     RHDFUNC(pScrn);
 
     EXAInfo = exaDriverAlloc();
-    if (EXAInfo == NULL)
+    if (EXAInfo == NULL || !CS)
 	return FALSE;
 
     accel_state = xnfcalloc(1, sizeof(struct r6xx_accel_state));
