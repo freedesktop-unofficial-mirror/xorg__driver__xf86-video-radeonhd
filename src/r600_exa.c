@@ -479,7 +479,7 @@ R600DoneSolid(PixmapPtr pPix)
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
 
-static Bool
+static void
 R600DoPrepareCopy(ScrnInfoPtr pScrn,
 		  int src_pitch, int src_width, int src_height, uint32_t src_offset, int src_bpp,
 		  int dst_pitch, int dst_height, uint32_t dst_offset, int dst_bpp,
