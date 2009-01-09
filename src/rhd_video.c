@@ -896,7 +896,7 @@ RHDInitVideo(ScreenPtr pScreen)
     memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
     adaptors = newAdaptors;
 
-    if (rhdPtr->TwoDPrivate &&
+    if (rhdPtr->TwoDPrivate && rhdPtr->CS &&
 	((rhdPtr->CS->Type == RHD_CS_CP) ||
 	 (rhdPtr->CS->Type == RHD_CS_CPDMA))) {
 
