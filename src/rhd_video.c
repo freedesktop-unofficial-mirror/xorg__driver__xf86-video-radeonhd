@@ -546,14 +546,49 @@ CopyPlanartoNV12(unsigned char *y_src, unsigned char *u_src, unsigned char *v_sr
 	unsigned char *v = v_src;
 	unsigned char *uv = dst;
 
-	for (j = 0; j < srcPitch2; j++) {
-	    uv[0] = u[j];
-	    uv[1] = v[j];
+	for (j = 0; j < w; j++) {
+	    uv[0] = v[j];
+	    uv[1] = u[j];
 	    uv += 2;
 	}
 	dst += dstPitch;
 	u_src += srcPitch2;
 	v_src += srcPitch2;
+    }
+}
+
+static void
+CopyPackedtoNV12(unsigned char *src, unsigned char *dst,
+		 int srcPitch, int dstPitch,
+		 int w, int h, int id)
+{
+    int i, j;
+    int uv_offset = dstPitch * h;
+    uv_offset = (uv_offset + 255) & ~255;
+
+    // FOURCC_UYVY: U0 Y0 V0 Y1
+    // FOURCC_YUY2: Y0 U0 Y1 V0
+    for (i = 0; i < h; i++) {
+	unsigned char *y = dst;
+	unsigned char *uv = (unsigned char *)dst + uv_offset;
+
+	for (j = 0; j < (w / 2); j++) {
+	    if (id == FOURCC_UYVY) {
+		uv[1] = src[(j * 4) + 0];
+		y[0]  = src[(j * 4) + 1];
+		uv[0] = src[(j * 4) + 2];
+		y[1]  = src[(j * 4) + 3];
+	    } else {
+		y[0]  = src[(j * 4) + 0];
+		uv[1] = src[(j * 4) + 1];
+		y[1]  = src[(j * 4) + 2];
+		uv[0] = src[(j * 4) + 3];
+	    }
+	    y += 2;
+	    uv += 2;
+	}
+	dst += dstPitch;
+	src += srcPitch;
     }
 }
 
@@ -696,10 +731,11 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
-	if (rhdPtr->ChipSet >= RHD_R600)
-	    R5xxXvCopyPacked(rhdPtr, buf, FBBuf, 2 * width,
-			     pPriv->BufferPitch, height);
-	else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
+	if (rhdPtr->ChipSet >= RHD_R600) {
+	    CopyPackedtoNV12(buf, FBBuf,
+			     2 * width, pPriv->BufferPitch,
+			     width, height, id);
+	} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 	    R5xxXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width,
 				pPriv->BufferPitch, height);
 	else
