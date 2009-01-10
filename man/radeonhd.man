@@ -651,7 +651,7 @@ on the xrandr(__appmansuffix__) command line.
 .\"
 .\"
 .SH SEE ALSO
-__xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), xorgconfig(__appmansuffix__), Xserver(__appmansuffix__), X(__miscmansuffix__)
+__xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), Xserver(__appmansuffix__), X(__miscmansuffix__)
 .IP " 1." 4
 The official radeonhd wiki
 .RS 4
