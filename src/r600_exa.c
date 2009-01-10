@@ -1624,11 +1624,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     //return FALSE;
 
-    // no mask for now
-    // XXX: FIX ME
-    if (pMask)
-	RADEON_FALLBACK(("Mask!\n"));
-
     if (pMask) {
 	//0
 	vs[i++] = CF_DWORD0(ADDR(4));
@@ -2147,7 +2142,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_GPR(0),
 			     SRC_REL(ABSOLUTE),
 			     R7xx_ALT_CONST(0));
-	ps[i++] = TEX_DWORD1(DST_GPR(1),
+	ps[i++] = TEX_DWORD1(DST_GPR(0),
 			     DST_REL(ABSOLUTE),
 			     DST_SEL_X(src_a),
 			     DST_SEL_Y(src_r),
@@ -2174,7 +2169,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_GPR(1),
 			     SRC_REL(ABSOLUTE),
 			     R7xx_ALT_CONST(0));
-	ps[i++] = TEX_DWORD1(DST_GPR(0),
+	ps[i++] = TEX_DWORD1(DST_GPR(1),
 			     DST_REL(ABSOLUTE),
 			     DST_SEL_X(mask_a),
 			     DST_SEL_Y(mask_r),
