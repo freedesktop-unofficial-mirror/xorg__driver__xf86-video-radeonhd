@@ -673,10 +673,10 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X),
-			 DST_SEL_Y(SQ_SEL_MASK),
-			 DST_SEL_Z(SQ_SEL_MASK),
-			 DST_SEL_W(SQ_SEL_1),
+			 DST_SEL_X(SQ_SEL_X),    //R
+			 DST_SEL_Y(SQ_SEL_MASK), //G
+			 DST_SEL_Z(SQ_SEL_MASK), //B
+			 DST_SEL_W(SQ_SEL_1),    //A
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -701,10 +701,10 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_MASK),
-			 DST_SEL_Y(SQ_SEL_X),
-			 DST_SEL_Z(SQ_SEL_Y),
-			 DST_SEL_W(SQ_SEL_MASK),
+			 DST_SEL_X(SQ_SEL_MASK), //R
+			 DST_SEL_Y(SQ_SEL_X),    //G
+			 DST_SEL_Z(SQ_SEL_Y),    //B
+			 DST_SEL_W(SQ_SEL_MASK), //A
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -796,10 +796,10 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress;
 
     tex_res.format              = FMT_8;
-    tex_res.dst_sel_x           = SQ_SEL_X;
-    tex_res.dst_sel_y           = SQ_SEL_0;
-    tex_res.dst_sel_z           = SQ_SEL_0;
-    tex_res.dst_sel_w           = SQ_SEL_0;
+    tex_res.dst_sel_x           = SQ_SEL_X; //Y
+    tex_res.dst_sel_y           = SQ_SEL_1;
+    tex_res.dst_sel_z           = SQ_SEL_1;
+    tex_res.dst_sel_w           = SQ_SEL_1;
 
     tex_res.request_size        = 1;
     tex_res.base_level          = 0;
@@ -817,10 +817,10 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     tex_res.w                   = pPriv->w >> 1;
     tex_res.h                   = pPriv->h >> 1;
     tex_res.pitch               = src_pitch >> 1;
-    tex_res.dst_sel_x           = SQ_SEL_X;
-    tex_res.dst_sel_y           = SQ_SEL_Y;
-    tex_res.dst_sel_z           = SQ_SEL_0;
-    tex_res.dst_sel_w           = SQ_SEL_0;
+    tex_res.dst_sel_x           = SQ_SEL_Y; //V
+    tex_res.dst_sel_y           = SQ_SEL_X; //U
+    tex_res.dst_sel_z           = SQ_SEL_1;
+    tex_res.dst_sel_w           = SQ_SEL_1;
     tex_res.interlaced          = 0;
     // XXX tex bases need to be 256B aligned
     tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + uv_offset;
@@ -858,19 +858,22 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
     switch (pPixmap->drawable.bitsPerPixel) {
     case 16:
-	if (pPixmap->drawable.depth == 15)
+	if (pPixmap->drawable.depth == 15) {
 	    cb_conf.format = COLOR_1_5_5_5;
-	else
+	    cb_conf.comp_swap = 1; //ARGB
+	} else {
 	    cb_conf.format = COLOR_5_6_5;
+	    cb_conf.comp_swap = 2; //RGB
+	}
 	break;
     case 32:
 	cb_conf.format = COLOR_8_8_8_8;
+	cb_conf.comp_swap = 1; //ARGB
 	break;
     default:
 	return;
     }
 
-    cb_conf.comp_swap = 0;
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
