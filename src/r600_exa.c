@@ -182,10 +182,10 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 			     MEGA_FETCH_COUNT(1));
 	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
 				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_0),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_0),
+				 DST_SEL_X(SQ_SEL_1), //R
+				 DST_SEL_Y(SQ_SEL_1), //G
+				 DST_SEL_Z(SQ_SEL_1), //B
+				 DST_SEL_W(SQ_SEL_X), //A
 				 USE_CONST_FIELDS(0),
 				 DATA_FORMAT(FMT_8),
 				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
@@ -207,10 +207,10 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 			     MEGA_FETCH_COUNT(2));
 	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
 				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_Z),
-				 DST_SEL_W(SQ_SEL_0),
+				 DST_SEL_X(SQ_SEL_Z), //R
+				 DST_SEL_Y(SQ_SEL_Y), //G
+				 DST_SEL_Z(SQ_SEL_X), //B
+				 DST_SEL_W(SQ_SEL_1), //A
 				 USE_CONST_FIELDS(0),
 				 DATA_FORMAT(FMT_5_6_5),
 				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
@@ -232,10 +232,10 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 			     MEGA_FETCH_COUNT(4));
 	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
 				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_Z),
-				 DST_SEL_W(SQ_SEL_W),
+				 DST_SEL_X(SQ_SEL_Z), //R
+				 DST_SEL_Y(SQ_SEL_Y), //G
+				 DST_SEL_Z(SQ_SEL_X), //B
+				 DST_SEL_W(SQ_SEL_W), //A
 				 USE_CONST_FIELDS(0),
 				 DATA_FORMAT(FMT_8_8_8_8),
 				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
@@ -279,10 +279,6 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 	return FALSE;
 
     if (pPix->drawable.bitsPerPixel == 24)
-	return FALSE;
-
-    // XXX: FIX ME
-    if (pPix->drawable.bitsPerPixel == 8)
 	return FALSE;
 
     CLEAR (cb_conf);
@@ -350,13 +346,16 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     cb_conf.h = pPix->drawable.height;
     cb_conf.base = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
-    if (pPix->drawable.bitsPerPixel == 8)
+    if (pPix->drawable.bitsPerPixel == 8) {
 	cb_conf.format = COLOR_8;
-    else if (pPix->drawable.bitsPerPixel == 16)
+	cb_conf.comp_swap = 3; //A
+    } else if (pPix->drawable.bitsPerPixel == 16) {
 	cb_conf.format = COLOR_5_6_5;
-    else
+	cb_conf.comp_swap = 2; //RGB
+    } else {
 	cb_conf.format = COLOR_8_8_8_8;
-    cb_conf.comp_swap = 0;
+	cb_conf.comp_swap = 1; // ARGB
+    }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
@@ -641,10 +640,10 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(0),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X),
-			 DST_SEL_Y(SQ_SEL_Y),
-			 DST_SEL_Z(SQ_SEL_Z),
-			 DST_SEL_W(SQ_SEL_W),
+			 DST_SEL_X(SQ_SEL_X), //R
+			 DST_SEL_Y(SQ_SEL_Y), //G
+			 DST_SEL_Z(SQ_SEL_Z), //B
+			 DST_SEL_W(SQ_SEL_W), //A
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_UNNORMALIZED),
 			 COORD_TYPE_Y(TEX_UNNORMALIZED),
@@ -711,22 +710,22 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     tex_res.mip_base            = src_offset;
     if (src_bpp == 8) {
 	tex_res.format              = FMT_8;
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_0;
-	tex_res.dst_sel_z           = SQ_SEL_0;
-	tex_res.dst_sel_w           = SQ_SEL_0;
+	tex_res.dst_sel_x           = SQ_SEL_1; //R
+	tex_res.dst_sel_y           = SQ_SEL_1; //G
+	tex_res.dst_sel_z           = SQ_SEL_1; //B
+	tex_res.dst_sel_w           = SQ_SEL_X; //A
     } else if (src_bpp == 16) {
 	tex_res.format              = FMT_5_6_5;
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_Y;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_W;
+	tex_res.dst_sel_x           = SQ_SEL_Z; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_X; //B
+	tex_res.dst_sel_w           = SQ_SEL_1; //A
     } else {
 	tex_res.format              = FMT_8_8_8_8;
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_Y;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_W;
+	tex_res.dst_sel_x           = SQ_SEL_Z; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_X; //B
+	tex_res.dst_sel_w           = SQ_SEL_W; //A
     }
 
     tex_res.request_size        = 1;
@@ -763,13 +762,16 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     cb_conf.w = dst_pitch;
     cb_conf.h = dst_height;
     cb_conf.base = dst_offset;
-    if (dst_bpp == 8)
+    if (dst_bpp == 8) {
 	cb_conf.format = COLOR_8;
-    else if (dst_bpp == 16)
+	cb_conf.comp_swap = 3; // A
+    } else if (dst_bpp == 16) {
 	cb_conf.format = COLOR_5_6_5;
-    else
+	cb_conf.comp_swap = 2; // RGB
+    } else {
 	cb_conf.format = COLOR_8_8_8_8;
-    cb_conf.comp_swap = 0;
+	cb_conf.comp_swap = 1; // ARGB
+    }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
@@ -1418,7 +1420,7 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     accel_state->texW[unit] = w;
     accel_state->texH[unit] = h;
 
-    ErrorF("Tex %d setup %dx%d\n", unit, w, h);
+    //ErrorF("Tex %d setup %dx%d\n", unit, w, h);
 
     /* Texture */
     tex_res.id                  = unit;
@@ -1437,47 +1439,47 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     switch (pPict->format) {
     case PICT_a1r5g5b5:
     case PICT_a8r8g8b8:
-	ErrorF("%s: PICT_a8r8g8b8\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_Y;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_W;
+	//ErrorF("%s: PICT_a8r8g8b8\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_Z; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_X; //B
+	tex_res.dst_sel_w           = SQ_SEL_W; //A
 	break;
     case PICT_a8b8g8r8:
-	ErrorF("%s: PICT_a8b8g8r8\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_W;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_Y;
+	//ErrorF("%s: PICT_a8b8g8r8\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_X; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_Z; //B
+	tex_res.dst_sel_w           = SQ_SEL_W; //A
 	break;
     case PICT_x8b8g8r8:
-	ErrorF("%s: PICT_x8b8g8r8\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_1;
-	tex_res.dst_sel_y           = SQ_SEL_W;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_Y;
+	//ErrorF("%s: PICT_x8b8g8r8\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_X; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_Z; //B
+	tex_res.dst_sel_w           = SQ_SEL_1; //A
 	break;
     case PICT_x1r5g5b5:
     case PICT_x8r8g8b8:
-	ErrorF("%s: PICT_x8r8g8b8\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_1;
-	tex_res.dst_sel_y           = SQ_SEL_Y;
-	tex_res.dst_sel_z           = SQ_SEL_Z;
-	tex_res.dst_sel_w           = SQ_SEL_W;
+	//ErrorF("%s: PICT_x8r8g8b8\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_Z; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_X; //B
+	tex_res.dst_sel_w           = SQ_SEL_1; //A
 	break;
     case PICT_r5g6b5:
-	ErrorF("%s: PICT_r5g6b5\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_1;
-	tex_res.dst_sel_y           = SQ_SEL_X;
-	tex_res.dst_sel_z           = SQ_SEL_Y;
-	tex_res.dst_sel_w           = SQ_SEL_Z;
+	//ErrorF("%s: PICT_r5g6b5\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_Z; //R
+	tex_res.dst_sel_y           = SQ_SEL_Y; //G
+	tex_res.dst_sel_z           = SQ_SEL_X; //B
+	tex_res.dst_sel_w           = SQ_SEL_1; //A
 	break;
     case PICT_a8:
-	ErrorF("%s: PICT_a8\n", unit ? "mask" : "src");
-	tex_res.dst_sel_x           = SQ_SEL_X;
-	tex_res.dst_sel_y           = SQ_SEL_0;
-	tex_res.dst_sel_z           = SQ_SEL_0;
-	tex_res.dst_sel_w           = SQ_SEL_0;
+	//ErrorF("%s: PICT_a8\n", unit ? "mask" : "src");
+	tex_res.dst_sel_x           = SQ_SEL_0; //R
+	tex_res.dst_sel_y           = SQ_SEL_0; //G
+	tex_res.dst_sel_z           = SQ_SEL_0; //B
+	tex_res.dst_sel_w           = SQ_SEL_X; //A
 	break;
     default:
 	break;
@@ -1884,9 +1886,9 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	    src_b = SQ_SEL_0;
 	} else {
 	    //src_color = R300_ALU_RGB_SRC0_RGB;
-	    src_r = SQ_SEL_Y;
-	    src_g = SQ_SEL_Z;
-	    src_b = SQ_SEL_W;
+	    src_r = SQ_SEL_X;
+	    src_g = SQ_SEL_Y;
+	    src_b = SQ_SEL_Z;
 	}
 
 	if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
@@ -1894,7 +1896,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	    src_a = SQ_SEL_1;
 	} else {
 	    //src_alpha = R300_ALU_ALPHA_SRC0_A;
-	    src_a = SQ_SEL_X;
+	    src_a = SQ_SEL_W;
 	}
 
 	if (pMaskPicture->componentAlpha) {
@@ -1909,49 +1911,49 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 		} else {
 		    //src_color = R300_ALU_RGB_SRC0_AAA;
 		    //src_alpha = R300_ALU_ALPHA_SRC0_A;
-		    src_r = SQ_SEL_X;
-		    src_g = SQ_SEL_X;
-		    src_b = SQ_SEL_X;
-		    src_a = SQ_SEL_X;
+		    src_r = SQ_SEL_W;
+		    src_g = SQ_SEL_W;
+		    src_b = SQ_SEL_W;
+		    src_a = SQ_SEL_W;
 		}
 
 		//mask_color = R300_ALU_RGB_SRC1_RGB;
-		mask_r = SQ_SEL_Y;
-		mask_g = SQ_SEL_Z;
-		mask_b = SQ_SEL_W;
+		mask_r = SQ_SEL_X;
+		mask_g = SQ_SEL_Y;
+		mask_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
 		    //mask_alpha = R300_ALU_ALPHA_1_0;
 		    mask_a = SQ_SEL_1;
 		} else {
 		    //mask_alpha = R300_ALU_ALPHA_SRC1_A;
-		    mask_a = SQ_SEL_X;
+		    mask_a = SQ_SEL_W;
 		}
 	    } else {
 		//src_color = R300_ALU_RGB_SRC0_RGB;
-		src_r = SQ_SEL_Y;
-		src_g = SQ_SEL_Z;
-		src_b = SQ_SEL_W;
+		src_r = SQ_SEL_X;
+		src_g = SQ_SEL_Y;
+		src_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
 		    //src_alpha = R300_ALU_ALPHA_1_0;
 		    src_a = SQ_SEL_1;
 		} else {
 		    //src_alpha = R300_ALU_ALPHA_SRC0_A;
-		    src_a = SQ_SEL_X;
+		    src_a = SQ_SEL_W;
 		}
 
 		//mask_color = R300_ALU_RGB_SRC1_RGB;
-		mask_r = SQ_SEL_Y;
-		mask_g = SQ_SEL_Z;
-		mask_b = SQ_SEL_W;
+		mask_r = SQ_SEL_X;
+		mask_g = SQ_SEL_Y;
+		mask_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
 		    //mask_alpha = R300_ALU_ALPHA_1_0;
 		    mask_a = SQ_SEL_1;
 		} else {
 		    //mask_alpha = R300_ALU_ALPHA_SRC1_A;
-		    mask_a = SQ_SEL_X;
+		    mask_a = SQ_SEL_W;
 		}
 	    }
 	} else {
@@ -1962,16 +1964,16 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 		mask_b = SQ_SEL_1;
 	    } else {
 		//mask_color = R300_ALU_RGB_SRC1_AAA;
-		mask_r = SQ_SEL_X;
-		mask_g = SQ_SEL_X;
-		mask_b = SQ_SEL_X;
+		mask_r = SQ_SEL_W;
+		mask_g = SQ_SEL_W;
+		mask_b = SQ_SEL_W;
 	    }
 	    if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
 		//mask_alpha = R300_ALU_ALPHA_1_0;
 		mask_a = SQ_SEL_1;
 	    } else {
 		//mask_alpha = R300_ALU_ALPHA_SRC1_A;
-		mask_a = SQ_SEL_X;
+		mask_a = SQ_SEL_W;
 	    }
 	}
 
@@ -2144,10 +2146,10 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(0),
 			     DST_REL(ABSOLUTE),
-			     DST_SEL_X(src_a),
-			     DST_SEL_Y(src_r),
-			     DST_SEL_Z(src_g),
-			     DST_SEL_W(src_b),
+			     DST_SEL_X(src_r),
+			     DST_SEL_Y(src_g),
+			     DST_SEL_Z(src_b),
+			     DST_SEL_W(src_a),
 			     LOD_BIAS(0),
 			     COORD_TYPE_X(TEX_NORMALIZED),
 			     COORD_TYPE_Y(TEX_NORMALIZED),
@@ -2171,10 +2173,10 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(1),
 			     DST_REL(ABSOLUTE),
-			     DST_SEL_X(mask_a),
-			     DST_SEL_Y(mask_r),
-			     DST_SEL_Z(mask_g),
-			     DST_SEL_W(mask_b),
+			     DST_SEL_X(mask_r),
+			     DST_SEL_Y(mask_g),
+			     DST_SEL_Z(mask_b),
+			     DST_SEL_W(mask_a),
 			     LOD_BIAS(0),
 			     COORD_TYPE_X(TEX_NORMALIZED),
 			     COORD_TYPE_Y(TEX_NORMALIZED),
@@ -2198,9 +2200,9 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	    src_b = SQ_SEL_0;
 	} else {
 	    //src_color = R300_ALU_RGB_SRC0_RGB;
-	    src_r = SQ_SEL_Y;
-	    src_g = SQ_SEL_Z;
-	    src_b = SQ_SEL_W;
+	    src_r = SQ_SEL_X;
+	    src_g = SQ_SEL_Y;
+	    src_b = SQ_SEL_Z;
 	}
 
 	if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
@@ -2208,7 +2210,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	    src_a = SQ_SEL_1;
 	} else {
 	    //src_alpha = R300_ALU_ALPHA_SRC0_A;
-	    src_a = SQ_SEL_X;
+	    src_a = SQ_SEL_W;
 	}
 
 	//0
@@ -2254,10 +2256,10 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     R7xx_ALT_CONST(0));
 	ps[i++] = TEX_DWORD1(DST_GPR(0),
 			     DST_REL(ABSOLUTE),
-			     DST_SEL_X(src_a),
-			     DST_SEL_Y(src_r),
-			     DST_SEL_Z(src_g),
-			     DST_SEL_W(src_b),
+			     DST_SEL_X(src_r),
+			     DST_SEL_Y(src_g),
+			     DST_SEL_Z(src_b),
+			     DST_SEL_W(src_a),
 			     LOD_BIAS(0),
 			     COORD_TYPE_X(TEX_NORMALIZED),
 			     COORD_TYPE_Y(TEX_NORMALIZED),
@@ -2280,29 +2282,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     if (!R600GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
-
-    switch (pDstPicture->format) {
-    case PICT_a8r8g8b8:
-	ErrorF("dst: PICT_a8r8g8b8\n");
-	break;
-    case PICT_x8r8g8b8:
-	ErrorF("dst: PICT_x8r8g8b8\n");
-	break;
-    case PICT_r5g6b5:
-	ErrorF("dst: PICT_r5g6b5\n");
-	break;
-    case PICT_a1r5g5b5:
-	ErrorF("dst: PICT_a1r5g5b5\n");
-	break;
-    case PICT_x1r5g5b5:
-	ErrorF("dst: PICT_x1r5g5b5\n");
-	break;
-    case PICT_a8:
-	ErrorF("dst: PICT_a8\n");
-	break;
-    default:
-	break;
-    }
 
     if (pMask)
 	accel_state->has_mask = TRUE;
@@ -2405,7 +2384,36 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     cb_conf.h = pDst->drawable.height;
     cb_conf.base = dst_offset;
     cb_conf.format = dst_format;
-    cb_conf.comp_swap = 0;
+
+    switch (pDstPicture->format) {
+    case PICT_a8r8g8b8:
+	//ErrorF("dst: PICT_a8r8g8b8\n");
+	cb_conf.comp_swap = 1; //ARGB
+	break;
+    case PICT_x8r8g8b8:
+	//ErrorF("dst: PICT_x8r8g8b8\n");
+	cb_conf.comp_swap = 1; //ARGB
+	break;
+    case PICT_r5g6b5:
+	//ErrorF("dst: PICT_r5g6b5\n");
+	cb_conf.comp_swap = 2; //RGB
+	break;
+    case PICT_a1r5g5b5:
+	//ErrorF("dst: PICT_a1r5g5b5\n");
+	cb_conf.comp_swap = 1; //ARGB
+	break;
+    case PICT_x1r5g5b5:
+	//ErrorF("dst: PICT_x1r5g5b5\n");
+	cb_conf.comp_swap = 1; //ARGB
+	break;
+    case PICT_a8:
+	//ErrorF("dst: PICT_a8\n");
+	cb_conf.comp_swap = 3; //A
+	break;
+    default:
+	cb_conf.comp_swap = 1;
+	break;
+    }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
     set_render_target(pScrn, accel_state->ib, &cb_conf);
