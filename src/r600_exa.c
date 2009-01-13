@@ -330,13 +330,13 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     /* Render setup */
     if (pm & 0x000000ff)
-	pmask |= 1;
+	pmask |= 4; //B
     if (pm & 0x0000ff00)
-	pmask |= 2;
+	pmask |= 2; //G
     if (pm & 0x00ff0000)
-	pmask |= 4;
+	pmask |= 1; //R
     if (pm & 0xff000000)
-	pmask |= 8;
+	pmask |= 8; //A
     ereg  (accel_state->ib, CB_SHADER_MASK,                      (pmask << OUTPUT0_ENABLE_shift));
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[alu]);
@@ -747,13 +747,13 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 
     /* Render setup */
     if (planemask & 0x000000ff)
-	pmask |= 1;
+	pmask |= 4; //B
     if (planemask & 0x0000ff00)
-	pmask |= 2;
+	pmask |= 2; //G
     if (planemask & 0x00ff0000)
-	pmask |= 4;
+	pmask |= 1; //R
     if (planemask & 0xff000000)
-	pmask |= 8;
+	pmask |= 8; //A
     ereg  (accel_state->ib, CB_SHADER_MASK,                      (pmask << OUTPUT0_ENABLE_shift));
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[rop]);
@@ -1614,8 +1614,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     uint32_t blendcntl, dst_format;
-//    int src_color, src_alpha;
-//    int mask_color, mask_alpha;
     uint32_t src_pitch, dst_pitch, src_offset, dst_offset;
     cb_config_t cb_conf;
     shader_config_t vs_conf, ps_conf;
