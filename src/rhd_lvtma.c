@@ -1,8 +1,8 @@
 /*
- * Copyright 2007-2008  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007-2008  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007-2008  Egbert Eich   <eich@novell.com>
- * Copyright 2007-2008  Advanced Micro Devices, Inc.
+ * Copyright 2007-2009  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -822,7 +822,6 @@ RS600VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 static void
 RS690VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 {
-    RHDPtr rhdPtr = RHDPTRI(Output);
     struct rhdTMDSBPrivate *Private = (struct rhdTMDSBPrivate *) Output->Private;
     CARD32 rev = (RHDRegRead(Output, CONFIG_CNTL) && RS69_CFG_ATI_REV_ID_MASK) >> RS69_CFG_ATI_REV_ID_SHIFT;
 
@@ -891,6 +890,7 @@ RS690VoltageControl(struct rhdOutput *Output, DisplayModePtr Mode)
 	    } else {
 		{
 #ifdef ATOM_BIOS
+		    RHDPtr rhdPtr = RHDPTRI(Output);
 		    AtomBiosArgRec data;
 
 		    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,

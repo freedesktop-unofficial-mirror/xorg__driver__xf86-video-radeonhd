@@ -1,8 +1,8 @@
 /*
- * Copyright 2007, 2008  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
- * Copyright 2007, 2008  Advanced Micro Devices, Inc.
+ * Copyright 2007-2009  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -274,11 +274,11 @@ static void
 LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 {
     struct DIGPrivate *Private = (struct DIGPrivate *)Output->Private;
-    CARD32 value = 0;
 #ifdef ATOM_BIOS
+    CARD32 value = 0;
     AtomBiosArgRec data;
-#endif
     RHDPtr rhdPtr = RHDPTRI(Output);
+#endif
     Bool doCoherent = Private->Coherent;
     RHDFUNC(Output);
 
@@ -729,6 +729,55 @@ LVTMATransmitterDestroy(struct rhdOutput *Output)
     xfree(digPrivate->Transmitter.Private);
 }
 
+/*
+ *
+ */
+void
+rhdPrintDigDebug(RHDPtr rhdPtr, const char *name)
+{
+    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_INFO, 7, "%s: DIGn_CNTL: n=1: 0x%x n=2: 0x%x\n",
+	   name, RHDRegRead(rhdPtr, RV620_DIG1_CNTL),
+	   RHDRegRead(rhdPtr, DIG2_OFFSET + RV620_DIG1_CNTL));
+}
+
+/*
+ *
+ */
+static CARD32
+digProbeEncoder(struct rhdOutput *Output)
+{
+    if (Output->Id == RHD_OUTPUT_KLDSKP_LVTMA) {
+	return ENCODER_DIG2;
+    } else {
+	Bool swap = (RHDRegRead(Output, RV620_DCIO_LINK_STEER_CNTL)
+		     & RV62_LINK_STEER_SWAP) == RV62_LINK_STEER_SWAP;
+
+	switch (Output->Id) {
+	    case RHD_OUTPUT_UNIPHYA:
+		if (swap) {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYA\n",__func__);
+		    return ENCODER_DIG2;
+		} else {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYA\n",__func__);
+		    return ENCODER_DIG1;
+		}
+		break;
+	    case RHD_OUTPUT_UNIPHYB:
+		if (swap) {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYB\n",__func__);
+		    return ENCODER_DIG1;
+		} else {
+		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYB\n",__func__);
+		    return ENCODER_DIG2;
+		}
+		break;
+	    default:
+		return ENCODER_NONE; /* should not get here */
+	}
+    }
+    return ENCODER_NONE;
+}
+
 #if defined(ATOM_BIOS) && defined(ATOM_BIOS_PARSER)
 
 struct ATOMTransmitterPrivate
@@ -751,17 +800,6 @@ ATOMTransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 	return MODE_CLOCK_HIGH;
 
     return MODE_OK;
-}
-
-/*
- *
- */
-void
-rhdPrintDigDebug(RHDPtr rhdPtr, const char *name)
-{
-    xf86DrvMsgVerb(rhdPtr->scrnIndex, X_INFO, 7, "%s: DIGn_CNTL: n=1: 0x%x n=2: 0x%x\n",
-	   name, RHDRegRead(rhdPtr, RV620_DIG1_CNTL),
-	   RHDRegRead(rhdPtr, DIG2_OFFSET + RV620_DIG1_CNTL));
 }
 
 /*
@@ -806,44 +844,6 @@ ATOMTransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePt
     rhdAtomDigTransmitterControl(rhdPtr->atomBIOS, transPrivate->atomTransmitterID,
 				 atomTransSetup, atc);
     rhdPrintDigDebug(rhdPtr,__func__);
-}
-
-/*
- *
- */
-static CARD32
-digProbeEncoder(struct rhdOutput *Output)
-{
-    if (Output->Id == RHD_OUTPUT_KLDSKP_LVTMA) {
-	return ENCODER_DIG2;
-    } else {
-	Bool swap = (RHDRegRead(Output, RV620_DCIO_LINK_STEER_CNTL)
-		     & RV62_LINK_STEER_SWAP) == RV62_LINK_STEER_SWAP;
-
-	switch (Output->Id) {
-	    case RHD_OUTPUT_UNIPHYA:
-		if (swap) {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYA\n",__func__);
-		    return ENCODER_DIG2;
-		} else {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYA\n",__func__);
-		    return ENCODER_DIG1;
-		}
-		break;
-	    case RHD_OUTPUT_UNIPHYB:
-		if (swap) {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG1 for UNIPHYB\n",__func__);
-		    return ENCODER_DIG1;
-		} else {
-		    RHDDebug(Output->scrnIndex, "%s: detected ENCODER_DIG2 for UNIPHYB\n",__func__);
-		    return ENCODER_DIG2;
-		}
-		break;
-	    default:
-		return ENCODER_NONE; /* should not get here */
-	}
-    }
-    return ENCODER_NONE;
 }
 
 /*
@@ -1584,7 +1584,9 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 		return TRUE;
 		} else
 		    return FALSE;
-	    } else {
+	    } else
+#ifdef ATOM_BIOS
+	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;
 		struct atomTransmitterConfig *atc = &transPrivate->atomTransmitterConfig;
@@ -1605,7 +1607,9 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 		} else
 		    return FALSE;
 	    }
-
+#else
+	    return FALSE;
+#endif
 	case RHD_OUTPUT_FREE:
 		Private->EncoderID = ENCODER_NONE;
 	    if (rhdPtr->DigEncoderOutput[0] == Output) {

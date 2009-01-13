@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007-2009  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -803,8 +803,9 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error1;
     }
     {
-	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
 #ifdef ATOM_BIOS
+	struct rhdAtomOutputDeviceList *OutputDeviceList = NULL;
+
 	if (rhdPtr->Card
 	    && rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE
 	    && (rhdPtr->Card->DeviceInfo[0][0] != atomNone
@@ -2805,8 +2806,10 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		       &rhdPtr->scaleTypeOpt, "default");
     RhdGetOptValBool   (rhdPtr->Options, OPTION_UNVERIFIED_FEAT,
 			&rhdPtr->unverifiedFeatures, FALSE);
+#ifdef ATOM_BIOS
     RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
 			&rhdPtr->UseAtomBIOS, FALSE);
+#endif
     RhdGetOptValBool   (rhdPtr->Options, OPTION_AUDIO,
 			&rhdPtr->audio, TRUE);
     RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,

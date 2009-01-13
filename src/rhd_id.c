@@ -1,8 +1,8 @@
 /*
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
- * Copyright 2007  Advanced Micro Devices, Inc.
+ * Copyright 2007-2009  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -417,6 +417,8 @@ RHDIsIGP(enum RHD_CHIPSETS chipset)
 
 #ifdef ATOM_BIOS
 # define DEVINFO_EMPTY   { { atomNone, atomNone } }
+#else
+# define DEVINFO_EMPTY
 #endif
 
 /* Radeon RV610 0x94C3 0x0000 0x0000 */
@@ -472,6 +474,8 @@ RHDIsIGP(enum RHD_CHIPSETS chipset)
 #ifdef ATOM_BIOS
 # define DEVINFO_MACBOOKPRO \
     { { atomLCD1, atomNone }, { atomCRT2, atomDFP1 } }
+#else
+# define DEVINFO_MACBOOKPRO
 #endif
 
 /* GeCube HD 2400PRO AGP (GC-RX24PGA2-D3) specifies 2 DVI again.*/
