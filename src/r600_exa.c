@@ -1339,9 +1339,46 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     //return FALSE;
 
+    if (pMask)
+	accel_state->has_mask = TRUE;
+    else
+	accel_state->has_mask = FALSE;
+
+    dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+    dst_offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
+    src_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    if (dst_pitch & 63)
+	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", dst_pitch));
+
+    if (dst_offset & 0xff)
+	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)dst_offset));
+
+    if (src_pitch & 63)
+	RADEON_FALLBACK(("Bad src pitch 0x%x\n", src_pitch));
+
+    if (src_offset & 0xff)
+	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)src_offset));
+
+    if (!R600GetDestFormat(pDstPicture, &dst_format))
+	return FALSE;
+
+    if (!R600SetupSourceTile(pSrcPicture, pSrc, TRUE, FALSE))
+	return FALSE;
+
     if (pMask) {
+	uint32_t mask_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
+	uint32_t mask_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 	int src_a, src_r, src_g, src_b;
 	int mask_a, mask_r, mask_g, mask_b;
+
+	if (mask_pitch & 63)
+	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", dst_pitch));
+
+	if (mask_offset & 0xff)
+	    RADEON_FALLBACK(("Bad mask offset 0x%x\n", (int)mask_offset));
 
 	/* setup pixel shader */
 	if (PICT_FORMAT_RGB(pSrcPicture->format) == 0) {
@@ -1744,47 +1781,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     CLEAR (cb_conf);
     CLEAR (vs_conf);
     CLEAR (ps_conf);
-
-    if (!R600GetDestFormat(pDstPicture, &dst_format))
-	return FALSE;
-
-    if (pMask)
-	accel_state->has_mask = TRUE;
-    else
-	accel_state->has_mask = FALSE;
-
-    dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
-    dst_offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-
-    src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
-    src_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-
-    if (dst_pitch & 63)
-	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", dst_pitch));
-
-    if (dst_offset & 0xff)
-	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)dst_offset));
-
-    if (src_pitch & 63)
-	RADEON_FALLBACK(("Bad src pitch 0x%x\n", dst_pitch));
-
-    if (src_offset & 0xff)
-	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)src_offset));
-
-    if (pMask) {
-	uint32_t mask_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
-	uint32_t mask_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-
-	if (mask_pitch & 63)
-	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", dst_pitch));
-
-	if (mask_offset & 0xff)
-	    RADEON_FALLBACK(("Bad mask offset 0x%x\n", (int)mask_offset));
-
-    }
-
-    if (!R600SetupSourceTile(pSrcPicture, pSrc, TRUE, FALSE))
-	return FALSE;
 
     accel_state->ib = RHDDRMCPBuffer(pScrn->scrnIndex);
 
@@ -3616,7 +3612,7 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->exa_minor = EXA_VERSION_MINOR;
 
     EXAInfo->flags = EXA_OFFSCREEN_PIXMAPS;
-    EXAInfo->pixmapOffsetAlign = 0x1000;
+    EXAInfo->pixmapOffsetAlign = 256;
     EXAInfo->pixmapPitchAlign = 64;
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)
