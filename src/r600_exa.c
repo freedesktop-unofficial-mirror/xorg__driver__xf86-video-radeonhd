@@ -1050,9 +1050,8 @@ static Bool R600CheckCompositeTexture(PicturePtr pPict,
 	RADEON_FALLBACK(("Unsupported picture format 0x%x\n",
 			 (int)pPict->format));
 
-    //fixme
-    //if (!RADEONCheckTexturePOT(pPict, unit == 0))
-    //return FALSE;
+    if (!RADEONCheckTexturePOT(pPict, unit == 0))
+	return FALSE;
 
     if (pPict->filter != PictFilterNearest &&
 	pPict->filter != PictFilterBilinear)
@@ -1171,15 +1170,14 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     tex_samp.id                 = unit;
     tex_samp.clamp_z            = SQ_TEX_WRAP;
 
-    //fixme
-    /*if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
+    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
 	tex_samp.clamp_x            = SQ_TEX_WRAP;
-    else*/
+    else
 	tex_samp.clamp_x            = SQ_TEX_CLAMP_LAST_TEXEL;
 
-    /*if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_y))
+    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_y))
 	tex_samp.clamp_y            = SQ_TEX_WRAP;
-    else*/
+    else
 	tex_samp.clamp_y            = SQ_TEX_CLAMP_LAST_TEXEL;
 
     switch (pPict->filter) {
@@ -1284,6 +1282,46 @@ static Bool R600CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 
 }
 
+static Bool R600SetupSourceTile(PicturePtr pPict,
+				PixmapPtr pPix,
+				Bool canTile1d,
+				Bool needMatchingPitch)
+{
+    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+
+    accel_state->need_src_tile_x = accel_state->need_src_tile_y = FALSE;
+    accel_state->src_tile_width = accel_state->src_tile_height = 65536; /* "infinite" */
+
+    if (pPict->repeat) {
+	Bool badPitch = needMatchingPitch && !RADEONPitchMatches(pPix);
+
+	int w = pPict->pDrawable->width;
+	int h = pPict->pDrawable->height;
+
+	if (pPict->transform) {
+	    if (badPitch)
+		RADEON_FALLBACK(("Width %d and pitch %u not compatible for repeat\n",
+				 w, (unsigned)exaGetPixmapPitch(pPix)));
+	} else {
+	    accel_state->need_src_tile_x = (w & (w - 1)) != 0 || badPitch;
+	    accel_state->need_src_tile_y = (h & (h - 1)) != 0;
+
+	    if (!canTile1d)
+		accel_state->need_src_tile_x = accel_state->need_src_tile_y
+		    = accel_state->need_src_tile_x || accel_state->need_src_tile_y;
+	}
+
+	if (accel_state->need_src_tile_x)
+	    accel_state->src_tile_width = w;
+	if (accel_state->need_src_tile_y)
+	  accel_state->src_tile_height = h;
+    }
+
+    return TRUE;
+}
+
 static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				 PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
@@ -1300,8 +1338,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     uint32_t ps[24];
 
     //return FALSE;
-
-    i = 0;
 
     if (pMask) {
 	int src_a, src_r, src_g, src_b;
@@ -1747,9 +1783,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     }
 
-    // fixme
-    //if (!RADEONSetupSourceTile(pSrcPicture, pSrc, TRUE, FALSE))
-    //return FALSE;
+    if (!R600SetupSourceTile(pSrcPicture, pSrc, TRUE, FALSE))
+	return FALSE;
 
     accel_state->ib = RHDDRMCPBuffer(pScrn->scrnIndex);
 
@@ -1890,11 +1925,11 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     return TRUE;
 }
 
-static void R600Composite(PixmapPtr pDst,
-			  int srcX, int srcY,
-			  int maskX, int maskY,
-			  int dstX, int dstY,
-			  int w, int h)
+static void R600CompositeTile(PixmapPtr pDst,
+			      int srcX, int srcY,
+			      int maskX, int maskY,
+			      int dstX, int dstY,
+			      int w, int h)
 {
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -2011,6 +2046,69 @@ static void R600Composite(PixmapPtr pDst,
     }
 
 
+}
+
+static void R600Composite(PixmapPtr pDst,
+			  int srcX, int srcY,
+			  int maskX, int maskY,
+			  int dstX, int dstY,
+			  int width, int height)
+{
+    ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+    int tileSrcY, tileMaskY, tileDstY;
+    int remainingHeight;
+
+    if (!accel_state->need_src_tile_x && !accel_state->need_src_tile_y) {
+	R600CompositeTile(pDst,
+			  srcX, srcY,
+			  maskX, maskY,
+			  dstX, dstY,
+			  width, height);
+	return;
+    }
+
+    /* Tiling logic borrowed from exaFillRegionTiled */
+
+    modulus(srcY, accel_state->src_tile_height, tileSrcY);
+    tileMaskY = maskY;
+    tileDstY = dstY;
+
+    remainingHeight = height;
+    while (remainingHeight > 0) {
+	int remainingWidth = width;
+	int tileSrcX, tileMaskX, tileDstX;
+	int h = accel_state->src_tile_height - tileSrcY;
+
+	if (h > remainingHeight)
+	    h = remainingHeight;
+	remainingHeight -= h;
+
+	modulus(srcX, accel_state->src_tile_width, tileSrcX);
+	tileMaskX = maskX;
+	tileDstX = dstX;
+
+	while (remainingWidth > 0) {
+	    int w = accel_state->src_tile_width - tileSrcX;
+	    if (w > remainingWidth)
+		w = remainingWidth;
+	    remainingWidth -= w;
+
+	    R600CompositeTile(pDst,
+			      tileSrcX, tileSrcY,
+			      tileMaskX, tileMaskY,
+			      tileDstX, tileDstY,
+			      w, h);
+
+	    tileSrcX = 0;
+	    tileMaskX += w;
+	    tileDstX += w;
+	}
+	tileSrcY = 0;
+	tileMaskY += h;
+	tileDstY += h;
+    }
 }
 
 static void R600DoneComposite(PixmapPtr pDst)
