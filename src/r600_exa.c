@@ -2142,8 +2142,6 @@ static void R600Composite(PixmapPtr pDst,
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    struct r6xx_comp_vertex *comp_vb = (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
-    struct r6xx_comp_vertex vertex[3];
     xPointFixed srcTopLeft, srcTopRight, srcBottomLeft, srcBottomRight;
     xPointFixed maskTopLeft, maskTopRight, maskBottomLeft, maskBottomRight;
 
@@ -2182,28 +2180,30 @@ static void R600Composite(PixmapPtr pDst,
 	transformPoint(accel_state->transform[1], &maskBottomRight);
     }
 
-    vertex[0].x = dstX;
-    vertex[0].y = dstY;
-    vertex[0].src_s = xFixedToFloat(srcTopLeft.x) / accel_state->texW[0];
-    vertex[0].src_t = xFixedToFloat(srcTopLeft.y) / accel_state->texH[0];
-
-    vertex[1].x = dstX;
-    vertex[1].y = dstY + h;
-    vertex[1].src_s = xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0];
-    vertex[1].src_t = xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0];
-
-    vertex[2].x = dstX + w;
-    vertex[2].y = dstY + h;
-    vertex[2].src_s = xFixedToFloat(srcBottomRight.x) / accel_state->texW[0];
-    vertex[2].src_t = xFixedToFloat(srcBottomRight.y) / accel_state->texH[0];
-
     if (accel_state->has_mask) {
+	struct r6xx_comp_mask_vertex *comp_vb =
+	    (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
+	struct r6xx_comp_mask_vertex vertex[3];
+
+
+	vertex[0].x = (float)dstX;
+	vertex[0].y = (float)dstY;
+	vertex[0].src_s = xFixedToFloat(srcTopLeft.x) / accel_state->texW[0];
+	vertex[0].src_t = xFixedToFloat(srcTopLeft.y) / accel_state->texH[0];
 	vertex[0].mask_s = xFixedToFloat(maskTopLeft.x) / accel_state->texW[1];
 	vertex[0].mask_t = xFixedToFloat(maskTopLeft.y) / accel_state->texH[1];
 
+	vertex[1].x = (float)dstX;
+	vertex[1].y = (float)(dstY + h);
+	vertex[1].src_s = xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0];
+	vertex[1].src_t = xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0];
 	vertex[1].mask_s = xFixedToFloat(maskBottomLeft.x) / accel_state->texW[1];
 	vertex[1].mask_t = xFixedToFloat(maskBottomLeft.y) / accel_state->texH[1];
 
+	vertex[2].x = (float)(dstX + w);
+	vertex[2].y = (float)(dstY + h);
+	vertex[2].src_s = xFixedToFloat(srcBottomRight.x) / accel_state->texW[0];
+	vertex[2].src_t = xFixedToFloat(srcBottomRight.y) / accel_state->texH[0];
 	vertex[2].mask_s = xFixedToFloat(maskBottomRight.x) / accel_state->texW[1];
 	vertex[2].mask_t = xFixedToFloat(maskBottomRight.y) / accel_state->texH[1];
 
@@ -2215,28 +2215,44 @@ static void R600Composite(PixmapPtr pDst,
 	ErrorF("vertex 2: %d, %d, %f, %f, %f, %f\n", vertex[2].x, vertex[2].y,
 	       vertex[2].src_s, vertex[2].src_t,  vertex[2].mask_s, vertex[2].mask_t);
 #endif
+
+	// append to vertex buffer
+	comp_vb[accel_state->vb_index++] = vertex[0];
+	comp_vb[accel_state->vb_index++] = vertex[1];
+	comp_vb[accel_state->vb_index++] = vertex[2];
+
     } else {
-	vertex[0].mask_s = 0;
-	vertex[0].mask_t = 0;
+	struct r6xx_comp_vertex *comp_vb =
+	    (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
+	struct r6xx_comp_vertex vertex[3];
 
-	vertex[1].mask_s = 0;
-	vertex[1].mask_t = 0;
+	vertex[0].x = (float)dstX;
+	vertex[0].y = (float)dstY;
+	vertex[0].src_s = xFixedToFloat(srcTopLeft.x) / accel_state->texW[0];
+	vertex[0].src_t = xFixedToFloat(srcTopLeft.y) / accel_state->texH[0];
 
-	vertex[2].mask_s = 0;
-	vertex[2].mask_t = 0;
+	vertex[1].x = (float)dstX;
+	vertex[1].y = (float)(dstY + h);
+	vertex[1].src_s = xFixedToFloat(srcBottomLeft.x) / accel_state->texW[0];
+	vertex[1].src_t = xFixedToFloat(srcBottomLeft.y) / accel_state->texH[0];
+
+	vertex[2].x = (float)(dstX + w);
+	vertex[2].y = (float)(dstY + h);
+	vertex[2].src_s = xFixedToFloat(srcBottomRight.x) / accel_state->texW[0];
+	vertex[2].src_t = xFixedToFloat(srcBottomRight.y) / accel_state->texH[0];
+
+	// append to vertex buffer
+	comp_vb[accel_state->vb_index++] = vertex[0];
+	comp_vb[accel_state->vb_index++] = vertex[1];
+	comp_vb[accel_state->vb_index++] = vertex[2];
 
 #ifdef SHOW_VERTEXES
 	ErrorF("vertex 0: %d, %d, %f, %f\n", vertex[0].x, vertex[0].y, vertex[0].src_s, vertex[0].src_t);
 	ErrorF("vertex 1: %d, %d, %f, %f\n", vertex[1].x, vertex[1].y, vertex[1].src_s, vertex[1].src_t);
 	ErrorF("vertex 2: %d, %d, %f, %f\n", vertex[2].x, vertex[2].y, vertex[2].src_s, vertex[2].src_t);
-	ErrorF("vertex 3: %d, %d, %f, %f\n", vertex[2].x, vertex[2].y, vertex[2].src_s, vertex[2].src_t);
 #endif
     }
 
-    // append to vertex buffer
-    comp_vb[accel_state->vb_index++] = vertex[0];
-    comp_vb[accel_state->vb_index++] = vertex[1];
-    comp_vb[accel_state->vb_index++] = vertex[2];
 
 }
 
@@ -2261,11 +2277,19 @@ static void R600DoneComposite(PixmapPtr pDst)
 	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
 
     /* Vertex buffer setup */
-    vtx_res.id              = SQ_VTX_RESOURCE_vs;
-    vtx_res.vtx_size_dw     = 24 / 4;
-    vtx_res.vtx_num_entries = accel_state->vb_index * 24 / 4;
-    vtx_res.mem_req_size    = 1;
-    vtx_res.vb_addr         = vb_addr;
+    if (accel_state->has_mask) {
+	vtx_res.id              = SQ_VTX_RESOURCE_vs;
+	vtx_res.vtx_size_dw     = 24 / 4;
+	vtx_res.vtx_num_entries = accel_state->vb_index * 24 / 4;
+	vtx_res.mem_req_size    = 1;
+	vtx_res.vb_addr         = vb_addr;
+    } else {
+	vtx_res.id              = SQ_VTX_RESOURCE_vs;
+	vtx_res.vtx_size_dw     = 16 / 4;
+	vtx_res.vtx_num_entries = accel_state->vb_index * 16 / 4;
+	vtx_res.mem_req_size    = 1;
+	vtx_res.vb_addr         = vb_addr;
+    }
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
     draw_conf.prim_type          = DI_PT_RECTLIST;
