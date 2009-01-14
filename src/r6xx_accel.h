@@ -34,6 +34,13 @@ struct r6xx_comp_vertex {
     float y;
     float src_s;
     float src_t;
+};
+
+struct r6xx_comp_mask_vertex {
+    float x;
+    float y;
+    float src_s;
+    float src_t;
     float mask_s;
     float mask_t;
 };
