@@ -254,7 +254,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
-			     CLAMP(0));
+			     CLAMP(1));
     // 4 - alu 1
     // DP4 gpr[2].y gpr[1].y c[0].y
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -281,7 +281,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
-			     CLAMP(0));
+			     CLAMP(1));
     // 5 - alu 2
     // DP4 gpr[2].z gpr[1].z c[0].z
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -308,7 +308,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
-			     CLAMP(0));
+			     CLAMP(1));
     // 6 - alu 3
     // DP4 gpr[2].w gpr[1].w c[0].w
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -335,7 +335,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
-			     CLAMP(0));
+			     CLAMP(1));
     // 7 - alu 4
     // DP4 gpr[2].x gpr[1].x c[1].x
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -362,7 +362,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
-			     CLAMP(0));
+			     CLAMP(1));
     // 8 - alu 5
     // DP4 gpr[2].y gpr[1].y c[1].y
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -389,7 +389,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
-			     CLAMP(0));
+			     CLAMP(1));
     // 9 - alu 6
     // DP4 gpr[2].z gpr[1].z c[1].z
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -416,7 +416,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
-			     CLAMP(0));
+			     CLAMP(1));
     // 10 - alu 7
     // DP4 gpr[2].w gpr[1].w c[1].w
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -443,7 +443,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
-			     CLAMP(0));
+			     CLAMP(1));
     // 11 - alu 8
     // DP4 gpr[2].x gpr[1].x c[2].x
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -470,7 +470,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
-			     CLAMP(0));
+			     CLAMP(1));
     // 12 - alu 9
     // DP4 gpr[2].y gpr[1].y c[2].y
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -497,7 +497,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
-			     CLAMP(0));
+			     CLAMP(1));
     // 13 - alu 10
     // DP4 gpr[2].z gpr[1].z c[2].z
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -524,7 +524,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
-			     CLAMP(0));
+			     CLAMP(1));
     // 14 - alu 11
     // DP4 gpr[2].w gpr[1].w c[2].w
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -551,7 +551,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 			     DST_GPR(2),
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
-			     CLAMP(0));
+			     CLAMP(1));
     // 15 - alu 12
     // MOV gpr[3].x gpr[2].x
     ps[i++] = ALU_DWORD0(SRC0_SEL(2),
