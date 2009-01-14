@@ -86,229 +86,11 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     cb_config_t     cb_conf;
     shader_config_t vs_conf, ps_conf;
     uint64_t vs_addr, ps_addr;
-    int i = 0;
     int pmask = 0;
     int pix_pitch;
     uint32_t pix_offset;
-    uint32_t vs[16];
-    uint32_t ps[12];
     uint32_t a, r, g, b;
     float ps_alu_consts[4];
-
-    //0
-    vs[i++] = CF_DWORD0(ADDR(4));
-    vs[i++] = CF_DWORD1(POP_COUNT(0),
-			CF_CONST(0),
-			COND(SQ_CF_COND_ACTIVE),
-			I_COUNT(1),
-			CALL_COUNT(0),
-			END_OF_PROGRAM(0),
-			VALID_PIXEL_MODE(0),
-			CF_INST(SQ_CF_INST_VTX),
-			WHOLE_QUAD_MODE(0),
-			BARRIER(1));
-    //1
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
-				      TYPE(SQ_EXPORT_POS),
-				      RW_GPR(1),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(0));
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
-					   END_OF_PROGRAM(0),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(1));
-    //2
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-				      TYPE(SQ_EXPORT_PARAM),
-				      RW_GPR(0),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(0));
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
-					   END_OF_PROGRAM(1),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(0));
-    //3
-    vs[i++] = 0x00000000;
-    vs[i++] = 0x00000000;
-    //4/5
-    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			 FETCH_WHOLE_QUAD(0),
-			 BUFFER_ID(0),
-			 SRC_GPR(0),
-			 SRC_REL(ABSOLUTE),
-			 SRC_SEL_X(SQ_SEL_X),
-			 MEGA_FETCH_COUNT(12));
-    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
-			     DST_REL(0),
-			     DST_SEL_X(SQ_SEL_X),
-			     DST_SEL_Y(SQ_SEL_Y),
-			     DST_SEL_Z(SQ_SEL_0),
-			     DST_SEL_W(SQ_SEL_1),
-			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-    vs[i++] = VTX_DWORD2(OFFSET(0),
-			 ENDIAN_SWAP(ENDIAN_NONE),
-			 CONST_BUF_NO_STRIDE(0),
-			 MEGA_FETCH(1));
-    vs[i++] = VTX_DWORD_PAD;
-
-    i = 0;
-    // 0
-    ps[i++] = CF_ALU_DWORD0(ADDR(2),
-			    KCACHE_BANK0(0),
-			    KCACHE_BANK1(0),
-			    KCACHE_MODE0(0));
-    ps[i++] = CF_ALU_DWORD1(KCACHE_MODE1(0),
-			    KCACHE_ADDR0(0),
-			    KCACHE_ADDR1(0),
-			    I_COUNT(4),
-			    USES_WATERFALL(0),
-			    CF_INST(SQ_CF_INST_ALU),
-			    WHOLE_QUAD_MODE(0),
-			    BARRIER(1));
-    // 1
-    ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
-				      TYPE(SQ_EXPORT_PIXEL),
-				      RW_GPR(0),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(1));
-    ps[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(1),
-					   END_OF_PROGRAM(1),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(1));
-
-    // 2
-    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
-			 SRC0_REL(ABSOLUTE),
-			 SRC0_ELEM(ELEM_X),
-			 SRC0_NEG(0),
-			 SRC1_SEL(0),
-			 SRC1_REL(ABSOLUTE),
-			 SRC1_ELEM(ELEM_X),
-			 SRC1_NEG(0),
-			 INDEX_MODE(SQ_INDEX_AR_X),
-			 PRED_SEL(SQ_PRED_SEL_OFF),
-			 LAST(0));
-    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
-			     SRC0_ABS(0),
-			     SRC1_ABS(0),
-			     UPDATE_EXECUTE_MASK(0),
-			     UPDATE_PRED(0),
-			     WRITE_MASK(1),
-			     FOG_MERGE(0),
-			     OMOD(SQ_ALU_OMOD_OFF),
-			     ALU_INST(SQ_OP2_INST_MOV),
-			     BANK_SWIZZLE(SQ_ALU_VEC_012),
-			     DST_GPR(0),
-			     DST_REL(ABSOLUTE),
-			     DST_ELEM(ELEM_X),
-			     CLAMP(1));
-    // 3
-    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
-			 SRC0_REL(ABSOLUTE),
-			 SRC0_ELEM(ELEM_Y),
-			 SRC0_NEG(0),
-			 SRC1_SEL(0),
-			 SRC1_REL(ABSOLUTE),
-			 SRC1_ELEM(ELEM_Y),
-			 SRC1_NEG(0),
-			 INDEX_MODE(SQ_INDEX_AR_X),
-			 PRED_SEL(SQ_PRED_SEL_OFF),
-			 LAST(0));
-    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
-			     SRC0_ABS(0),
-			     SRC1_ABS(0),
-			     UPDATE_EXECUTE_MASK(0),
-			     UPDATE_PRED(0),
-			     WRITE_MASK(1),
-			     FOG_MERGE(0),
-			     OMOD(SQ_ALU_OMOD_OFF),
-			     ALU_INST(SQ_OP2_INST_MOV),
-			     BANK_SWIZZLE(SQ_ALU_VEC_012),
-			     DST_GPR(0),
-			     DST_REL(ABSOLUTE),
-			     DST_ELEM(ELEM_Y),
-			     CLAMP(1));
-    // 4
-    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
-			 SRC0_REL(ABSOLUTE),
-			 SRC0_ELEM(ELEM_Z),
-			 SRC0_NEG(0),
-			 SRC1_SEL(0),
-			 SRC1_REL(ABSOLUTE),
-			 SRC1_ELEM(ELEM_Z),
-			 SRC1_NEG(0),
-			 INDEX_MODE(SQ_INDEX_AR_X),
-			 PRED_SEL(SQ_PRED_SEL_OFF),
-			 LAST(0));
-    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
-			     SRC0_ABS(0),
-			     SRC1_ABS(0),
-			     UPDATE_EXECUTE_MASK(0),
-			     UPDATE_PRED(0),
-			     WRITE_MASK(1),
-			     FOG_MERGE(0),
-			     OMOD(SQ_ALU_OMOD_OFF),
-			     ALU_INST(SQ_OP2_INST_MOV),
-			     BANK_SWIZZLE(SQ_ALU_VEC_012),
-			     DST_GPR(0),
-			     DST_REL(ABSOLUTE),
-			     DST_ELEM(ELEM_Z),
-			     CLAMP(1));
-    // 5
-    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
-			 SRC0_REL(ABSOLUTE),
-			 SRC0_ELEM(ELEM_W),
-			 SRC0_NEG(0),
-			 SRC1_SEL(0),
-			 SRC1_REL(ABSOLUTE),
-			 SRC1_ELEM(ELEM_W),
-			 SRC1_NEG(0),
-			 INDEX_MODE(SQ_INDEX_AR_X),
-			 PRED_SEL(SQ_PRED_SEL_OFF),
-			 LAST(0));
-    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
-			     SRC0_ABS(0),
-			     SRC1_ABS(0),
-			     UPDATE_EXECUTE_MASK(0),
-			     UPDATE_PRED(0),
-			     WRITE_MASK(1),
-			     FOG_MERGE(0),
-			     OMOD(SQ_ALU_OMOD_OFF),
-			     ALU_INST(SQ_OP2_INST_MOV),
-			     BANK_SWIZZLE(SQ_ALU_VEC_012),
-			     DST_GPR(0),
-			     DST_REL(ABSOLUTE),
-			     DST_ELEM(ELEM_W),
-			     CLAMP(1));
 
     pix_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
     pix_offset = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
@@ -350,12 +132,10 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     //return FALSE;
 
-    memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 512, vs, sizeof(vs));
-    vs_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 512;
-    memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 256, ps, sizeof(ps));
-    ps_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 256;
+    vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->solid_vs_offset;
+    ps_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->solid_ps_offset;
 
     /* Shader */
     vs_conf.shader_addr         = vs_addr;
@@ -552,176 +332,11 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     int pmask = 0;
-    int i = 0;
-    uint32_t vs[16];
-    uint32_t ps[8];
     cb_config_t     cb_conf;
     tex_resource_t  tex_res;
     tex_sampler_t   tex_samp;
     shader_config_t vs_conf, ps_conf;
     uint64_t vs_addr, ps_addr;
-
-    //0
-    vs[i++] = CF_DWORD0(ADDR(4));
-    vs[i++] = CF_DWORD1(POP_COUNT(0),
-			CF_CONST(0),
-			COND(SQ_CF_COND_ACTIVE),
-			I_COUNT(2),
-			CALL_COUNT(0),
-			END_OF_PROGRAM(0),
-			VALID_PIXEL_MODE(0),
-			CF_INST(SQ_CF_INST_VTX),
-			WHOLE_QUAD_MODE(0),
-			BARRIER(1));
-    //1
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
-				      TYPE(SQ_EXPORT_POS),
-				      RW_GPR(1),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(0));
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
-					   END_OF_PROGRAM(0),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(1));
-    //2
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-				      TYPE(SQ_EXPORT_PARAM),
-				      RW_GPR(0),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(0));
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
-					   END_OF_PROGRAM(1),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(0));
-    //3
-    vs[i++] = 0x00000000;
-    vs[i++] = 0x00000000;
-    //4/5
-    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			 FETCH_WHOLE_QUAD(0),
-			 BUFFER_ID(0),
-			 SRC_GPR(0),
-			 SRC_REL(ABSOLUTE),
-			 SRC_SEL_X(SQ_SEL_X),
-			 MEGA_FETCH_COUNT(16));
-    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
-			     DST_REL(0),
-			     DST_SEL_X(SQ_SEL_X),
-			     DST_SEL_Y(SQ_SEL_Y),
-			     DST_SEL_Z(SQ_SEL_0),
-			     DST_SEL_W(SQ_SEL_1),
-			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-    vs[i++] = VTX_DWORD2(OFFSET(0),
-			 ENDIAN_SWAP(ENDIAN_NONE),
-			 CONST_BUF_NO_STRIDE(0),
-			 MEGA_FETCH(1));
-    vs[i++] = VTX_DWORD_PAD;
-    //6/7
-    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			 FETCH_WHOLE_QUAD(0),
-			 BUFFER_ID(0),
-			 SRC_GPR(0),
-			 SRC_REL(ABSOLUTE),
-			 SRC_SEL_X(SQ_SEL_X),
-			 MEGA_FETCH_COUNT(8));
-    vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
-			     DST_REL(0),
-			     DST_SEL_X(SQ_SEL_X),
-			     DST_SEL_Y(SQ_SEL_Y),
-			     DST_SEL_Z(SQ_SEL_0),
-			     DST_SEL_W(SQ_SEL_1),
-			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-    vs[i++] = VTX_DWORD2(OFFSET(8),
-			 ENDIAN_SWAP(ENDIAN_NONE),
-			 CONST_BUF_NO_STRIDE(0),
-			 MEGA_FETCH(0));
-    vs[i++] = VTX_DWORD_PAD;
-
-    i = 0;
-
-    // CF INST 0
-    ps[i++] = CF_DWORD0(ADDR(2));
-    ps[i++] = CF_DWORD1(POP_COUNT(0),
-			CF_CONST(0),
-			COND(SQ_CF_COND_ACTIVE),
-			I_COUNT(1),
-			CALL_COUNT(0),
-			END_OF_PROGRAM(0),
-			VALID_PIXEL_MODE(0),
-			CF_INST(SQ_CF_INST_TEX),
-			WHOLE_QUAD_MODE(0),
-			BARRIER(1));
-    // CF INST 1
-    ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
-				      TYPE(SQ_EXPORT_PIXEL),
-				      RW_GPR(0),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(1));
-    ps[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(1),
-					   END_OF_PROGRAM(1),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(1));
-    // TEX INST 0
-    ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
-			 BC_FRAC_MODE(0),
-			 FETCH_WHOLE_QUAD(0),
-			 RESOURCE_ID(0),
-			 SRC_GPR(0),
-			 SRC_REL(ABSOLUTE),
-			 R7xx_ALT_CONST(0));
-    ps[i++] = TEX_DWORD1(DST_GPR(0),
-			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X), //R
-			 DST_SEL_Y(SQ_SEL_Y), //G
-			 DST_SEL_Z(SQ_SEL_Z), //B
-			 DST_SEL_W(SQ_SEL_W), //A
-			 LOD_BIAS(0),
-			 COORD_TYPE_X(TEX_UNNORMALIZED),
-			 COORD_TYPE_Y(TEX_UNNORMALIZED),
-			 COORD_TYPE_Z(TEX_UNNORMALIZED),
-			 COORD_TYPE_W(TEX_UNNORMALIZED));
-    ps[i++] = TEX_DWORD2(OFFSET_X(0),
-			 OFFSET_Y(0),
-			 OFFSET_Z(0),
-			 SAMPLER_ID(0),
-			 SRC_SEL_X(SQ_SEL_X),
-			 SRC_SEL_Y(SQ_SEL_Y),
-			 SRC_SEL_Z(SQ_SEL_0),
-			 SRC_SEL_W(SQ_SEL_1));
 
     CLEAR (cb_conf);
     CLEAR (tex_res);
@@ -742,12 +357,10 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 512, vs, sizeof(vs));
-    vs_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 512;
-    memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 256, ps, sizeof(ps));
-    ps_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 256;
+    vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->copy_vs_offset;
+    ps_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->copy_ps_offset;
 
     /* Shader */
     vs_conf.shader_addr         = vs_addr;
@@ -2791,6 +2404,1064 @@ R600EXASync(ScreenPtr pScreen, int marker)
     }
 }
 
+static Bool
+R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+    uint32_t *vs;
+    uint32_t *ps;
+    // 512 bytes per shader for now
+    int size = 512 * 10;
+    int i;
+
+    accel_state->shaders = NULL;
+
+    accel_state->shaders = exaOffscreenAlloc(pScreen, size, 256,
+					     TRUE, NULL, NULL);
+
+    if (accel_state->shaders == NULL)
+	return FALSE;
+
+    vs = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + accel_state->shaders->offset);
+    ps = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + accel_state->shaders->offset);
+    accel_state->solid_vs_offset = 0;
+    accel_state->solid_ps_offset = 512;
+    accel_state->copy_vs_offset = 1024;
+    accel_state->copy_ps_offset = 1536;
+    accel_state->comp_vs_offset = 2048;
+    accel_state->comp_ps_offset = 2560;
+    accel_state->comp_mask_vs_offset = 3072;
+    accel_state->comp_mask_ps_offset = 3584;
+    accel_state->xv_vs_offset = 4096;
+    accel_state->xv_ps_offset = 4608;
+
+    // solid vs ---------------------------------------
+    i = accel_state->solid_vs_offset / 4;
+    //0
+    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(1),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_VTX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    //1
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
+				      TYPE(SQ_EXPORT_POS),
+				      RW_GPR(1),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    //2
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3
+    vs[i++] = 0x00000000;
+    vs[i++] = 0x00000000;
+    //4/5
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(12));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(0),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(1));
+    vs[i++] = VTX_DWORD_PAD;
+
+    // solid ps ---------------------------------------
+    i = accel_state->solid_ps_offset / 4;
+    // 0
+    ps[i++] = CF_ALU_DWORD0(ADDR(2),
+			    KCACHE_BANK0(0),
+			    KCACHE_BANK1(0),
+			    KCACHE_MODE0(0));
+    ps[i++] = CF_ALU_DWORD1(KCACHE_MODE1(0),
+			    KCACHE_ADDR0(0),
+			    KCACHE_ADDR1(0),
+			    I_COUNT(4),
+			    USES_WATERFALL(0),
+			    CF_INST(SQ_CF_INST_ALU),
+			    WHOLE_QUAD_MODE(0),
+			    BARRIER(1));
+    // 1
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
+				      TYPE(SQ_EXPORT_PIXEL),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(1));
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(1),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+
+    // 2
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(1));
+    // 3
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Y),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(1));
+    // 4
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Z),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(1));
+    // 5
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_W),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(1));
+
+    // copy vs ---------------------------------------
+    i = accel_state->copy_vs_offset / 4;
+    //0
+    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(2),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_VTX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    //1
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
+				      TYPE(SQ_EXPORT_POS),
+				      RW_GPR(1),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    //2
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3
+    vs[i++] = 0x00000000;
+    vs[i++] = 0x00000000;
+    //4/5
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(16));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(0),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(1));
+    vs[i++] = VTX_DWORD_PAD;
+    //6/7
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(8));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(8),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(0));
+    vs[i++] = VTX_DWORD_PAD;
+
+    // copy ps ---------------------------------------
+    i = accel_state->copy_ps_offset / 4;
+    // CF INST 0
+    ps[i++] = CF_DWORD0(ADDR(2));
+    ps[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(1),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_TEX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    // CF INST 1
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
+				      TYPE(SQ_EXPORT_PIXEL),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(1));
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(1),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    // TEX INST 0
+    ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
+			 BC_FRAC_MODE(0),
+			 FETCH_WHOLE_QUAD(0),
+			 RESOURCE_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 R7xx_ALT_CONST(0));
+    ps[i++] = TEX_DWORD1(DST_GPR(0),
+			 DST_REL(ABSOLUTE),
+			 DST_SEL_X(SQ_SEL_X), //R
+			 DST_SEL_Y(SQ_SEL_Y), //G
+			 DST_SEL_Z(SQ_SEL_Z), //B
+			 DST_SEL_W(SQ_SEL_W), //A
+			 LOD_BIAS(0),
+			 COORD_TYPE_X(TEX_UNNORMALIZED),
+			 COORD_TYPE_Y(TEX_UNNORMALIZED),
+			 COORD_TYPE_Z(TEX_UNNORMALIZED),
+			 COORD_TYPE_W(TEX_UNNORMALIZED));
+    ps[i++] = TEX_DWORD2(OFFSET_X(0),
+			 OFFSET_Y(0),
+			 OFFSET_Z(0),
+			 SAMPLER_ID(0),
+			 SRC_SEL_X(SQ_SEL_X),
+			 SRC_SEL_Y(SQ_SEL_Y),
+			 SRC_SEL_Z(SQ_SEL_0),
+			 SRC_SEL_W(SQ_SEL_1));
+
+    // xv vs ---------------------------------------
+    i = accel_state->xv_vs_offset / 4;
+    //0
+    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(2),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_VTX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    //1
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
+				      TYPE(SQ_EXPORT_POS),
+				      RW_GPR(1),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    //2
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3
+    vs[i++] = 0x00000000;
+    vs[i++] = 0x00000000;
+    //4/5
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(16));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(0),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(1));
+    vs[i++] = VTX_DWORD_PAD;
+    //6/7
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(8));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(8),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(0));
+    vs[i++] = VTX_DWORD_PAD;
+
+    // xv ps ---------------------------------------
+    i = accel_state->xv_ps_offset / 4;
+    // 0
+    ps[i++] = CF_DWORD0(ADDR(20));
+    ps[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(2),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_TEX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(0));
+    // 1
+    ps[i++] = CF_ALU_DWORD0(ADDR(3),
+			    KCACHE_BANK0(0),
+			    KCACHE_BANK1(0),
+			    KCACHE_MODE0(SQ_CF_KCACHE_NOP));
+    ps[i++] = CF_ALU_DWORD1(KCACHE_MODE1(SQ_CF_KCACHE_NOP),
+			    KCACHE_ADDR0(0),
+			    KCACHE_ADDR1(0),
+			    I_COUNT(16),
+			    USES_WATERFALL(0),
+			    CF_INST(SQ_CF_INST_ALU),
+			    WHOLE_QUAD_MODE(0),
+			    BARRIER(1));
+    // 2
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
+				      TYPE(SQ_EXPORT_PIXEL),
+				      RW_GPR(3),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(3));
+    ps[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    // 3 - alu 0
+    // DP4 gpr[2].x gpr[1].x c[0].x
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(256),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(1));
+    // 4 - alu 1
+    // DP4 gpr[2].y gpr[1].y c[0].y
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(256),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Y),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(1));
+    // 5 - alu 2
+    // DP4 gpr[2].z gpr[1].z c[0].z
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(256),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Z),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(1));
+    // 6 - alu 3
+    // DP4 gpr[2].w gpr[1].w c[0].w
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(256),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_W),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(1));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_021),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(1));
+    // 7 - alu 4
+    // DP4 gpr[2].x gpr[1].x c[1].x
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(257),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(1));
+    // 8 - alu 5
+    // DP4 gpr[2].y gpr[1].y c[1].y
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(257),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Y),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(1));
+    // 9 - alu 6
+    // DP4 gpr[2].z gpr[1].z c[1].z
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(257),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Z),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(1));
+    // 10 - alu 7
+    // DP4 gpr[2].w gpr[1].w c[1].w
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(257),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_W),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(1));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_021),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(1));
+    // 11 - alu 8
+    // DP4 gpr[2].x gpr[1].x c[2].x
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(258),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(1));
+    // 12 - alu 9
+    // DP4 gpr[2].y gpr[1].y c[2].y
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(258),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Y),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(1));
+    // 13 - alu 10
+    // DP4 gpr[2].z gpr[1].z c[2].z
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(258),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Z),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_102),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(1));
+    // 14 - alu 11
+    // DP4 gpr[2].w gpr[1].w c[2].w
+    ps[i++] = ALU_DWORD0(SRC0_SEL(1),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(258),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_W),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(1));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(0),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_DOT4),
+			     BANK_SWIZZLE(SQ_ALU_VEC_021),
+			     DST_GPR(2),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(1));
+    // 15 - alu 12
+    // MOV gpr[3].x gpr[2].x
+    ps[i++] = ALU_DWORD0(SRC0_SEL(2),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_210),
+			     DST_GPR(3),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(0));
+    // 16 - alu 13
+    // MOV gpr[3].y gpr[2].y
+    ps[i++] = ALU_DWORD0(SRC0_SEL(2),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_210),
+			     DST_GPR(3),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(0));
+    // 17 - alu 14
+    // MOV gpr[3].z gpr[2].z
+    ps[i++] = ALU_DWORD0(SRC0_SEL(2),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_210),
+			     DST_GPR(3),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(0));
+    // 18 - alu 15
+    // MOV gpr[3].w gpr[2].w
+    ps[i++] = ALU_DWORD0(SRC0_SEL(2),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_LOOP),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(1));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(3),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(0));
+    // 19 - alignment
+    ps[i++] = 0x00000000;
+    ps[i++] = 0x00000000;
+    // 20/21 - tex 0
+    ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
+			 BC_FRAC_MODE(0),
+			 FETCH_WHOLE_QUAD(0),
+			 RESOURCE_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 R7xx_ALT_CONST(0));
+    ps[i++] = TEX_DWORD1(DST_GPR(1),
+			 DST_REL(ABSOLUTE),
+			 DST_SEL_X(SQ_SEL_X),    //R
+			 DST_SEL_Y(SQ_SEL_MASK), //G
+			 DST_SEL_Z(SQ_SEL_MASK), //B
+			 DST_SEL_W(SQ_SEL_1),    //A
+			 LOD_BIAS(0),
+			 COORD_TYPE_X(TEX_NORMALIZED),
+			 COORD_TYPE_Y(TEX_NORMALIZED),
+			 COORD_TYPE_Z(TEX_NORMALIZED),
+			 COORD_TYPE_W(TEX_NORMALIZED));
+    ps[i++] = TEX_DWORD2(OFFSET_X(0),
+			 OFFSET_Y(0),
+			 OFFSET_Z(0),
+			 SAMPLER_ID(0),
+			 SRC_SEL_X(SQ_SEL_X),
+			 SRC_SEL_Y(SQ_SEL_Y),
+			 SRC_SEL_Z(SQ_SEL_0),
+			 SRC_SEL_W(SQ_SEL_1));
+    ps[i++] = TEX_DWORD_PAD;
+    // 22/23 - tex 1
+    ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
+			 BC_FRAC_MODE(0),
+			 FETCH_WHOLE_QUAD(0),
+			 RESOURCE_ID(1),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 R7xx_ALT_CONST(0));
+    ps[i++] = TEX_DWORD1(DST_GPR(1),
+			 DST_REL(ABSOLUTE),
+			 DST_SEL_X(SQ_SEL_MASK), //R
+			 DST_SEL_Y(SQ_SEL_X),    //G
+			 DST_SEL_Z(SQ_SEL_Y),    //B
+			 DST_SEL_W(SQ_SEL_MASK), //A
+			 LOD_BIAS(0),
+			 COORD_TYPE_X(TEX_NORMALIZED),
+			 COORD_TYPE_Y(TEX_NORMALIZED),
+			 COORD_TYPE_Z(TEX_NORMALIZED),
+			 COORD_TYPE_W(TEX_NORMALIZED));
+    ps[i++] = TEX_DWORD2(OFFSET_X(0),
+			 OFFSET_Y(0),
+			 OFFSET_Z(0),
+			 SAMPLER_ID(1),
+			 SRC_SEL_X(SQ_SEL_X),
+			 SRC_SEL_Y(SQ_SEL_Y),
+			 SRC_SEL_Z(SQ_SEL_0),
+			 SRC_SEL_W(SQ_SEL_1));
+    ps[i++] = TEX_DWORD_PAD;
+
+    return TRUE;
+}
+
 Bool
 R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
@@ -2856,6 +3527,12 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     accel_state->XHas3DEngineState = FALSE;
 
     rhdPtr->TwoDPrivate = accel_state;
+
+    if (!R600LoadShaders(pScrn, pScreen)) {
+	xfree(accel_state);
+	xfree(EXAInfo);
+	return FALSE;
+    }
 
     exaMarkSync(pScreen);
 
