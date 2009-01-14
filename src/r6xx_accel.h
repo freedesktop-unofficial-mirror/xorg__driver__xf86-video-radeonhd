@@ -20,7 +20,6 @@ RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 struct r6xx_solid_vertex {
     float x;
     float y;
-    uint32_t color;
 };
 
 struct r6xx_copy_vertex {
@@ -50,9 +49,6 @@ struct r6xx_accel_state {
 
     // UTS/DFS
     drmBufPtr         scratch;
-
-    // solid
-    uint32_t          solid_fg;
 
     // copy
     Bool              same_surface;

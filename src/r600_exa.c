@@ -91,14 +91,16 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     int pix_pitch;
     uint32_t pix_offset;
     uint32_t vs[16];
-    uint32_t ps[2];
+    uint32_t ps[12];
+    uint32_t a, r, g, b;
+    float ps_alu_consts[4];
 
     //0
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
 			COND(SQ_CF_COND_ACTIVE),
-			I_COUNT(2),
+			I_COUNT(1),
 			CALL_COUNT(0),
 			END_OF_PROGRAM(0),
 			VALID_PIXEL_MODE(0),
@@ -126,7 +128,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     //2
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
-				      RW_GPR(2),
+				      RW_GPR(0),
 				      RW_REL(ABSOLUTE),
 				      INDEX_GPR(0),
 				      ELEM_SIZE(0));
@@ -170,85 +172,21 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
 
-    //6/7
-    if (pPix->drawable.bitsPerPixel == 8) {
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(1));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_1), //R
-				 DST_SEL_Y(SQ_SEL_1), //G
-				 DST_SEL_Z(SQ_SEL_1), //B
-				 DST_SEL_W(SQ_SEL_X), //A
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_8),
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_UNSIGNED),
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(11),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-    } else if (pPix->drawable.bitsPerPixel == 16) {
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(2));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_Z), //R
-				 DST_SEL_Y(SQ_SEL_Y), //G
-				 DST_SEL_Z(SQ_SEL_X), //B
-				 DST_SEL_W(SQ_SEL_1), //A
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_5_6_5),
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_UNSIGNED),
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(10),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-    } else {
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(4));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_Z), //R
-				 DST_SEL_Y(SQ_SEL_Y), //G
-				 DST_SEL_Z(SQ_SEL_X), //B
-				 DST_SEL_W(SQ_SEL_W), //A
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_8_8_8_8),
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM),
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_UNSIGNED),
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(8),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-    }
-
     i = 0;
+    // 0
+    ps[i++] = CF_ALU_DWORD0(ADDR(2),
+			    KCACHE_BANK0(0),
+			    KCACHE_BANK1(0),
+			    KCACHE_MODE0(0));
+    ps[i++] = CF_ALU_DWORD1(KCACHE_MODE1(0),
+			    KCACHE_ADDR0(0),
+			    KCACHE_ADDR1(0),
+			    I_COUNT(4),
+			    USES_WATERFALL(0),
+			    CF_INST(SQ_CF_INST_ALU),
+			    WHOLE_QUAD_MODE(0),
+			    BARRIER(1));
+    // 1
     ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 				      TYPE(SQ_EXPORT_PIXEL),
 				      RW_GPR(0),
@@ -266,6 +204,111 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
+
+    // 2
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_X),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_X),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_X),
+			     CLAMP(1));
+    // 3
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Y),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Y),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Y),
+			     CLAMP(1));
+    // 4
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_Z),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_Z),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_Z),
+			     CLAMP(1));
+    // 5
+    ps[i++] = ALU_DWORD0(SRC0_SEL(256),
+			 SRC0_REL(ABSOLUTE),
+			 SRC0_ELEM(ELEM_W),
+			 SRC0_NEG(0),
+			 SRC1_SEL(0),
+			 SRC1_REL(ABSOLUTE),
+			 SRC1_ELEM(ELEM_W),
+			 SRC1_NEG(0),
+			 INDEX_MODE(SQ_INDEX_AR_X),
+			 PRED_SEL(SQ_PRED_SEL_OFF),
+			 LAST(0));
+    ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
+			     SRC0_ABS(0),
+			     SRC1_ABS(0),
+			     UPDATE_EXECUTE_MASK(0),
+			     UPDATE_PRED(0),
+			     WRITE_MASK(1),
+			     FOG_MERGE(0),
+			     OMOD(SQ_ALU_OMOD_OFF),
+			     ALU_INST(SQ_OP2_INST_MOV),
+			     BANK_SWIZZLE(SQ_ALU_VEC_012),
+			     DST_GPR(0),
+			     DST_REL(ABSOLUTE),
+			     DST_ELEM(ELEM_W),
+			     CLAMP(1));
 
     pix_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
     pix_offset = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
@@ -316,7 +359,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     /* Shader */
     vs_conf.shader_addr         = vs_addr;
-    vs_conf.num_gprs            = 3;
+    vs_conf.num_gprs            = 2;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
@@ -354,7 +397,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 	cb_conf.comp_swap = 2; //RGB
     } else {
 	cb_conf.format = COLOR_8_8_8_8;
-	cb_conf.comp_swap = 1; // ARGB
+	cb_conf.comp_swap = 1; //ARGB
     }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
@@ -383,7 +426,32 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 								  SEL_CENTROID_bit));
     ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                FLAT_SHADE_ENA_bit | 0);
 
-    accel_state->solid_fg = (uint32_t)fg;
+    // PS alu constants
+    if (pPix->drawable.bitsPerPixel == 16) {
+	r = (fg >> 11) & 0x1f;
+	g = (fg >> 5) & 0x3f;
+	b = (fg >> 0) & 0x1f;
+	ps_alu_consts[0] = (float)r / 31; //R
+	ps_alu_consts[1] = (float)g / 63; //G
+	ps_alu_consts[2] = (float)b / 31; //B
+	ps_alu_consts[3] = 1.0; //A
+    } else if (pPix->drawable.bitsPerPixel == 8) {
+	a = (fg >> 0) & 0xff;
+	ps_alu_consts[0] = 0.0; //R
+	ps_alu_consts[1] = 0.0; //G
+	ps_alu_consts[2] = 0.0; //B
+	ps_alu_consts[3] = (float)a / 255; //A
+    } else {
+	a = (fg >> 24) & 0xff;
+	r = (fg >> 16) & 0xff;
+	g = (fg >> 8) & 0xff;
+	b = (fg >> 0) & 0xff;
+	ps_alu_consts[0] = (float)r / 255; //R
+	ps_alu_consts[1] = (float)g / 255; //G
+	ps_alu_consts[2] = (float)b / 255; //B
+	ps_alu_consts[3] = (float)a / 255; //A
+    }
+    set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
 
     accel_state->vb_index = 0;
 
@@ -406,20 +474,17 @@ R600Solid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
 
     vertex[0].x = (float)x1;
     vertex[0].y = (float)y1;
-    vertex[0].color = accel_state->solid_fg;
 
     vertex[1].x = (float)x1;
     vertex[1].y = (float)y2;
-    vertex[1].color = accel_state->solid_fg;
 
     vertex[2].x = (float)x2;
     vertex[2].y = (float)y2;
-    vertex[2].color = accel_state->solid_fg;
 
 #ifdef SHOW_VERTEXES
-    ErrorF("vertex 0: %f, %f, 0x%08x\n", vertex[0].x, vertex[0].y, vertex[0].color);
-    ErrorF("vertex 1: %f, %f, 0x%08x\n", vertex[1].x, vertex[1].y, vertex[1].color);
-    ErrorF("vertex 2: %f, %f, 0x%08x\n", vertex[2].x, vertex[2].y, vertex[2].color);
+    ErrorF("vertex 0: %f, %f\n", vertex[0].x, vertex[0].y);
+    ErrorF("vertex 1: %f, %f\n", vertex[1].x, vertex[1].y);
+    ErrorF("vertex 2: %f\n", vertex[2].x, vertex[2].y);
 #endif
 
     // append to vertex buffer
@@ -451,8 +516,8 @@ R600DoneSolid(PixmapPtr pPix)
 
     /* Vertex buffer setup */
     vtx_res.id              = SQ_VTX_RESOURCE_vs;
-    vtx_res.vtx_size_dw     = 12 / 4;
-    vtx_res.vtx_num_entries = accel_state->vb_index * 12 / 4;
+    vtx_res.vtx_size_dw     = 8 / 4;
+    vtx_res.vtx_num_entries = accel_state->vb_index * 8 / 4;
     vtx_res.mem_req_size    = 1;
     vtx_res.vb_addr         = vb_addr;
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
