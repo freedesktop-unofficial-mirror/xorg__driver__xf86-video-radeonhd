@@ -339,7 +339,7 @@ union intfloat {
  *   a lot of complexity, so we handle only the most common
  *   case of a repeating mask.)
  */
-static Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
+Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;
@@ -355,7 +355,7 @@ static Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
 /* Determine if the pitch of the pixmap meets the criteria for being
  * used as a repeating texture: no padding or only a single line texture.
  */
-static Bool RADEONPitchMatches(PixmapPtr pPix)
+Bool RADEONPitchMatches(PixmapPtr pPix)
 {
     int w = pPix->drawable.width;
     int h = pPix->drawable.height;
