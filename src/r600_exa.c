@@ -1297,256 +1297,9 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     shader_config_t vs_conf, ps_conf;
     uint64_t vs_addr, ps_addr;
     int i = 0;
-    uint32_t vs[20];
     uint32_t ps[24];
 
     //return FALSE;
-
-    if (pMask) {
-	//0
-	vs[i++] = CF_DWORD0(ADDR(4));
-	vs[i++] = CF_DWORD1(POP_COUNT(0),
-			    CF_CONST(0),
-			    COND(SQ_CF_COND_ACTIVE),
-			    I_COUNT(3),
-			    CALL_COUNT(0),
-			    END_OF_PROGRAM(0),
-			    VALID_PIXEL_MODE(0),
-			    CF_INST(SQ_CF_INST_VTX),
-			    WHOLE_QUAD_MODE(0),
-			    BARRIER(1));
-	//1 - dst
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
-					  TYPE(SQ_EXPORT_POS),
-					  RW_GPR(2),
-					  RW_REL(ABSOLUTE),
-					  INDEX_GPR(0),
-					  ELEM_SIZE(0));
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					       SRC_SEL_Y(SQ_SEL_Y),
-					       SRC_SEL_Z(SQ_SEL_Z),
-					       SRC_SEL_W(SQ_SEL_W),
-					       R6xx_ELEM_LOOP(0),
-					       BURST_COUNT(0),
-					       END_OF_PROGRAM(0),
-					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT_DONE),
-					       WHOLE_QUAD_MODE(0),
-					       BARRIER(1));
-	//2 - src
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-					  TYPE(SQ_EXPORT_PARAM),
-					  RW_GPR(1),
-					  RW_REL(ABSOLUTE),
-					  INDEX_GPR(0),
-					  ELEM_SIZE(0));
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					       SRC_SEL_Y(SQ_SEL_Y),
-					       SRC_SEL_Z(SQ_SEL_Z),
-					       SRC_SEL_W(SQ_SEL_W),
-					       R6xx_ELEM_LOOP(0),
-					       BURST_COUNT(0),
-					       END_OF_PROGRAM(0),
-					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT),
-					       WHOLE_QUAD_MODE(0),
-					       BARRIER(0));
-	//3 - mask
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-					  TYPE(SQ_EXPORT_PARAM),
-					  RW_GPR(0),
-					  RW_REL(ABSOLUTE),
-					  INDEX_GPR(0),
-					  ELEM_SIZE(0));
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					       SRC_SEL_Y(SQ_SEL_Y),
-					       SRC_SEL_Z(SQ_SEL_Z),
-					       SRC_SEL_W(SQ_SEL_W),
-					       R6xx_ELEM_LOOP(0),
-					       BURST_COUNT(0),
-					       END_OF_PROGRAM(1),
-					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT_DONE),
-					       WHOLE_QUAD_MODE(0),
-					       BARRIER(0));
-	//4/5 - dst
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(24));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_1),
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(0),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(1));
-	vs[i++] = VTX_DWORD_PAD;
-	//6/7 - src
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(8));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_1),
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(8),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-	//8/9 - mask
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(8));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_1),
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(8),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-    } else {
-	//0
-	vs[i++] = CF_DWORD0(ADDR(4));
-	vs[i++] = CF_DWORD1(POP_COUNT(0),
-			    CF_CONST(0),
-			    COND(SQ_CF_COND_ACTIVE),
-			    I_COUNT(2),
-			    CALL_COUNT(0),
-			    END_OF_PROGRAM(0),
-			    VALID_PIXEL_MODE(0),
-			    CF_INST(SQ_CF_INST_VTX),
-			    WHOLE_QUAD_MODE(0),
-			    BARRIER(1));
-	//1 - dst
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
-					  TYPE(SQ_EXPORT_POS),
-					  RW_GPR(1),
-					  RW_REL(ABSOLUTE),
-					  INDEX_GPR(0),
-					  ELEM_SIZE(0));
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					       SRC_SEL_Y(SQ_SEL_Y),
-					       SRC_SEL_Z(SQ_SEL_Z),
-					       SRC_SEL_W(SQ_SEL_W),
-					       R6xx_ELEM_LOOP(0),
-					       BURST_COUNT(0),
-					       END_OF_PROGRAM(0),
-					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT_DONE),
-					       WHOLE_QUAD_MODE(0),
-					       BARRIER(1));
-	//2 - src
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-					  TYPE(SQ_EXPORT_PARAM),
-					  RW_GPR(0),
-					  RW_REL(ABSOLUTE),
-					  INDEX_GPR(0),
-					  ELEM_SIZE(0));
-	vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					       SRC_SEL_Y(SQ_SEL_Y),
-					       SRC_SEL_Z(SQ_SEL_Z),
-					       SRC_SEL_W(SQ_SEL_W),
-					       R6xx_ELEM_LOOP(0),
-					       BURST_COUNT(0),
-					       END_OF_PROGRAM(1),
-					       VALID_PIXEL_MODE(0),
-					       CF_INST(SQ_CF_INST_EXPORT_DONE),
-					       WHOLE_QUAD_MODE(0),
-					       BARRIER(0));
-	//3
-	vs[i++] = 0x00000000;
-	vs[i++] = 0x00000000;
-	//4/5 - dst
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(16));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_1),
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(0),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(1));
-	vs[i++] = VTX_DWORD_PAD;
-	//6/7 - src
-	vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
-			     FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
-			     FETCH_WHOLE_QUAD(0),
-			     BUFFER_ID(0),
-			     SRC_GPR(0),
-			     SRC_REL(ABSOLUTE),
-			     SRC_SEL_X(SQ_SEL_X),
-			     MEGA_FETCH_COUNT(8));
-	vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
-				 DST_REL(0),
-				 DST_SEL_X(SQ_SEL_X),
-				 DST_SEL_Y(SQ_SEL_Y),
-				 DST_SEL_Z(SQ_SEL_0),
-				 DST_SEL_W(SQ_SEL_1),
-				 USE_CONST_FIELDS(0),
-				 DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-				 NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-				 FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
-				 SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-	vs[i++] = VTX_DWORD2(OFFSET(8),
-			     ENDIAN_SWAP(ENDIAN_NONE),
-			     CONST_BUF_NO_STRIDE(0),
-			     MEGA_FETCH(0));
-	vs[i++] = VTX_DWORD_PAD;
-    }
 
     i = 0;
 
@@ -2019,9 +1772,13 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	accel_state->is_transform[1] = FALSE;
     }
 
-    memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 512, vs, sizeof(vs));
-    vs_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 512;
+    if (pMask != NULL)
+	vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	    accel_state->comp_mask_vs_offset;
+    else
+	vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	    accel_state->comp_vs_offset;
+
     memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 256, ps, sizeof(ps));
     ps_addr = RHDDRIGetIntGARTLocation(pScrn) +
 	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 256;
@@ -3482,6 +3239,261 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_Z(SQ_SEL_0),
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
+
+    // comp mask vs ---------------------------------------
+    i = accel_state->comp_mask_vs_offset / 4;
+    //0
+    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(3),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_VTX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    //1 - dst
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
+				      TYPE(SQ_EXPORT_POS),
+				      RW_GPR(2),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    //2 - src
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(1),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3 - mask
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //4/5 - dst
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(24));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(2),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(0),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(1));
+    vs[i++] = VTX_DWORD_PAD;
+    //6/7 - src
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(8));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(8),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(0));
+    vs[i++] = VTX_DWORD_PAD;
+    //8/9 - mask
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(8));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(8),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(0));
+    vs[i++] = VTX_DWORD_PAD;
+
+    // comp mask ps ---------------------------------------
+    // not yet
+
+    // comp vs ---------------------------------------
+    i = accel_state->comp_vs_offset / 4;
+    //0
+    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD1(POP_COUNT(0),
+			CF_CONST(0),
+			COND(SQ_CF_COND_ACTIVE),
+			I_COUNT(2),
+			CALL_COUNT(0),
+			END_OF_PROGRAM(0),
+			VALID_PIXEL_MODE(0),
+			CF_INST(SQ_CF_INST_VTX),
+			WHOLE_QUAD_MODE(0),
+			BARRIER(1));
+    //1 - dst
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
+				      TYPE(SQ_EXPORT_POS),
+				      RW_GPR(1),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(0),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(1));
+    //2 - src
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3
+    vs[i++] = 0x00000000;
+    vs[i++] = 0x00000000;
+    //4/5 - dst
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(16));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(0),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(1));
+    vs[i++] = VTX_DWORD_PAD;
+    //6/7 - src
+    vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
+			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
+			 FETCH_WHOLE_QUAD(0),
+			 BUFFER_ID(0),
+			 SRC_GPR(0),
+			 SRC_REL(ABSOLUTE),
+			 SRC_SEL_X(SQ_SEL_X),
+			 MEGA_FETCH_COUNT(8));
+    vs[i++] = VTX_DWORD1_GPR(DST_GPR(0),
+			     DST_REL(0),
+			     DST_SEL_X(SQ_SEL_X),
+			     DST_SEL_Y(SQ_SEL_Y),
+			     DST_SEL_Z(SQ_SEL_0),
+			     DST_SEL_W(SQ_SEL_1),
+			     USE_CONST_FIELDS(0),
+			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
+    vs[i++] = VTX_DWORD2(OFFSET(8),
+			 ENDIAN_SWAP(ENDIAN_NONE),
+			 CONST_BUF_NO_STRIDE(0),
+			 MEGA_FETCH(0));
+    vs[i++] = VTX_DWORD_PAD;
+
+    // comp ps ---------------------------------------
+    // not yet
+
 
     return TRUE;
 }
