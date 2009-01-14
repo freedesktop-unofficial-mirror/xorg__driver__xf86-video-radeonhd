@@ -2048,7 +2048,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_GPR(2),
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_X),
-				 CLAMP(0));
+				 CLAMP(1));
 	// 4 - alu 1
 	// MUL gpr[2].y gpr[1].y gpr[0].y
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -2075,7 +2075,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_GPR(2),
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_Y),
-				 CLAMP(0));
+				 CLAMP(1));
 	// 5 - alu 2
 	// MUL gpr[2].z gpr[1].z gpr[0].z
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -2102,7 +2102,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_GPR(2),
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_Z),
-				 CLAMP(0));
+				 CLAMP(1));
 	// 6 - alu 3
 	// MUL gpr[2].w gpr[1].w gpr[0].w
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
@@ -2115,7 +2115,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC1_NEG(0),
 			     INDEX_MODE(SQ_INDEX_LOOP),
 			     PRED_SEL(SQ_PRED_SEL_OFF),
-			     LAST(0));
+			     LAST(1));
 	ps[i++] = ALU_DWORD1_OP2(rhdPtr->ChipSet,
 				 SRC0_ABS(0),
 				 SRC1_ABS(0),
@@ -2129,7 +2129,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_GPR(2),
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_W),
-				 CLAMP(0));
+				 CLAMP(1));
 	// 7
 	ps[i++] = 0x00000000;
 	ps[i++] = 0x00000000;
