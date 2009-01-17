@@ -748,8 +748,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 140;
-	sq_conf.num_vs_threads = 44;
+	sq_conf.num_ps_threads = 144;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 128;
@@ -766,8 +766,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 140;
-	sq_conf.num_vs_threads = 44;
+	sq_conf.num_ps_threads = 144;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 64;
@@ -786,8 +786,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 140;
-	sq_conf.num_vs_threads = 44;
+	sq_conf.num_ps_threads = 144;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 64;
@@ -802,8 +802,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 140;
-	sq_conf.num_vs_threads = 44;
+	sq_conf.num_ps_threads = 144;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 128;
@@ -818,8 +818,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 192;
-	sq_conf.num_vs_threads = 48;
+	sq_conf.num_ps_threads = 200;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 256;
@@ -834,8 +834,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 192;
-	sq_conf.num_vs_threads = 48;
+	sq_conf.num_ps_threads = 200;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 128;
@@ -849,8 +849,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 140;
-	sq_conf.num_vs_threads = 44;
+	sq_conf.num_ps_threads = 144;
+	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 128;
