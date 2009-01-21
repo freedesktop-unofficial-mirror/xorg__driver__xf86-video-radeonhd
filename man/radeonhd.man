@@ -513,7 +513,7 @@ unknown VGA DVI DVI-I DVI-A DVI-D HDMI Panel DisplayPort
 .PD
 .PP
 Connector type, as far as known to the driver.
-.I PANEL
+.I Panel
 describes laptop-internal (normally LVDS) displays.
 .RE
 .TP
