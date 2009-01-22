@@ -1585,7 +1585,7 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 		} else
 		    return FALSE;
 	    } else
-#ifdef ATOM_BIOS
+#if defined(ATOM_BIOS) && defined(ATOM_BIOS_PARSER)
 	    {
 		struct ATOMTransmitterPrivate *transPrivate =
 		    (struct ATOMTransmitterPrivate *)Private->Transmitter.Private;

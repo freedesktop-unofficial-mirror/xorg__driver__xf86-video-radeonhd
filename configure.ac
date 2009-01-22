@@ -232,17 +232,6 @@ AC_ARG_ENABLE(atombios-parser, AC_HELP_STRING([--disable-atombios-parser],
               [do_atombios_parser="$enableval"],
               [do_atombios_parser=yes])
 
-if test "x$do_atombios$do_atombios_parser" = "xyesno"; then
-AC_MSG_ERROR([dnl
-Inconsistent compile time options requested
-
-The compile time options --enable-atombios --disable-atombios-parser
-cannot be used together.
-
-Choose a different set of options and run configure again.
-])
-fi
-
 AC_CHECK_FILE([${srcdir}/src/AtomBios/includes/atombios.h],
               [have_atombios_h="yes"], [have_atombios_h="no"])
 
