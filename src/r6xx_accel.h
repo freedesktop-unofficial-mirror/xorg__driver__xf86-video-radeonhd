@@ -70,6 +70,20 @@ struct r6xx_accel_state {
     uint32_t          xv_vs_offset;
     uint32_t          xv_ps_offset;
 
+    //size/addr stuff
+    uint32_t          src_size[2];
+    uint64_t          src_mc_addr[2];
+    uint32_t          src_pitch[2];
+    uint32_t          dst_size;
+    uint64_t          dst_mc_addr;
+    uint32_t          dst_pitch;
+    uint32_t          vs_size;
+    uint64_t          vs_mc_addr;
+    uint32_t          ps_size;
+    uint64_t          ps_mc_addr;
+    uint32_t          vb_size;
+    uint64_t          vb_mc_addr;
+
     // UTS/DFS
     drmBufPtr         scratch;
 

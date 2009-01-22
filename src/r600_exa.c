@@ -85,22 +85,20 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     cb_config_t     cb_conf;
     shader_config_t vs_conf, ps_conf;
-    uint64_t vs_addr, ps_addr;
     int pmask = 0;
-    int pix_pitch;
-    uint32_t pix_offset;
     uint32_t a, r, g, b;
     float ps_alu_consts[4];
 
-    pix_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
-    pix_offset = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->dst_mc_addr = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->dst_size = exaGetPixmapPitch(pPix) * pPix->drawable.height;
+    accel_state->dst_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
 
     // bad pitch
-    if (pix_pitch & 63)
+    if (accel_state->dst_pitch & 63)
 	return FALSE;
 
     // bad offset
-    if (pix_offset & 0xff)
+    if (accel_state->dst_mc_addr & 0xff)
 	return FALSE;
 
     if (pPix->drawable.bitsPerPixel == 24)
@@ -122,7 +120,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    cp_set_surface_sync(pScrn, accel_state->ib);
+    //cp_set_surface_sync(pScrn, accel_state->ib);
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -132,18 +130,29 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     //return FALSE;
 
-    vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->solid_vs_offset;
-    ps_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->solid_ps_offset;
+    accel_state->vs_size = 512;
+    accel_state->ps_size = 512;
 
     /* Shader */
-    vs_conf.shader_addr         = vs_addr;
+
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->vs_size, accel_state->vs_mc_addr);
+
+    vs_conf.shader_addr         = accel_state->vs_mc_addr;
     vs_conf.num_gprs            = 2;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
-    ps_conf.shader_addr         = ps_addr;
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->ps_size, accel_state->ps_mc_addr);
+
+    ps_conf.shader_addr         = accel_state->ps_mc_addr;
     ps_conf.num_gprs            = 1;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
@@ -164,10 +173,11 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[alu]);
 
+
     cb_conf.id = 0;
-    cb_conf.w = pix_pitch;
+    cb_conf.w = accel_state->dst_pitch;
     cb_conf.h = pPix->drawable.height;
-    cb_conf.base = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    cb_conf.base = accel_state->dst_mc_addr;
 
     if (pPix->drawable.bitsPerPixel == 8) {
 	cb_conf.format = COLOR_8;
@@ -279,12 +289,8 @@ R600DoneSolid(PixmapPtr pPix)
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    uint64_t vb_addr;
     draw_config_t   draw_conf;
     vtx_resource_t  vtx_res;
-
-    vb_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
 
     CLEAR (draw_conf);
     CLEAR (vtx_res);
@@ -294,12 +300,20 @@ R600DoneSolid(PixmapPtr pPix)
 	return;
     }
 
+    accel_state->vb_mc_addr = RHDDRIGetIntGARTLocation(pScrn) +
+	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
+    accel_state->vb_size = accel_state->vb_index * 8;
+
+    /* flush vertex cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			accel_state->vb_size, accel_state->vb_mc_addr);
+
     /* Vertex buffer setup */
     vtx_res.id              = SQ_VTX_RESOURCE_vs;
     vtx_res.vtx_size_dw     = 8 / 4;
-    vtx_res.vtx_num_entries = accel_state->vb_index * 8 / 4;
+    vtx_res.vtx_num_entries = accel_state->vb_size / 4;
     vtx_res.mem_req_size    = 1;
-    vtx_res.vb_addr         = vb_addr;
+    vtx_res.vb_addr         = accel_state->vb_mc_addr;
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
     /* Draw */
@@ -320,6 +334,10 @@ R600DoneSolid(PixmapPtr pPix)
 
     wait_3d_idle_clean(pScrn, accel_state->ib);
 
+    /* sync dst surface */
+    cp_set_surface_sync(pScrn, accel_state->ib, (CB_ACTION_ENA_bit | CB0_DEST_BASE_ENA_bit),
+			accel_state->dst_size, accel_state->dst_mc_addr);
+
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
 
@@ -336,7 +354,6 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     tex_resource_t  tex_res;
     tex_sampler_t   tex_samp;
     shader_config_t vs_conf, ps_conf;
-    uint64_t vs_addr, ps_addr;
 
     CLEAR (cb_conf);
     CLEAR (tex_res);
@@ -349,7 +366,7 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    cp_set_surface_sync(pScrn, accel_state->ib);
+    //cp_set_surface_sync(pScrn, accel_state->ib);
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -357,18 +374,29 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->copy_vs_offset;
-    ps_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->copy_ps_offset;
+    accel_state->vs_size = 512;
+    accel_state->ps_size = 512;
 
     /* Shader */
-    vs_conf.shader_addr         = vs_addr;
+
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->vs_size, accel_state->vs_mc_addr);
+
+    vs_conf.shader_addr         = accel_state->vs_mc_addr;
     vs_conf.num_gprs            = 2;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
-    ps_conf.shader_addr         = ps_addr;
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->ps_size, accel_state->ps_mc_addr);
+
+    ps_conf.shader_addr         = accel_state->ps_mc_addr;
     ps_conf.num_gprs            = 1;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
@@ -376,16 +404,23 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     ps_conf.export_mode         = 2;
     ps_setup                    (pScrn, accel_state->ib, &ps_conf);
 
+    accel_state->src_size[0] = src_pitch * src_height * (src_bpp/8);
+    accel_state->src_mc_addr[0] = src_offset;
+    accel_state->src_pitch[0] = src_pitch;
+
+    /* flush texture cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
+			accel_state->src_size[0], accel_state->src_mc_addr[0]);
 
     /* Texture */
     tex_res.id                  = 0;
     tex_res.w                   = src_width;
     tex_res.h                   = src_height;
-    tex_res.pitch               = src_pitch;
+    tex_res.pitch               = accel_state->src_pitch[0];
     tex_res.depth               = 0;
     tex_res.dim                 = SQ_TEX_DIM_2D;
-    tex_res.base                = src_offset;
-    tex_res.mip_base            = src_offset;
+    tex_res.base                = accel_state->src_mc_addr[0];
+    tex_res.mip_base            = accel_state->src_mc_addr[0];
     if (src_bpp == 8) {
 	tex_res.format              = FMT_8;
 	tex_res.dst_sel_x           = SQ_SEL_1; //R
@@ -436,10 +471,14 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[rop]);
 
+    accel_state->dst_size = dst_pitch * dst_height * (dst_bpp/8);
+    accel_state->dst_mc_addr = dst_offset;
+    accel_state->dst_pitch = dst_pitch;
+
     cb_conf.id = 0;
-    cb_conf.w = dst_pitch;
+    cb_conf.w = accel_state->dst_pitch;
     cb_conf.h = dst_height;
-    cb_conf.base = dst_offset;
+    cb_conf.base = accel_state->dst_mc_addr;
     if (dst_bpp == 8) {
 	cb_conf.format = COLOR_8;
 	cb_conf.comp_swap = 3; // A
@@ -487,10 +526,6 @@ R600DoCopy(ScrnInfoPtr pScrn)
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     draw_config_t   draw_conf;
     vtx_resource_t  vtx_res;
-    uint64_t vb_addr;
-
-    vb_addr = RHDDRIGetIntGARTLocation(pScrn) +
-	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
 
     CLEAR (draw_conf);
     CLEAR (vtx_res);
@@ -500,12 +535,20 @@ R600DoCopy(ScrnInfoPtr pScrn)
 	return;
     }
 
+    accel_state->vb_mc_addr = RHDDRIGetIntGARTLocation(pScrn) +
+	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
+    accel_state->vb_size = accel_state->vb_index * 16;
+
+    /* flush vertex cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			accel_state->vb_size, accel_state->vb_mc_addr);
+
     /* Vertex buffer setup */
     vtx_res.id              = SQ_VTX_RESOURCE_vs;
     vtx_res.vtx_size_dw     = 16 / 4;
-    vtx_res.vtx_num_entries = accel_state->vb_index * 16 / 4;
+    vtx_res.vtx_num_entries = accel_state->vb_size / 4;
     vtx_res.mem_req_size    = 1;
-    vtx_res.vb_addr         = vb_addr;
+    vtx_res.vb_addr         = accel_state->vb_mc_addr;
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
     draw_conf.prim_type          = DI_PT_RECTLIST;
@@ -524,6 +567,10 @@ R600DoCopy(ScrnInfoPtr pScrn)
     draw_auto(pScrn, accel_state->ib, &draw_conf);
 
     wait_3d_idle_clean(pScrn, accel_state->ib);
+
+    /* sync dst surface */
+    cp_set_surface_sync(pScrn, accel_state->ib, (CB_ACTION_ENA_bit | CB0_DEST_BASE_ENA_bit),
+			accel_state->dst_size, accel_state->dst_mc_addr);
 
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
@@ -576,25 +623,23 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    int src_pitch, dst_pitch;
-    uint32_t src_offset, dst_offset;
 
-    dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
-    src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
+    accel_state->dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+    accel_state->src_pitch[0] = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
 
-    src_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-    dst_offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->src_mc_addr[0] = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->dst_mc_addr = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
     // bad pitch
-    if (src_pitch & 63)
+    if (accel_state->src_pitch[0] & 63)
 	return FALSE;
-    if (dst_pitch & 63)
+    if (accel_state->dst_pitch & 63)
 	return FALSE;
 
     // bad offset
-    if (src_offset & 0xff)
+    if (accel_state->src_mc_addr[0] & 0xff)
 	return FALSE;
-    if (dst_offset & 0xff)
+    if (accel_state->dst_mc_addr & 0xff)
 	return FALSE;
 
     if (pSrc->drawable.bitsPerPixel == 24)
@@ -624,8 +669,10 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
 	accel_state->same_surface = FALSE;
 
 	R600DoPrepareCopy(pScrn,
-			  src_pitch, pSrc->drawable.width, pSrc->drawable.height, src_offset, pSrc->drawable.bitsPerPixel,
-			  dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
+			  accel_state->src_pitch[0], pSrc->drawable.width, pSrc->drawable.height,
+			  accel_state->src_mc_addr[0], pSrc->drawable.bitsPerPixel,
+			  accel_state->dst_pitch, pDst->drawable.height,
+			  accel_state->dst_mc_addr, pDst->drawable.bitsPerPixel,
 			  rop, planemask);
 
     }
@@ -1099,15 +1146,22 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
 
     //ErrorF("Tex %d setup %dx%d\n", unit, w, h);
 
+    accel_state->src_pitch[unit] = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
+    accel_state->src_size[unit] = exaGetPixmapPitch(pPix) * h;
+    accel_state->src_mc_addr[unit] = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    /* flush texture cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
+			accel_state->src_size[unit], accel_state->src_mc_addr[unit]);
+
     /* Texture */
     tex_res.id                  = unit;
     tex_res.w                   = w;
     tex_res.h                   = h;
-    tex_res.pitch               = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
+    tex_res.pitch               = accel_state->src_pitch[unit];
     tex_res.depth               = 0;
     tex_res.dim                 = SQ_TEX_DIM_2D;
-    tex_res.base                = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-    tex_res.mip_base            = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    tex_res.base                = accel_state->src_mc_addr[unit];
+    tex_res.mip_base            = accel_state->src_mc_addr[unit];
     tex_res.format              = R600TexFormats[i].card_fmt;
     tex_res.request_size        = 1;
 
@@ -1330,10 +1384,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     uint32_t blendcntl, dst_format;
-    uint32_t src_pitch, dst_pitch, src_offset, dst_offset;
     cb_config_t cb_conf;
     shader_config_t vs_conf, ps_conf;
-    uint64_t vs_addr, ps_addr;
     int i = 0;
     uint32_t ps[24];
 
@@ -1344,23 +1396,25 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     else
 	accel_state->has_mask = FALSE;
 
-    dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
-    dst_offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->dst_mc_addr = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+    accel_state->dst_size = exaGetPixmapPitch(pDst) * pDst->drawable.height;
 
-    src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
-    src_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->src_mc_addr[0] = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    accel_state->src_pitch[0] = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
+    accel_state->src_size[0] = exaGetPixmapPitch(pSrc) * pSrc->drawable.height;
 
-    if (dst_pitch & 63)
-	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", dst_pitch));
+    if (accel_state->dst_pitch & 63)
+	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", (int)accel_state->dst_pitch));
 
-    if (dst_offset & 0xff)
-	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)dst_offset));
+    if (accel_state->dst_mc_addr & 0xff)
+	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)accel_state->dst_mc_addr));
 
-    if (src_pitch & 63)
-	RADEON_FALLBACK(("Bad src pitch 0x%x\n", src_pitch));
+    if (accel_state->src_pitch[0] & 63)
+	RADEON_FALLBACK(("Bad src pitch 0x%x\n", (int)accel_state->src_pitch[0]));
 
-    if (src_offset & 0xff)
-	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)src_offset));
+    if (accel_state->src_mc_addr[0] & 0xff)
+	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)accel_state->src_mc_addr[0]));
 
     if (!R600GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -1369,16 +1423,18 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	return FALSE;
 
     if (pMask) {
-	uint32_t mask_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
-	uint32_t mask_offset = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 	int src_a, src_r, src_g, src_b;
 	int mask_a, mask_r, mask_g, mask_b;
 
-	if (mask_pitch & 63)
-	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", dst_pitch));
+	accel_state->src_mc_addr[1] = exaGetPixmapOffset(pMask) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+	accel_state->src_pitch[1] = exaGetPixmapPitch(pMask) / (pMask->drawable.bitsPerPixel / 8);
+	accel_state->src_size[1] = exaGetPixmapPitch(pMask) * pMask->drawable.height;
 
-	if (mask_offset & 0xff)
-	    RADEON_FALLBACK(("Bad mask offset 0x%x\n", (int)mask_offset));
+	if (accel_state->src_pitch[1] & 63)
+	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", (int)accel_state->src_pitch[1]));
+
+	if (accel_state->src_mc_addr[1] & 0xff)
+	    RADEON_FALLBACK(("Bad mask offset 0x%x\n", (int)accel_state->src_mc_addr[1]));
 
 	/* setup pixel shader */
 	if (PICT_FORMAT_RGB(pSrcPicture->format) == 0) {
@@ -1787,7 +1843,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    cp_set_surface_sync(pScrn, accel_state->ib);
+    //cp_set_surface_sync(pScrn, accel_state->ib);
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -1804,23 +1860,35 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     }
 
     if (pMask != NULL)
-	vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	    accel_state->comp_mask_vs_offset;
     else
-	vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	    accel_state->comp_vs_offset;
 
     memcpy ((char *)accel_state->ib->address + (accel_state->ib->total / 2) - 256, ps, sizeof(ps));
-    ps_addr = RHDDRIGetIntGARTLocation(pScrn) +
+    accel_state->ps_mc_addr = RHDDRIGetIntGARTLocation(pScrn) +
 	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2) - 256;
 
+    accel_state->vs_size = 512;
+    accel_state->ps_size = 512;
+
     /* Shader */
-    vs_conf.shader_addr         = vs_addr;
+
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->vs_size, accel_state->vs_mc_addr);
+
+    vs_conf.shader_addr         = accel_state->vs_mc_addr;
     vs_conf.num_gprs            = 3;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
-    ps_conf.shader_addr         = ps_addr;
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->ps_size, accel_state->ps_mc_addr);
+
+    ps_conf.shader_addr         = accel_state->ps_mc_addr;
     ps_conf.num_gprs            = 3;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
@@ -1844,9 +1912,9 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     }
 
     cb_conf.id = 0;
-    cb_conf.w = dst_pitch;
+    cb_conf.w = accel_state->dst_pitch;
     cb_conf.h = pDst->drawable.height;
-    cb_conf.base = dst_offset;
+    cb_conf.base = accel_state->dst_mc_addr;
     cb_conf.format = dst_format;
 
     switch (pDstPicture->format) {
@@ -2114,7 +2182,6 @@ static void R600DoneComposite(PixmapPtr pDst)
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     draw_config_t   draw_conf;
     vtx_resource_t  vtx_res;
-    uint64_t vb_addr;
 
     CLEAR (draw_conf);
     CLEAR (vtx_res);
@@ -2124,22 +2191,33 @@ static void R600DoneComposite(PixmapPtr pDst)
 	return;
     }
 
-    vb_addr = RHDDRIGetIntGARTLocation(pScrn) +
+    accel_state->vb_mc_addr = RHDDRIGetIntGARTLocation(pScrn) +
 	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
+
 
     /* Vertex buffer setup */
     if (accel_state->has_mask) {
+	accel_state->vb_size = accel_state->vb_index * 24;
+	/* flush vertex cache */
+	cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
+
 	vtx_res.id              = SQ_VTX_RESOURCE_vs;
 	vtx_res.vtx_size_dw     = 24 / 4;
-	vtx_res.vtx_num_entries = accel_state->vb_index * 24 / 4;
+	vtx_res.vtx_num_entries = accel_state->vb_size / 4;
 	vtx_res.mem_req_size    = 1;
-	vtx_res.vb_addr         = vb_addr;
+	vtx_res.vb_addr         = accel_state->vb_mc_addr;
     } else {
+	accel_state->vb_size = accel_state->vb_index * 16;
+	/* flush vertex cache */
+	cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
+
 	vtx_res.id              = SQ_VTX_RESOURCE_vs;
 	vtx_res.vtx_size_dw     = 16 / 4;
-	vtx_res.vtx_num_entries = accel_state->vb_index * 16 / 4;
+	vtx_res.vtx_num_entries = accel_state->vb_size / 4;
 	vtx_res.mem_req_size    = 1;
-	vtx_res.vb_addr         = vb_addr;
+	vtx_res.vb_addr         = accel_state->vb_mc_addr;
     }
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
@@ -2159,6 +2237,9 @@ static void R600DoneComposite(PixmapPtr pDst)
     draw_auto(pScrn, accel_state->ib, &draw_conf);
 
     wait_3d_idle_clean(pScrn, accel_state->ib);
+
+    cp_set_surface_sync(pScrn, accel_state->ib, (CB_ACTION_ENA_bit | CB0_DEST_BASE_ENA_bit),
+			accel_state->dst_size, accel_state->dst_mc_addr);
 
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
@@ -3592,6 +3673,28 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     return TRUE;
 }
 
+static Bool
+R600PrepareAccess(PixmapPtr pPix, int index)
+{
+    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    //flush HDP read/write caches
+    RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
+}
+
+static void
+R600FinishAccess(PixmapPtr pPix, int index)
+{
+    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    //flush HDP read/write caches
+    RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
+
+}
+
+
 Bool
 R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
@@ -3642,6 +3745,9 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     EXAInfo->UploadToScreen = R600UploadToScreen;
     EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
+
+    EXAInfo->PrepareAccess = R600PrepareAccess;
+    EXAInfo->FinishAccess = R600FinishAccess;
 
     EXAInfo->MarkSync = R600EXAMarkSync;
     EXAInfo->WaitMarker = R600EXASync;

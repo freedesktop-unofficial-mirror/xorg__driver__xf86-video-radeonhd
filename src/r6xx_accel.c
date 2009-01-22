@@ -162,7 +162,8 @@ wait_3d_idle_clean(ScrnInfoPtr pScrn, drmBufPtr ib)
     pack3 (ib, IT_EVENT_WRITE, 1);
     e32   (ib, CACHE_FLUSH_AND_INV_EVENT);
     // wait for 3D idle clean
-    ereg  (ib, WAIT_UNTIL,                          WAIT_3D_IDLECLEAN_bit);
+    ereg  (ib, WAIT_UNTIL,                          (WAIT_3D_IDLE_bit |
+						     WAIT_3D_IDLECLEAN_bit));
 }
 
 void
@@ -375,13 +376,19 @@ set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf)
 }
 
 void
-cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib)
+cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib, uint32_t sync_type, uint32_t size, uint64_t mc_addr)
 {
 //    RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    ereg  (ib, CP_COHER_CNTL,                       0x19800000);
-    ereg  (ib, CP_COHER_SIZE,                       0xFFFFFFFF);
-    ereg  (ib, CP_COHER_BASE,                       0x00000000);
+    uint32_t cp_coher_size;
+    if (size == 0xffffffff)
+	cp_coher_size = 0xffffffff;
+    else
+	cp_coher_size = ((size + 255) >> 8);
+
+    ereg  (ib, CP_COHER_CNTL,                       sync_type);
+    ereg  (ib, CP_COHER_SIZE,                       cp_coher_size);
+    ereg  (ib, CP_COHER_BASE,                       (mc_addr >> 8));
     pack3 (ib, IT_WAIT_REG_MEM, 6);
     e32   (ib, 0x00000003);						// ME, Register, EqualTo
     e32   (ib, CP_COHER_STATUS >> 2);
@@ -389,10 +396,6 @@ cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib)
     e32   (ib, 0);							// Ref value
     e32   (ib, STATUS_bit);						// Ref mask
     e32   (ib, 10);							// Wait interval
-    pack3 (ib, IT_EVENT_WRITE, 1);
-    e32   (ib, PIPELINESTAT_STOP);
-    pack3 (ib, IT_EVENT_WRITE, 1);
-    e32   (ib, PERFCOUNTER_STOP);
 }
 
 void

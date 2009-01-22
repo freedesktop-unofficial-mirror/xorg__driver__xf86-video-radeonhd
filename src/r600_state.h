@@ -190,7 +190,7 @@ start_3d(ScrnInfoPtr pScrn, drmBufPtr ib);
 void
 set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf);
 void
-cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib);
+cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib, uint32_t sync_type, uint32_t size, uint64_t mc_addr);
 void
 fs_setup(ScrnInfoPtr pScrn, drmBufPtr ib, shader_config_t *fs_conf);
 void
