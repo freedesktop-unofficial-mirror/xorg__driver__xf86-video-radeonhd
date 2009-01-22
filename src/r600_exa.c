@@ -3681,6 +3681,8 @@ R600PrepareAccess(PixmapPtr pPix, int index)
 
     //flush HDP read/write caches
     RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
+
+    return TRUE;
 }
 
 static void
