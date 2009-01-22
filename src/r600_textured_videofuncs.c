@@ -65,17 +65,14 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     tex_resource_t  tex_res;
     tex_sampler_t   tex_samp;
     shader_config_t vs_conf, ps_conf;
-    uint64_t vs_addr, ps_addr;
-    int src_pitch, dst_pitch;
     draw_config_t   draw_conf;
     vtx_resource_t  vtx_res;
-    uint64_t vb_addr;
     int uv_offset;
 
     static float ps_alu_consts[] = {
-	1.0,  0.0,      1.13983,  -1.13983/2, // r - c[0]
+	1.0,  0.0,      1.13983,  -1.13983/2,        // r - c[0]
 	1.0, -0.39465, -0.5806,  (0.39465+0.5806)/2, // g - c[1]
-	1.0,  2.03211,  0.0,     -2.03211/2, // b - c[2]
+	1.0,  2.03211,  0.0,     -2.03211/2,         // b - c[2]
     };
 
     CLEAR (cb_conf);
@@ -86,13 +83,13 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     CLEAR (draw_conf);
     CLEAR (vtx_res);
 
-    dst_pitch = exaGetPixmapPitch(pPixmap) / (pPixmap->drawable.bitsPerPixel / 8);
-    src_pitch = pPriv->BufferPitch;
+    accel_state->dst_pitch = exaGetPixmapPitch(pPixmap) / (pPixmap->drawable.bitsPerPixel / 8);
+    accel_state->src_pitch[0] = pPriv->BufferPitch;
 
     // bad pitch
-    if (src_pitch & 63)
+    if (accel_state->src_pitch[0] & 63)
 	return;
-    if (dst_pitch & 63)
+    if (accel_state->dst_pitch & 63)
 	return;
 
 #ifdef COMPOSITE
@@ -108,7 +105,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    cp_set_surface_sync(pScrn, accel_state->ib);
+    //cp_set_surface_sync(pScrn, accel_state->ib);
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -116,18 +113,30 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    vs_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->xv_vs_offset;
-    ps_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+    accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->xv_ps_offset;
 
+    accel_state->vs_size = 512;
+    accel_state->ps_size = 512;
+
     /* Shader */
-    vs_conf.shader_addr         = vs_addr;
+
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->vs_size, accel_state->vs_mc_addr);
+
+    vs_conf.shader_addr         = accel_state->vs_mc_addr;
     vs_conf.num_gprs            = 2;
     vs_conf.stack_size          = 0;
     vs_setup                    (pScrn, accel_state->ib, &vs_conf);
 
-    ps_conf.shader_addr         = ps_addr;
+    /* flush SQ cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, SH_ACTION_ENA_bit,
+			accel_state->ps_size, accel_state->ps_mc_addr);
+
+    ps_conf.shader_addr         = accel_state->ps_mc_addr;
     ps_conf.num_gprs            = 4;
     ps_conf.stack_size          = 0;
     ps_conf.uncached_first_inst = 1;
@@ -139,15 +148,22 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
 
     /* Texture */
+    accel_state->src_mc_addr[0] = pPriv->BufferOffset + rhdPtr->FbIntAddress;
+    accel_state->src_size[0] = exaGetPixmapPitch(pPixmap) * pPriv->w;
+
+    /* flush texture cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit, 512,
+			pPriv->BufferOffset + rhdPtr->FbIntAddress);
+
     // Y texture
     tex_res.id                  = 0;
     tex_res.w                   = pPriv->w;
     tex_res.h                   = pPriv->h;
-    tex_res.pitch               = src_pitch;
+    tex_res.pitch               = accel_state->src_pitch[0];
     tex_res.depth               = 0;
     tex_res.dim                 = SQ_TEX_DIM_2D;
-    tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress;
-    tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress;
+    tex_res.base                = accel_state->src_mc_addr[0];
+    tex_res.mip_base            = accel_state->src_mc_addr[0];
 
     tex_res.format              = FMT_8;
     tex_res.dst_sel_x           = SQ_SEL_X; //Y
@@ -163,22 +179,26 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     // UV texture
-    uv_offset = src_pitch * pPriv->h;
+    uv_offset = accel_state->src_pitch[0] * pPriv->h;
     uv_offset = (uv_offset + 255) & ~255;
+
+    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
+			accel_state->src_size[0] / 2,
+			accel_state->src_mc_addr[0] + uv_offset);
 
     tex_res.id                  = 1;
     tex_res.format              = FMT_8_8;
     tex_res.w                   = pPriv->w >> 1;
     tex_res.h                   = pPriv->h >> 1;
-    tex_res.pitch               = src_pitch >> 1;
+    tex_res.pitch               = accel_state->src_pitch[0] >> 1;
     tex_res.dst_sel_x           = SQ_SEL_Y; //V
     tex_res.dst_sel_y           = SQ_SEL_X; //U
     tex_res.dst_sel_z           = SQ_SEL_1;
     tex_res.dst_sel_w           = SQ_SEL_1;
     tex_res.interlaced          = 0;
     // XXX tex bases need to be 256B aligned
-    tex_res.base                = pPriv->BufferOffset + rhdPtr->FbIntAddress + uv_offset;
-    tex_res.mip_base            = pPriv->BufferOffset + rhdPtr->FbIntAddress + uv_offset;
+    tex_res.base                = accel_state->src_mc_addr[0] + uv_offset;
+    tex_res.mip_base            = accel_state->src_mc_addr[0] + uv_offset;
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     // Y sampler
@@ -206,9 +226,11 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
     cb_conf.id = 0;
 
-    cb_conf.w = dst_pitch;
+    accel_state->dst_mc_addr = exaGetPixmapOffset(pPixmap) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    cb_conf.w = accel_state->dst_pitch;
     cb_conf.h = pPixmap->drawable.height;
-    cb_conf.base = exaGetPixmapOffset(pPixmap) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+    cb_conf.base = accel_state->dst_mc_addr;
 
     switch (pPixmap->drawable.bitsPerPixel) {
     case 16:
@@ -307,15 +329,20 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	return;
     }
 
-    vb_addr = RHDDRIGetIntGARTLocation(pScrn) +
+    accel_state->vb_mc_addr = RHDDRIGetIntGARTLocation(pScrn) +
 	(accel_state->ib->idx * accel_state->ib->total) + (accel_state->ib->total / 2);
+    accel_state->vb_size = accel_state->vb_index * 16;
+
+    /* flush vertex cache */
+    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			accel_state->vb_size, accel_state->vb_mc_addr);
 
     /* Vertex buffer setup */
     vtx_res.id              = SQ_VTX_RESOURCE_vs;
     vtx_res.vtx_size_dw     = 16 / 4;
-    vtx_res.vtx_num_entries = accel_state->vb_index * 16 / 4;
+    vtx_res.vtx_num_entries = accel_state->vb_size / 4;
     vtx_res.mem_req_size    = 1;
-    vtx_res.vb_addr         = vb_addr;
+    vtx_res.vb_addr         = accel_state->vb_mc_addr;
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
     draw_conf.prim_type          = DI_PT_RECTLIST;
@@ -334,6 +361,10 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     draw_auto(pScrn, accel_state->ib, &draw_conf);
 
     wait_3d_idle_clean(pScrn, accel_state->ib);
+
+    /* sync destination surface */
+    cp_set_surface_sync(pScrn, accel_state->ib, (CB_ACTION_ENA_bit, CB0_DEST_BASE_ENA_bit),
+			accel_state->dst_size, accel_state->dst_mc_addr);
 
     R600CPFlushIndirect(pScrn, accel_state->ib);
 

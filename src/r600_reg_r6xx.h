@@ -82,6 +82,8 @@ enum {
 
     VENDOR_DEVICE_ID                                      = 0x4000,
 
+    HDP_MEM_COHERENCY_FLUSH_CNTL                          = 0x5480,
+
     D1GRPH_PRIMARY_SURFACE_ADDRESS                        = 0x6110,
     D1GRPH_PITCH                                          = 0x6120,
     D1GRPH_Y_END                                          = 0x6138,
