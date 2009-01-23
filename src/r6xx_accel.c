@@ -746,13 +746,13 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     // see r600_cp.c in the drm
     switch (rhdPtr->ChipSet) {
     case RHD_R600:
-	sq_conf.num_ps_gprs = 126;
-	sq_conf.num_vs_gprs = 126;
+	sq_conf.num_ps_gprs = 192;
+	sq_conf.num_vs_gprs = 56;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 144;
-	sq_conf.num_vs_threads = 40;
+	sq_conf.num_ps_threads = 136;
+	sq_conf.num_vs_threads = 48;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
 	sq_conf.num_ps_stack_entries = 128;
@@ -764,8 +764,8 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     case RHD_M76:
     case RHD_RV635:
     case RHD_M86:
-	sq_conf.num_ps_gprs = 100;
-	sq_conf.num_vs_gprs = 24;
+	sq_conf.num_ps_gprs = 84;
+	sq_conf.num_vs_gprs = 36;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
@@ -773,10 +773,10 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_vs_threads = 40;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
-	sq_conf.num_ps_stack_entries = 64;
-	sq_conf.num_vs_stack_entries = 64;
-	sq_conf.num_gs_stack_entries = 0;
-	sq_conf.num_es_stack_entries = 0;
+	sq_conf.num_ps_stack_entries = 40;
+	sq_conf.num_vs_stack_entries = 40;
+	sq_conf.num_gs_stack_entries = 32;
+	sq_conf.num_es_stack_entries = 16;
 	break;
     case RHD_RV610:
     case RHD_M74:
@@ -784,47 +784,47 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     case RHD_RV620:
     case RHD_RS780:
     default:
-	sq_conf.num_ps_gprs = 100;
-	sq_conf.num_vs_gprs = 24;
+	sq_conf.num_ps_gprs = 84;
+	sq_conf.num_vs_gprs = 36;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 144;
-	sq_conf.num_vs_threads = 40;
+	sq_conf.num_ps_threads = 136;
+	sq_conf.num_vs_threads = 48;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
-	sq_conf.num_ps_stack_entries = 64;
-	sq_conf.num_vs_stack_entries = 64;
-	sq_conf.num_gs_stack_entries = 0;
-	sq_conf.num_es_stack_entries = 0;
+	sq_conf.num_ps_stack_entries = 40;
+	sq_conf.num_vs_stack_entries = 40;
+	sq_conf.num_gs_stack_entries = 32;
+	sq_conf.num_es_stack_entries = 16;
 	break;
     case RHD_RV670:
     case RHD_R680:
-	sq_conf.num_ps_gprs = 94;
-	sq_conf.num_vs_gprs = 94;
+	sq_conf.num_ps_gprs = 144;
+	sq_conf.num_vs_gprs = 40;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 144;
-	sq_conf.num_vs_threads = 40;
+	sq_conf.num_ps_threads = 136;
+	sq_conf.num_vs_threads = 48;
 	sq_conf.num_gs_threads = 4;
 	sq_conf.num_es_threads = 4;
-	sq_conf.num_ps_stack_entries = 128;
-	sq_conf.num_vs_stack_entries = 128;
-	sq_conf.num_gs_stack_entries = 0;
-	sq_conf.num_es_stack_entries = 0;
+	sq_conf.num_ps_stack_entries = 40;
+	sq_conf.num_vs_stack_entries = 40;
+	sq_conf.num_gs_stack_entries = 32;
+	sq_conf.num_es_stack_entries = 16;
 	break;
     case RHD_RV770:
     case RHD_M98:
-	sq_conf.num_ps_gprs = 126;
-	sq_conf.num_vs_gprs = 126;
+	sq_conf.num_ps_gprs = 192;
+	sq_conf.num_vs_gprs = 56;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 200;
-	sq_conf.num_vs_threads = 40;
-	sq_conf.num_gs_threads = 4;
-	sq_conf.num_es_threads = 4;
+	sq_conf.num_ps_threads = 188;
+	sq_conf.num_vs_threads = 60;
+	sq_conf.num_gs_threads = 0;
+	sq_conf.num_es_threads = 0;
 	sq_conf.num_ps_stack_entries = 256;
 	sq_conf.num_vs_stack_entries = 256;
 	sq_conf.num_gs_stack_entries = 0;
@@ -832,30 +832,30 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	break;
     case RHD_RV730:
     case RHD_M96:
-	sq_conf.num_ps_gprs = 100;
-	sq_conf.num_vs_gprs = 24;
+	sq_conf.num_ps_gprs = 84;
+	sq_conf.num_vs_gprs = 36;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
-	sq_conf.num_ps_threads = 200;
-	sq_conf.num_vs_threads = 40;
-	sq_conf.num_gs_threads = 4;
-	sq_conf.num_es_threads = 4;
+	sq_conf.num_ps_threads = 188;
+	sq_conf.num_vs_threads = 60;
+	sq_conf.num_gs_threads = 0;
+	sq_conf.num_es_threads = 0;
 	sq_conf.num_ps_stack_entries = 128;
 	sq_conf.num_vs_stack_entries = 128;
 	sq_conf.num_gs_stack_entries = 0;
 	sq_conf.num_es_stack_entries = 0;
 	break;
     case RHD_RV710:
-	sq_conf.num_ps_gprs = 126;
-	sq_conf.num_vs_gprs = 126;
+	sq_conf.num_ps_gprs = 192;
+	sq_conf.num_vs_gprs = 56;
 	sq_conf.num_temp_gprs = 4;
 	sq_conf.num_gs_gprs = 0;
 	sq_conf.num_es_gprs = 0;
 	sq_conf.num_ps_threads = 144;
-	sq_conf.num_vs_threads = 40;
-	sq_conf.num_gs_threads = 4;
-	sq_conf.num_es_threads = 4;
+	sq_conf.num_vs_threads = 48;
+	sq_conf.num_gs_threads = 0;
+	sq_conf.num_es_threads = 0;
 	sq_conf.num_ps_stack_entries = 128;
 	sq_conf.num_vs_stack_entries = 128;
 	sq_conf.num_gs_stack_entries = 0;
