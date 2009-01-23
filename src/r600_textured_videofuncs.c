@@ -334,8 +334,17 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     accel_state->vb_size = accel_state->vb_index * 16;
 
     /* flush vertex cache */
-    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
-			accel_state->vb_size, accel_state->vb_mc_addr);
+    if ((rhdPtr->ChipSet == RHD_RV610) ||
+	(rhdPtr->ChipSet == RHD_RV620) ||
+	(rhdPtr->ChipSet == RHD_M72) ||
+	(rhdPtr->ChipSet == RHD_M74) ||
+	(rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RV710))
+	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
+    else
+	cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
 
     /* Vertex buffer setup */
     vtx_res.id              = SQ_VTX_RESOURCE_vs;

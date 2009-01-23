@@ -276,9 +276,10 @@ sq_setup(ScrnInfoPtr pScrn, drmBufPtr ib, sq_config_t *sq_conf)
     uint32_t sq_thread_resource_mgmt, sq_stack_resource_mgmt_1, sq_stack_resource_mgmt_2;
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    // FIXME mobility chips
     if ((rhdPtr->ChipSet == RHD_RV610) ||
 	(rhdPtr->ChipSet == RHD_RV620) ||
+	(rhdPtr->ChipSet == RHD_M72) ||
+	(rhdPtr->ChipSet == RHD_M74) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	sq_config = 0;						// no VC
