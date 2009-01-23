@@ -1739,6 +1739,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_SEL_Y(SQ_SEL_Y),
 			     SRC_SEL_Z(SQ_SEL_0),
 			     SRC_SEL_W(SQ_SEL_1));
+	ps[i++] = TEX_DWORD_PAD;
 	//10/11 - mask
 	ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			     BC_FRAC_MODE(0),
@@ -1766,6 +1767,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_SEL_Y(SQ_SEL_Y),
 			     SRC_SEL_Z(SQ_SEL_0),
 			     SRC_SEL_W(SQ_SEL_1));
+	ps[i++] = TEX_DWORD_PAD;
     } else {
 	int src_a, src_r, src_g, src_b;
 	/* setup pixel shader */
@@ -1849,7 +1851,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_SEL_Y(SQ_SEL_Y),
 			     SRC_SEL_Z(SQ_SEL_0),
 			     SRC_SEL_W(SQ_SEL_1));
-
+	ps[i++] = TEX_DWORD_PAD;
     }
 
     CLEAR (cb_conf);
@@ -2809,6 +2811,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_Y(SQ_SEL_Y),
 			 SRC_SEL_Z(SQ_SEL_0),
 			 SRC_SEL_W(SQ_SEL_1));
+    ps[i++] = TEX_DWORD_PAD;
 
     // xv vs ---------------------------------------
     i = accel_state->xv_vs_offset / 4;
