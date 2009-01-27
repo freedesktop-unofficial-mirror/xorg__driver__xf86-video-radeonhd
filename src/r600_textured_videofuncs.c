@@ -311,9 +311,11 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	vertex[2].s = (float)(srcX + srcw) / pPriv->w;
 	vertex[2].t = (float)(srcY + srch) / pPriv->h;
 
+#if 0
 	ErrorF("vertex 0: %f, %f, %f, %f\n", vertex[0].x, vertex[0].y, vertex[0].s, vertex[0].t);
 	ErrorF("vertex 1: %f, %f, %f, %f\n", vertex[1].x, vertex[1].y, vertex[1].s, vertex[1].t);
 	ErrorF("vertex 2: %f, %f, %f, %f\n", vertex[2].x, vertex[2].y, vertex[2].s, vertex[2].t);
+#endif
 
 	// append to vertex buffer
 	xv_vb[accel_state->vb_index++] = vertex[0];
