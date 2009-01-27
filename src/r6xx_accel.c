@@ -324,7 +324,7 @@ void
 set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf)
 {
     uint32_t cb_color_info;
-    int pitch, slice;
+    int pitch, slice, h;
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
     cb_color_info = ((cb_conf->endian      << ENDIAN_shift)				|
@@ -353,7 +353,8 @@ set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf)
 	cb_color_info |= SOURCE_FORMAT_bit;
 
     pitch = (cb_conf->w / 8) - 1;
-    slice = ((cb_conf->w * cb_conf->h) / 64) - 1;
+    h = (cb_conf->h + 7) & ~7;
+    slice = ((cb_conf->w * h) / 64) - 1;
 
     ereg (ib, (CB_COLOR0_BASE + (4 * cb_conf->id)), (cb_conf->base >> 8));
 

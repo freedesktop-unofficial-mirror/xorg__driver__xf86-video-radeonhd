@@ -94,7 +94,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     accel_state->dst_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
 
     // bad pitch
-    if (accel_state->dst_pitch & 63)
+    if (accel_state->dst_pitch & 7)
 	return FALSE;
 
     // bad offset
@@ -102,6 +102,9 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 	return FALSE;
 
     if (pPix->drawable.bitsPerPixel == 24)
+	return FALSE;
+
+    if (pPix->drawable.bitsPerPixel == 8)
 	return FALSE;
 
     CLEAR (cb_conf);
@@ -649,9 +652,9 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     accel_state->dst_mc_addr = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
     // bad pitch
-    if (accel_state->src_pitch[0] & 63)
+    if (accel_state->src_pitch[0] & 7)
 	return FALSE;
-    if (accel_state->dst_pitch & 63)
+    if (accel_state->dst_pitch & 7)
 	return FALSE;
 
     // bad offset
@@ -663,6 +666,9 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     if (pSrc->drawable.bitsPerPixel == 24)
 	return FALSE;
     if (pDst->drawable.bitsPerPixel == 24)
+	return FALSE;
+
+    if (pDst->drawable.bitsPerPixel == 8)
 	return FALSE;
 
     //return FALSE;
@@ -1410,6 +1416,12 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     //return FALSE;
 
     if (pMask)
+	return FALSE;
+
+    if (pDst->drawable.bitsPerPixel == 8)
+	return FALSE;
+
+    if (pMask)
 	accel_state->has_mask = TRUE;
     else
 	accel_state->has_mask = FALSE;
@@ -1422,13 +1434,13 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     accel_state->src_pitch[0] = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
     accel_state->src_size[0] = exaGetPixmapPitch(pSrc) * pSrc->drawable.height;
 
-    if (accel_state->dst_pitch & 63)
+    if (accel_state->dst_pitch & 7)
 	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", (int)accel_state->dst_pitch));
 
     if (accel_state->dst_mc_addr & 0xff)
 	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)accel_state->dst_mc_addr));
 
-    if (accel_state->src_pitch[0] & 63)
+    if (accel_state->src_pitch[0] & 7)
 	RADEON_FALLBACK(("Bad src pitch 0x%x\n", (int)accel_state->src_pitch[0]));
 
     if (accel_state->src_mc_addr[0] & 0xff)
@@ -1448,7 +1460,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	accel_state->src_pitch[1] = exaGetPixmapPitch(pMask) / (pMask->drawable.bitsPerPixel / 8);
 	accel_state->src_size[1] = exaGetPixmapPitch(pMask) * pMask->drawable.height;
 
-	if (accel_state->src_pitch[1] & 63)
+	if (accel_state->src_pitch[1] & 7)
 	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", (int)accel_state->src_pitch[1]));
 
 	if (accel_state->src_mc_addr[1] & 0xff)
@@ -1920,6 +1932,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
 
     blendcntl = R600GetBlendCntl(op, pMaskPicture, pDstPicture->format);
+
     if (rhdPtr->ChipSet == RHD_R600) {
 	// no per-MRT blend on R600
 	ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[3] | (1 << TARGET_BLEND_ENABLE_shift));
@@ -3757,7 +3770,7 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     EXAInfo->flags = EXA_OFFSCREEN_PIXMAPS;
     EXAInfo->pixmapOffsetAlign = 256;
-    EXAInfo->pixmapPitchAlign = 64;
+    EXAInfo->pixmapPitchAlign = 256;
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)
     EXAInfo->maxPitchBytes = 16320;
@@ -3784,8 +3797,8 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->Composite = R600Composite;
     EXAInfo->DoneComposite = R600DoneComposite;
 
-    EXAInfo->UploadToScreen = R600UploadToScreen;
-    EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
+    //EXAInfo->UploadToScreen = R600UploadToScreen;
+    //EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
 
     EXAInfo->PrepareAccess = R600PrepareAccess;
     EXAInfo->FinishAccess = R600FinishAccess;
