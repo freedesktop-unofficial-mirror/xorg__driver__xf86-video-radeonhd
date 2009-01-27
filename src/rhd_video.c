@@ -646,7 +646,7 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     pPriv->pDraw = pDraw;
 
     if (rhdPtr->ChipSet >= RHD_R600)
-	pPriv->BufferPitch = ALIGN(2 * width, 128);
+	pPriv->BufferPitch = ALIGN(2 * width, 512);
     else
 	pPriv->BufferPitch = ALIGN(2 * width, 64);
 
@@ -675,7 +675,7 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     }
 
     if (rhdPtr->ChipSet >= RHD_R600) {
-	pPriv->BufferPitch = ALIGN(width, 128);
+	pPriv->BufferPitch = ALIGN(width, 512);
 	pPriv->BufferOffset = (pPriv->BufferOffset + 255) & ~255;
     }
 
