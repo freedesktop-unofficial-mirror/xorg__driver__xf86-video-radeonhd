@@ -2032,7 +2032,6 @@ static void R600CompositeTile(PixmapPtr pDst,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     xPointFixed srcTopLeft, srcTopRight, srcBottomLeft, srcBottomRight;
-    xPointFixed maskTopLeft, maskTopRight, maskBottomLeft, maskBottomRight;
 
     /* ErrorF("R600Composite (%d,%d) (%d,%d) (%d,%d) (%d,%d)\n",
        srcX, srcY, maskX, maskY,dstX, dstY, w, h); */
@@ -2046,15 +2045,6 @@ static void R600CompositeTile(PixmapPtr pDst,
     srcBottomRight.x = IntToxFixed(srcX + w);
     srcBottomRight.y = IntToxFixed(srcY + h);
 
-    maskTopLeft.x     = IntToxFixed(maskX);
-    maskTopLeft.y     = IntToxFixed(maskY);
-    maskTopRight.x    = IntToxFixed(maskX + w);
-    maskTopRight.y    = IntToxFixed(maskY);
-    maskBottomLeft.x  = IntToxFixed(maskX);
-    maskBottomLeft.y  = IntToxFixed(maskY + h);
-    maskBottomRight.x = IntToxFixed(maskX + w);
-    maskBottomRight.y = IntToxFixed(maskY + h);
-
     //XXX do transform in vertex shader
     if (accel_state->is_transform[0]) {
 	transformPoint(accel_state->transform[0], &srcTopLeft);
@@ -2062,18 +2052,28 @@ static void R600CompositeTile(PixmapPtr pDst,
 	transformPoint(accel_state->transform[0], &srcBottomLeft);
 	transformPoint(accel_state->transform[0], &srcBottomRight);
     }
-    if (accel_state->is_transform[1]) {
-	transformPoint(accel_state->transform[1], &maskTopLeft);
-	transformPoint(accel_state->transform[1], &maskTopRight);
-	transformPoint(accel_state->transform[1], &maskBottomLeft);
-	transformPoint(accel_state->transform[1], &maskBottomRight);
-    }
 
     if (accel_state->has_mask) {
 	struct r6xx_comp_mask_vertex *comp_vb =
 	    (pointer)((char*)accel_state->ib->address + (accel_state->ib->total / 2));
 	struct r6xx_comp_mask_vertex vertex[3];
+	xPointFixed maskTopLeft, maskTopRight, maskBottomLeft, maskBottomRight;
 
+	maskTopLeft.x     = IntToxFixed(maskX);
+	maskTopLeft.y     = IntToxFixed(maskY);
+	maskTopRight.x    = IntToxFixed(maskX + w);
+	maskTopRight.y    = IntToxFixed(maskY);
+	maskBottomLeft.x  = IntToxFixed(maskX);
+	maskBottomLeft.y  = IntToxFixed(maskY + h);
+	maskBottomRight.x = IntToxFixed(maskX + w);
+	maskBottomRight.y = IntToxFixed(maskY + h);
+
+	if (accel_state->is_transform[1]) {
+	    transformPoint(accel_state->transform[1], &maskTopLeft);
+	    transformPoint(accel_state->transform[1], &maskTopRight);
+	    transformPoint(accel_state->transform[1], &maskBottomLeft);
+	    transformPoint(accel_state->transform[1], &maskBottomRight);
+	}
 
 	vertex[0].x = (float)dstX;
 	vertex[0].y = (float)dstY;
@@ -2231,19 +2231,6 @@ static void R600DoneComposite(PixmapPtr pDst)
     /* Vertex buffer setup */
     if (accel_state->has_mask) {
 	accel_state->vb_size = accel_state->vb_index * 24;
-	/* flush vertex cache */
-	if ((rhdPtr->ChipSet == RHD_RV610) ||
-	    (rhdPtr->ChipSet == RHD_RV620) ||
-	    (rhdPtr->ChipSet == RHD_M72) ||
-	    (rhdPtr->ChipSet == RHD_M74) ||
-	    (rhdPtr->ChipSet == RHD_RS780) ||
-	    (rhdPtr->ChipSet == RHD_RV710))
-	    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
-				accel_state->vb_size, accel_state->vb_mc_addr);
-	else
-	    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
-				accel_state->vb_size, accel_state->vb_mc_addr);
-
 	vtx_res.id              = SQ_VTX_RESOURCE_vs;
 	vtx_res.vtx_size_dw     = 24 / 4;
 	vtx_res.vtx_num_entries = accel_state->vb_size / 4;
@@ -2251,25 +2238,25 @@ static void R600DoneComposite(PixmapPtr pDst)
 	vtx_res.vb_addr         = accel_state->vb_mc_addr;
     } else {
 	accel_state->vb_size = accel_state->vb_index * 16;
-	/* flush vertex cache */
-	if ((rhdPtr->ChipSet == RHD_RV610) ||
-	    (rhdPtr->ChipSet == RHD_RV620) ||
-	    (rhdPtr->ChipSet == RHD_M72) ||
-	    (rhdPtr->ChipSet == RHD_M74) ||
-	    (rhdPtr->ChipSet == RHD_RS780) ||
-	    (rhdPtr->ChipSet == RHD_RV710))
-	    cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
-				accel_state->vb_size, accel_state->vb_mc_addr);
-	else
-	    cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
-				accel_state->vb_size, accel_state->vb_mc_addr);
-
 	vtx_res.id              = SQ_VTX_RESOURCE_vs;
 	vtx_res.vtx_size_dw     = 16 / 4;
 	vtx_res.vtx_num_entries = accel_state->vb_size / 4;
 	vtx_res.mem_req_size    = 1;
 	vtx_res.vb_addr         = accel_state->vb_mc_addr;
     }
+    /* flush vertex cache */
+    if ((rhdPtr->ChipSet == RHD_RV610) ||
+	(rhdPtr->ChipSet == RHD_RV620) ||
+	(rhdPtr->ChipSet == RHD_M72) ||
+	(rhdPtr->ChipSet == RHD_M74) ||
+	(rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RV710))
+	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
+    else
+	cp_set_surface_sync(pScrn, accel_state->ib, VC_ACTION_ENA_bit,
+			    accel_state->vb_size, accel_state->vb_mc_addr);
+
     set_vtx_resource        (pScrn, accel_state->ib, &vtx_res);
 
     draw_conf.prim_type          = DI_PT_RECTLIST;
