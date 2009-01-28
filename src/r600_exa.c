@@ -2446,7 +2446,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     // solid vs ---------------------------------------
     i = accel_state->solid_vs_offset / 4;
     //0
-    vs[i++] = CF_DWORD0(ADDR(4));
+    vs[i++] = CF_DWORD0(ADDR(2));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
 			COND(SQ_CF_COND_ACTIVE),
@@ -2469,34 +2469,13 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   SRC_SEL_Z(SQ_SEL_Z),
 					   SRC_SEL_W(SQ_SEL_W),
 					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
-					   END_OF_PROGRAM(0),
-					   VALID_PIXEL_MODE(0),
-					   CF_INST(SQ_CF_INST_EXPORT_DONE),
-					   WHOLE_QUAD_MODE(0),
-					   BARRIER(1));
-    //2
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
-				      TYPE(SQ_EXPORT_PARAM),
-				      RW_GPR(0),
-				      RW_REL(ABSOLUTE),
-				      INDEX_GPR(0),
-				      ELEM_SIZE(0));
-    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
-					   SRC_SEL_Y(SQ_SEL_Y),
-					   SRC_SEL_Z(SQ_SEL_Z),
-					   SRC_SEL_W(SQ_SEL_W),
-					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
+					   BURST_COUNT(1),
 					   END_OF_PROGRAM(1),
 					   VALID_PIXEL_MODE(0),
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
-					   BARRIER(0));
-    //3
-    vs[i++] = 0x00000000;
-    vs[i++] = 0x00000000;
-    //4/5
+					   BARRIER(1));
+    //2/3
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2969,7 +2948,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   SRC_SEL_Z(SQ_SEL_Z),
 					   SRC_SEL_W(SQ_SEL_W),
 					   R6xx_ELEM_LOOP(0),
-					   BURST_COUNT(0),
+					   BURST_COUNT(1),
 					   END_OF_PROGRAM(1),
 					   VALID_PIXEL_MODE(0),
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
