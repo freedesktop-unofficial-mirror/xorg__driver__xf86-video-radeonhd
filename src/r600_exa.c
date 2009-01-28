@@ -131,8 +131,6 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    //return FALSE;
-
     accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->solid_vs_offset;
     accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
@@ -1878,6 +1876,10 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     //cp_set_surface_sync(pScrn, accel_state->ib);
 
     set_default_state(pScrn, accel_state->ib);
+
+    /* Scissor / viewport */
+    ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
+    ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
     // fix me if false discard buffer!
     if (!R600TextureSetup(pSrcPicture, pSrc, 0))
