@@ -1059,11 +1059,6 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     fs_setup(pScrn, ib, &fs_conf);
 
     // VGT
-    // set to 12 if vs parameter exports exceed 16, otherwise 16
-    ereg  (ib, VGT_OUT_DEALLOC_CNTL,            16);
-    // set to 12 if vs parameter exports exceed 16, otherwise 14
-    ereg  (ib, VGT_VERTEX_REUSE_BLOCK_CNTL,     14);
-
     ereg  (ib, VGT_MAX_VTX_INDX,                    0);
     ereg  (ib, VGT_MIN_VTX_INDX,                    0);
     ereg  (ib, VGT_INDX_OFFSET,                     0);
