@@ -1244,7 +1244,7 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
     tex_samp.id                 = unit;
-    tex_samp.clamp_z            = SQ_TEX_WRAP;
+    tex_samp.border_color       = SQ_TEX_BORDER_COLOR_TRANS_BLACK;
 
     if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
 	tex_samp.clamp_x            = SQ_TEX_WRAP;
@@ -1269,11 +1269,10 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
 	RADEON_FALLBACK(("Bad filter 0x%x\n", pPict->filter));
     }
 
+    tex_samp.clamp_z            = SQ_TEX_WRAP;
     tex_samp.z_filter           = SQ_TEX_Z_FILTER_NONE;
     tex_samp.mip_filter         = 0;			/* no mipmap */
     set_tex_sampler             (pScrn, accel_state->ib, &tex_samp);
-
-    // border color?
 
     if (pPict->transform != 0) {
 	accel_state->is_transform[unit] = TRUE;
@@ -1358,6 +1357,18 @@ static Bool R600CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 
 }
 
+static Bool R600PitchMatches(PixmapPtr pPix)
+{
+    int w = pPix->drawable.width;
+    int h = pPix->drawable.height;
+    uint32_t txpitch = exaGetPixmapPitch(pPix);
+
+    if (h > 1 && (unsigned int)((w * pPix->drawable.bitsPerPixel / 8 + 255) & ~255) != txpitch)
+	return FALSE;
+
+    return TRUE;
+}
+
 static Bool R600SetupSourceTile(PicturePtr pPict,
 				PixmapPtr pPix,
 				Bool canTile1d,
@@ -1371,7 +1382,7 @@ static Bool R600SetupSourceTile(PicturePtr pPict,
     accel_state->src_tile_width = accel_state->src_tile_height = 65536; /* "infinite" */
 
     if (pPict->repeat) {
-	Bool badPitch = needMatchingPitch && !RADEONPitchMatches(pPix);
+	Bool badPitch = needMatchingPitch && !R600PitchMatches(pPix);
 
 	int w = pPict->pDrawable->width;
 	int h = pPict->pDrawable->height;

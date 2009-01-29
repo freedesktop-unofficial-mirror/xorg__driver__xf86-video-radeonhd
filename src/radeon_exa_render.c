@@ -355,7 +355,7 @@ Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
 /* Determine if the pitch of the pixmap meets the criteria for being
  * used as a repeating texture: no padding or only a single line texture.
  */
-Bool RADEONPitchMatches(PixmapPtr pPix)
+static Bool RADEONPitchMatches(PixmapPtr pPix)
 {
     int w = pPix->drawable.width;
     int h = pPix->drawable.height;
