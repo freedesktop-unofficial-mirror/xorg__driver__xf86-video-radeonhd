@@ -765,6 +765,8 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "DRI support has been disabled at compile time\n");
 #endif
+    if (rhdPtr->AccelMethod == RHD_ACCEL_FORCE_SHADOWFB)
+	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 
     if (xf86LoadSubModule(pScrn, "i2c")) {
 	if (RHDI2CFunc(pScrn->scrnIndex, NULL, RHD_I2C_INIT, &i2cArg)
@@ -2711,6 +2713,8 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
     if (method.set) {
 	if (!strcasecmp(method.val.string, "none"))
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
+	else if (!strcasecmp(method.val.string, "force-shadowfb"))
+	    rhdPtr->AccelMethod = RHD_ACCEL_FORCE_SHADOWFB;
 	else if (!strcasecmp(method.val.string, "shadowfb"))
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 	else if (!strcasecmp(method.val.string, "xaa"))
@@ -2758,6 +2762,9 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 #endif /* USE_EXA */
     case RHD_ACCEL_XAA:
 	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected XAA 2D acceleration.\n");
+	break;
+    case RHD_ACCEL_FORCE_SHADOWFB:
+	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Selected forced ShadowFB (even with DRI). Known to have issues.\n");
 	break;
     case RHD_ACCEL_SHADOWFB:
 	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG, "Selected ShadowFB.\n");

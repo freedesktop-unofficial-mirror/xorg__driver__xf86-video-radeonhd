@@ -197,10 +197,11 @@ typedef struct RHDOpt {
 /* Some more intelligent handling of chosing which acceleration to use */
 enum AccelMethod {
     RHD_ACCEL_NONE = 0, /* ultra slow, but might be desired for debugging. */
-    RHD_ACCEL_SHADOWFB = 1, /* cache in main ram. */
-    RHD_ACCEL_XAA = 2, /* "old" X acceleration architecture. */
-    RHD_ACCEL_EXA = 3, /* not done yet. */
-    RHD_ACCEL_DEFAULT = 4 /* keep as highest. */
+    RHD_ACCEL_FORCE_SHADOWFB = 1, /* shadowfb even with dri enabled. Known to have damage issues. */
+    RHD_ACCEL_SHADOWFB = 2, /* cache in main ram. */
+    RHD_ACCEL_XAA = 3, /* "old" X acceleration architecture. */
+    RHD_ACCEL_EXA = 4, /* not done yet. */
+    RHD_ACCEL_DEFAULT = 5 /* keep as highest. */
 };
 
 typedef struct RHDRec {
