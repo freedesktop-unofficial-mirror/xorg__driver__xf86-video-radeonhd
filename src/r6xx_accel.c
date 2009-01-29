@@ -153,6 +153,14 @@ void R600CPFlushIndirect(ScrnInfoPtr pScrn, drmBufPtr ib)
 
 }
 
+void R600IBDiscard(ScrnInfoPtr pScrn, drmBufPtr ib)
+{
+    if (!ib) return;
+
+    ib->used = 0;
+    R600CPFlushIndirect(pScrn, ib);
+}
+
 void
 wait_3d_idle_clean(ScrnInfoPtr pScrn, drmBufPtr ib)
 {

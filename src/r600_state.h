@@ -179,6 +179,8 @@ inline void pack3(drmBufPtr ib, int cmd, unsigned num);
 inline void pack0 (drmBufPtr ib, uint32_t reg, int num);
 inline void ereg (drmBufPtr ib, uint32_t reg, uint32_t val);
 void R600CPFlushIndirect(ScrnInfoPtr pScrn, drmBufPtr ib);
+void R600IBDiscard(ScrnInfoPtr pScrn, drmBufPtr ib);
+
 uint64_t
 upload (ScrnInfoPtr pScrn, void *shader, int size, int offset);
 void
