@@ -326,7 +326,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     }
 
     if (accel_state->vb_index == 0) {
-	R600CPFlushIndirect(pScrn, accel_state->ib);
+	R600IBDiscard(pScrn, accel_state->ib);
 	DamageDamageRegion(pPriv->pDraw, &pPriv->clip);
 	return;
     }

@@ -297,7 +297,7 @@ R600DoneSolid(PixmapPtr pPix)
     CLEAR (vtx_res);
 
     if (accel_state->vb_index == 0) {
-	R600CPFlushIndirect(pScrn, accel_state->ib);
+	R600IBDiscard(pScrn, accel_state->ib);
 	return;
     }
 
@@ -541,7 +541,7 @@ R600DoCopy(ScrnInfoPtr pScrn)
     CLEAR (vtx_res);
 
     if (accel_state->vb_index == 0) {
-	R600CPFlushIndirect(pScrn, accel_state->ib);
+	R600IBDiscard(pScrn, accel_state->ib);
 	return;
     }
 
@@ -2233,7 +2233,7 @@ static void R600DoneComposite(PixmapPtr pDst)
     CLEAR (vtx_res);
 
     if (accel_state->vb_index == 0) {
-	R600CPFlushIndirect(pScrn, accel_state->ib);
+	R600IBDiscard(pScrn, accel_state->ib);
 	return;
     }
 
