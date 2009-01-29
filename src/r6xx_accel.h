@@ -18,7 +18,6 @@ extern PixmapPtr
 RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 
 extern Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile);
-extern Bool RADEONPitchMatches(PixmapPtr pPix);
 
 struct r6xx_solid_vertex {
     float x;
