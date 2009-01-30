@@ -104,9 +104,6 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     if (pPix->drawable.bitsPerPixel == 24)
 	return FALSE;
 
-    if (pPix->drawable.bitsPerPixel == 8)
-	return FALSE;
-
     CLEAR (cb_conf);
     CLEAR (vs_conf);
     CLEAR (ps_conf);
@@ -664,9 +661,6 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     if (pSrc->drawable.bitsPerPixel == 24)
 	return FALSE;
     if (pDst->drawable.bitsPerPixel == 24)
-	return FALSE;
-
-    if (pDst->drawable.bitsPerPixel == 8)
 	return FALSE;
 
     //return FALSE;
@@ -1249,12 +1243,12 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
 	tex_samp.clamp_x            = SQ_TEX_WRAP;
     else
-	tex_samp.clamp_x            = SQ_TEX_CLAMP_LAST_TEXEL;
+	tex_samp.clamp_x            = SQ_TEX_CLAMP_BORDER;
 
     if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_y))
 	tex_samp.clamp_y            = SQ_TEX_WRAP;
     else
-	tex_samp.clamp_y            = SQ_TEX_CLAMP_LAST_TEXEL;
+	tex_samp.clamp_y            = SQ_TEX_CLAMP_BORDER;
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -1425,9 +1419,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     //return FALSE;
 
     if (pMask)
-	return FALSE;
-
-    if (pDst->drawable.bitsPerPixel == 8)
 	return FALSE;
 
     if (pMask)
