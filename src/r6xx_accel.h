@@ -17,8 +17,6 @@ RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn);
 extern PixmapPtr
 RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 
-extern Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile);
-
 struct r6xx_solid_vertex {
     float x;
     float y;
@@ -97,11 +95,5 @@ struct r6xx_accel_state {
     Bool is_transform[2];
     struct _PictTransform *transform[2];
     Bool has_mask;
-    /* Whether we are tiling horizontally and vertically */
-    Bool need_src_tile_x;
-    Bool need_src_tile_y;
-    /* Size of tiles ... set to 65536x65536 if not tiling in that direction */
-    Bool src_tile_width;
-    Bool src_tile_height;
 };
 

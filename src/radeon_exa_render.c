@@ -339,7 +339,7 @@ union intfloat {
  *   a lot of complexity, so we handle only the most common
  *   case of a repeating mask.)
  */
-Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
+static Bool RADEONCheckTexturePOT(PicturePtr pPict, Bool canTile)
 {
     int w = pPict->pDrawable->width;
     int h = pPict->pDrawable->height;

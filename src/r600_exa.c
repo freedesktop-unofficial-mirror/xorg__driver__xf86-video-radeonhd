@@ -1113,9 +1113,6 @@ static Bool R600CheckCompositeTexture(PicturePtr pPict,
 	RADEON_FALLBACK(("Unsupported picture format 0x%x\n",
 			 (int)pPict->format));
 
-    if (!RADEONCheckTexturePOT(pPict, unit == 0))
-	return FALSE;
-
     if (pPict->filter != PictFilterNearest &&
 	pPict->filter != PictFilterBilinear)
 	RADEON_FALLBACK(("Unsupported filter 0x%x\n", pPict->filter));
@@ -1229,7 +1226,7 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
 	tex_res.dst_sel_w           = SQ_SEL_X; //A
 	break;
     default:
-	break;
+	RADEON_FALLBACK(("Bad format 0x%x\n", pPict->format));
     }
 
     tex_res.base_level          = 0;
@@ -1240,15 +1237,26 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     tex_samp.id                 = unit;
     tex_samp.border_color       = SQ_TEX_BORDER_COLOR_TRANS_BLACK;
 
-    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_x))
+    switch (pPict->repeatType) {
+    case RepeatNormal:
 	tex_samp.clamp_x            = SQ_TEX_WRAP;
-    else
-	tex_samp.clamp_x            = SQ_TEX_CLAMP_BORDER;
-
-    if (pPict->repeat && !(unit == 0 && accel_state->need_src_tile_y))
 	tex_samp.clamp_y            = SQ_TEX_WRAP;
-    else
+	break;
+    case RepeatPad:
+	tex_samp.clamp_x            = SQ_TEX_CLAMP_LAST_TEXEL;
+	tex_samp.clamp_y            = SQ_TEX_CLAMP_LAST_TEXEL;
+	break;
+    case RepeatReflect:
+	tex_samp.clamp_x            = SQ_TEX_MIRROR;
+	tex_samp.clamp_y            = SQ_TEX_MIRROR;
+	break;
+    case RepeatNone:
+	tex_samp.clamp_x            = SQ_TEX_CLAMP_BORDER;
 	tex_samp.clamp_y            = SQ_TEX_CLAMP_BORDER;
+	break;
+    default:
+	RADEON_FALLBACK(("Bad repeat 0x%x\n", pPict->repeatType));
+    }
 
     switch (pPict->filter) {
     case PictFilterNearest:
@@ -1351,58 +1359,6 @@ static Bool R600CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 
 }
 
-static Bool R600PitchMatches(PixmapPtr pPix)
-{
-    int w = pPix->drawable.width;
-    int h = pPix->drawable.height;
-    uint32_t txpitch = exaGetPixmapPitch(pPix);
-
-    if (h > 1 && (unsigned int)((w * pPix->drawable.bitsPerPixel / 8 + 255) & ~255) != txpitch)
-	return FALSE;
-
-    return TRUE;
-}
-
-static Bool R600SetupSourceTile(PicturePtr pPict,
-				PixmapPtr pPix,
-				Bool canTile1d,
-				Bool needMatchingPitch)
-{
-    ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-
-    accel_state->need_src_tile_x = accel_state->need_src_tile_y = FALSE;
-    accel_state->src_tile_width = accel_state->src_tile_height = 65536; /* "infinite" */
-
-    if (pPict->repeat) {
-	Bool badPitch = needMatchingPitch && !R600PitchMatches(pPix);
-
-	int w = pPict->pDrawable->width;
-	int h = pPict->pDrawable->height;
-
-	if (pPict->transform) {
-	    if (badPitch)
-		RADEON_FALLBACK(("Width %d and pitch %u not compatible for repeat\n",
-				 w, (unsigned)exaGetPixmapPitch(pPix)));
-	} else {
-	    accel_state->need_src_tile_x = (w & (w - 1)) != 0 || badPitch;
-	    accel_state->need_src_tile_y = (h & (h - 1)) != 0;
-
-	    if (!canTile1d)
-		accel_state->need_src_tile_x = accel_state->need_src_tile_y
-		    = accel_state->need_src_tile_x || accel_state->need_src_tile_y;
-	}
-
-	if (accel_state->need_src_tile_x)
-	    accel_state->src_tile_width = w;
-	if (accel_state->need_src_tile_y)
-	  accel_state->src_tile_height = h;
-    }
-
-    return TRUE;
-}
-
 static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 PicturePtr pMaskPicture, PicturePtr pDstPicture,
 				 PixmapPtr pSrc, PixmapPtr pMask, PixmapPtr pDst)
@@ -1447,9 +1403,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)accel_state->src_mc_addr[0]));
 
     if (!R600GetDestFormat(pDstPicture, &dst_format))
-	return FALSE;
-
-    if (!R600SetupSourceTile(pSrcPicture, pSrc, TRUE, FALSE))
 	return FALSE;
 
     if (pMask) {
@@ -2026,11 +1979,11 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     return TRUE;
 }
 
-static void R600CompositeTile(PixmapPtr pDst,
-			      int srcX, int srcY,
-			      int maskX, int maskY,
-			      int dstX, int dstY,
-			      int w, int h)
+static void R600Composite(PixmapPtr pDst,
+			  int srcX, int srcY,
+			  int maskX, int maskY,
+			  int dstX, int dstY,
+			  int w, int h)
 {
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
@@ -2147,69 +2100,6 @@ static void R600CompositeTile(PixmapPtr pDst,
     }
 
 
-}
-
-static void R600Composite(PixmapPtr pDst,
-			  int srcX, int srcY,
-			  int maskX, int maskY,
-			  int dstX, int dstY,
-			  int width, int height)
-{
-    ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    int tileSrcY, tileMaskY, tileDstY;
-    int remainingHeight;
-
-    if (!accel_state->need_src_tile_x && !accel_state->need_src_tile_y) {
-	R600CompositeTile(pDst,
-			  srcX, srcY,
-			  maskX, maskY,
-			  dstX, dstY,
-			  width, height);
-	return;
-    }
-
-    /* Tiling logic borrowed from exaFillRegionTiled */
-
-    modulus(srcY, accel_state->src_tile_height, tileSrcY);
-    tileMaskY = maskY;
-    tileDstY = dstY;
-
-    remainingHeight = height;
-    while (remainingHeight > 0) {
-	int remainingWidth = width;
-	int tileSrcX, tileMaskX, tileDstX;
-	int h = accel_state->src_tile_height - tileSrcY;
-
-	if (h > remainingHeight)
-	    h = remainingHeight;
-	remainingHeight -= h;
-
-	modulus(srcX, accel_state->src_tile_width, tileSrcX);
-	tileMaskX = maskX;
-	tileDstX = dstX;
-
-	while (remainingWidth > 0) {
-	    int w = accel_state->src_tile_width - tileSrcX;
-	    if (w > remainingWidth)
-		w = remainingWidth;
-	    remainingWidth -= w;
-
-	    R600CompositeTile(pDst,
-			      tileSrcX, tileSrcY,
-			      tileMaskX, tileMaskY,
-			      tileDstX, tileDstY,
-			      w, h);
-
-	    tileSrcX = 0;
-	    tileMaskX += w;
-	    tileDstX += w;
-	}
-	tileSrcY = 0;
-	tileMaskY += h;
-	tileDstY += h;
-    }
 }
 
 static void R600DoneComposite(PixmapPtr pDst)
