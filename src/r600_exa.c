@@ -1375,9 +1375,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     //return FALSE;
 
     if (pMask)
-	return FALSE;
-
-    if (pMask)
 	accel_state->has_mask = TRUE;
     else
 	accel_state->has_mask = FALSE;
@@ -3465,7 +3462,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
 			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
-    vs[i++] = VTX_DWORD2(OFFSET(8),
+    vs[i++] = VTX_DWORD2(OFFSET(16),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(0));
