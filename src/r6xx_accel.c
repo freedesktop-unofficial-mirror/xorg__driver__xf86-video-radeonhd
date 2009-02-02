@@ -705,7 +705,7 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     memset(&tex_res, 0, sizeof(tex_resource_t));
     memset(&fs_conf, 0, sizeof(shader_config_t));
 
-#if 0
+#if 1
     if (accel_state->XHas3DEngineState)
 	return;
 #endif
