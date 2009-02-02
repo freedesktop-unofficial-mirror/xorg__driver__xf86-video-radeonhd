@@ -529,42 +529,48 @@ static void RHDDRIInitGARTValues(struct rhdDri * rhdDRI)
 /* Set AGP transfer mode according to requests and constraints */
 static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 {
+    ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     unsigned long mode   = drmAgpGetMode(rhdDRI->drmFD);	/* Default mode */
     unsigned int  vendor = drmAgpVendorId(rhdDRI->drmFD);
     unsigned int  device = drmAgpDeviceId(rhdDRI->drmFD);
-    /* ignore agp 3.0 mode bit from the chip as it's buggy on some cards with
-       pcie-agp rialto bridge chip - use the one from bridge which must match */
-    CARD32 agp_status = (RHDRegRead (rhdDRI, AGP_STATUS) | AGPv3_MODE) & mode;
-    Bool is_v3 = (agp_status & AGPv3_MODE);
 
-     RHDFUNC(rhdDRI);
+    if (rhdPtr->ChipSet < RHD_R600) {
+	/* ignore agp 3.0 mode bit from the chip as it's buggy on some cards with
+	   pcie-agp rialto bridge chip - use the one from bridge which must match */
+	CARD32 agp_status = (RHDRegRead (rhdDRI, AGP_STATUS) | AGPv3_MODE) & mode;
+	Bool is_v3 = (agp_status & AGPv3_MODE);
 
-   if (is_v3) {
-	rhdDRI->agpMode = (agp_status & AGPv3_8X_MODE) ? 8 : 4;
-    } else {
-	if (agp_status & AGP_4X_MODE)
-	    rhdDRI->agpMode = 4;
-	else if (agp_status & AGP_2X_MODE)
-	    rhdDRI->agpMode = 2;
-	else
-	    rhdDRI->agpMode = 1;
-    }
-    xf86DrvMsg(pScreen->myNum, X_DEFAULT, "Using AGP %dx\n", rhdDRI->agpMode);
+	RHDFUNC(rhdDRI);
 
-    mode &= ~AGP_MODE_MASK;
-    if (is_v3) {
-	/* only set one mode bit for AGPv3 */
-	switch (rhdDRI->agpMode) {
-	case 8:          mode |= AGPv3_8X_MODE; break;
-	case 4: default: mode |= AGPv3_4X_MODE;
+	if (is_v3) {
+	    rhdDRI->agpMode = (agp_status & AGPv3_8X_MODE) ? 8 : 4;
+	} else {
+	    if (agp_status & AGP_4X_MODE)
+		rhdDRI->agpMode = 4;
+	    else if (agp_status & AGP_2X_MODE)
+		rhdDRI->agpMode = 2;
+	    else
+		rhdDRI->agpMode = 1;
 	}
-    } else {
-	switch (rhdDRI->agpMode) {
-	case 4:          mode |= AGP_4X_MODE;
-	case 2:          mode |= AGP_2X_MODE;
-	case 1: default: mode |= AGP_1X_MODE;
+	xf86DrvMsg(pScreen->myNum, X_DEFAULT, "Using AGP %dx\n", rhdDRI->agpMode);
+
+	mode &= ~AGP_MODE_MASK;
+	if (is_v3) {
+	    /* only set one mode bit for AGPv3 */
+	    switch (rhdDRI->agpMode) {
+	    case 8:          mode |= AGPv3_8X_MODE; break;
+	    case 4: default: mode |= AGPv3_4X_MODE;
+	    }
+	} else {
+	    switch (rhdDRI->agpMode) {
+	    case 4:          mode |= AGP_4X_MODE;
+	    case 2:          mode |= AGP_2X_MODE;
+	    case 1: default: mode |= AGP_1X_MODE;
+	    }
 	}
-    }
+    } else
+	rhdDRI->agpMode = 8; /* doesn't matter at this point */
 
     xf86DrvMsg(pScreen->myNum, X_INFO,
 	       "[agp] Mode 0x%08lx [AGP 0x%04x/0x%04x]\n",
@@ -580,9 +586,13 @@ static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 }
 
 /* Initialize Radeon's AGP registers */
-static void RHDSetAgpBase(struct rhdDri * rhdDRI)
+static void RHDSetAgpBase(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 {
-    RHDRegWrite (rhdDRI, AGP_BASE, drmAgpBase(rhdDRI->drmFD));
+    ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if (rhdPtr->ChipSet < RHD_R600)
+	RHDRegWrite (rhdDRI, AGP_BASE, drmAgpBase(rhdDRI->drmFD));
 }
 
 /* Initialize the AGP state.  Request memory for use in AGP space, and
@@ -699,7 +709,7 @@ static Bool RHDDRIAgpInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 	       "[agp] GART Texture map mapped at 0x%08lx\n",
 	       (unsigned long)rhdDRI->gartTex);
 
-    RHDSetAgpBase(rhdDRI);
+    RHDSetAgpBase(rhdDRI, pScreen);
 
     return TRUE;
 }
@@ -1155,15 +1165,10 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 
     if (rhdPtr->ChipSet >= RHD_R600) {
 	if (rhdPtr->useDRI.set && rhdPtr->useDRI.val.bool) {
-	    if (rhdPtr->cardType == RHD_CARD_AGP) {
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-			   "Direct rendering not supported on R6xx AGP\n");
-		return FALSE;
-	    } else
-		xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-			   "Direct rendering for R600 and up forced on - "
-			   "This is NOT officially supported yet "
-			   "and may cause instability or lockups\n");
+	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		       "Direct rendering for R600 and up forced on - "
+		       "This is NOT officially supported yet "
+		       "and may cause instability or lockups\n");
 	} else {
 	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 		       "Direct rendering not officially supported on R600 and up\n");
@@ -1627,7 +1632,7 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
     if (rhdPtr->cardType == RHD_CARD_AGP) {
 	if (!RHDSetAgpMode(rhdDRI, pScreen))
 	    return;
-	RHDSetAgpBase(rhdDRI);
+	RHDSetAgpBase(rhdDRI, pScreen);
     }
 
     if ( (ret = drmCommandNone(rhdDRI->drmFD, DRM_RADEON_CP_RESUME)) )
