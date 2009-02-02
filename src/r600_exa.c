@@ -89,6 +89,12 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     uint32_t a, r, g, b;
     float ps_alu_consts[4];
 
+    // FIXME
+    // R7xx seems to hang when using PS constants for fg color
+    // sending the color as a vertex attribute works
+    if (rhdPtr->ChipSet >= RHD_RV770)
+	return FALSE;
+
     accel_state->dst_mc_addr = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
     accel_state->dst_size = exaGetPixmapPitch(pPix) * pPix->drawable.height;
     accel_state->dst_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
