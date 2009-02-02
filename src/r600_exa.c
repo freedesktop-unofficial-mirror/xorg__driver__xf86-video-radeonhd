@@ -205,7 +205,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
     // input color from VS
-    ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (1 << NUM_INTERP_shift));
+    ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (0 << NUM_INTERP_shift));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
     // color semantic id 0 -> GPR[0]
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
@@ -2324,7 +2324,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     // solid vs ---------------------------------------
     i = accel_state->solid_vs_offset / 4;
     //0
-    vs[i++] = CF_DWORD0(ADDR(2));
+    vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
 			COND(SQ_CF_COND_ACTIVE),
@@ -2348,12 +2348,33 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   SRC_SEL_W(SQ_SEL_W),
 					   R6xx_ELEM_LOOP(0),
 					   BURST_COUNT(1),
-					   END_OF_PROGRAM(1),
+					   END_OF_PROGRAM(0),
 					   VALID_PIXEL_MODE(0),
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2/3
+    //2 - always export a param whether it's used or not
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
+				      TYPE(SQ_EXPORT_PARAM),
+				      RW_GPR(0),
+				      RW_REL(ABSOLUTE),
+				      INDEX_GPR(0),
+				      ELEM_SIZE(0));
+    vs[i++] = CF_ALLOC_IMP_EXP_DWORD1_SWIZ(SRC_SEL_X(SQ_SEL_X),
+					   SRC_SEL_Y(SQ_SEL_Y),
+					   SRC_SEL_Z(SQ_SEL_Z),
+					   SRC_SEL_W(SQ_SEL_W),
+					   R6xx_ELEM_LOOP(0),
+					   BURST_COUNT(0),
+					   END_OF_PROGRAM(1),
+					   VALID_PIXEL_MODE(0),
+					   CF_INST(SQ_CF_INST_EXPORT_DONE),
+					   WHOLE_QUAD_MODE(0),
+					   BARRIER(0));
+    //3 - padding
+    vs[i++] = 0x00000000;
+    vs[i++] = 0x00000000;
+    //4/5
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2361,7 +2382,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_GPR(0),
 			 SRC_REL(ABSOLUTE),
 			 SRC_SEL_X(SQ_SEL_X),
-			 MEGA_FETCH_COUNT(12));
+			 MEGA_FETCH_COUNT(8));
     vs[i++] = VTX_DWORD1_GPR(DST_GPR(1),
 			     DST_REL(0),
 			     DST_SEL_X(SQ_SEL_X),
