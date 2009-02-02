@@ -204,13 +204,13 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
-    // export pixel color from VS
-    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
+    // one unused export from VS (VS_EXPORT_COUNT is zero based, count minus one)
+    ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (0 << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
-    // input color from VS
+    // no VS exports as PS input (NUM_INTERP is not zero based, no minus one)
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (0 << NUM_INTERP_shift));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
     // color semantic id 0 -> GPR[0]
