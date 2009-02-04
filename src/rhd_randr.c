@@ -561,6 +561,7 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     atom_DVID            = MakeAtom("DVI-D", 5, TRUE);
     atom_DVIA            = MakeAtom("DVI-A", 5, TRUE);
     atom_HDMI            = MakeAtom("HDMI", 4, TRUE);
+    atom_Panel           = MakeAtom("Panel", 5, TRUE);
 
     /* Set up properties */
     val = rhdGetSignalFormat(rout);
