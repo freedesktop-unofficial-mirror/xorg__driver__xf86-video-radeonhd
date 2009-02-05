@@ -2007,6 +2007,22 @@ static void R600DoneComposite(PixmapPtr pDst)
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
 
+/* really would be better to wait on a timestamp shadowed in memory,
+ * but this will do for now.
+ */
+static Bool
+R600WaitforIdlePoll(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    uint32_t i;
+
+    for (i = 0; i < 1000000; i++) {
+	if ((RHDRegRead(rhdPtr, GRBM_STATUS) & GUI_ACTIVE_bit) == 0)
+	    return TRUE;
+    }
+    return FALSE;
+}
+
 static Bool
 R600UploadToScreen(PixmapPtr pDst, int x, int y, int w, int h,
 		   char *src, int src_pitch)
@@ -3442,6 +3458,8 @@ R600PrepareAccess(PixmapPtr pPix, int index)
 {
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    R600WaitforIdlePoll(pScrn);
 
     //flush HDP read/write caches
     RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
