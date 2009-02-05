@@ -1478,12 +1478,6 @@ RHDDRIGARTBaseGet(RHDPtr rhdPtr)
     drm_radeon_getparam_t gp;
     int gart_base;
 
-    if (rhdPtr->cardType == RHD_CARD_AGP) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		   "%s: Unable to get GART address (AGP card).\n", __func__);
-	return 0;
-    }
-
     memset(&gp, 0, sizeof(gp));
     gp.param = RADEON_PARAM_GART_BASE;
     gp.value = &gart_base;
@@ -1494,7 +1488,7 @@ RHDDRIGARTBaseGet(RHDPtr rhdPtr)
 		   "%s: Failed to determine GART area MC location.\n", __func__);
 	return 0;
     } else {
-	RHDDebug(rhdPtr->scrnIndex, "GART location: 0x08X\n", gart_base);
+	RHDDebug(rhdPtr->scrnIndex, "GART location: 0x%08X\n", gart_base);
 	return gart_base;
     }
 }
