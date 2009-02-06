@@ -2031,22 +2031,68 @@ R600UploadToScreen(PixmapPtr pDst, int x, int y, int w, int h,
 {
     ScrnInfoPtr pScrn = xf86Screens[pDst->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-//    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    uint8_t *dst = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pDst));
-    int dst_pitch = exaGetPixmapPitch(pDst);
+    uint32_t dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+    uint32_t dst_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pDst);
+    uint32_t dst_height = pDst->drawable.height;
     int bpp = pDst->drawable.bitsPerPixel;
+    uint32_t scratch_mc_addr;
+    int wpass = w * (bpp/8);
+    int scratch_pitch_bytes = (wpass + 255) & ~255;
+    uint32_t scratch_pitch = scratch_pitch_bytes / (bpp / 8);
+    int scratch_offset = 0, hpass, temph;
+    char *dst;
+    drmBufPtr scratch;
 
+    if (dst_pitch & 7)
+	return FALSE;
 
-    //return FALSE;
+    if (dst_mc_addr & 0xff)
+	return FALSE;
 
-    dst += (x * bpp / 8) + (y * dst_pitch);
-    w *= bpp / 8;
+    scratch = RHDDRMCPBuffer(pScrn->scrnIndex);
+    if (scratch == NULL)
+	return FALSE;
 
-    while (h--) {
-	memcpy(dst, src, w);
+    scratch_mc_addr = RHDDRIGetIntGARTLocation(pScrn) + (scratch->idx * scratch->total);
+    temph = hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
+    dst = (char *)scratch->address;
+
+    //memcopy from sys to scratch
+    while (temph--) {
+	memcpy (dst, src, wpass);
 	src += src_pitch;
-	dst += dst_pitch;
+	dst += scratch_pitch_bytes;
     }
+
+    while (h) {
+	uint32_t offset = scratch_mc_addr + scratch_offset;
+	int oldhpass = hpass;
+	h -= oldhpass;
+	temph = hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
+
+	if (hpass) {
+	    scratch_offset = scratch->total/2 - scratch_offset;
+	    dst = (char *)scratch->address + scratch_offset;
+	    // wait for the engine to be idle
+	    R600WaitforIdlePoll(pScrn);
+	    //memcopy from sys to scratch
+	    while (temph--) {
+		memcpy (dst, src, wpass);
+		src += src_pitch;
+		dst += scratch_pitch_bytes;
+	    }
+	}
+	//blit from scratch to vram
+	R600DoPrepareCopy(pScrn,
+			  scratch_pitch, w, oldhpass, offset, bpp,
+			  dst_pitch, dst_height, dst_mc_addr, bpp,
+			  3, 0xffffffff);
+	R600AppendCopyVertex(pScrn, 0, 0, x, y, w, oldhpass);
+	R600DoCopy(pScrn);
+	y += oldhpass;
+    }
+
+    R600IBDiscard(pScrn, scratch);
 
     return TRUE;
 }
@@ -2057,23 +2103,68 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 {
     ScrnInfoPtr pScrn = xf86Screens[pSrc->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-//    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    uint8_t *src = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc));
-    int	src_pitch = exaGetPixmapPitch(pSrc);
-    int	bpp = pSrc->drawable.bitsPerPixel;
+    uint32_t src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
+    uint32_t src_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc);
+    uint32_t src_width = pSrc->drawable.width;
+    uint32_t src_height = pSrc->drawable.height;
+    int bpp = pSrc->drawable.bitsPerPixel;
+    uint32_t scratch_mc_addr;
+    int scratch_pitch_bytes = (dst_pitch + 255) & ~255;
+    int scratch_offset = 0, hpass;
+    uint32_t scratch_pitch = scratch_pitch_bytes / (bpp / 8);
+    int wpass = w * (bpp/8);
+    drmBufPtr scratch;
 
-    //return FALSE;
+    if (src_pitch & 7)
+	return FALSE;
 
-    src += (x * bpp / 8) + (y * src_pitch);
-    w *= bpp / 8;
+    scratch = RHDDRMCPBuffer(pScrn->scrnIndex);
+    if (scratch == NULL)
+	return FALSE;
 
-    while (h--) {
-	memcpy(dst, src, w);
-	src += src_pitch;
-	dst += dst_pitch;
+    scratch_mc_addr = RHDDRIGetIntGARTLocation(pScrn) + (scratch->idx * scratch->total);
+    hpass = min(h, scratch->total/2 / scratch_pitch);
+
+    //blit from vram to scratch
+    R600DoPrepareCopy(pScrn,
+		      src_pitch, src_width, src_height, src_mc_addr, bpp,
+		      scratch_pitch, hpass, scratch_mc_addr, bpp,
+		      3, 0xffffffff);
+    R600AppendCopyVertex(pScrn, x, y, 0, 0, w, hpass);
+    R600DoCopy(pScrn);
+
+    while (h) {
+	char *src = (char *)scratch->address + scratch_offset;
+	int oldhpass = hpass;
+	h -= oldhpass;
+	y += oldhpass;
+	hpass = min(h, scratch->total/2 / scratch_pitch);
+
+	if (hpass) {
+	    scratch_offset = scratch->total/2 - scratch_offset;
+	    //blit from vram to scratch
+	    R600DoPrepareCopy(pScrn,
+			      src_pitch, src_width, src_height, src_mc_addr, bpp,
+			      scratch_pitch, hpass, scratch_mc_addr + scratch_offset, bpp,
+			      3, 0xffffffff);
+	    R600AppendCopyVertex(pScrn, x, y, 0, 0, w, hpass);
+	    R600DoCopy(pScrn);
+	}
+
+	// wait for the engine to be idle
+	R600WaitforIdlePoll(pScrn);
+	//memcopy from scratch to sys
+	while (oldhpass--) {
+	    memcpy (dst, src, wpass);
+	    dst += dst_pitch;
+	    src += scratch_pitch_bytes;
+	}
     }
 
+    R600IBDiscard(pScrn, scratch);
+
     return TRUE;
+
 }
 
 void
@@ -3529,8 +3620,8 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->Composite = R600Composite;
     EXAInfo->DoneComposite = R600DoneComposite;
 
-    //EXAInfo->UploadToScreen = R600UploadToScreen;
-    //EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
+    EXAInfo->UploadToScreen = R600UploadToScreen;
+    EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
 
     EXAInfo->PrepareAccess = R600PrepareAccess;
     EXAInfo->FinishAccess = R600FinishAccess;
