@@ -2146,7 +2146,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 	return FALSE;
 
     scratch_mc_addr = RHDDRIGetIntGARTLocation(pScrn) + (scratch->idx * scratch->total);
-    hpass = min(h, scratch->total/2 / scratch_pitch);
+    hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
 
     //blit from vram to scratch
     R600DoPrepareCopy(pScrn,
@@ -2161,7 +2161,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 	int oldhpass = hpass;
 	h -= oldhpass;
 	y += oldhpass;
-	hpass = min(h, scratch->total/2 / scratch_pitch);
+	hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
 
 	if (hpass) {
 	    scratch_offset = scratch->total/2 - scratch_offset;
