@@ -51,5 +51,10 @@ struct RHDPortPriv {
 extern void RHDRADEONDisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv);
 extern void RHDInitVideo(ScreenPtr pScreen);
 extern void R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv);
+extern Bool
+R600CopyToVRAM(ScrnInfoPtr pScrn,
+	       char *src, int src_pitch,
+	       uint32_t dst_pitch, uint32_t dst_mc_addr, uint32_t dst_height, int bpp,
+	       int x, int y, int w, int h);
 
 #endif /* _RHD_VIDEO_H */
