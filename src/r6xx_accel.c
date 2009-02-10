@@ -288,6 +288,7 @@ sq_setup(ScrnInfoPtr pScrn, drmBufPtr ib, sq_config_t *sq_conf)
 	(rhdPtr->ChipSet == RHD_RV620) ||
 	(rhdPtr->ChipSet == RHD_M72) ||
 	(rhdPtr->ChipSet == RHD_M74) ||
+	(rhdPtr->ChipSet == RHD_M82) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	sq_config = 0;						// no VC
@@ -791,6 +792,7 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
     case RHD_RV610:
     case RHD_M74:
     case RHD_M72:
+    case RHD_M82:
     case RHD_RV620:
     case RHD_RS780:
     default:
