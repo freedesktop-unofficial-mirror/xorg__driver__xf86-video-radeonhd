@@ -552,22 +552,16 @@ R600CopyPlanar(ScrnInfoPtr pScrn,
 }
 
 static void
-R600CopyPacked(unsigned char *src, unsigned char *dst,
+R600CopyPacked(ScrnInfoPtr pScrn,
+	       unsigned char *src, uint32_t dst_mc_addr,
 	       int srcPitch, int dstPitch,
 	       int w, int h)
 {
-    int i;
-
-    if (srcPitch == dstPitch) {
-	memcpy(dst, src, srcPitch * h);
-	dst += (dstPitch * h);
-    } else {
-	for (i = 0; i < h; i++) {
-	    memcpy(dst, src, srcPitch);
-	    src += srcPitch;
-	    dst += dstPitch;
-	}
-    }
+    /* YUV */
+    R600CopyToVRAM(pScrn,
+		   (char *)src, srcPitch,
+		   dstPitch >> 2, dst_mc_addr, h, 32,
+		   0, 0, w >> 1, h);
 }
 
 /*
@@ -710,7 +704,7 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     default:
 	if (rhdPtr->ChipSet >= RHD_R600) {
 	    pPriv->BufferPitch = ALIGN(2 * width, 256);
-	    R600CopyPacked(buf, FBBuf,
+	    R600CopyPacked(pScrn, buf, pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
 			   2 * width, pPriv->BufferPitch,
 			   width, height);
 	} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
