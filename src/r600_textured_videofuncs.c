@@ -511,6 +511,14 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     ereg  (accel_state->ib, VGT_MIN_VTX_INDX,                    0);
     ereg  (accel_state->ib, VGT_INDX_OFFSET,                     0);
 
+    wait_vline_range(
+	pScrn,
+	accel_state->ib,
+	0 /* TODO */,
+	dstyoff + pPriv->drw_y,
+	dstyoff + pPriv->drw_y + pPriv->dst_h - 1
+    );
+
     draw_auto(pScrn, accel_state->ib, &draw_conf);
 
     wait_3d_idle_clean(pScrn, accel_state->ib);

@@ -112,7 +112,7 @@ inline void pack0 (drmBufPtr ib, uint32_t reg, int num)
 	pack3 (ib, IT_SET_BOOL_CONST, num+1);
 	e32 (ib, (reg-SET_BOOL_CONST_offset) >> 2);
     } else {
-	e32 (ib, CP_PACKET0 (reg, num-1));
+	e32 (ib, CP_PACKET0 (reg, num));
     }
 }
 
@@ -181,6 +181,46 @@ wait_3d_idle(ScrnInfoPtr pScrn, drmBufPtr ib)
 
     ereg  (ib, WAIT_UNTIL,                          WAIT_3D_IDLE_bit);
 
+}
+
+/* TODO */
+#define D1MODE_VLINE_START_END	0x6538
+#define D1MODE_VLINE_STATUS	0x653C
+
+#define D2MODE_VLINE_START_END	0x6D38
+#define D2MODE_VLINE_STATUS	0x6D3C
+
+/* 
+ * inserts a wait for vline in the command stream 
+ */
+void
+wait_vline_range(ScrnInfoPtr pScrn, drmBufPtr ib, int crtc, int start, int stop)
+{
+//    RHDPtr rhdPtr = RHDPTR(pScrn);
+
+    if ((crtc < 0) || (crtc > 1))
+	return;
+
+    if (stop <= start)
+	return;
+
+    /* set the VLINE range */
+    if(crtc == 0)
+	ereg(ib, D1MODE_VLINE_START_END, start | (stop << 16));
+    else
+	ereg(ib, D2MODE_VLINE_START_END, start | (stop << 16));
+
+    /* tell the CP to poll the VLINE state register */
+    pack3 (ib, IT_WAIT_REG_MEM, 6);
+    e32 (ib, WAIT_REG | WAIT_EQ);
+    if(crtc == 0)
+	e32 (ib, D1MODE_VLINE_STATUS >> 2);
+    else
+	e32 (ib, D2MODE_VLINE_STATUS >> 2);
+    e32 (ib, 0);
+    e32 (ib, 0); // Ref value
+    e32 (ib, 0x1000); // Mask
+    e32 (ib, 10); // Wait interval 
 }
 
 static void
