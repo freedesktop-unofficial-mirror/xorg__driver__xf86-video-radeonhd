@@ -400,8 +400,9 @@ cp_set_surface_sync(ScrnInfoPtr pScrn, drmBufPtr ib, uint32_t sync_type, uint32_
     ereg  (ib, CP_COHER_CNTL,                       sync_type);
     ereg  (ib, CP_COHER_SIZE,                       cp_coher_size);
     ereg  (ib, CP_COHER_BASE,                       (mc_addr >> 8));
+
     pack3 (ib, IT_WAIT_REG_MEM, 6);
-    e32   (ib, 0x00000003);						// ME, Register, EqualTo
+    e32   (ib, WAIT_REG | WAIT_EQ);
     e32   (ib, CP_COHER_STATUS >> 2);
     e32   (ib, 0);
     e32   (ib, 0);							// Ref value
