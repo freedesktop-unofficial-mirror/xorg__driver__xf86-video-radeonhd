@@ -188,6 +188,8 @@ wait_3d_idle_clean(ScrnInfoPtr pScrn, drmBufPtr ib);
 void
 wait_3d_idle(ScrnInfoPtr pScrn, drmBufPtr ib);
 void
+wait_vline_range(ScrnInfoPtr pScrn, drmBufPtr ib, int crtc, int start, int stop);
+void
 start_3d(ScrnInfoPtr pScrn, drmBufPtr ib);
 void
 set_render_target(ScrnInfoPtr pScrn, drmBufPtr ib, cb_config_t *cb_conf);
