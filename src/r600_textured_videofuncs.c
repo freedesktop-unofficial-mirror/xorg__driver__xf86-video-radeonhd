@@ -473,6 +473,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	(rhdPtr->ChipSet == RHD_RV620) ||
 	(rhdPtr->ChipSet == RHD_M72) ||
 	(rhdPtr->ChipSet == RHD_M74) ||
+	(rhdPtr->ChipSet == RHD_M82) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
