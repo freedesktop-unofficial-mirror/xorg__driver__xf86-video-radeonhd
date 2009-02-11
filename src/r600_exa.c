@@ -2303,9 +2303,8 @@ R600EXAMarkSync(ScreenPtr pScreen)
 {
     struct r6xx_accel_state *accel_state = RHDPTR(xf86Screens[pScreen->myNum])->TwoDPrivate;
 
-    accel_state->exaSyncMarker++;
+    return ++accel_state->exaSyncMarker;
 
-    return accel_state->exaSyncMarker;
 }
 
 static void
@@ -2319,6 +2318,8 @@ R600EXASync(ScreenPtr pScreen, int marker)
 
 	RHDCSFlush(CS);
 	RHDCSIdle(CS);
+
+	R600WaitforIdlePoll(pScrn);
 
 	accel_state->exaMarkerSynced = marker;
     }
@@ -4209,8 +4210,6 @@ R600PrepareAccess(PixmapPtr pPix, int index)
 {
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
-
-    R600WaitforIdlePoll(pScrn);
 
     //flush HDP read/write caches
     RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
