@@ -31,7 +31,7 @@
 
 enum {
 
-    R7XX_MC_VM_FB_LOCATION                                = 0x00002024,
+    /* R7XX_MC_VM_FB_LOCATION                             = 0x00002024, */
 
 //  GRBM_STATUS                                           = 0x00008010,
 	R7XX_TA_BUSY_bit                                  = 1 << 14,

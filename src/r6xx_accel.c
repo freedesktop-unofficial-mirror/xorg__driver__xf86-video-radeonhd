@@ -32,6 +32,7 @@
 #include <errno.h>
 
 #include "rhd.h"
+#include "rhd_regs.h"
 #include "rhd_cs.h"
 #include "r6xx_accel.h"
 #include "r600_shader.h"
@@ -182,13 +183,6 @@ wait_3d_idle(ScrnInfoPtr pScrn, drmBufPtr ib)
     ereg  (ib, WAIT_UNTIL,                          WAIT_3D_IDLE_bit);
 
 }
-
-/* TODO */
-#define D1MODE_VLINE_START_END	0x6538
-#define D1MODE_VLINE_STATUS	0x653C
-
-#define D2MODE_VLINE_START_END	0x6D38
-#define D2MODE_VLINE_STATUS	0x6D3C
 
 /* 
  * inserts a wait for vline in the command stream 
