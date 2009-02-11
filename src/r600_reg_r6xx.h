@@ -34,7 +34,7 @@ enum {
     MM_INDEX                                              = 0x0000,
     MM_DATA                                               = 0x0004,
 
-    SRBM_STATUS                                           = 0x0e50,
+    /*SRBM_STATUS                                         = 0x0e50, */
 	RLC_RQ_PENDING_bit                                = 1 << 3,
 	RCU_RQ_PENDING_bit                                = 1 << 4,
 	GRBM_RQ_PENDING_bit                               = 1 << 5,
@@ -78,15 +78,15 @@ enum {
 	RDERR_INT_ACK_bit                                 = 1 << 0,
 	GFX_CNTX_SWITCH_INT_ACK_bit                       = 1 << 1,
 
-    R6XX_MC_VM_FB_LOCATION                                = 0x2180,
+    /* R6XX_MC_VM_FB_LOCATION                             = 0x2180, */
 
     VENDOR_DEVICE_ID                                      = 0x4000,
 
     HDP_MEM_COHERENCY_FLUSH_CNTL                          = 0x5480,
 
-    D1GRPH_PRIMARY_SURFACE_ADDRESS                        = 0x6110,
-    D1GRPH_PITCH                                          = 0x6120,
-    D1GRPH_Y_END                                          = 0x6138,
+    /* D1GRPH_PRIMARY_SURFACE_ADDRESS                     = 0x6110, */
+    /* D1GRPH_PITCH                                       = 0x6120, */
+    /* D1GRPH_Y_END                                       = 0x6138, */
 
     GRBM_STATUS                                           = 0x8010,
 	CMDFIFO_AVAIL_mask                                = 0x1f << 0,
