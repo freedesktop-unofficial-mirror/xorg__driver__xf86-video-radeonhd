@@ -51,7 +51,7 @@ enum {
     SET_LOOP_CONST_offset          = 0x0003e200,
     SET_LOOP_CONST_end             = 0x0003e380,
     SET_BOOL_CONST_offset          = 0x0003e380,
-    SET_BOOL_CONST_end             = 0x00040000,
+    SET_BOOL_CONST_end             = 0x00040000
 } ;
 
 /* packet3 IT_SURFACE_BASE_UPDATE bits */
@@ -70,7 +70,21 @@ enum {
 	STRMOUT_BASE2 = (1 << 11),
 	STRMOUT_BASE3 = (1 << 12),
 	COHER_BASE0   = (1 << 13),
-	COHER_BASE1   = (1 << 14),
+	COHER_BASE1   = (1 << 14)
+};
+
+/* packet3 IT_WAIT_REG_MEM operation encoding */
+enum {
+	WAIT_ALWAYS = (0<<0),
+	WAIT_LT     = (1<<0),
+	WAIT_LE     = (2<<0),
+	WAIT_EQ     = (3<<0),
+	WAIT_NE     = (4<<0),
+	WAIT_GE     = (5<<0),
+	WAIT_GT     = (6<<0),
+
+	WAIT_REG    = (0<<4),
+	WAIT_MEM    = (1<<4)
 };
 
 /* CP packet types */
@@ -78,7 +92,7 @@ enum {
     RADEON_CP_PACKET0              = 0x00000000,
     RADEON_CP_PACKET1              = 0x40000000,
     RADEON_CP_PACKET2              = 0x80000000,
-    RADEON_CP_PACKET3              = 0xC0000000,
+    RADEON_CP_PACKET3              = 0xC0000000
 };
 
 /* Packet3 commands */
@@ -120,7 +134,7 @@ enum {
     IT_SET_RESOURCE                      = 0x6D,
     IT_SET_SAMPLER                       = 0x6E,
     IT_SET_CTL_CONST                     = 0x6F,
-    IT_SURFACE_BASE_UPDATE               = 0x73,
-} ;
+    IT_SURFACE_BASE_UPDATE               = 0x73
+};
 
 #endif
