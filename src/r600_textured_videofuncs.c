@@ -126,7 +126,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     case FOURCC_YUY2:
     default:
 	accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
-	    accel_state->xv_ps_offset_nv12;
+	    accel_state->xv_ps_offset_packed;
 	break;
     }
 
@@ -168,7 +168,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
 	/* flush texture cache */
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit, accel_state->src_size[0],
-			    pPriv->BufferOffset + rhdPtr->FbIntAddress);
+			    accel_state->src_mc_addr[0]);
 
 	// Y texture
 	tex_res.id                  = 0;
@@ -278,20 +278,23 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
 	/* flush texture cache */
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit, accel_state->src_size[0],
-			    pPriv->BufferOffset + rhdPtr->FbIntAddress);
+			    accel_state->src_mc_addr[0]);
 
 	// Y texture
 	tex_res.id                  = 0;
 	tex_res.w                   = pPriv->w;
 	tex_res.h                   = pPriv->h;
-	tex_res.pitch               = accel_state->src_pitch[0];
+	tex_res.pitch               = accel_state->src_pitch[0] >> 1;
 	tex_res.depth               = 0;
 	tex_res.dim                 = SQ_TEX_DIM_2D;
 	tex_res.base                = accel_state->src_mc_addr[0];
 	tex_res.mip_base            = accel_state->src_mc_addr[0];
 
-	tex_res.format              = FMT_8;
-	tex_res.dst_sel_x           = SQ_SEL_X; //Y
+	tex_res.format              = FMT_8_8;
+	if (pPriv->id == FOURCC_UYVY)
+	    tex_res.dst_sel_x           = SQ_SEL_Y; //Y
+	else
+	    tex_res.dst_sel_x           = SQ_SEL_X; //Y
 	tex_res.dst_sel_y           = SQ_SEL_1;
 	tex_res.dst_sel_z           = SQ_SEL_1;
 	tex_res.dst_sel_w           = SQ_SEL_1;
@@ -311,26 +314,24 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
 
 	// UV texture
-	uv_offset = accel_state->src_pitch[0] * pPriv->h;
-	uv_offset = (uv_offset + 255) & ~255;
-
-	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
-			    accel_state->src_size[0] / 2,
-			    accel_state->src_mc_addr[0] + uv_offset);
-
 	tex_res.id                  = 1;
-	tex_res.format              = FMT_8_8;
+	tex_res.format              = FMT_8_8_8_8;
 	tex_res.w                   = pPriv->w >> 1;
-	tex_res.h                   = pPriv->h >> 1;
-	tex_res.pitch               = accel_state->src_pitch[0] >> 1;
-	tex_res.dst_sel_x           = SQ_SEL_Y; //V
-	tex_res.dst_sel_y           = SQ_SEL_X; //U
+	tex_res.h                   = pPriv->h;
+	tex_res.pitch               = accel_state->src_pitch[0] >> 2;
+	if (pPriv->id == FOURCC_UYVY) {
+	    tex_res.dst_sel_x = SQ_SEL_X; //V
+	    tex_res.dst_sel_y = SQ_SEL_Z; //U
+	} else {
+	    tex_res.dst_sel_x = SQ_SEL_Y; //V
+	    tex_res.dst_sel_y = SQ_SEL_W; //U
+	}
 	tex_res.dst_sel_z           = SQ_SEL_1;
 	tex_res.dst_sel_w           = SQ_SEL_1;
 	tex_res.interlaced          = 0;
 	// XXX tex bases need to be 256B aligned
-	tex_res.base                = accel_state->src_mc_addr[0] + uv_offset;
-	tex_res.mip_base            = accel_state->src_mc_addr[0] + uv_offset;
+	tex_res.base                = accel_state->src_mc_addr[0];
+	tex_res.mip_base            = accel_state->src_mc_addr[0];
 	set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
 	// xxx: switch to bicubic
