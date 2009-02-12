@@ -2130,28 +2130,13 @@ static void R600DoneComposite(PixmapPtr pDst)
     R600CPFlushIndirect(pScrn, accel_state->ib);
 }
 
-/* really would be better to wait on a timestamp shadowed in memory,
- * but this will do for now.
- */
-static Bool
-R600WaitforIdlePoll(ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    uint32_t i;
-
-    for (i = 0; i < 1000000; i++) {
-	if ((RHDRegRead(rhdPtr, GRBM_STATUS) & GUI_ACTIVE_bit) == 0)
-	    return TRUE;
-    }
-    return FALSE;
-}
-
 Bool
 R600CopyToVRAM(ScrnInfoPtr pScrn,
 	       char *src, int src_pitch,
 	       uint32_t dst_pitch, uint32_t dst_mc_addr, uint32_t dst_height, int bpp,
 	       int x, int y, int w, int h)
 {
+    struct RhdCS *CS = RHDPTR(pScrn)->CS;
     uint32_t scratch_mc_addr;
     int wpass = w * (bpp/8);
     int scratch_pitch_bytes = (wpass + 255) & ~255;
@@ -2191,7 +2176,7 @@ R600CopyToVRAM(ScrnInfoPtr pScrn,
 	    scratch_offset = scratch->total/2 - scratch_offset;
 	    dst = (char *)scratch->address + scratch_offset;
 	    // wait for the engine to be idle
-	    R600WaitforIdlePoll(pScrn);
+	    RHDCSIdle(CS);
 	    //memcopy from sys to scratch
 	    while (temph--) {
 		memcpy (dst, src, wpass);
@@ -2237,6 +2222,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 {
     ScrnInfoPtr pScrn = xf86Screens[pSrc->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct RhdCS *CS = rhdPtr->CS;
     uint32_t src_pitch = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
     uint32_t src_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + exaGetPixmapOffset(pSrc);
     uint32_t src_width = pSrc->drawable.width;
@@ -2286,7 +2272,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 	}
 
 	// wait for the engine to be idle
-	R600WaitforIdlePoll(pScrn);
+	RHDCSIdle(CS);
 	//memcopy from scratch to sys
 	while (oldhpass--) {
 	    memcpy (dst, src, wpass);
@@ -2358,10 +2344,7 @@ R600EXASync(ScreenPtr pScreen, int marker)
     if (accel_state->exaMarkerSynced != marker) {
 	struct RhdCS *CS = RHDPTR(pScrn)->CS;
 
-	RHDCSFlush(CS);
 	RHDCSIdle(CS);
-
-	R600WaitforIdlePoll(pScrn);
 
 	accel_state->exaMarkerSynced = marker;
     }
