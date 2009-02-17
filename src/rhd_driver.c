@@ -3017,7 +3017,7 @@ rhdGetIGPNorthBridgeInfo(RHDPtr rhdPtr)
 static enum rhdCardType
 rhdGetCardType(RHDPtr rhdPtr)
 {
-    CARD32 cmd_stat;
+    uint32_t cmd_stat;
 
     if (rhdPtr->ChipSet == RHD_RS780)
 	return RHD_CARD_PCIE;
@@ -3028,7 +3028,7 @@ rhdGetCardType(RHDPtr rhdPtr)
     cmd_stat = pciReadLong(rhdPtr->PciTag, PCI_CMD_STAT_REG);
 #endif
     if (cmd_stat & 0x100000) {
-        CARD32 cap_ptr, cap_id;
+        uint32_t cap_ptr, cap_id;
 
 #ifdef XSERVER_LIBPCIACCESS
         pci_device_cfg_read_u32(rhdPtr->PciInfo, &cap_ptr, 0x34);

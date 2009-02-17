@@ -736,8 +736,8 @@ void
 rhdPrintDigDebug(RHDPtr rhdPtr, const char *name)
 {
     xf86DrvMsgVerb(rhdPtr->scrnIndex, X_INFO, 7, "%s: DIGn_CNTL: n=1: 0x%x n=2: 0x%x\n",
-	   name, RHDRegRead(rhdPtr, RV620_DIG1_CNTL),
-	   RHDRegRead(rhdPtr, DIG2_OFFSET + RV620_DIG1_CNTL));
+	   name, (unsigned int) RHDRegRead(rhdPtr, RV620_DIG1_CNTL),
+	   (unsigned int) RHDRegRead(rhdPtr, DIG2_OFFSET + RV620_DIG1_CNTL));
 }
 
 /*

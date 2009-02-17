@@ -121,7 +121,6 @@ struct rhdRandrCrtc {
 
 static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
     atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent;
-// Missing all the TV stuff ATM
 static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
 static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
 
