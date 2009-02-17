@@ -511,6 +511,8 @@ rhdRRCrtcModeFixupDUMMY(xf86CrtcPtr    crtc,
     return TRUE;
 }
 
+#if XF86_CRTC_VERSION >= 2
+/* Entry point for RandR 1.3 panning */
 static void
 rhdRRCrtcSetOrigin(xf86CrtcPtr  crtc, int x, int y)
 {
@@ -518,6 +520,7 @@ rhdRRCrtcSetOrigin(xf86CrtcPtr  crtc, int x, int y)
 
     rhdCrtc->FrameSet(rhdCrtc, x, y);
 }
+#endif
 
 
 /*
