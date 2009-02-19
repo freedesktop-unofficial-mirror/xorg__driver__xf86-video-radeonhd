@@ -220,10 +220,16 @@ displayCursor(struct rhdCrtc *Crtc)
      * hotspot support for that. Cannot exceed width, but cursor is
      * not visible in this case. */
 
+    /* xorg bug#13405: Cursor corruptions
+     * With both CRTC enabled but HW cursor active only on one, the reported
+     * corruption is seen. If HW cursor for both CRTC is forced to stay on, then no
+     * corruption occurs. */
+#if 0
     if (Cursor->X >= Crtc->X - Cursor->Width  &&
 	Cursor->X <  Crtc->X + Crtc->Width    &&
 	Cursor->Y >= Crtc->Y - Cursor->Height &&
 	Cursor->Y <  Crtc->Y + Crtc->Height) {
+#endif
 	int X, Y, HotX, HotY;
 
 	X = Cursor->X >= 0 ? Cursor->X : 0;
@@ -233,8 +239,10 @@ displayCursor(struct rhdCrtc *Crtc)
 
 	enableCursor(Cursor, TRUE);
 	setCursorPos(Cursor, X, Y, HotX, HotY);
+#if 0
     } else
 	enableCursor(Cursor, FALSE);
+#endif
 }
 
 /*
