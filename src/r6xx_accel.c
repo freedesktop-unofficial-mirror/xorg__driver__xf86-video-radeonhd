@@ -33,6 +33,7 @@
 
 #include "rhd.h"
 #include "rhd_regs.h"
+#include "rhd_crtc.h"
 #include "rhd_cs.h"
 #include "r6xx_accel.h"
 #include "r600_shader.h"
@@ -190,10 +191,22 @@ wait_3d_idle(ScrnInfoPtr pScrn, drmBufPtr ib)
 void
 wait_vline_range(ScrnInfoPtr pScrn, drmBufPtr ib, int crtc, int start, int stop)
 {
-//    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct rhdCrtc *rhdCrtc;
 
     if ((crtc < 0) || (crtc > 1))
 	return;
+
+    rhdCrtc = rhdPtr->Crtc[crtc];
+    if(!rhdCrtc || !rhdPtr->Crtc[crtc]->Active)
+	return;
+
+    start = max(start, 0);
+    stop = min(stop, rhdCrtc->CurrentMode->VDisplay-1);
+
+#if 0
+    ErrorF("wait_vline_range: start %d stop %d\n", start, stop);
+#endif
 
     if (stop <= start)
 	return;
