@@ -90,7 +90,7 @@ enum {
 
     GRBM_STATUS                                           = 0x8010,
 	R600_CMDFIFO_AVAIL_mask                           = 0x1f << 0,
-	R700_CMDFIFO_AVAIL_mask                           = 0x1f << 0,
+	R700_CMDFIFO_AVAIL_mask                           = 0xf << 0,
 	CMDFIFO_AVAIL_shift                               = 0,
 	SRBM_RQ_PENDING_bit                               = 1 << 5,
 	CP_RQ_PENDING_bit                                 = 1 << 6,
