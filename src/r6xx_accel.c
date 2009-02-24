@@ -205,7 +205,7 @@ wait_vline_range(ScrnInfoPtr pScrn, drmBufPtr ib, int crtc, int start, int stop)
 	return;
 
     rhdCrtc = rhdPtr->Crtc[crtc];
-    if(!rhdCrtc || !rhdPtr->Crtc[crtc]->Active)
+    if(!rhdCrtc || !rhdCrtc->CurrentMode)
 	return;
 
     start = max(start, 0);
