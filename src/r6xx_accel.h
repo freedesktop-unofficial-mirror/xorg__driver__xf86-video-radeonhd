@@ -17,6 +17,10 @@ RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn);
 extern PixmapPtr
 RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 
+/* r6xx_accel.c */
+void
+R6xxIdle(ScrnInfoPtr pScrn);
+
 struct r6xx_solid_vertex {
     float x;
     float y;

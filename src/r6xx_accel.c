@@ -31,6 +31,13 @@
 
 #include <errno.h>
 
+/* for usleep */
+#if HAVE_XF86_ANSIC_H
+# include "xf86_ansic.h"
+#else
+# include <unistd.h>
+#endif
+
 #include "rhd.h"
 #include "rhd_regs.h"
 #include "rhd_crtc.h"
@@ -1210,4 +1217,84 @@ draw_auto(ScrnInfoPtr pScrn, drmBufPtr ib, draw_config_t *draw_conf)
     pack3 (ib, IT_DRAW_INDEX_AUTO, 2);
     e32   (ib, draw_conf->num_indices);
     e32   (ib, draw_conf->vgt_draw_initiator);
+}
+
+#define R6XX_LOOP_COUNT    2000000
+
+static Bool
+R6xxIdleLocal(int scrnIndex)
+{
+    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    int i;
+
+    /* wait for fifo to clear */
+    for (i = 0; i < R6XX_LOOP_COUNT; i++) {
+	if (rhdPtr->ChipSet >= RHD_RV770) {
+	    if (8 == (RHDRegRead(pScrn, GRBM_STATUS) & R700_CMDFIFO_AVAIL_mask))
+		break;
+	} else {
+	    if (16 == (RHDRegRead(pScrn, GRBM_STATUS) & R600_CMDFIFO_AVAIL_mask))
+		break;
+	}
+    }
+
+    if (i == R6XX_LOOP_COUNT) {
+	xf86DrvMsg(scrnIndex, X_ERROR, "%s: FIFO Timeout 0x%08X.\n", __func__,
+		   (unsigned int) RHDRegRead(pScrn, GRBM_STATUS));
+	return FALSE;
+    }
+
+    /* wait for engine to go idle */
+    for (i = 0; i < R6XX_LOOP_COUNT; i++)
+	if (!(RHDRegRead(pScrn, GRBM_STATUS) & GUI_ACTIVE_bit))
+	    break;
+
+    if (i == R6XX_LOOP_COUNT) {
+	xf86DrvMsg(scrnIndex, X_ERROR, "%s: Idle Timeout 0x%08X.\n", __func__,
+		   (unsigned int) RHDRegRead(pScrn, GRBM_STATUS));
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void
+R6xxEngineReset(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    uint32_t cp_ptr, cp_me_cntl, cp_rb_cntl;
+
+    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s!!!!!\n", __func__);
+
+    cp_ptr = RHDRegRead(pScrn, CP_RB_WPTR);
+
+    cp_me_cntl = RHDRegRead(pScrn, CP_ME_CNTL);
+    RHDRegWrite(pScrn, CP_ME_CNTL, 0x10000000);
+
+    RHDRegWrite(pScrn, GRBM_SOFT_RESET, 0x7fff);
+    RHDRegRead(pScrn, GRBM_SOFT_RESET);
+    usleep (50);
+    RHDRegWrite(pScrn, GRBM_SOFT_RESET, 0);
+    RHDRegRead(pScrn, GRBM_SOFT_RESET);
+
+    RHDRegWrite(pScrn, CP_RB_WPTR_DELAY, 0);
+    cp_rb_cntl = RHDRegRead(pScrn, CP_RB_CNTL);
+    RHDRegWrite(pScrn, CP_RB_CNTL, 0x80000000);
+
+    RHDRegWrite(pScrn, CP_RB_RPTR_WR, cp_ptr);
+    RHDRegWrite(pScrn, CP_RB_WPTR, cp_ptr);
+    RHDRegWrite(pScrn, CP_RB_CNTL, cp_rb_cntl);
+    RHDRegWrite(pScrn, CP_ME_CNTL, cp_me_cntl);
+
+    if (rhdPtr->TwoDPrivate)
+	((struct r6xx_accel_state *) rhdPtr->TwoDPrivate)->XHas3DEngineState = FALSE;
+
+}
+
+void
+R6xxIdle(ScrnInfoPtr pScrn)
+{
+    if (!R6xxIdleLocal(pScrn->scrnIndex))
+	R6xxEngineReset(pScrn);
 }

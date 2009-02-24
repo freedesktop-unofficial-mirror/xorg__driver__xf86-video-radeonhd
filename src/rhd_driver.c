@@ -1288,8 +1288,13 @@ rhdEngineIdle(ScrnInfoPtr pScrn)
 	RHDCSIdle(CS);
     }
 
-    if ((rhdPtr->ChipSet < RHD_R600) && rhdPtr->TwoDPrivate)
-	R5xx2DIdle(pScrn);
+    if (rhdPtr->TwoDPrivate) {
+	if (rhdPtr->ChipSet >= RHD_R600)
+	    R6xxIdle(pScrn);
+	else
+	    R5xx2DIdle(pScrn);
+    }
+
 }
 
 /* Mandatory */
@@ -1405,9 +1410,12 @@ RHDEnterVT(int scrnIndex, int flags)
 
     if (rhdPtr->CS) {
 	if (rhdPtr->ChipSet >= RHD_R600) {
-	    if (rhdPtr->TwoDPrivate)
+	    if (rhdPtr->TwoDPrivate) {
+		R6xxIdle(pScrn);
+
 		((struct r6xx_accel_state *) rhdPtr->TwoDPrivate)->XHas3DEngineState =
 		    FALSE;
+	    }
 	} else {
 	    if (rhdPtr->TwoDPrivate) {
 		R5xx2DSetup(pScrn);
