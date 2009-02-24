@@ -870,11 +870,44 @@ R600Copy(PixmapPtr pDst,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
 
-    //blit to/from same surfacce
-    if (accel_state->same_surface)
-	R600OverlapCopy(pDst, srcX, srcY, dstX, dstY, w, h);
-    else
+    if (accel_state->same_surface && is_overlap(srcX, srcX + w, srcY, srcY + h, dstX, dstX + w, dstY, dstY + h)) {
+	uint32_t pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+	uint32_t orig_offset, tmp_offset;
+
+	if(!(accel_state->copy_area)) {
+	    unsigned long size=pDst->drawable.height*pitch*pDst->drawable.bitsPerPixel/8;
+	    accel_state->copy_area=exaOffscreenAlloc(pDst->drawable.pScreen, size, 256, TRUE, NULL, NULL);
+	}
+
+	tmp_offset = accel_state->copy_area->offset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+	orig_offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+	R600DoPrepareCopy(pScrn,
+			  pitch, pDst->drawable.width, pDst->drawable.height, orig_offset, pDst->drawable.bitsPerPixel,
+			  pitch,                       pDst->drawable.height, tmp_offset, pDst->drawable.bitsPerPixel,
+			  accel_state->rop, accel_state->planemask);
 	R600AppendCopyVertex(pScrn, srcX, srcY, dstX, dstY, w, h);
+	R600DoCopy(pScrn);
+	R600DoPrepareCopy(pScrn,
+			  pitch, pDst->drawable.width, pDst->drawable.height, tmp_offset, pDst->drawable.bitsPerPixel,
+			  pitch,                       pDst->drawable.height, orig_offset, pDst->drawable.bitsPerPixel,
+			  accel_state->rop, accel_state->planemask);
+	R600AppendCopyVertex(pScrn, dstX, dstY, dstX, dstY, w, h);
+	R600DoCopy(pScrn);
+    } else if(accel_state->same_surface) {
+	uint32_t pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
+	uint32_t offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+	R600DoPrepareCopy(pScrn,
+			  pitch, pDst->drawable.width, pDst->drawable.height, offset, pDst->drawable.bitsPerPixel,
+			  pitch,                       pDst->drawable.height, offset, pDst->drawable.bitsPerPixel,
+			  accel_state->rop, accel_state->planemask);
+	R600AppendCopyVertex(pScrn, srcX, srcY, dstX, dstY, w, h);
+	R600DoCopy(pScrn);
+    } else {
+	R600AppendCopyVertex(pScrn, srcX, srcY, dstX, dstY, w, h);
+    }
+
 }
 
 static void
@@ -884,10 +917,13 @@ R600DoneCopy(PixmapPtr pDst)
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
 
-    if (accel_state->same_surface)
-	return;
-    else
+    if (!accel_state->same_surface)
 	R600DoCopy(pScrn);
+
+    if (accel_state->copy_area) {
+	exaOffscreenFree(pDst->drawable.pScreen, accel_state->copy_area);
+	accel_state->copy_area = NULL;
+    }
 }
 
 #define RADEON_TRACE_FALL 0
