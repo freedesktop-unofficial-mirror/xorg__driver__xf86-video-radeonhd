@@ -873,6 +873,9 @@ R600Copy(PixmapPtr pDst,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
 
+    if (accel_state->same_surface && (srcX == dstX) && (srcY == dstY))
+	return;
+
     if (accel_state->same_surface && is_overlap(srcX, srcX + w, srcY, srcY + h, dstX, dstX + w, dstY, dstY + h)) {
 	if (accel_state->copy_area) {
 	    uint32_t pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
@@ -895,7 +898,7 @@ R600Copy(PixmapPtr pDst,
 	    R600DoCopy(pScrn);
 	} else
 	    R600OverlapCopy(pDst, srcX, srcY, dstX, dstY, w, h);
-    } else if(accel_state->same_surface) {
+    } else if (accel_state->same_surface) {
 	uint32_t pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
 	uint32_t offset = exaGetPixmapOffset(pDst) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
 
