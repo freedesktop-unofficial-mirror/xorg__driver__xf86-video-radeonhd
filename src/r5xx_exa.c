@@ -73,7 +73,7 @@ struct R5xxExaPrivate {
     int exaSyncMarker;
     int exaMarkerSynced;
 #if X_BYTE_ORDER == X_BIG_ENDIAN
-    unsigned long swapper_surfaces[3];
+    unsigned long swapper_surfaces[6];
 #endif /* X_BYTE_ORDER */
 };
 
