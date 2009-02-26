@@ -780,7 +780,11 @@ R5xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->exa_major = EXA_VERSION_MAJOR;
     EXAInfo->exa_minor = EXA_VERSION_MINOR;
 
-    EXAInfo->flags = EXA_OFFSCREEN_PIXMAPS;
+    EXAInfo->flags = EXA_OFFSCREEN_PIXMAPS
+#ifdef EXA_SUPPORTS_PREPARE_AUX
+	| EXA_SUPPORTS_PREPARE_AUX
+#endif
+	;
     EXAInfo->pixmapOffsetAlign = 0x1000;
     EXAInfo->pixmapPitchAlign = 64;
 

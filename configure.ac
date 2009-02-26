@@ -99,7 +99,7 @@ AC_CHECK_HEADER([pci/pci.h],
 AM_CONDITIONAL([HAVE_PCI_PCI_H], [test "x$have_pci_pci_h" = "xyes"])
 
 # Properly handle EXA.
-CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS -DEXA_DRIVER_KNOWN_MAJOR=3"
+CPPFLAGS="$SAVED_CPPFLAGS $XORG_CFLAGS"
 CFLAGS="$SAVED_CFLAGS"
 
 AC_CHECK_DECL(XSERVER_LIBPCIACCESS,
@@ -136,7 +136,6 @@ if test "x$have_exa_h" = xyes; then
 
         if test "x$USE_EXA" = xyes; then
                 AC_DEFINE(USE_EXA, 1, [Build support for Exa])
-                AC_DEFINE(EXA_DRIVER_KNOWN_MAJOR, 3, [Major version of EXA we know how to handle])
         fi
 fi
 
