@@ -1306,7 +1306,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     Bool Idle = TRUE; /* yes, this is correct! */
     
     /* Make sure our CS and 2D status is clean before destroying it */
-    rhdEngineIdle(pScrn);
+    if (pScrn->vtSema)
+	rhdEngineIdle(pScrn);
 
     /* tear down 2d accel infrastructure */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
