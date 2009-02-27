@@ -210,16 +210,19 @@ struct RhdDRMCP {
 static void
 DRMCPFlush(struct RhdCS *CS)
 {
+    RHDPtr rhdPtr = RHDPTRI(CS);
     struct RhdDRMCP *CP = CS->Private;
     struct drm_radeon_indirect indirect;
 
     if (!CP->DrmBuffer)
 	return;
 
-    while ((CS->Wptr * 4) & 0x3c) {
-	RHDCSGrab(CS, 1);
-	RHDCSWrite(CS, CP_PACKET2());
-	RHDCSAdvance(CS);
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	while ((CS->Wptr * 4) & 0x3c) {
+	    RHDCSGrab(CS, 1);
+	    RHDCSWrite(CS, CP_PACKET2());
+	    RHDCSAdvance(CS);
+	}
     }
 
     indirect.idx = CP->DrmBuffer->idx;
@@ -247,13 +250,16 @@ DRMCPFlush(struct RhdCS *CS)
 static void
 DRMCPBufferDiscard(struct RhdCS *CS)
 {
+    RHDPtr rhdPtr = RHDPTRI(CS);
     struct RhdDRMCP *CP = CS->Private;
     struct drm_radeon_indirect indirect;
 
-    while ((CS->Wptr * 4) & 0x3c){
-	RHDCSGrab(CS, 1);
-	RHDCSWrite(CS, CP_PACKET2());
-	RHDCSAdvance(CS);
+    if (rhdPtr->ChipSet >= RHD_R600) {
+	while ((CS->Wptr * 4) & 0x3c){
+	    RHDCSGrab(CS, 1);
+	    RHDCSWrite(CS, CP_PACKET2());
+	    RHDCSAdvance(CS);
+	}
     }
 
     indirect.idx = CP->DrmBuffer->idx;
