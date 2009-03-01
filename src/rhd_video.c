@@ -652,7 +652,10 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     /*
      * Now copy the buffer to the framebuffer, and convert to planar when necessary.
      */
-    FBBuf = (CARD8 *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + pPriv->BufferOffset;
+    if (rhdPtr->ChipSet >= RHD_R600)
+	FBBuf = (CARD8 *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + pPriv->BufferOffset;
+    else
+	FBBuf = (CARD8 *)rhdPtr->FbBase + pPriv->BufferOffset;
 
     switch(id) {
     case FOURCC_YV12:
