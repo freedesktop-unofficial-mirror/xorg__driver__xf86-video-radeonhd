@@ -229,7 +229,7 @@ do {                                                                    \
 	PACK3((ib), IT_SET_BOOL_CONST, (num) + 1);			\
 	E32((ib), ((reg) - SET_BOOL_CONST_offset) >> 2);		\
     } else {								\
-	E32((ib), CP_PACKET0 ((reg), (num) - 1));			\
+	E32((ib), CP_PACKET0 ((reg), (num)));				\
     }									\
 } while (0)
 
