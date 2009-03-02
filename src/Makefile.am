@@ -28,6 +28,7 @@ radeonhd_drv_la_SOURCES = \
 	r600_reg_r6xx.h \
 	r600_reg_r7xx.h \
 	r600_shader.h \
+	r600_shader.c \
 	r600_state.h \
 	radeon_3d.c \
 	radeon_textured_videofuncs.c \
