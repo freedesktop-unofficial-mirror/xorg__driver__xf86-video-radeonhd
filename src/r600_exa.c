@@ -1108,6 +1108,16 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     CLEAR (tex_res);
     CLEAR (tex_samp);
 
+    accel_state->src_pitch[unit] = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
+    accel_state->src_size[unit] = exaGetPixmapPitch(pPix) * h;
+    accel_state->src_mc_addr[unit] = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
+
+    if (accel_state->src_pitch[1] & 7)
+	RADEON_FALLBACK(("Bad pitch %d 0x%x\n", (int)accel_state->src_pitch[unit], unit));
+
+    if (accel_state->src_mc_addr[1] & 0xff)
+	RADEON_FALLBACK(("Bad offset %d 0x%x\n", (int)accel_state->src_mc_addr[unit], unit));
+
     for (i = 0; i < sizeof(R600TexFormats) / sizeof(R600TexFormats[0]); i++) {
 	if (R600TexFormats[i].fmt == pPict->format)
 	    break;
@@ -1118,9 +1128,6 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
 
     /* ErrorF("Tex %d setup %dx%d\n", unit, w, h); */
 
-    accel_state->src_pitch[unit] = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
-    accel_state->src_size[unit] = exaGetPixmapPitch(pPix) * h;
-    accel_state->src_mc_addr[unit] = exaGetPixmapOffset(pPix) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
     /* flush texture cache */
     cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
 			accel_state->src_size[unit], accel_state->src_mc_addr[unit]);
@@ -1339,21 +1346,11 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     accel_state->dst_pitch = exaGetPixmapPitch(pDst) / (pDst->drawable.bitsPerPixel / 8);
     accel_state->dst_size = exaGetPixmapPitch(pDst) * pDst->drawable.height;
 
-    accel_state->src_mc_addr[0] = exaGetPixmapOffset(pSrc) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-    accel_state->src_pitch[0] = exaGetPixmapPitch(pSrc) / (pSrc->drawable.bitsPerPixel / 8);
-    accel_state->src_size[0] = exaGetPixmapPitch(pSrc) * pSrc->drawable.height;
-
     if (accel_state->dst_pitch & 7)
 	RADEON_FALLBACK(("Bad dst pitch 0x%x\n", (int)accel_state->dst_pitch));
 
     if (accel_state->dst_mc_addr & 0xff)
 	RADEON_FALLBACK(("Bad destination offset 0x%x\n", (int)accel_state->dst_mc_addr));
-
-    if (accel_state->src_pitch[0] & 7)
-	RADEON_FALLBACK(("Bad src pitch 0x%x\n", (int)accel_state->src_pitch[0]));
-
-    if (accel_state->src_mc_addr[0] & 0xff)
-	RADEON_FALLBACK(("Bad src offset 0x%x\n", (int)accel_state->src_mc_addr[0]));
 
     if (!R600GetDestFormat(pDstPicture, &dst_format))
 	return FALSE;
@@ -1361,16 +1358,6 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     if (pMask) {
 	int src_a, src_r, src_g, src_b;
 	int mask_a, mask_r, mask_g, mask_b;
-
-	accel_state->src_mc_addr[1] = exaGetPixmapOffset(pMask) + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart;
-	accel_state->src_pitch[1] = exaGetPixmapPitch(pMask) / (pMask->drawable.bitsPerPixel / 8);
-	accel_state->src_size[1] = exaGetPixmapPitch(pMask) * pMask->drawable.height;
-
-	if (accel_state->src_pitch[1] & 7)
-	    RADEON_FALLBACK(("Bad mask pitch 0x%x\n", (int)accel_state->src_pitch[1]));
-
-	if (accel_state->src_mc_addr[1] & 0xff)
-	    RADEON_FALLBACK(("Bad mask offset 0x%x\n", (int)accel_state->src_mc_addr[1]));
 
 	/* setup pixel shader */
 	if (PICT_FORMAT_RGB(pSrcPicture->format) == 0) {
@@ -1521,17 +1508,18 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     EREG  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     EREG  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    /* fix me if false discard buffer! */
-    if (!R600TextureSetup(pSrcPicture, pSrc, 0))
+    if (!R600TextureSetup(pSrcPicture, pSrc, 0)) {
+	R600IBDiscard(pScrn, accel_state->ib);
 	return FALSE;
+    }
 
     if (pMask != NULL) {
-	/* fix me if false discard buffer! */
-	if (!R600TextureSetup(pMaskPicture, pMask, 1))
+	if (!R600TextureSetup(pMaskPicture, pMask, 1)) {
+	    R600IBDiscard(pScrn, accel_state->ib);
 	    return FALSE;
-    } else {
+	}
+    } else
 	accel_state->is_transform[1] = FALSE;
-    }
 
     /* VS bool constant */
     if (pMask)
