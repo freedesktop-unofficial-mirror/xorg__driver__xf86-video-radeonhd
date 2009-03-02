@@ -39,7 +39,7 @@
 #include "r600_reg.h"
 #include "r600_state.h"
 
-//#define SHOW_VERTEXES
+/* #define SHOW_VERTEXES */
 
 #       define RADEON_ROP3_ZERO             0x00000000
 #       define RADEON_ROP3_DSa              0x00880000
@@ -99,11 +99,11 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     accel_state->dst_size = exaGetPixmapPitch(pPix) * pPix->drawable.height;
     accel_state->dst_pitch = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
 
-    // bad pitch
+    /* bad pitch */
     if (accel_state->dst_pitch & 7)
 	return FALSE;
 
-    // bad offset
+    /* bad offset */
     if (accel_state->dst_mc_addr & 0xff)
 	return FALSE;
 
@@ -114,7 +114,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     CLEAR (vs_conf);
     CLEAR (ps_conf);
 
-    //return FALSE;
+    /* return FALSE; */
 
 #ifdef SHOW_VERTEXES
     ErrorF("%dx%d @ %dbpp, 0x%08x\n", pPix->drawable.width, pPix->drawable.height,
@@ -126,7 +126,7 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    //cp_set_surface_sync(pScrn, accel_state->ib);
+    /* cp_set_surface_sync(pScrn, accel_state->ib); */
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -166,13 +166,13 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     /* Render setup */
     if (pm & 0x000000ff)
-	pmask |= 4; //B
+	pmask |= 4; /* B */
     if (pm & 0x0000ff00)
-	pmask |= 2; //G
+	pmask |= 2; /* G */
     if (pm & 0x00ff0000)
-	pmask |= 1; //R
+	pmask |= 1; /* R */
     if (pm & 0xff000000)
-	pmask |= 8; //A
+	pmask |= 8; /* A */
     ereg  (accel_state->ib, CB_SHADER_MASK,                      (pmask << OUTPUT0_ENABLE_shift));
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[alu]);
@@ -185,13 +185,13 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 
     if (pPix->drawable.bitsPerPixel == 8) {
 	cb_conf.format = COLOR_8;
-	cb_conf.comp_swap = 3; //A
+	cb_conf.comp_swap = 3; /* A */
     } else if (pPix->drawable.bitsPerPixel == 16) {
 	cb_conf.format = COLOR_5_6_5;
-	cb_conf.comp_swap = 2; //RGB
+	cb_conf.comp_swap = 2; /* RGB */
     } else {
 	cb_conf.format = COLOR_8_8_8_8;
-	cb_conf.comp_swap = 1; //ARGB
+	cb_conf.comp_swap = 1; /* ARGB */
     }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
@@ -204,46 +204,46 @@ R600PrepareSolid(PixmapPtr pPix, int alu, Pixel pm, Pixel fg)
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
-    // one unused export from VS (VS_EXPORT_COUNT is zero based, count minus one)
+    /* one unused export from VS (VS_EXPORT_COUNT is zero based, count minus one) */
     ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, (0 << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
-    // no VS exports as PS input (NUM_INTERP is not zero based, no minus one)
+    /* no VS exports as PS input (NUM_INTERP is not zero based, no minus one) */
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 (0 << NUM_INTERP_shift));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
-    // color semantic id 0 -> GPR[0]
+    /* color semantic id 0 -> GPR[0] */
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
 								  (0x03 << DEFAULT_VAL_shift)	|
 								  FLAT_SHADE_bit		|
 								  SEL_CENTROID_bit));
     ereg  (accel_state->ib, SPI_INTERP_CONTROL_0,                FLAT_SHADE_ENA_bit | 0);
 
-    // PS alu constants
+    /* PS alu constants */
     if (pPix->drawable.bitsPerPixel == 16) {
 	r = (fg >> 11) & 0x1f;
 	g = (fg >> 5) & 0x3f;
 	b = (fg >> 0) & 0x1f;
-	ps_alu_consts[0] = (float)r / 31; //R
-	ps_alu_consts[1] = (float)g / 63; //G
-	ps_alu_consts[2] = (float)b / 31; //B
-	ps_alu_consts[3] = 1.0; //A
+	ps_alu_consts[0] = (float)r / 31; /* R */
+	ps_alu_consts[1] = (float)g / 63; /* G */
+	ps_alu_consts[2] = (float)b / 31; /* B */
+	ps_alu_consts[3] = 1.0; /* A */
     } else if (pPix->drawable.bitsPerPixel == 8) {
 	a = (fg >> 0) & 0xff;
-	ps_alu_consts[0] = 0.0; //R
-	ps_alu_consts[1] = 0.0; //G
-	ps_alu_consts[2] = 0.0; //B
-	ps_alu_consts[3] = (float)a / 255; //A
+	ps_alu_consts[0] = 0.0; /* R */
+	ps_alu_consts[1] = 0.0; /* G */
+	ps_alu_consts[2] = 0.0; /* B */
+	ps_alu_consts[3] = (float)a / 255; /* A */
     } else {
 	a = (fg >> 24) & 0xff;
 	r = (fg >> 16) & 0xff;
 	g = (fg >> 8) & 0xff;
 	b = (fg >> 0) & 0xff;
-	ps_alu_consts[0] = (float)r / 255; //R
-	ps_alu_consts[1] = (float)g / 255; //G
-	ps_alu_consts[2] = (float)b / 255; //B
-	ps_alu_consts[3] = (float)a / 255; //A
+	ps_alu_consts[0] = (float)r / 255; /* R */
+	ps_alu_consts[1] = (float)g / 255; /* G */
+	ps_alu_consts[2] = (float)b / 255; /* B */
+	ps_alu_consts[3] = (float)a / 255; /* A */
     }
     set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
 
@@ -289,7 +289,7 @@ R600Solid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
     ErrorF("vertex 2: %f\n", vertex[2].x, vertex[2].y);
 #endif
 
-    // append to vertex buffer
+    /* append to vertex buffer */
     solid_vb[accel_state->vb_index++] = vertex[0];
     solid_vb[accel_state->vb_index++] = vertex[1];
     solid_vb[accel_state->vb_index++] = vertex[2];
@@ -381,7 +381,7 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    //cp_set_surface_sync(pScrn, accel_state->ib);
+    /* cp_set_surface_sync(pScrn, accel_state->ib); */
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -441,22 +441,22 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     tex_res.mip_base            = accel_state->src_mc_addr[0];
     if (src_bpp == 8) {
 	tex_res.format              = FMT_8;
-	tex_res.dst_sel_x           = SQ_SEL_1; //R
-	tex_res.dst_sel_y           = SQ_SEL_1; //G
-	tex_res.dst_sel_z           = SQ_SEL_1; //B
-	tex_res.dst_sel_w           = SQ_SEL_X; //A
+	tex_res.dst_sel_x           = SQ_SEL_1; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_1; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_1; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_X; /* A */
     } else if (src_bpp == 16) {
 	tex_res.format              = FMT_5_6_5;
-	tex_res.dst_sel_x           = SQ_SEL_Z; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_X; //B
-	tex_res.dst_sel_w           = SQ_SEL_1; //A
+	tex_res.dst_sel_x           = SQ_SEL_Z; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_X; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_1; /* A */
     } else {
 	tex_res.format              = FMT_8_8_8_8;
-	tex_res.dst_sel_x           = SQ_SEL_Z; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_X; //B
-	tex_res.dst_sel_w           = SQ_SEL_W; //A
+	tex_res.dst_sel_x           = SQ_SEL_Z; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_X; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_W; /* A */
     }
 
     tex_res.request_size        = 1;
@@ -478,13 +478,13 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 
     /* Render setup */
     if (planemask & 0x000000ff)
-	pmask |= 4; //B
+	pmask |= 4; /* B */
     if (planemask & 0x0000ff00)
-	pmask |= 2; //G
+	pmask |= 2; /* G */
     if (planemask & 0x00ff0000)
-	pmask |= 1; //R
+	pmask |= 1; /* R */
     if (planemask & 0xff000000)
-	pmask |= 8; //A
+	pmask |= 8; /* A */
     ereg  (accel_state->ib, CB_SHADER_MASK,                      (pmask << OUTPUT0_ENABLE_shift));
     ereg  (accel_state->ib, R7xx_CB_SHADER_CONTROL,              (RT0_ENABLE_bit));
     ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[rop]);
@@ -501,13 +501,13 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
     cb_conf.base = accel_state->dst_mc_addr;
     if (dst_bpp == 8) {
 	cb_conf.format = COLOR_8;
-	cb_conf.comp_swap = 3; // A
+	cb_conf.comp_swap = 3; /* A */
     } else if (dst_bpp == 16) {
 	cb_conf.format = COLOR_5_6_5;
-	cb_conf.comp_swap = 2; // RGB
+	cb_conf.comp_swap = 2; /* RGB */
     } else {
 	cb_conf.format = COLOR_8_8_8_8;
-	cb_conf.comp_swap = 1; // ARGB
+	cb_conf.comp_swap = 1; /* ARGB */
     }
     cb_conf.source_format = 1;
     cb_conf.blend_clamp = 1;
@@ -520,16 +520,16 @@ R600DoPrepareCopy(ScrnInfoPtr pScrn,
 						 DUAL_EXPORT_ENABLE_bit)); /* Only useful if no depth export */
 
     /* Interpolator setup */
-    // export tex coord from VS
+    /* export tex coord from VS */
     ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
     ereg  (accel_state->ib, SPI_VS_OUT_ID_0, (0 << SEMANTIC_0_shift));
 
     /* Enabling flat shading needs both FLAT_SHADE_bit in SPI_PS_INPUT_CNTL_x
      * *and* FLAT_SHADE_ENA_bit in SPI_INTERP_CONTROL_0 */
-    // input tex coord from VS
+    /* input tex coord from VS */
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0,                 ((1 << NUM_INTERP_shift)));
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
-    // color semantic id 0 -> GPR[0]
+    /* color semantic id 0 -> GPR[0] */
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
 								  (0x01 << DEFAULT_VAL_shift)	|
 								  SEL_CENTROID_bit));
@@ -638,7 +638,7 @@ R600AppendCopyVertex(ScrnInfoPtr pScrn,
     ErrorF("vertex 2: %f, %f, %f, %d\n", vertex[2].x, vertex[2].y, vertex[2].s, vertex[2].t);
 #endif
 
-    // append to vertex buffer
+    /* append to vertex buffer */
     copy_vb[accel_state->vb_index++] = vertex[0];
     copy_vb[accel_state->vb_index++] = vertex[1];
     copy_vb[accel_state->vb_index++] = vertex[2];
@@ -667,13 +667,13 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     accel_state->dst_height = pDst->drawable.height;
     accel_state->dst_bpp = pDst->drawable.bitsPerPixel;
 
-    // bad pitch
+    /* bad pitch */
     if (accel_state->src_pitch[0] & 7)
 	return FALSE;
     if (accel_state->dst_pitch & 7)
 	return FALSE;
 
-    // bad offset
+    /* bad offset */
     if (accel_state->src_mc_addr[0] & 0xff)
 	return FALSE;
     if (accel_state->dst_mc_addr & 0xff)
@@ -684,7 +684,7 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
     if (pDst->drawable.bitsPerPixel == 24)
 	return FALSE;
 
-    //return FALSE;
+    /* return FALSE; */
 
 #ifdef SHOW_VERTEXES
     ErrorF("src: %dx%d @ %dbpp, 0x%08x\n", pSrc->drawable.width, pSrc->drawable.height,
@@ -724,10 +724,10 @@ R600PrepareCopy(PixmapPtr pSrc,   PixmapPtr pDst,
 static Bool
 is_overlap(int sx1, int sx2, int sy1, int sy2, int dx1, int dx2, int dy1, int dy2)
 {
-    if (((sx1 >= dx1) && (sx1 <= dx2) && (sy1 >= dy1) && (sy1 <= dy2)) || // TL x1, y1
-	((sx2 >= dx1) && (sx2 <= dx2) && (sy1 >= dy1) && (sy1 <= dy2)) || // TR x2, y1
-	((sx1 >= dx1) && (sx1 <= dx2) && (sy2 >= dy1) && (sy2 <= dy2)) || // BL x1, y2
-	((sx2 >= dx1) && (sx2 <= dx2) && (sy2 >= dy1) && (sy2 <= dy2)))   // BR x2, y2
+    if (((sx1 >= dx1) && (sx1 <= dx2) && (sy1 >= dy1) && (sy1 <= dy2)) || /* TL x1, y1 */
+	((sx2 >= dx1) && (sx2 <= dx2) && (sy1 >= dy1) && (sy1 <= dy2)) || /* TR x2, y1 */
+	((sx1 >= dx1) && (sx1 <= dx2) && (sy2 >= dy1) && (sy2 <= dy2)) || /* BL x1, y2 */
+	((sx2 >= dx1) && (sx2 <= dx2) && (sy2 >= dy1) && (sy2 <= dy2)))   /* BR x2, y2 */
 	return TRUE;
     else
 	return FALSE;
@@ -756,9 +756,9 @@ R600OverlapCopy(PixmapPtr pDst,
          * by copying a part of the  non-overlapping portion, then adjusting coordinates
          * Choose horizontal vs vertical to minimize the total number of copy operations
          */
-        if (vchunk != 0 && hchunk != 0) { //diagonal
-            if ((w / hchunk) <= (h / vchunk)) { // reduce to horizontal
-                if (srcY > dstY ) { // diagonal up
+        if (vchunk != 0 && hchunk != 0) { /* diagonal */
+            if ((w / hchunk) <= (h / vchunk)) { /* reduce to horizontal */
+                if (srcY > dstY ) { /* diagonal up */
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
                                       dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -768,7 +768,7 @@ R600OverlapCopy(PixmapPtr pDst,
 
                     srcY = srcY + vchunk;
                     dstY = dstY + vchunk;
-                } else { // diagonal down
+                } else { /* diagonal down */
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
                                       dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -778,8 +778,8 @@ R600OverlapCopy(PixmapPtr pDst,
                 }
                 h = h - vchunk;
                 vchunk = 0;
-            } else { //reduce to vertical
-                if (srcX > dstX ) { // diagonal left
+            } else { /* reduce to vertical */
+                if (srcX > dstX ) { /* diagonal left */
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
                                       dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -789,7 +789,7 @@ R600OverlapCopy(PixmapPtr pDst,
 
                     srcX = srcX + hchunk;
                     dstX = dstX + hchunk;
-                } else { // diagonal right
+                } else { /* diagonal right */
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
                                       dst_pitch, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -802,9 +802,9 @@ R600OverlapCopy(PixmapPtr pDst,
             }
         }
 
-	if (vchunk == 0) { // left/right
-	    if (srcX < dstX) { // right
-		// copy right to left
+	if (vchunk == 0) { /* left/right */
+	    if (srcX < dstX) { /* right */
+		/* copy right to left */
 		for (i = w; i > 0; i -= hchunk) {
 		    R600DoPrepareCopy(pScrn,
 				      dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -813,8 +813,8 @@ R600OverlapCopy(PixmapPtr pDst,
 		    R600AppendCopyVertex(pScrn, srcX + i - hchunk, srcY, dstX + i - hchunk, dstY, hchunk, h);
 		    R600DoCopy(pScrn);
 		}
-	    } else { //left
-		// copy left to right
+	    } else { /* left */
+		/* copy left to right */
 		for (i = 0; i < w; i += hchunk) {
 		    R600DoPrepareCopy(pScrn,
 				      dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -825,9 +825,9 @@ R600OverlapCopy(PixmapPtr pDst,
 		    R600DoCopy(pScrn);
 		}
 	    }
-	} else { //up/down
-	    if (srcY > dstY) { // up
-		// copy top to bottom
+	} else { /* up/down */
+	    if (srcY > dstY) { /* up */
+		/* copy top to bottom */
                 for (i = 0; i < h; i += vchunk) {
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -838,8 +838,8 @@ R600OverlapCopy(PixmapPtr pDst,
                     R600AppendCopyVertex(pScrn, srcX, srcY + i, dstX, dstY + i, w, vchunk);
                     R600DoCopy(pScrn);
                 }
-	    } else { // down
-		// copy bottom to top
+	    } else { /* down */
+		/* copy bottom to top */
                 for (i = h; i > 0; i -= vchunk) {
                     R600DoPrepareCopy(pScrn,
                                       dst_pitch, pDst->drawable.width, pDst->drawable.height, dst_offset, pDst->drawable.bitsPerPixel,
@@ -1100,7 +1100,7 @@ static Bool R600CheckCompositeTexture(PicturePtr pPict,
      * matter. I have not, however, verified that the X server always does such
      * clipping.
      */
-    //FIXME R6xx
+    /* FIXME R6xx */
     if (pPict->transform != 0 && !pPict->repeat && PICT_FORMAT_A(pPict->format) == 0) {
 	if (!(((op == PictOpSrc) || (op == PictOpClear)) && (PICT_FORMAT_A(pDstPict->format) == 0)))
 	    RADEON_FALLBACK(("REPEAT_NONE unsupported for transformed xRGB source\n"));
@@ -1132,7 +1132,7 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     accel_state->texW[unit] = w;
     accel_state->texH[unit] = h;
 
-    //ErrorF("Tex %d setup %dx%d\n", unit, w, h);
+    /* ErrorF("Tex %d setup %dx%d\n", unit, w, h); */
 
     accel_state->src_pitch[unit] = exaGetPixmapPitch(pPix) / (pPix->drawable.bitsPerPixel / 8);
     accel_state->src_size[unit] = exaGetPixmapPitch(pPix) * h;
@@ -1157,41 +1157,41 @@ static Bool R600TextureSetup(PicturePtr pPict, PixmapPtr pPix,
     switch (pPict->format) {
     case PICT_a1r5g5b5:
     case PICT_a8r8g8b8:
-	tex_res.dst_sel_x           = SQ_SEL_Z; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_X; //B
-	tex_res.dst_sel_w           = SQ_SEL_W; //A
+	tex_res.dst_sel_x           = SQ_SEL_Z; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_X; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_W; /* A */
 	break;
     case PICT_a8b8g8r8:
-	tex_res.dst_sel_x           = SQ_SEL_X; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_Z; //B
-	tex_res.dst_sel_w           = SQ_SEL_W; //A
+	tex_res.dst_sel_x           = SQ_SEL_X; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_Z; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_W; /* A */
 	break;
     case PICT_x8b8g8r8:
-	tex_res.dst_sel_x           = SQ_SEL_X; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_Z; //B
-	tex_res.dst_sel_w           = SQ_SEL_1; //A
+	tex_res.dst_sel_x           = SQ_SEL_X; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_Z; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_1; /* A */
 	break;
     case PICT_x1r5g5b5:
     case PICT_x8r8g8b8:
-	tex_res.dst_sel_x           = SQ_SEL_Z; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_X; //B
-	tex_res.dst_sel_w           = SQ_SEL_1; //A
+	tex_res.dst_sel_x           = SQ_SEL_Z; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_X; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_1; /* A */
 	break;
     case PICT_r5g6b5:
-	tex_res.dst_sel_x           = SQ_SEL_Z; //R
-	tex_res.dst_sel_y           = SQ_SEL_Y; //G
-	tex_res.dst_sel_z           = SQ_SEL_X; //B
-	tex_res.dst_sel_w           = SQ_SEL_1; //A
+	tex_res.dst_sel_x           = SQ_SEL_Z; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_Y; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_X; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_1; /* A */
 	break;
     case PICT_a8:
-	tex_res.dst_sel_x           = SQ_SEL_0; //R
-	tex_res.dst_sel_y           = SQ_SEL_0; //G
-	tex_res.dst_sel_z           = SQ_SEL_0; //B
-	tex_res.dst_sel_w           = SQ_SEL_X; //A
+	tex_res.dst_sel_x           = SQ_SEL_0; /* R */
+	tex_res.dst_sel_y           = SQ_SEL_0; /* G */
+	tex_res.dst_sel_z           = SQ_SEL_0; /* B */
+	tex_res.dst_sel_w           = SQ_SEL_X; /* A */
 	break;
     default:
 	RADEON_FALLBACK(("Bad format 0x%x\n", pPict->format));
@@ -1262,10 +1262,10 @@ static Bool R600CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskP
 			       PicturePtr pDstPicture)
 {
     uint32_t tmp1;
-//    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen;
+/*    ScreenPtr pScreen = pDstPicture->pDrawable->pScreen; */
     PixmapPtr pSrcPixmap, pDstPixmap;
-//    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-//    RHDPtr rhdPtr = RHDPTR(pScrn);
+/*    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum]; */
+/*    RHDPtr rhdPtr = RHDPTR(pScrn); */
     int max_tex_w, max_tex_h, max_dst_w, max_dst_h;
 
     /* Check for unsupported compositing operations. */
@@ -1345,7 +1345,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     int i = 0;
     uint32_t ps[24];
 
-    //return FALSE;
+    /* return FALSE; */
 
     if (pMask)
 	accel_state->has_mask = TRUE;
@@ -1391,104 +1391,104 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
 	/* setup pixel shader */
 	if (PICT_FORMAT_RGB(pSrcPicture->format) == 0) {
-	    //src_color = R300_ALU_RGB_0_0;
+	    /* src_color = R300_ALU_RGB_0_0; */
 	    src_r = SQ_SEL_0;
 	    src_g = SQ_SEL_0;
 	    src_b = SQ_SEL_0;
 	} else {
-	    //src_color = R300_ALU_RGB_SRC0_RGB;
+	    /* src_color = R300_ALU_RGB_SRC0_RGB; */
 	    src_r = SQ_SEL_X;
 	    src_g = SQ_SEL_Y;
 	    src_b = SQ_SEL_Z;
 	}
 
 	if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
-	    //src_alpha = R300_ALU_ALPHA_1_0;
+	    /* src_alpha = R300_ALU_ALPHA_1_0; */
 	    src_a = SQ_SEL_1;
 	} else {
-	    //src_alpha = R300_ALU_ALPHA_SRC0_A;
+	    /* src_alpha = R300_ALU_ALPHA_SRC0_A; */
 	    src_a = SQ_SEL_W;
 	}
 
 	if (pMaskPicture->componentAlpha) {
 	    if (R600BlendOp[op].src_alpha) {
 		if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
-		    //src_color = R300_ALU_RGB_1_0;
-		    //src_alpha = R300_ALU_ALPHA_1_0;
+		    /* src_color = R300_ALU_RGB_1_0; */
+		    /* src_alpha = R300_ALU_ALPHA_1_0; */
 		    src_r = SQ_SEL_1;
 		    src_g = SQ_SEL_1;
 		    src_b = SQ_SEL_1;
 		    src_a = SQ_SEL_1;
 		} else {
-		    //src_color = R300_ALU_RGB_SRC0_AAA;
-		    //src_alpha = R300_ALU_ALPHA_SRC0_A;
+		    /* src_color = R300_ALU_RGB_SRC0_AAA; */
+		    /* src_alpha = R300_ALU_ALPHA_SRC0_A; */
 		    src_r = SQ_SEL_W;
 		    src_g = SQ_SEL_W;
 		    src_b = SQ_SEL_W;
 		    src_a = SQ_SEL_W;
 		}
 
-		//mask_color = R300_ALU_RGB_SRC1_RGB;
+		/* mask_color = R300_ALU_RGB_SRC1_RGB; */
 		mask_r = SQ_SEL_X;
 		mask_g = SQ_SEL_Y;
 		mask_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
-		    //mask_alpha = R300_ALU_ALPHA_1_0;
+		    /* mask_alpha = R300_ALU_ALPHA_1_0; */
 		    mask_a = SQ_SEL_1;
 		} else {
-		    //mask_alpha = R300_ALU_ALPHA_SRC1_A;
+		    /* mask_alpha = R300_ALU_ALPHA_SRC1_A; */
 		    mask_a = SQ_SEL_W;
 		}
 	    } else {
-		//src_color = R300_ALU_RGB_SRC0_RGB;
+		/* src_color = R300_ALU_RGB_SRC0_RGB; */
 		src_r = SQ_SEL_X;
 		src_g = SQ_SEL_Y;
 		src_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
-		    //src_alpha = R300_ALU_ALPHA_1_0;
+		    /* src_alpha = R300_ALU_ALPHA_1_0; */
 		    src_a = SQ_SEL_1;
 		} else {
-		    //src_alpha = R300_ALU_ALPHA_SRC0_A;
+		    /* src_alpha = R300_ALU_ALPHA_SRC0_A; */
 		    src_a = SQ_SEL_W;
 		}
 
-		//mask_color = R300_ALU_RGB_SRC1_RGB;
+		/* mask_color = R300_ALU_RGB_SRC1_RGB; */
 		mask_r = SQ_SEL_X;
 		mask_g = SQ_SEL_Y;
 		mask_b = SQ_SEL_Z;
 
 		if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
-		    //mask_alpha = R300_ALU_ALPHA_1_0;
+		    /* mask_alpha = R300_ALU_ALPHA_1_0; */
 		    mask_a = SQ_SEL_1;
 		} else {
-		    //mask_alpha = R300_ALU_ALPHA_SRC1_A;
+		    /* mask_alpha = R300_ALU_ALPHA_SRC1_A; */
 		    mask_a = SQ_SEL_W;
 		}
 	    }
 	} else {
 	    if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
-		//mask_color = R300_ALU_RGB_1_0;
+		/* mask_color = R300_ALU_RGB_1_0; */
 		mask_r = SQ_SEL_1;
 		mask_g = SQ_SEL_1;
 		mask_b = SQ_SEL_1;
 	    } else {
-		//mask_color = R300_ALU_RGB_SRC1_AAA;
+		/* mask_color = R300_ALU_RGB_SRC1_AAA; */
 		mask_r = SQ_SEL_W;
 		mask_g = SQ_SEL_W;
 		mask_b = SQ_SEL_W;
 	    }
 	    if (PICT_FORMAT_A(pMaskPicture->format) == 0) {
-		//mask_alpha = R300_ALU_ALPHA_1_0;
+		/* mask_alpha = R300_ALU_ALPHA_1_0; */
 		mask_a = SQ_SEL_1;
 	    } else {
-		//mask_alpha = R300_ALU_ALPHA_SRC1_A;
+		/* mask_alpha = R300_ALU_ALPHA_SRC1_A; */
 		mask_a = SQ_SEL_W;
 	    }
 	}
 
-	//0
+	/* 0 */
 	ps[i++] = CF_DWORD0(ADDR(8));
 	ps[i++] = CF_DWORD1(POP_COUNT(0),
 			    CF_CONST(0),
@@ -1501,7 +1501,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
 
-	// 1
+	/* 1 */
 	ps[i++] = CF_ALU_DWORD0(ADDR(3),
 				KCACHE_BANK0(0),
 				KCACHE_BANK1(0),
@@ -1515,7 +1515,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				WHOLE_QUAD_MODE(0),
 				BARRIER(1));
 
-	//2
+	/* 2 */
 	ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 					  TYPE(SQ_EXPORT_PIXEL),
 					  RW_GPR(2),
@@ -1535,8 +1535,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       WHOLE_QUAD_MODE(0),
 					       BARRIER(1));
 
-	// 3 - alu 0
-	// MUL gpr[2].x gpr[1].x gpr[0].x
+	/* 3 - alu 0 */
+	/* MUL gpr[2].x gpr[1].x gpr[0].x */
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			     SRC0_REL(ABSOLUTE),
 			     SRC0_ELEM(ELEM_X),
@@ -1562,8 +1562,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_X),
 				 CLAMP(1));
-	// 4 - alu 1
-	// MUL gpr[2].y gpr[1].y gpr[0].y
+	/* 4 - alu 1 */
+	/* MUL gpr[2].y gpr[1].y gpr[0].y */
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			     SRC0_REL(ABSOLUTE),
 			     SRC0_ELEM(ELEM_Y),
@@ -1589,8 +1589,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_Y),
 				 CLAMP(1));
-	// 5 - alu 2
-	// MUL gpr[2].z gpr[1].z gpr[0].z
+	/* 5 - alu 2 */
+	/* MUL gpr[2].z gpr[1].z gpr[0].z */
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			     SRC0_REL(ABSOLUTE),
 			     SRC0_ELEM(ELEM_Z),
@@ -1616,8 +1616,8 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_Z),
 				 CLAMP(1));
-	// 6 - alu 3
-	// MUL gpr[2].w gpr[1].w gpr[0].w
+	/* 6 - alu 3 */
+	/* MUL gpr[2].w gpr[1].w gpr[0].w */
 	ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			     SRC0_REL(ABSOLUTE),
 			     SRC0_ELEM(ELEM_W),
@@ -1643,11 +1643,11 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 				 DST_REL(ABSOLUTE),
 				 DST_ELEM(ELEM_W),
 				 CLAMP(1));
-	// 7
+	/* 7 */
 	ps[i++] = 0x00000000;
 	ps[i++] = 0x00000000;
 
-	//8/9 - src
+	/* 8/9 - src */
 	ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
@@ -1675,7 +1675,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			     SRC_SEL_Z(SQ_SEL_0),
 			     SRC_SEL_W(SQ_SEL_1));
 	ps[i++] = TEX_DWORD_PAD;
-	//10/11 - mask
+	/* 10/11 - mask */
 	ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
@@ -1707,26 +1707,26 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 	int src_a, src_r, src_g, src_b;
 	/* setup pixel shader */
 	if (PICT_FORMAT_RGB(pSrcPicture->format) == 0) {
-	    //src_color = R300_ALU_RGB_0_0;
+	    /* src_color = R300_ALU_RGB_0_0; */
 	    src_r = SQ_SEL_0;
 	    src_g = SQ_SEL_0;
 	    src_b = SQ_SEL_0;
 	} else {
-	    //src_color = R300_ALU_RGB_SRC0_RGB;
+	    /* src_color = R300_ALU_RGB_SRC0_RGB; */
 	    src_r = SQ_SEL_X;
 	    src_g = SQ_SEL_Y;
 	    src_b = SQ_SEL_Z;
 	}
 
 	if (PICT_FORMAT_A(pSrcPicture->format) == 0) {
-	    //src_alpha = R300_ALU_ALPHA_1_0;
+	    /* src_alpha = R300_ALU_ALPHA_1_0; */
 	    src_a = SQ_SEL_1;
 	} else {
-	    //src_alpha = R300_ALU_ALPHA_SRC0_A;
+	    /* src_alpha = R300_ALU_ALPHA_SRC0_A; */
 	    src_a = SQ_SEL_W;
 	}
 
-	//0
+	/* 0 */
 	ps[i++] = CF_DWORD0(ADDR(2));
 	ps[i++] = CF_DWORD1(POP_COUNT(0),
 			    CF_CONST(0),
@@ -1738,7 +1738,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 			    CF_INST(SQ_CF_INST_TEX),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-	//1
+	/* 1 */
 	ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 					  TYPE(SQ_EXPORT_PIXEL),
 					  RW_GPR(0),
@@ -1759,7 +1759,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 					       BARRIER(1));
 
 
-	//2/3 - src
+	/* 2/3 - src */
 	ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			     BC_FRAC_MODE(0),
 			     FETCH_WHOLE_QUAD(0),
@@ -1798,7 +1798,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    //cp_set_surface_sync(pScrn, accel_state->ib);
+    /* cp_set_surface_sync(pScrn, accel_state->ib); */
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -1806,12 +1806,12 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     ereg  (accel_state->ib, PA_CL_VTE_CNTL,                      VTX_XY_FMT_bit);
     ereg  (accel_state->ib, PA_CL_CLIP_CNTL,                     CLIP_DISABLE_bit);
 
-    // fix me if false discard buffer!
+    /* fix me if false discard buffer! */
     if (!R600TextureSetup(pSrcPicture, pSrc, 0))
 	return FALSE;
 
     if (pMask != NULL) {
-	// fix me if false discard buffer!
+	/* fix me if false discard buffer! */
 	if (!R600TextureSetup(pMaskPicture, pMask, 1))
 	    return FALSE;
     } else {
@@ -1861,7 +1861,7 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     blendcntl = R600GetBlendCntl(op, pMaskPicture, pDstPicture->format);
 
     if (rhdPtr->ChipSet == RHD_R600) {
-	// no per-MRT blend on R600
+	/* no per-MRT blend on R600 */
 	ereg  (accel_state->ib, CB_COLOR_CONTROL,                    RADEON_ROP[3] | (1 << TARGET_BLEND_ENABLE_shift));
 	ereg  (accel_state->ib, CB_BLEND_CONTROL,                    blendcntl);
     } else {
@@ -1879,28 +1879,28 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     switch (pDstPicture->format) {
     case PICT_a8r8g8b8:
-	//ErrorF("dst: PICT_a8r8g8b8\n");
-	cb_conf.comp_swap = 1; //ARGB
+	/* ErrorF("dst: PICT_a8r8g8b8\n"); */
+	cb_conf.comp_swap = 1; /* ARGB */
 	break;
     case PICT_x8r8g8b8:
-	//ErrorF("dst: PICT_x8r8g8b8\n");
-	cb_conf.comp_swap = 1; //ARGB
+	/* ErrorF("dst: PICT_x8r8g8b8\n"); */
+	cb_conf.comp_swap = 1; /* ARGB */
 	break;
     case PICT_r5g6b5:
-	//ErrorF("dst: PICT_r5g6b5\n");
-	cb_conf.comp_swap = 2; //RGB
+	/* ErrorF("dst: PICT_r5g6b5\n"); */
+	cb_conf.comp_swap = 2; /* RGB */
 	break;
     case PICT_a1r5g5b5:
-	//ErrorF("dst: PICT_a1r5g5b5\n");
-	cb_conf.comp_swap = 1; //ARGB
+	/* ErrorF("dst: PICT_a1r5g5b5\n"); */
+	cb_conf.comp_swap = 1; /* ARGB */
 	break;
     case PICT_x1r5g5b5:
-	//ErrorF("dst: PICT_x1r5g5b5\n");
-	cb_conf.comp_swap = 1; //ARGB
+	/* ErrorF("dst: PICT_x1r5g5b5\n"); */
+	cb_conf.comp_swap = 1; /* ARGB */
 	break;
     case PICT_a8:
-	//ErrorF("dst: PICT_a8\n");
-	cb_conf.comp_swap = 3; //A
+	/* ErrorF("dst: PICT_a8\n"); */
+	cb_conf.comp_swap = 3; /* A */
 	break;
     default:
 	cb_conf.comp_swap = 1;
@@ -1918,27 +1918,27 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
 
     /* Interpolator setup */
     if (pMask) {
-	// export 2 tex coords from VS
+	/* export 2 tex coords from VS */
 	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((2 - 1) << VS_EXPORT_COUNT_shift));
-	// src = semantic id 0; mask = semantic id 1
+	/* src = semantic id 0; mask = semantic id 1 */
 	ereg  (accel_state->ib, SPI_VS_OUT_ID_0, ((0 << SEMANTIC_0_shift) |
 						  (1 << SEMANTIC_1_shift)));
-	// input 2 tex coords from VS
+	/* input 2 tex coords from VS */
 	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0, (2 << NUM_INTERP_shift));
     } else {
-	// export 1 tex coords from VS
+	/* export 1 tex coords from VS */
 	ereg  (accel_state->ib, SPI_VS_OUT_CONFIG, ((1 - 1) << VS_EXPORT_COUNT_shift));
-	// src = semantic id 0
+	/* src = semantic id 0 */
 	ereg  (accel_state->ib, SPI_VS_OUT_ID_0,   (0 << SEMANTIC_0_shift));
-	// input 1 tex coords from VS
+	/* input 1 tex coords from VS */
 	ereg  (accel_state->ib, SPI_PS_IN_CONTROL_0, (1 << NUM_INTERP_shift));
     }
     ereg  (accel_state->ib, SPI_PS_IN_CONTROL_1,                 0);
-    // SPI_PS_INPUT_CNTL_0 maps to GPR[0] - load with semantic id 0
+    /* SPI_PS_INPUT_CNTL_0 maps to GPR[0] - load with semantic id 0 */
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (0 <<2),       ((0    << SEMANTIC_shift)	|
 								  (0x01 << DEFAULT_VAL_shift)	|
 								  SEL_CENTROID_bit));
-    // SPI_PS_INPUT_CNTL_1 maps to GPR[1] - load with semantic id 1
+    /* SPI_PS_INPUT_CNTL_1 maps to GPR[1] - load with semantic id 1 */
     ereg  (accel_state->ib, SPI_PS_INPUT_CNTL_0 + (1 <<2),       ((1    << SEMANTIC_shift)	|
 								  (0x01 << DEFAULT_VAL_shift)	|
 								  SEL_CENTROID_bit));
@@ -1972,7 +1972,7 @@ static void R600Composite(PixmapPtr pDst,
     srcBottomRight.x = IntToxFixed(srcX + w);
     srcBottomRight.y = IntToxFixed(srcY + h);
 
-    //XXX do transform in vertex shader
+    /* XXX do transform in vertex shader */
     if (accel_state->is_transform[0]) {
 	transformPoint(accel_state->transform[0], &srcTopLeft);
 	transformPoint(accel_state->transform[0], &srcTopRight);
@@ -2039,7 +2039,7 @@ static void R600Composite(PixmapPtr pDst,
 	       vertex[2].src_s, vertex[2].src_t,  vertex[2].mask_s, vertex[2].mask_t);
 #endif
 
-	// append to vertex buffer
+	/* append to vertex buffer */
 	comp_vb[accel_state->vb_index++] = vertex[0];
 	comp_vb[accel_state->vb_index++] = vertex[1];
 	comp_vb[accel_state->vb_index++] = vertex[2];
@@ -2071,7 +2071,7 @@ static void R600Composite(PixmapPtr pDst,
 	vertex[2].src_s = xFixedToFloat(srcBottomRight.x) / accel_state->texW[0];
 	vertex[2].src_t = xFixedToFloat(srcBottomRight.y) / accel_state->texH[0];
 
-	// append to vertex buffer
+	/* append to vertex buffer */
 	comp_vb[accel_state->vb_index++] = vertex[0];
 	comp_vb[accel_state->vb_index++] = vertex[1];
 	comp_vb[accel_state->vb_index++] = vertex[2];
@@ -2183,7 +2183,7 @@ R600CopyToVRAM(ScrnInfoPtr pScrn,
     temph = hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
     dst = (char *)scratch->address;
 
-    //memcopy from sys to scratch
+    /* memcopy from sys to scratch */
     while (temph--) {
 	memcpy (dst, src, wpass);
 	src += src_pitch;
@@ -2199,16 +2199,16 @@ R600CopyToVRAM(ScrnInfoPtr pScrn,
 	if (hpass) {
 	    scratch_offset = scratch->total/2 - scratch_offset;
 	    dst = (char *)scratch->address + scratch_offset;
-	    // wait for the engine to be idle
+	    /* wait for the engine to be idle */
 	    RHDCSIdle(CS);
-	    //memcopy from sys to scratch
+	    /* memcopy from sys to scratch */
 	    while (temph--) {
 		memcpy (dst, src, wpass);
 		src += src_pitch;
 		dst += scratch_pitch_bytes;
 	    }
 	}
-	//blit from scratch to vram
+	/* blit from scratch to vram */
 	R600DoPrepareCopy(pScrn,
 			  scratch_pitch, w, oldhpass, offset, bpp,
 			  dst_pitch, dst_height, dst_mc_addr, bpp,
@@ -2269,7 +2269,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
     scratch_mc_addr = RHDDRIGetIntGARTLocation(pScrn) + (scratch->idx * scratch->total);
     hpass = min(h, scratch->total/2 / scratch_pitch_bytes);
 
-    //blit from vram to scratch
+    /* blit from vram to scratch */
     R600DoPrepareCopy(pScrn,
 		      src_pitch, src_width, src_height, src_mc_addr, bpp,
 		      scratch_pitch, hpass, scratch_mc_addr, bpp,
@@ -2286,7 +2286,7 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 
 	if (hpass) {
 	    scratch_offset = scratch->total/2 - scratch_offset;
-	    //blit from vram to scratch
+	    /* blit from vram to scratch */
 	    R600DoPrepareCopy(pScrn,
 			      src_pitch, src_width, src_height, src_mc_addr, bpp,
 			      scratch_pitch, hpass, scratch_mc_addr + scratch_offset, bpp,
@@ -2295,9 +2295,9 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
 	    R600DoCopy(pScrn);
 	}
 
-	// wait for the engine to be idle
+	/* wait for the engine to be idle */
 	RHDCSIdle(CS);
-	//memcopy from scratch to sys
+	/* memcopy from scratch to sys */
 	while (oldhpass--) {
 	    memcpy (dst, src, wpass);
 	    dst += dst_pitch;
@@ -2341,13 +2341,13 @@ R6xxEXADestroy(ScrnInfoPtr pScrn)
 void
 R6xxCacheFlush(struct RhdCS *CS)
 {
-    CS = CS; // nop - avoid compiler warning
+    CS = CS; /* nop - avoid compiler warning */
 }
 
 void
 R6xxEngineWaitIdleFull(struct RhdCS *CS)
 {
-    CS = CS; // nop - avoid compiler warning
+    CS = CS; /* nop - avoid compiler warning */
 }
 
 static int
@@ -2381,7 +2381,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
     uint32_t *vs;
     uint32_t *ps;
-    // 512 bytes per shader for now
+    /* 512 bytes per shader for now */
     int size = 512 * 11;
     int i;
 
@@ -2407,9 +2407,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     accel_state->xv_ps_offset_packed = 4608;
     accel_state->xv_ps_offset_planar = 5120;
 
-    // solid vs ---------------------------------------
+    /* solid vs --------------------------------------- */
     i = accel_state->solid_vs_offset / 4;
-    //0
+    /* 0 */
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -2421,7 +2421,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_VTX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    //1
+    /* 1 */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 				      TYPE(SQ_EXPORT_POS),
 				      RW_GPR(1),
@@ -2439,7 +2439,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2 - always export a param whether it's used or not
+    /* 2 - always export a param whether it's used or not */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(0),
@@ -2457,10 +2457,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //3 - padding
+    /* 3 - padding */
     vs[i++] = 0x00000000;
     vs[i++] = 0x00000000;
-    //4/5
+    /* 4/5 */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2476,9 +2476,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(0),
 			 ENDIAN_SWAP(ENDIAN_NONE),
@@ -2486,9 +2486,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
 
-    // solid ps ---------------------------------------
+    /* solid ps --------------------------------------- */
     i = accel_state->solid_ps_offset / 4;
-    // 0
+    /* 0 */
     ps[i++] = CF_ALU_DWORD0(ADDR(2),
 			    KCACHE_BANK0(0),
 			    KCACHE_BANK1(0),
@@ -2501,7 +2501,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			    CF_INST(SQ_CF_INST_ALU),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-    // 1
+    /* 1 */
     ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 				      TYPE(SQ_EXPORT_PIXEL),
 				      RW_GPR(0),
@@ -2520,7 +2520,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
 
-    // 2
+    /* 2 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(256),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -2546,7 +2546,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 3
+    /* 3 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(256),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -2572,7 +2572,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 4
+    /* 4 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(256),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -2598,7 +2598,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 5
+    /* 5 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(256),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -2625,9 +2625,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
 
-    // copy vs ---------------------------------------
+    /* copy vs --------------------------------------- */
     i = accel_state->copy_vs_offset / 4;
-    //0
+    /* 0 */
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -2639,7 +2639,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_VTX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    //1
+    /* 1 */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 				      TYPE(SQ_EXPORT_POS),
 				      RW_GPR(1),
@@ -2657,7 +2657,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2
+    /* 2 */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(0),
@@ -2675,10 +2675,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //3
+    /* 3 */
     vs[i++] = 0x00000000;
     vs[i++] = 0x00000000;
-    //4/5
+    /* 4/5 */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2694,16 +2694,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(0),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
-    //6/7
+    /* 6/7 */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2719,9 +2719,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(8),
 			 ENDIAN_SWAP(ENDIAN_NONE),
@@ -2729,9 +2729,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 MEGA_FETCH(0));
     vs[i++] = VTX_DWORD_PAD;
 
-    // copy ps ---------------------------------------
+    /* copy ps --------------------------------------- */
     i = accel_state->copy_ps_offset / 4;
-    // CF INST 0
+    /* CF INST 0 */
     ps[i++] = CF_DWORD0(ADDR(2));
     ps[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -2743,7 +2743,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_TEX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    // CF INST 1
+    /* CF INST 1 */
     ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 				      TYPE(SQ_EXPORT_PIXEL),
 				      RW_GPR(0),
@@ -2761,7 +2761,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    // TEX INST 0
+    /* TEX INST 0 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -2771,10 +2771,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(0),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X), //R
-			 DST_SEL_Y(SQ_SEL_Y), //G
-			 DST_SEL_Z(SQ_SEL_Z), //B
-			 DST_SEL_W(SQ_SEL_W), //A
+			 DST_SEL_X(SQ_SEL_X), /* R */
+			 DST_SEL_Y(SQ_SEL_Y), /* G */
+			 DST_SEL_Z(SQ_SEL_Z), /* B */
+			 DST_SEL_W(SQ_SEL_W), /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_UNNORMALIZED),
 			 COORD_TYPE_Y(TEX_UNNORMALIZED),
@@ -2790,9 +2790,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
 
-    // xv vs ---------------------------------------
+    /* xv vs --------------------------------------- */
     i = accel_state->xv_vs_offset / 4;
-    //0
+    /* 0 */
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -2804,7 +2804,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_VTX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    //1
+    /* 1 */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 				      TYPE(SQ_EXPORT_POS),
 				      RW_GPR(1),
@@ -2822,7 +2822,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2
+    /* 2 */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(0),
@@ -2840,10 +2840,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //3
+    /* 3 */
     vs[i++] = 0x00000000;
     vs[i++] = 0x00000000;
-    //4/5
+    /* 4/5 */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2859,16 +2859,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(0),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
-    //6/7
+    /* 6/7 */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -2884,9 +2884,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(8),
 			 ENDIAN_SWAP(ENDIAN_NONE),
@@ -2894,9 +2894,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 MEGA_FETCH(0));
     vs[i++] = VTX_DWORD_PAD;
 
-    // xv ps packed ---------------------------------------
+    /* xv ps packed --------------------------------------- */
     i = accel_state->xv_ps_offset_packed / 4;
-    // 0
+    /* 0 */
     ps[i++] = CF_DWORD0(ADDR(20));
     ps[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -2908,7 +2908,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_TEX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(0));
-    // 1
+    /* 1 */
     ps[i++] = CF_ALU_DWORD0(ADDR(3),
 			    KCACHE_BANK0(0),
 			    KCACHE_BANK1(0),
@@ -2921,7 +2921,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			    CF_INST(SQ_CF_INST_ALU),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-    // 2
+    /* 2 */
     ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 				      TYPE(SQ_EXPORT_PIXEL),
 				      RW_GPR(2),
@@ -2943,8 +2943,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
      *  Y' is scaled from 16:235
      *  Cb/Cr are scaled from 16:240
      */
-    // 3 - alu 0
-    // MULADD gpr[1].x gpr[1].x c[3].x c[3].y
+    /* 3 - alu 0 */
+    /* MULADD gpr[1].x gpr[1].x c[3].x c[3].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -2966,8 +2966,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 4 - alu 1
-    // MULADD gpr[1].y gpr[1].y c[3].z c[3].w
+    /* 4 - alu 1 */
+    /* MULADD gpr[1].y gpr[1].y c[3].z c[3].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -2989,8 +2989,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(0));
-    // 5 - alu 2
-    // MULADD gpr[1].z gpr[1].z c[3].z c[3].w
+    /* 5 - alu 2 */
+    /* MULADD gpr[1].z gpr[1].z c[3].z c[3].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3012,8 +3012,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(0));
-    // 6 - alu 3
-    // MOV gpr[1].w 0.0
+    /* 6 - alu 3 */
+    /* MOV gpr[1].w 0.0 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(SQ_ALU_SRC_0),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3039,8 +3039,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(0));
-    // 7 - alu 4
-    // DP4 gpr[2].x gpr[1].x c[0].x
+    /* 7 - alu 4 */
+    /* DP4 gpr[2].x gpr[1].x c[0].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3066,8 +3066,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 8 - alu 5
-    // DP4 gpr[2].y gpr[1].y c[0].y
+    /* 8 - alu 5 */
+    /* DP4 gpr[2].y gpr[1].y c[0].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3093,8 +3093,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 9 - alu 6
-    // DP4 gpr[2].z gpr[1].z c[0].z
+    /* 9 - alu 6 */
+    /* DP4 gpr[2].z gpr[1].z c[0].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3120,8 +3120,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 10 - alu 7
-    // DP4 gpr[2].w gpr[1].w c[0].w
+    /* 10 - alu 7 */
+    /* DP4 gpr[2].w gpr[1].w c[0].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3147,8 +3147,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 11 - alu 8
-    // DP4 gpr[2].x gpr[1].x c[1].x
+    /* 11 - alu 8 */
+    /* DP4 gpr[2].x gpr[1].x c[1].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3174,8 +3174,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 12 - alu 9
-    // DP4 gpr[2].y gpr[1].y c[1].y
+    /* 12 - alu 9 */
+    /* DP4 gpr[2].y gpr[1].y c[1].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3201,8 +3201,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 13 - alu 10
-    // DP4 gpr[2].z gpr[1].z c[1].z
+    /* 13 - alu 10 */
+    /* DP4 gpr[2].z gpr[1].z c[1].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3228,8 +3228,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 14 - alu 11
-    // DP4 gpr[2].w gpr[1].w c[1].w
+    /* 14 - alu 11 */
+    /* DP4 gpr[2].w gpr[1].w c[1].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3255,8 +3255,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 15 - alu 12
-    // DP4 gpr[2].x gpr[1].x c[2].x
+    /* 15 - alu 12 */
+    /* DP4 gpr[2].x gpr[1].x c[2].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3282,8 +3282,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 16 - alu 13
-    // DP4 gpr[2].y gpr[1].y c[2].y
+    /* 16 - alu 13 */
+    /* DP4 gpr[2].y gpr[1].y c[2].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3309,8 +3309,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 17 - alu 14
-    // DP4 gpr[2].z gpr[1].z c[2].z
+    /* 17 - alu 14 */
+    /* DP4 gpr[2].z gpr[1].z c[2].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3336,8 +3336,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 18 - alu 15
-    // DP4 gpr[2].w gpr[1].w c[2].w
+    /* 18 - alu 15 */
+    /* DP4 gpr[2].w gpr[1].w c[2].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3363,10 +3363,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 19 - alignment
+    /* 19 - alignment */
     ps[i++] = 0x00000000;
     ps[i++] = 0x00000000;
-    // 20/21 - tex 0
+    /* 20/21 - tex 0 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -3376,10 +3376,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X),    //R
-			 DST_SEL_Y(SQ_SEL_MASK), //G
-			 DST_SEL_Z(SQ_SEL_MASK), //B
-			 DST_SEL_W(SQ_SEL_1),    //A
+			 DST_SEL_X(SQ_SEL_X),    /* R */
+			 DST_SEL_Y(SQ_SEL_MASK), /* G */
+			 DST_SEL_Z(SQ_SEL_MASK), /* B */
+			 DST_SEL_W(SQ_SEL_1),    /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -3394,7 +3394,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_Z(SQ_SEL_0),
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
-    // 22/23 - tex 1
+    /* 22/23 - tex 1 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -3404,10 +3404,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_MASK), //R
-			 DST_SEL_Y(SQ_SEL_X),    //G
-			 DST_SEL_Z(SQ_SEL_Y),    //B
-			 DST_SEL_W(SQ_SEL_MASK), //A
+			 DST_SEL_X(SQ_SEL_MASK), /* R */
+			 DST_SEL_Y(SQ_SEL_X),    /* G */
+			 DST_SEL_Z(SQ_SEL_Y),    /* B */
+			 DST_SEL_W(SQ_SEL_MASK), /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -3423,9 +3423,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
 
-    // xv ps planar ----------------------------------
+    /* xv ps planar ---------------------------------- */
     i = accel_state->xv_ps_offset_planar / 4;
-    // 0
+    /* 0 */
     ps[i++] = CF_DWORD0(ADDR(20));
     ps[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -3437,7 +3437,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_TEX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(0));
-    // 1
+    /* 1 */
     ps[i++] = CF_ALU_DWORD0(ADDR(3),
 			    KCACHE_BANK0(0),
 			    KCACHE_BANK1(0),
@@ -3450,7 +3450,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			    CF_INST(SQ_CF_INST_ALU),
 			    WHOLE_QUAD_MODE(0),
 			    BARRIER(1));
-    // 2
+    /* 2 */
     ps[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_PIXEL_MRT0),
 				      TYPE(SQ_EXPORT_PIXEL),
 				      RW_GPR(2),
@@ -3472,8 +3472,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
      *  Y' is scaled from 16:235
      *  Cb/Cr are scaled from 16:240
      */
-    // 3 - alu 0
-    // MULADD gpr[1].x gpr[1].x c[3].x c[3].y
+    /* 3 - alu 0 */
+    /* MULADD gpr[1].x gpr[1].x c[3].x c[3].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3495,8 +3495,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 4 - alu 1
-    // MULADD gpr[1].y gpr[1].y c[3].z c[3].w
+    /* 4 - alu 1 */
+    /* MULADD gpr[1].y gpr[1].y c[3].z c[3].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3518,8 +3518,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(0));
-    // 5 - alu 2
-    // MULADD gpr[1].z gpr[1].z c[3].z c[3].w
+    /* 5 - alu 2 */
+    /* MULADD gpr[1].z gpr[1].z c[3].z c[3].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3541,8 +3541,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(0));
-    // 6 - alu 3
-    // MOV gpr[1].w 0.0
+    /* 6 - alu 3 */
+    /* MOV gpr[1].w 0.0 */
     ps[i++] = ALU_DWORD0(SRC0_SEL(SQ_ALU_SRC_0),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3568,8 +3568,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(0));
-    // 7 - alu 4
-    // DP4 gpr[2].x gpr[1].x c[0].x
+    /* 7 - alu 4 */
+    /* DP4 gpr[2].x gpr[1].x c[0].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3595,8 +3595,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 8 - alu 5
-    // DP4 gpr[2].y gpr[1].y c[0].y
+    /* 8 - alu 5 */
+    /* DP4 gpr[2].y gpr[1].y c[0].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3622,8 +3622,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 9 - alu 6
-    // DP4 gpr[2].z gpr[1].z c[0].z
+    /* 9 - alu 6 */
+    /* DP4 gpr[2].z gpr[1].z c[0].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3649,8 +3649,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 10 - alu 7
-    // DP4 gpr[2].w gpr[1].w c[0].w
+    /* 10 - alu 7 */
+    /* DP4 gpr[2].w gpr[1].w c[0].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3676,8 +3676,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 11 - alu 8
-    // DP4 gpr[2].x gpr[1].x c[1].x
+    /* 11 - alu 8 */
+    /* DP4 gpr[2].x gpr[1].x c[1].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3703,8 +3703,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 12 - alu 9
-    // DP4 gpr[2].y gpr[1].y c[1].y
+    /* 12 - alu 9 */
+    /* DP4 gpr[2].y gpr[1].y c[1].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3730,8 +3730,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 13 - alu 10
-    // DP4 gpr[2].z gpr[1].z c[1].z
+    /* 13 - alu 10 */
+    /* DP4 gpr[2].z gpr[1].z c[1].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3757,8 +3757,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 14 - alu 11
-    // DP4 gpr[2].w gpr[1].w c[1].w
+    /* 14 - alu 11 */
+    /* DP4 gpr[2].w gpr[1].w c[1].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3784,8 +3784,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 15 - alu 12
-    // DP4 gpr[2].x gpr[1].x c[2].x
+    /* 15 - alu 12 */
+    /* DP4 gpr[2].x gpr[1].x c[2].x */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_X),
@@ -3811,8 +3811,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_X),
 			     CLAMP(1));
-    // 16 - alu 13
-    // DP4 gpr[2].y gpr[1].y c[2].y
+    /* 16 - alu 13 */
+    /* DP4 gpr[2].y gpr[1].y c[2].y */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Y),
@@ -3838,8 +3838,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Y),
 			     CLAMP(1));
-    // 17 - alu 14
-    // DP4 gpr[2].z gpr[1].z c[2].z
+    /* 17 - alu 14 */
+    /* DP4 gpr[2].z gpr[1].z c[2].z */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_Z),
@@ -3865,8 +3865,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_Z),
 			     CLAMP(1));
-    // 18 - alu 15
-    // DP4 gpr[2].w gpr[1].w c[2].w
+    /* 18 - alu 15 */
+    /* DP4 gpr[2].w gpr[1].w c[2].w */
     ps[i++] = ALU_DWORD0(SRC0_SEL(1),
 			 SRC0_REL(ABSOLUTE),
 			 SRC0_ELEM(ELEM_W),
@@ -3892,10 +3892,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_REL(ABSOLUTE),
 			     DST_ELEM(ELEM_W),
 			     CLAMP(1));
-    // 19 - alignment
+    /* 19 - alignment */
     ps[i++] = 0x00000000;
     ps[i++] = 0x00000000;
-    // 20/21 - tex 0
+    /* 20/21 - tex 0 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -3905,10 +3905,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_X),    //R
-			 DST_SEL_Y(SQ_SEL_MASK), //G
-			 DST_SEL_Z(SQ_SEL_MASK), //B
-			 DST_SEL_W(SQ_SEL_1),    //A
+			 DST_SEL_X(SQ_SEL_X),    /* R */
+			 DST_SEL_Y(SQ_SEL_MASK), /* G */
+			 DST_SEL_Z(SQ_SEL_MASK), /* B */
+			 DST_SEL_W(SQ_SEL_1),    /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -3923,7 +3923,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_Z(SQ_SEL_0),
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
-    // 22/23 - tex 1
+    /* 22/23 - tex 1 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -3933,10 +3933,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_MASK), //R
-			 DST_SEL_Y(SQ_SEL_MASK), //G
-			 DST_SEL_Z(SQ_SEL_X),    //B
-			 DST_SEL_W(SQ_SEL_MASK), //A
+			 DST_SEL_X(SQ_SEL_MASK), /* R */
+			 DST_SEL_Y(SQ_SEL_MASK), /* G */
+			 DST_SEL_Z(SQ_SEL_X),    /* B */
+			 DST_SEL_W(SQ_SEL_MASK), /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -3951,7 +3951,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_Z(SQ_SEL_0),
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
-    // 24/25 - tex 2
+    /* 24/25 - tex 2 */
     ps[i++] = TEX_DWORD0(TEX_INST(SQ_TEX_INST_SAMPLE),
 			 BC_FRAC_MODE(0),
 			 FETCH_WHOLE_QUAD(0),
@@ -3961,10 +3961,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 R7xx_ALT_CONST(0));
     ps[i++] = TEX_DWORD1(DST_GPR(1),
 			 DST_REL(ABSOLUTE),
-			 DST_SEL_X(SQ_SEL_MASK), //R
-			 DST_SEL_Y(SQ_SEL_X),    //G
-			 DST_SEL_Z(SQ_SEL_MASK), //B
-			 DST_SEL_W(SQ_SEL_MASK), //A
+			 DST_SEL_X(SQ_SEL_MASK), /* R */
+			 DST_SEL_Y(SQ_SEL_X),    /* G */
+			 DST_SEL_Z(SQ_SEL_MASK), /* B */
+			 DST_SEL_W(SQ_SEL_MASK), /* A */
 			 LOD_BIAS(0),
 			 COORD_TYPE_X(TEX_NORMALIZED),
 			 COORD_TYPE_Y(TEX_NORMALIZED),
@@ -3980,9 +3980,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 SRC_SEL_W(SQ_SEL_1));
     ps[i++] = TEX_DWORD_PAD;
 
-    // comp mask vs ---------------------------------------
+    /* comp mask vs --------------------------------------- */
     i = accel_state->comp_mask_vs_offset / 4;
-    //0
+    /* 0 */
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -3994,7 +3994,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_VTX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    //1 - dst
+    /* 1 - dst */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 				      TYPE(SQ_EXPORT_POS),
 				      RW_GPR(2),
@@ -4012,7 +4012,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2 - src
+    /* 2 - src */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(1),
@@ -4030,7 +4030,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //3 - mask
+    /* 3 - mask */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(1),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(0),
@@ -4048,7 +4048,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //4/5 - dst
+    /* 4/5 - dst */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -4064,16 +4064,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(0),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
-    //6/7 - src
+    /* 6/7 - src */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -4089,16 +4089,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(8),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(0));
     vs[i++] = VTX_DWORD_PAD;
-    //8/9 - mask
+    /* 8/9 - mask */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -4114,9 +4114,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(16),
 			 ENDIAN_SWAP(ENDIAN_NONE),
@@ -4124,12 +4124,12 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 MEGA_FETCH(0));
     vs[i++] = VTX_DWORD_PAD;
 
-    // comp mask ps ---------------------------------------
-    // not yet
+    /* comp mask ps --------------------------------------- */
+    /* not yet */
 
-    // comp vs ---------------------------------------
+    /* comp vs --------------------------------------- */
     i = accel_state->comp_vs_offset / 4;
-    //0
+    /* 0 */
     vs[i++] = CF_DWORD0(ADDR(4));
     vs[i++] = CF_DWORD1(POP_COUNT(0),
 			CF_CONST(0),
@@ -4141,7 +4141,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			CF_INST(SQ_CF_INST_VTX),
 			WHOLE_QUAD_MODE(0),
 			BARRIER(1));
-    //1 - dst
+    /* 1 - dst */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(CF_POS0),
 				      TYPE(SQ_EXPORT_POS),
 				      RW_GPR(1),
@@ -4159,7 +4159,7 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(1));
-    //2 - src
+    /* 2 - src */
     vs[i++] = CF_ALLOC_IMP_EXP_DWORD0(ARRAY_BASE(0),
 				      TYPE(SQ_EXPORT_PARAM),
 				      RW_GPR(0),
@@ -4177,10 +4177,10 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 					   CF_INST(SQ_CF_INST_EXPORT_DONE),
 					   WHOLE_QUAD_MODE(0),
 					   BARRIER(0));
-    //3
+    /* 3 */
     vs[i++] = 0x00000000;
     vs[i++] = 0x00000000;
-    //4/5 - dst
+    /* 4/5 - dst */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -4196,16 +4196,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(0),
 			 ENDIAN_SWAP(ENDIAN_NONE),
 			 CONST_BUF_NO_STRIDE(0),
 			 MEGA_FETCH(1));
     vs[i++] = VTX_DWORD_PAD;
-    //6/7 - src
+    /* 6/7 - src */
     vs[i++] = VTX_DWORD0(VTX_INST(SQ_VTX_INST_FETCH),
 			 FETCH_TYPE(SQ_VTX_FETCH_VERTEX_DATA),
 			 FETCH_WHOLE_QUAD(0),
@@ -4221,9 +4221,9 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			     DST_SEL_Z(SQ_SEL_0),
 			     DST_SEL_W(SQ_SEL_1),
 			     USE_CONST_FIELDS(0),
-			     DATA_FORMAT(FMT_32_32_FLOAT), //xxx
-			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), //xxx
-			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), //xxx
+			     DATA_FORMAT(FMT_32_32_FLOAT), /* xxx */
+			     NUM_FORMAT_ALL(SQ_NUM_FORMAT_NORM), /* xxx */
+			     FORMAT_COMP_ALL(SQ_FORMAT_COMP_SIGNED), /* xxx */
 			     SRF_MODE_ALL(SRF_MODE_ZERO_CLAMP_MINUS_ONE));
     vs[i++] = VTX_DWORD2(OFFSET(8),
 			 ENDIAN_SWAP(ENDIAN_NONE),
@@ -4231,8 +4231,8 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 			 MEGA_FETCH(0));
     vs[i++] = VTX_DWORD_PAD;
 
-    // comp ps ---------------------------------------
-    // not yet
+    /* comp ps --------------------------------------- */
+    /* not yet */
 
 
     return TRUE;
@@ -4244,7 +4244,7 @@ R600PrepareAccess(PixmapPtr pPix, int index)
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    //flush HDP read/write caches
+    /* flush HDP read/write caches */
     RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
 
     return TRUE;
@@ -4256,7 +4256,7 @@ R600FinishAccess(PixmapPtr pPix, int index)
     ScrnInfoPtr pScrn = xf86Screens[pPix->drawable.pScreen->myNum];
     RHDPtr rhdPtr = RHDPTR(pScrn);
 
-    //flush HDP read/write caches
+    /* flush HDP read/write caches */
     RHDRegWrite(rhdPtr, HDP_MEM_COHERENCY_FLUSH_CNTL, 0x1);
 
 }
