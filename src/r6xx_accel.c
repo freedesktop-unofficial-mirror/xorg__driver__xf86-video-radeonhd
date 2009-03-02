@@ -462,6 +462,13 @@ set_alu_consts(ScrnInfoPtr pScrn, drmBufPtr ib, int offset, int count, float *co
 }
 
 void
+set_bool_const(ScrnInfoPtr pScrn, drmBufPtr ib, int offset, uint32_t val)
+{
+    /* bool order is: ps, vs, gs, ps, vs, gs, ... */
+    EREG(ib, SQ_BOOL_CONST_0 + (offset << 2), val);
+}
+
+void
 set_vtx_resource(ScrnInfoPtr pScrn, drmBufPtr ib, vtx_resource_t *res)
 {
     uint32_t sq_vtx_constant_word2;

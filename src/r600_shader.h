@@ -352,10 +352,8 @@ extern int R600_copy_vs(enum RHD_CHIPSETS ChipSet, CARD32* vs);
 extern int R600_copy_ps(enum RHD_CHIPSETS ChipSet, CARD32* ps);
 
 extern int R600_xv_vs(enum RHD_CHIPSETS ChipSet, CARD32* shader);
-extern int R600_xv_ps_packet(enum RHD_CHIPSETS ChipSet, CARD32* shader);
-extern int R600_xv_ps_planar(enum RHD_CHIPSETS ChipSet, CARD32* shader);
+extern int R600_xv_ps(enum RHD_CHIPSETS ChipSet, CARD32* shader);
 
-extern int R600_comp_mask_vs(enum RHD_CHIPSETS ChipSet, CARD32* vs);
 extern int R600_comp_mask_ps(
     enum RHD_CHIPSETS ChipSet,
     CARD32* ps,

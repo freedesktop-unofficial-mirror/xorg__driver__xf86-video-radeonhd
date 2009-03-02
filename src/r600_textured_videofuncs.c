@@ -178,17 +178,18 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     accel_state->vs_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
 	accel_state->xv_vs_offset;
 
+    accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
+	accel_state->xv_ps_offset;
+
     switch(pPriv->id) {
     case FOURCC_YV12:
     case FOURCC_I420:
-	accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
-	    accel_state->xv_ps_offset_planar;
+	set_bool_const(pScrn, accel_state->ib, 0, 1);
 	break;
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
-	accel_state->ps_mc_addr = rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart + accel_state->shaders->offset +
-	    accel_state->xv_ps_offset_packed;
+	set_bool_const(pScrn, accel_state->ib, 0, 0);
 	break;
     }
 
@@ -212,7 +213,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 
     ps_conf.shader_addr         = accel_state->ps_mc_addr;
     ps_conf.num_gprs            = 3;
-    ps_conf.stack_size          = 0;
+    ps_conf.stack_size          = 1;
     ps_conf.uncached_first_inst = 1;
     ps_conf.clamp_consts        = 0;
     ps_conf.export_mode         = 2;
