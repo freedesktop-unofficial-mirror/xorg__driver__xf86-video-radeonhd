@@ -1,7 +1,7 @@
 /*
  * Copyright 2000  ATI Technologies Inc., Markham, Ontario,
  * Copyright 2000  VA Linux Systems Inc., Fremont, California.
- * Copyright 2007  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007  Luc Verhaegen <libv@exsuse.de>
  * Copyright 2007  Matthias Hopf <mhopf@novell.com>
  * Copyright 2007  Egbert Eich   <eich@novell.com>
  * Copyright 2007  Advanced Micro Devices, Inc.

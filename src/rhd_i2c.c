@@ -1,6 +1,6 @@
 /*
  * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
- * Copyright 2007-2009  Luc Verhaegen <lverhaegen@novell.com>
+ * Copyright 2007-2009  Luc Verhaegen <libv@exsuse.de>
  * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
  * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
