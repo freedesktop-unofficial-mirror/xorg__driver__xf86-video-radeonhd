@@ -26,6 +26,10 @@
 #ifndef _RHD_VIDEO_H
 #define _RHD_VIDEO_H
 
+/* seriously ?! @#$%% */
+# define uint32_t CARD32
+# define uint64_t CARD64
+
 /* Xvideo port struct */
 struct RHDPortPriv {
     DrawablePtr pDraw;
