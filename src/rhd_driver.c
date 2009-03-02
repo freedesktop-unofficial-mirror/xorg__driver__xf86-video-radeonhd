@@ -118,10 +118,10 @@
 #include "rhd_cs.h"
 #include "rhd_audio.h"
 #include "r5xx_accel.h"
-#include "r6xx_accel.h"
 #include "rhd_video.h"
 
 #ifdef USE_DRI
+#include "r6xx_accel.h"
 #include "rhd_dri.h"
 #endif
 
@@ -1150,7 +1150,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	} else
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
-#ifdef USE_EXA
+#ifdef USE_DRI
     case RHD_ACCEL_EXA:
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    if (!R5xxEXAInit(pScrn, pScreen))
@@ -1160,7 +1160,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	}
 	break;
-#endif /* USE_EXA */
+#endif /* USE_DRI */
     default:
 	rhdPtr->AccelMethod = RHD_ACCEL_NONE;
 	break;
@@ -1293,9 +1293,11 @@ rhdEngineIdle(ScrnInfoPtr pScrn)
     }
 
     if (rhdPtr->TwoDPrivate) {
+#ifdef USE_DRI
 	if (rhdPtr->ChipSet >= RHD_R600)
 	    R6xxIdle(pScrn);
 	else
+#endif /* USE_DRI */
 	    R5xx2DIdle(pScrn);
     }
 
@@ -1316,7 +1318,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     /* tear down 2d accel infrastructure */
     if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB)
 	RHDShadowCloseScreen(pScreen);
-#ifdef USE_EXA
+#ifdef USE_DRI
     else if (rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
 	if (rhdPtr->ChipSet < RHD_R600) {
 	    R5xxEXACloseScreen(pScreen);
@@ -1326,7 +1328,7 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
 	    R6xxEXADestroy(pScrn);
 	}
     } else
-#endif /* USE_EXA */
+#endif /* USE_DRI */
 	if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	    if (rhdPtr->ChipSet < RHD_R600)
 		R5xxXAADestroy(pScrn);
@@ -1414,6 +1416,7 @@ RHDEnterVT(int scrnIndex, int flags)
 #endif
 
     if (rhdPtr->CS) {
+#ifdef USE_DRI
 	if (rhdPtr->ChipSet >= RHD_R600) {
 	    if (rhdPtr->TwoDPrivate) {
 		R6xxIdle(pScrn);
@@ -1422,6 +1425,7 @@ RHDEnterVT(int scrnIndex, int flags)
 		    FALSE;
 	    }
 	} else {
+#endif
 	    if (rhdPtr->TwoDPrivate) {
 		R5xx2DSetup(pScrn);
 		R5xx2DIdle(pScrn);
@@ -1430,7 +1434,9 @@ RHDEnterVT(int scrnIndex, int flags)
 	    if (rhdPtr->ThreeDPrivate)
 		((struct R5xx3D *) rhdPtr->ThreeDPrivate)->XHas3DEngineState =
 		    FALSE;
+#ifdef USE_DRI
 	}
+#endif
 
 	RHDCSStart(rhdPtr->CS);
 

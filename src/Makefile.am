@@ -92,12 +92,12 @@ nodist_radeonhd_drv_la_SOURCES = \
 
 if USE_EXA
 radeonhd_drv_la_SOURCES += r5xx_exa.c radeon_exa_render.c
-radeonhd_drv_la_SOURCES += r6xx_accel.c r6xx_accel.h
-radeonhd_drv_la_SOURCES += r600_exa.c r600_textured_videofuncs.c
 endif
 
 if USE_DRI
 radeonhd_drv_la_SOURCES += rhd_dri.c rhd_dri.h radeon_dri.h radeon_drm.h
+radeonhd_drv_la_SOURCES += r6xx_accel.c r6xx_accel.h
+radeonhd_drv_la_SOURCES += r600_exa.c r600_textured_videofuncs.c
 radeonhd_drv_la_LIBADD += @DRI_LIBS@
 endif
 
