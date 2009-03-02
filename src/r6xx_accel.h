@@ -21,34 +21,6 @@ RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 void
 R6xxIdle(ScrnInfoPtr pScrn);
 
-struct r6xx_solid_vertex {
-    float x;
-    float y;
-};
-
-struct r6xx_copy_vertex {
-    float x;
-    float y;
-    float s;
-    float t;
-};
-
-struct r6xx_comp_vertex {
-    float x;
-    float y;
-    float src_s;
-    float src_t;
-};
-
-struct r6xx_comp_mask_vertex {
-    float x;
-    float y;
-    float src_s;
-    float src_t;
-    float mask_s;
-    float mask_t;
-};
-
 struct r6xx_accel_state {
     Bool XHas3DEngineState;
 
