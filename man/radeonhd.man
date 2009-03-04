@@ -399,13 +399,13 @@ mailing list.
 .RE
 .TP
 .BI "Option \*qAudio\*q \*q" boolean \*q
-This option enables the audio hardware, wich is responsible for delivering audio data
+This option enables the audio hardware, which is responsible for delivering audio data
 to the different HDMI capable conntectors and used to communicate with the audio
 driver of the operation system. The default is
 .BR off .
 .TP
-.BI "Option \*qHDMI\*q \*q" boolean \*q
-Possible values are "DVI-I 0", "DVI-I 1"..,"DVI-D 0","DVI-I 1",.., "all".
+.BI "Option \*qHDMI\*q \*q" string \*q
+Possible values are "DVI-I_0", "DVI-I_1"..,"DVI-D_0","DVI-I_1",.., "all".
 This option enables HDMI-Audio and HDMI-Info packets on the specified connector.
 This is the only way enabling HDMI at the moment, since decoding E-EDID data to check if monitor supports HDMI is not implemented (yet).
 .TP
