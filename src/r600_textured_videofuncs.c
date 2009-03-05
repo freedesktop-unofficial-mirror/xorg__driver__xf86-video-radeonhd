@@ -466,13 +466,14 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 								SEL_CENTROID_bit));
     EREG(accel_state->ib, SPI_INTERP_CONTROL_0,                0);
 
-    wait_vline_range(
-	pScrn,
-	accel_state->ib,
-	0 /* TODO */,
-	dstyoff + pPriv->drw_y,
-	dstyoff + pPriv->drw_y + pPriv->dst_h - 1
-    );
+    if (exaGetPixmapOffset(pPixmap) == 0)
+	wait_vline_range(
+	    pScrn,
+	    accel_state->ib,
+	    0 /* TODO */,
+	    dstyoff + pPriv->drw_y,
+	    dstyoff + pPriv->drw_y + pPriv->dst_h - 1
+	    );
 
     accel_state->vb_index = 0;
 
