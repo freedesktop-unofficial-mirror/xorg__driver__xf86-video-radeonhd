@@ -101,6 +101,10 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_PCIE_LANES,
     ATOM_SET_REGISTER_LIST_LOCATION,
     ATOM_RESTORE_REGISTERS,
+    GET_ENGINE_CLOCK,
+    GET_MEMORY_CLOCK,
+    SET_ENGINE_CLOCK,
+    SET_MEMORY_CLOCK,
     FUNC_END
 } AtomBiosRequestID;
 
@@ -209,6 +213,7 @@ typedef union AtomBiosArg
     AtomExecRec			exec;
     AtomFbRec			fb;
     enum RHD_TV_MODE		tvMode;
+    unsigned long		clockValue;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 enum atomCrtc {

@@ -126,6 +126,11 @@ atomSetRegisterListLocation(atomBiosHandlePtr handle, AtomBiosRequestID func, At
 static AtomBiosResult
 atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 
+static AtomBiosResult
+rhdAtomSetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomGetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+
 
 enum msgDataFormat {
     MSG_FORMAT_NONE,
@@ -270,6 +275,14 @@ struct atomBIOSRequests {
      "Register List Location",			MSG_FORMAT_NONE},
     {ATOM_RESTORE_REGISTERS, atomRestoreRegisters,
      "Restore Registers",			MSG_FORMAT_NONE},
+    {GET_ENGINE_CLOCK, rhdAtomGetClock,
+     "Current Engine Clock",			MSG_FORMAT_DEC},
+    {GET_MEMORY_CLOCK, rhdAtomGetClock,
+     "Current Memory Clock",			MSG_FORMAT_DEC},
+    {SET_ENGINE_CLOCK, rhdAtomSetClock,
+     "Set Engine Clock",			MSG_FORMAT_NONE},
+    {SET_MEMORY_CLOCK, rhdAtomSetClock,
+     "Set Memory Clock",			MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -5097,6 +5110,71 @@ atomRestoreRegisters(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosA
     *(data->Address) = NULL;
 
     return ATOM_SUCCESS;
+}
+
+static AtomBiosResult
+rhdAtomGetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    AtomBiosArgRec idx;
+    GET_ENGINE_CLOCK_PARAMETERS eng_p;
+    GET_MEMORY_CLOCK_PARAMETERS mem_p;
+
+    RHDFUNC(handle);
+
+    idx.exec.dataSpace = NULL;
+
+    if (func == GET_ENGINE_CLOCK) {
+        idx.exec.index = GetIndexIntoMasterTable(COMMAND, GetEngineClock);
+        idx.exec.pspace = &eng_p;
+    } else if (func == GET_MEMORY_CLOCK) {
+        idx.exec.index = GetIndexIntoMasterTable(COMMAND, GetMemoryClock);
+        idx.exec.pspace = &mem_p;
+    } else
+	return ATOM_NOT_IMPLEMENTED;
+
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+	                ATOMBIOS_EXEC, &idx) == ATOM_SUCCESS) {
+        data->val = (func == GET_ENGINE_CLOCK) ?
+                        eng_p.ulReturnEngineClock :
+                        mem_p.ulReturnMemoryClock;
+        data->val *= 10;
+	return ATOM_SUCCESS;
+    }
+
+    return ATOM_FAILED;
+}
+
+static AtomBiosResult
+rhdAtomSetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    AtomBiosArgRec execData;
+    SET_ENGINE_CLOCK_PS_ALLOCATION eng_clock_ps;
+    SET_MEMORY_CLOCK_PS_ALLOCATION mem_clock_ps;
+
+    RHDFUNC(handle);
+    execData.exec.dataSpace = NULL;
+
+    if (func == SET_ENGINE_CLOCK) {
+	eng_clock_ps.ulTargetEngineClock = data->clockValue / 10;
+        execData.exec.index = GetIndexIntoMasterTable(COMMAND, SetEngineClock);
+	execData.exec.pspace = &eng_clock_ps;
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "Attempting to set Engine Clock to %lu\n", data->clockValue);
+    } else if (func == SET_MEMORY_CLOCK) {
+	mem_clock_ps.ulTargetMemoryClock = data->clockValue / 10;
+        execData.exec.index = GetIndexIntoMasterTable(COMMAND, SetMemoryClock);
+	execData.exec.pspace = &mem_clock_ps;
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "Attempting to set Memory Clock to %lu\n", data->clockValue);
+    } else
+	return ATOM_NOT_IMPLEMENTED;
+
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+	                ATOMBIOS_EXEC, &execData) == ATOM_SUCCESS) {
+	return ATOM_SUCCESS;
+    }
+
+    xf86DrvMsg(handle->scrnIndex, X_WARNING, "Failed to set %s Clock\n",
+                (func == SET_ENGINE_CLOCK) ? "Engine" : "Memory");
+    return ATOM_FAILED;
 }
 
 # ifdef ATOM_BIOS_PARSER
