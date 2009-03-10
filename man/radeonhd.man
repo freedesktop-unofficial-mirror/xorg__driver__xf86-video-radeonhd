@@ -231,10 +231,12 @@ Rotation isn't supported for the AccelMethods \*qnone\*q and \*qshadowfb\*q.
 .RE
 .TP
 .BI "Option \*qDRI\*q"
-Use this option to enable 3D and Xv acceleration using DRI
-(R5xx and RS6xx chips only for the moment).
+Use this option to enable 3D and Xv acceleration using DRI.
 Currently, the default is
-.BR off .
+.B on
+on R5xx and RS6xx chips, and
+.B off
+on all others.
 .TP
 .BI "Option \*qOffscreenSize\*q \*q" <integer>M|<integer>% \*q
 Specify the amount of framebuffer memory used for offscreen pixmaps, in

@@ -2834,7 +2834,7 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
     RhdGetOptValString (rhdPtr->Options, OPTION_RROUTPUTORDER,
 			&rhdPtr->rrOutputOrder, NULL);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_DRI,
-			&rhdPtr->useDRI, FALSE);
+			&rhdPtr->useDRI, TRUE);
     RhdGetOptValString (rhdPtr->Options, OPTION_TV_MODE,
 			&rhdPtr->tvModeName, NULL);
     RhdGetOptValString (rhdPtr->Options, OPTION_SCALE_TYPE,

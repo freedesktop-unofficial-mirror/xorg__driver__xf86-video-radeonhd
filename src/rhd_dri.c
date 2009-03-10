@@ -1148,8 +1148,8 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
     rhdPtr->directRenderingEnabled = FALSE;
 
     if (!rhdPtr->useDRI.val.bool) {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering turned off by"
-		   " default. Use Option \"DRI\" to enable.\n");
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Direct rendering explicitly turned off.\n");
 	return FALSE;
     }
 
