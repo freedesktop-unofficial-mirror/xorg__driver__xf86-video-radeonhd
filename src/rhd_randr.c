@@ -1782,7 +1782,7 @@ createXF86Output(ScrnInfoPtr pScrn, rhdRandrOutputPtr rro)
     xo->interlaceAllowed = TRUE;
     xo->doubleScanAllowed = TRUE;
     xo->subpixel_order = SubPixelUnknown;
-    xo->use_screen_monitor = FALSE;
+    xf86OutputUseScreenMonitor (xo, FALSE);
     return xo;
 }
 
