@@ -1836,10 +1836,11 @@ static int RHDDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
 
     num_pages = (RHD_DEFAULT_PCI_APER_SIZE * 1024 * 1024) / page_size;
 
-    if (rhdPtr->ChipSet < RHD_R600)
-	ret_size = num_pages * sizeof(unsigned int);
-    else
+    if ((rhdPtr->ChipSet >= RHD_R600) ||
+	(rhdPtr->ChipSet == RHD_RS600))
 	ret_size = num_pages * sizeof(uint64_t);
+    else
+	ret_size = num_pages * sizeof(unsigned int);
 
     return ret_size;
 }
