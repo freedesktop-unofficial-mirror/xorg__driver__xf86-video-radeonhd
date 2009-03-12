@@ -1829,13 +1829,17 @@ static void RHDDRITransitionTo2d(ScreenPtr pScreen)
 
 static int RHDDRIGetPciAperTableSize(ScrnInfoPtr pScrn)
 {
+    RHDPtr rhdPtr = RHDPTR(pScrn);
     int page_size  = getpagesize();
     int ret_size;
     int num_pages;
 
     num_pages = (RHD_DEFAULT_PCI_APER_SIZE * 1024 * 1024) / page_size;
 
-    ret_size = num_pages * sizeof(unsigned int);
+    if (rhdPtr->ChipSet < RHD_R600)
+	ret_size = num_pages * sizeof(unsigned int);
+    else
+	ret_size = num_pages * sizeof(uint64_t);
 
     return ret_size;
 }
