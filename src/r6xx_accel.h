@@ -25,6 +25,9 @@ RADEONGetDrawablePixmap(DrawablePtr pDrawable);
 void
 R6xxIdle(ScrnInfoPtr pScrn);
 
+Bool
+R600LoadShaders(ScrnInfoPtr pScrn);
+
 struct r6xx_accel_state {
     Bool XHas3DEngineState;
 

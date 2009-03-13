@@ -2036,13 +2036,10 @@ R600EXASync(ScreenPtr pScreen, int marker)
 }
 
 static Bool
-R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
+R600AllocShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
-    enum RHD_CHIPSETS ChipSet = rhdPtr->ChipSet;
-
-    uint32_t *shader;
     /* 512 bytes per shader for now */
     int size = 512 * 9;
 
@@ -2053,6 +2050,16 @@ R600LoadShaders(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     if (accel_state->shaders == NULL)
 	return FALSE;
+    return TRUE;
+}
+
+Bool
+R600LoadShaders(ScrnInfoPtr pScrn)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct r6xx_accel_state *accel_state = rhdPtr->TwoDPrivate;
+    enum RHD_CHIPSETS ChipSet = rhdPtr->ChipSet;
+    uint32_t *shader;
 
     shader = (pointer)((char *)rhdPtr->FbBase + rhdPtr->FbScanoutStart + accel_state->shaders->offset);
 
@@ -2189,7 +2196,13 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
 
     rhdPtr->TwoDPrivate = accel_state;
 
-    if (!R600LoadShaders(pScrn, pScreen)) {
+    if (!R600AllocShaders(pScrn, pScreen)) {
+	xfree(accel_state);
+	xfree(EXAInfo);
+	return FALSE;
+    }
+
+    if (!R600LoadShaders(pScrn)) {
 	xfree(accel_state);
 	xfree(EXAInfo);
 	return FALSE;

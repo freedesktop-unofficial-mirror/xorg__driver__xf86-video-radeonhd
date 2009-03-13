@@ -1419,6 +1419,7 @@ RHDEnterVT(int scrnIndex, int flags)
 #ifdef USE_DRI
 	if (rhdPtr->ChipSet >= RHD_R600) {
 	    if (rhdPtr->TwoDPrivate) {
+		R600LoadShaders(pScrn);
 		R6xxIdle(pScrn);
 
 		((struct r6xx_accel_state *) rhdPtr->TwoDPrivate)->XHas3DEngineState =
