@@ -2177,8 +2177,10 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->UploadToScreen = R600UploadToScreen;
     EXAInfo->DownloadFromScreen = R600DownloadFromScreen;
 
-    EXAInfo->PrepareAccess = R600PrepareAccess;
-    EXAInfo->FinishAccess = R600FinishAccess;
+    if (rhdPtr->cardType != RHD_CARD_AGP) {
+	EXAInfo->PrepareAccess = R600PrepareAccess;
+	EXAInfo->FinishAccess = R600FinishAccess;
+    }
 
     EXAInfo->MarkSync = R600EXAMarkSync;
     EXAInfo->WaitMarker = R600EXASync;

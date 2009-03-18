@@ -517,11 +517,11 @@ R5xxXvCopyPlanar(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 }
 
 static void
-R600CopyPlanar(ScrnInfoPtr pScrn,
-	       unsigned char *y_src, unsigned char *u_src, unsigned char *v_src,
-	       uint32_t dst_mc_addr,
-	       int srcPitch, int srcPitch2, int dstPitch,
-	       int w, int h)
+R600CopyPlanarHW(ScrnInfoPtr pScrn,
+		 unsigned char *y_src, unsigned char *u_src, unsigned char *v_src,
+		 uint32_t dst_mc_addr,
+		 int srcPitch, int srcPitch2, int dstPitch,
+		 int w, int h)
 {
     int dstPitch2 = dstPitch >> 1;
     int h2 = h >> 1;
@@ -552,16 +552,92 @@ R600CopyPlanar(ScrnInfoPtr pScrn,
 }
 
 static void
-R600CopyPacked(ScrnInfoPtr pScrn,
-	       unsigned char *src, uint32_t dst_mc_addr,
-	       int srcPitch, int dstPitch,
-	       int w, int h)
+R600CopyPackedHW(ScrnInfoPtr pScrn,
+		 unsigned char *src, uint32_t dst_mc_addr,
+		 int srcPitch, int dstPitch,
+		 int w, int h)
 {
     /* YUV */
     R600CopyToVRAM(pScrn,
 		   (char *)src, srcPitch,
 		   dstPitch >> 2, dst_mc_addr, h, 32,
 		   0, 0, w >> 1, h);
+}
+
+static void
+R600CopyPlanarSW(ScrnInfoPtr pScrn,
+		 unsigned char *y_src, unsigned char *u_src, unsigned char *v_src,
+		 unsigned char *dst,
+		 int srcPitch, int srcPitch2, int dstPitch,
+		 int w, int h)
+{
+    int i;
+    int dstPitch2 = dstPitch >> 1;
+    int h2 = h >> 1;
+
+    /* Y */
+    if (srcPitch == dstPitch) {
+        memcpy(dst, y_src, srcPitch * h);
+	dst += (dstPitch * h);
+    } else {
+	for (i = 0; i < h; i++) {
+            memcpy(dst, y_src, srcPitch);
+            y_src += srcPitch;
+            dst += dstPitch;
+        }
+    }
+
+    /* tex base need 256B alignment */
+    if (h & 1)
+	dst += dstPitch;
+
+    /* V */
+    if (srcPitch2 == dstPitch2) {
+        memcpy(dst, v_src, srcPitch2 * h2);
+	dst += (dstPitch2 * h2);
+    } else {
+	for (i = 0; i < h2; i++) {
+            memcpy(dst, v_src, srcPitch2);
+            v_src += srcPitch2;
+            dst += dstPitch2;
+        }
+    }
+
+    /* tex base need 256B alignment */
+    if (h2 & 1)
+	dst += dstPitch2;
+
+    /* U */
+    if (srcPitch2 == dstPitch2) {
+        memcpy(dst, u_src, srcPitch2 * h2);
+	dst += (dstPitch2 * h2);
+    } else {
+	for (i = 0; i < h2; i++) {
+            memcpy(dst, u_src, srcPitch2);
+            u_src += srcPitch2;
+            dst += dstPitch2;
+        }
+    }
+}
+
+static void
+R600CopyPackedSW(ScrnInfoPtr pScrn,
+		 unsigned char *src, unsigned char *dst,
+		 int srcPitch, int dstPitch,
+		 int w, int h)
+{
+    int i;
+
+    if (srcPitch == dstPitch) {
+        memcpy(dst, src, srcPitch * h);
+	dst += (dstPitch * h);
+    } else {
+	for (i = 0; i < h; i++) {
+            memcpy(dst, src, srcPitch);
+            src += srcPitch;
+            dst += dstPitch;
+        }
+    }
 }
 
 /*
@@ -669,10 +745,16 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 	    if (id == FOURCC_YV12) {
 		if (rhdPtr->ChipSet >= RHD_R600) {
 		    pPriv->BufferPitch = ALIGN(width, 256);
-		    R600CopyPlanar(pScrn, buf, buf + s3offset, buf + s2offset,
-				   pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
-				   srcPitch, srcPitch2, pPriv->BufferPitch,
-				   width, height);
+		    if (rhdPtr->cardType != RHD_CARD_AGP)
+			R600CopyPlanarHW(pScrn, buf, buf + s3offset, buf + s2offset,
+					 pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
+					 srcPitch, srcPitch2, pPriv->BufferPitch,
+					 width, height);
+		    else
+			R600CopyPlanarSW(pScrn, buf, buf + s3offset, buf + s2offset,
+					 FBBuf,
+					 srcPitch, srcPitch2, pPriv->BufferPitch,
+					 width, height);
 		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s2offset,
 					buf + s3offset, FBBuf, srcPitch,
@@ -685,10 +767,16 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
 				     height, width);
 	    } else {
 		if (rhdPtr->ChipSet >= RHD_R600) {
-		    R600CopyPlanar(pScrn, buf, buf + s2offset, buf + s3offset,
-				   pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
-				   srcPitch, srcPitch2, pPriv->BufferPitch,
-				   width, height);
+		    if (rhdPtr->cardType != RHD_CARD_AGP)
+			R600CopyPlanarHW(pScrn, buf, buf + s2offset, buf + s3offset,
+					 pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
+					 srcPitch, srcPitch2, pPriv->BufferPitch,
+					 width, height);
+		    else
+			R600CopyPlanarSW(pScrn, buf, buf + s2offset, buf + s3offset,
+					 FBBuf,
+					 srcPitch, srcPitch2, pPriv->BufferPitch,
+					 width, height);
 		} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 		    R5xxXvCopyPlanarDMA(rhdPtr, buf, buf + s3offset,
 					buf + s2offset, FBBuf, srcPitch,
@@ -707,9 +795,14 @@ rhdPutImageTextured(ScrnInfoPtr pScrn,
     default:
 	if (rhdPtr->ChipSet >= RHD_R600) {
 	    pPriv->BufferPitch = ALIGN(2 * width, 256);
-	    R600CopyPacked(pScrn, buf, pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
-			   2 * width, pPriv->BufferPitch,
-			   width, height);
+	    if (rhdPtr->cardType != RHD_CARD_AGP)
+		R600CopyPackedHW(pScrn, buf, pPriv->BufferOffset + rhdPtr->FbIntAddress + rhdPtr->FbScanoutStart,
+				 2 * width, pPriv->BufferPitch,
+				 width, height);
+	    else
+		R600CopyPackedSW(pScrn, buf, FBBuf,
+				 2 * width, pPriv->BufferPitch,
+				 width, height);
 	} else if (rhdPtr->CS->Type == RHD_CS_CPDMA)
 	    R5xxXvCopyPackedDMA(rhdPtr, buf, FBBuf, 2 * width,
 				pPriv->BufferPitch, height);
