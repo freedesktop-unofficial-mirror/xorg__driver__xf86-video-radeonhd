@@ -2150,10 +2150,10 @@ R6xxEXAInit(ScrnInfoPtr pScrn, ScreenPtr pScreen)
     EXAInfo->pixmapPitchAlign = 256;
 
 #if EXA_VERSION_MAJOR > 2 || (EXA_VERSION_MAJOR == 2 && EXA_VERSION_MINOR >= 3)
-    EXAInfo->maxPitchBytes = 16320;
+    EXAInfo->maxPitchBytes = 32768;
     EXAInfo->maxX = 8192;
 #else
-    EXAInfo->maxX = 16320 / 4;
+    EXAInfo->maxX = 8192;
 #endif
     EXAInfo->maxY = 8192;
 
