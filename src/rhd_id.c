@@ -316,6 +316,8 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x9612, RHD_RS780 ), /*  ATI Radeon HD 3200 Graphics  */
     RHD_DEVICE_MATCH(  0x9613, RHD_RS780 ), /* ATI Radeon 3100 Graphics   */
     RHD_DEVICE_MATCH(  0x9614, RHD_RS780 ), /* ATI Radeon HD 3300 Graphics  */
+    RHD_DEVICE_MATCH(  0x9615, RHD_RS780 ), /* ATI Radeon HD 3200 Graphics  */
+    RHD_DEVICE_MATCH(  0x9616, RHD_RS780 ), /* ATI Radeon HD 3000 Graphics  */
     LIST_END
 };
 
