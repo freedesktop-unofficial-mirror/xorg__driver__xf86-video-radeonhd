@@ -433,7 +433,7 @@ main(int argc, char *argv[])
 	    action = WRITE;
 
 	    if (++i < argc)
-		ret = sscanf(argv[i++], "%d", &addr);
+		ret = sscanf(argv[i++], "%x", &addr);
 	    else {
 		i--;
 		ret = 0;
