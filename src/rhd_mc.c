@@ -584,7 +584,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->Idle = RS690MCWaitIdle;
 	MC->GetFBLocation = RS690MCGetFBLocation;
 	MC->TuneAccessForDisplay = RS690MCTuneMCAccessForDisplay;
-    } else if (rhdPtr->ChipSet <= RHD_RS780) {
+    } else if (rhdPtr->ChipSet <= RHD_RS880) {
 	MC->Save = R600MCSave;
 	MC->Restore = R600MCRestore;
 	MC->SetupFBLocation = R600MCSetupFBLocation;
@@ -592,7 +592,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->GetFBLocation = R600MCGetFBLocation;
     }
 #ifdef NOTYET
-    else if (rhdPtr->ChipSet == RHD_RS780) {
+    else if (rhdPtr->ChipSet == RHD_RS880) {
 	MC->Save = RS780MCSave;
 	MC->Restore = RS780MCRestore;
 	MC->SetupFBLocation = RS780MCSetupFBLocation;

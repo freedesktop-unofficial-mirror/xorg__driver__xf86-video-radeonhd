@@ -88,6 +88,7 @@ enum RHD_CHIPSETS {
     RHD_RV635,
     RHD_M86,
     RHD_RS780,
+    RHD_RS880,
     RHD_RV770,
     RHD_R700,
     RHD_M98,

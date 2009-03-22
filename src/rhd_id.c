@@ -82,6 +82,7 @@ SymTabRec RHDChipsets[] = {
     { RHD_RV635, "RV635" },
     { RHD_M86,   "M86"   },
     { RHD_RS780, "RS780" },
+    { RHD_RS880, "RS880" },
     { RHD_RV770, "RV770" },
     { RHD_RV730, "RV730" },
     { RHD_RV710, "RV710" },
@@ -318,6 +319,11 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x9614, RHD_RS780 ), /* ATI Radeon HD 3300 Graphics  */
     RHD_DEVICE_MATCH(  0x9615, RHD_RS780 ), /* ATI Radeon HD 3200 Graphics  */
     RHD_DEVICE_MATCH(  0x9616, RHD_RS780 ), /* ATI Radeon HD 3000 Graphics  */
+    RHD_DEVICE_MATCH(  0x9710, RHD_RS880 ), /* ATI Radeon HD Graphics  */
+    RHD_DEVICE_MATCH(  0x9711, RHD_RS880 ), /* ATI Radeon Graphics  */
+    RHD_DEVICE_MATCH(  0x9712, RHD_RS880 ), /* ATI Mobility Radeon HD Graphics  */
+    RHD_DEVICE_MATCH(  0x9713, RHD_RS880 ), /* ATI Mobility Radeon Graphics  */
+    RHD_DEVICE_MATCH(  0x9714, RHD_RS880 ), /* ATI Radeon Graphics  */
     LIST_END
 };
 
@@ -326,6 +332,7 @@ static enum RHD_CHIPSETS rhdIGPChipsetList[] = {
     RHD_RS690,
     RHD_RS690,
     RHD_RS780,
+    RHD_RS880,
     RHD_UNKNOWN /* end marker */
 };
 
