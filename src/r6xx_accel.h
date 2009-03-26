@@ -83,5 +83,7 @@ struct r6xx_accel_state {
     Bool is_transform[2];
     struct _PictTransform *transform[2];
     Bool has_mask;
+    Bool component_alpha;
+    Bool src_alpha;
 };
 
