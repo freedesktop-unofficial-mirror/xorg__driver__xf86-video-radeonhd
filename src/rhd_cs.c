@@ -31,6 +31,8 @@
 
 #include "xf86.h"
 
+#include <compiler.h>
+
 #include "rhd.h"
 #include "rhd_cs.h"
 #include "r5xx_regs.h"
@@ -50,8 +52,8 @@
 
 /* First... provide some macro's for accessing the registers, which will
    somewhat speed up things */
-#define CSMMIORegRead(Reg) (*(volatile CARD32 *) (MMIOBase + (Reg)))
-#define CSMMIORegWrite(Reg, Value) (*(volatile CARD32 *) (MMIOBase + (Reg))) = (Value)
+#define CSMMIORegRead(Reg) MMIO_IN32(MMIOBase, (Reg))
+#define CSMMIORegWrite(Reg, Value) MMIO_OUT32(MMIOBase, (Reg), (Value))
 
 static void
 CSMMIORBBMStuff(struct RhdCS *CS)
