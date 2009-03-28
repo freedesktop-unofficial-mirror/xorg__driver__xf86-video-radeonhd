@@ -30,6 +30,8 @@
 #  error "config.h missing!"
 # endif
 
+#include <compiler.h>
+
 #define RHD_MAJOR_VERSION (PACKAGE_VERSION_MAJOR)
 #define RHD_MINOR_VERSION (PACKAGE_VERSION_MINOR)
 #define RHD_PATCHLEVEL    (PACKAGE_VERSION_PATCHLEVEL)
@@ -376,12 +378,17 @@ extern Bool RHDScalePolicy(struct rhdMonitor *Monitor, struct rhdConnector *Conn
 extern void RHDPrepareMode(RHDPtr rhdPtr);
 extern Bool RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList, enum atomSubSystem subsys);
 
-extern CARD32 _RHDRegRead(int scrnIndex, CARD16 offset);
-#define RHDRegRead(ptr, offset) _RHDRegRead((ptr)->scrnIndex, (offset))
-extern void _RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value);
-#define RHDRegWrite(ptr, offset, value) _RHDRegWrite((ptr)->scrnIndex, (offset), (value))
-extern void _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask);
-#define RHDRegMask(ptr, offset, value, mask) _RHDRegMask((ptr)->scrnIndex, (offset), (value), (mask))
+#define RHDRegRead(ptr, offset) MMIO_IN32(RHDPTRI(ptr)->MMIOBase, offset)
+#define RHDRegWrite(ptr, offset, value) MMIO_OUT32(RHDPTRI(ptr)->MMIOBase, offset, value)
+#define RHDRegMask(ptr, offset, value, mask)	\
+do {						\
+    CARD32 tmp;					\
+    tmp = RHDRegRead(ptr, offset);		\
+    tmp &= ~mask;				\
+    tmp |= (value & mask);			\
+    RHDRegWrite(ptr, offset, tmp);		\
+} while(0)
+
 extern CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
 #define RHDReadMC(ptr,addr) _RHDReadMC((ptr)->scrnIndex,(addr))
 extern void _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data);

@@ -2472,38 +2472,6 @@ rhdRestore(RHDPtr rhdPtr)
 #endif
 }
 
-/*
- *
- */
-CARD32
-_RHDRegRead(int scrnIndex, CARD16 offset)
-{
-    return *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset);
-}
-
-/*
- *
- */
-void
-_RHDRegWrite(int scrnIndex, CARD16 offset, CARD32 value)
-{
-    *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset) = value;
-}
-
-/*
- * This one might seem clueless, but it is an actual lifesaver.
- */
-void
-_RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
-{
-    CARD32 tmp;
-
-    tmp = _RHDRegRead(scrnIndex, offset);
-    tmp &= ~mask;
-    tmp |= (value & mask);
-    _RHDRegWrite(scrnIndex, offset, tmp);
-}
-
 #ifdef RHD_DEBUG
 /*
  *
@@ -2511,7 +2479,7 @@ _RHDRegMask(int scrnIndex, CARD16 offset, CARD32 value, CARD32 mask)
 CARD32
 _RHDRegReadD(int scrnIndex, CARD16 offset)
 {
-    CARD32 tmp =  *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset);
+    CARD32 tmp =  MMIO_IN32(RHDPTR(xf86Screens[scrnIndex])->MMIOBase, offset);
     xf86DrvMsg(scrnIndex, X_INFO, "RHDRegRead(0x%4.4x) = 0x%4.4x\n",offset,tmp);
     return tmp;
 }
@@ -2523,7 +2491,7 @@ void
 _RHDRegWriteD(int scrnIndex, CARD16 offset, CARD32 value)
 {
     xf86DrvMsg(scrnIndex, X_INFO, "RHDRegWrite(0x%4.4x,0x%4.4x)\n",offset,tmp);
-    *(volatile CARD32 *)((CARD8 *) RHDPTR(xf86Screens[scrnIndex])->MMIOBase + offset) = value;
+    MMIO_OUT32(RHDPTR(xf86Screens[scrnIndex])->MMIOBase, offset, value);
 }
 
 /*
@@ -2549,11 +2517,11 @@ _RHDReadMC(int scrnIndex, CARD32 addr)
     CARD32 ret;
 
     if (rhdPtr->ChipSet < RHD_RS600) {
-	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr);
-	ret = _RHDRegRead(scrnIndex, MC_IND_DATA);
+	RHDRegWrite(rhdPtr, MC_IND_INDEX, addr);
+	ret = RHDRegRead(rhdPtr, MC_IND_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
-	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr);
-	ret = _RHDRegRead(scrnIndex, RS60_MC_NB_MC_DATA);
+	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_INDEX, addr);
+	ret = RHDRegRead(rhdPtr, RS60_MC_NB_MC_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 data = addr & ~RS69_MC_IND_WR_EN;
@@ -2591,11 +2559,11 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 #endif
 
     if (rhdPtr->ChipSet < RHD_RS600) {
-	_RHDRegWrite(scrnIndex, MC_IND_INDEX, addr | MC_IND_WR_EN);
-	_RHDRegWrite(scrnIndex, MC_IND_DATA, data);
+	RHDRegWrite(rhdPtr, MC_IND_INDEX, addr | MC_IND_WR_EN);
+	RHDRegWrite(rhdPtr, MC_IND_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
-	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_INDEX, addr | RS60_NB_MC_IND_WR_EN);
-	_RHDRegWrite(scrnIndex, RS60_MC_NB_MC_DATA, data);
+	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_INDEX, addr | RS60_NB_MC_IND_WR_EN);
+	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
 #ifdef XSERVER_LIBPCIACCESS
 	CARD32 tmp = addr | RS69_MC_IND_WR_EN;
@@ -2622,15 +2590,17 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 CARD32
 _RHDReadPLL(int scrnIndex, CARD16 offset)
 {
-    _RHDRegWrite(scrnIndex, CLOCK_CNTL_INDEX, (offset & PLL_ADDR));
-    return _RHDRegRead(scrnIndex, CLOCK_CNTL_DATA);
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    RHDRegWrite(rhdPtr, CLOCK_CNTL_INDEX, (offset & PLL_ADDR));
+    return RHDRegRead(rhdPtr, CLOCK_CNTL_DATA);
 }
 
 void
 _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
 {
-    _RHDRegWrite(scrnIndex, CLOCK_CNTL_INDEX, (offset & PLL_ADDR) | PLL_WR_EN);
-    _RHDRegWrite(scrnIndex, CLOCK_CNTL_DATA, data);
+    RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
+    RHDRegWrite(rhdPtr, CLOCK_CNTL_INDEX, (offset & PLL_ADDR) | PLL_WR_EN);
+    RHDRegWrite(rhdPtr, CLOCK_CNTL_DATA, data);
 }
 
 #ifdef ATOM_BIOS
