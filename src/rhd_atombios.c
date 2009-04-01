@@ -1550,7 +1550,7 @@ rhdAtomEncoderControl(atomBiosHandlePtr handle, enum atomEncoder EncoderId,
 				lvds->ucTemporal |= PANEL_ENCODER_TEMPORAL_DITHER_EN;
 				break;
 			}
-			switch (Config->u.lvds2.SpatialDither)
+			if (Config->u.lvds2.SpatialDither)
 			    lvds->ucSpatial |= PANEL_ENCODER_SPATIAL_DITHER_EN;
 		    }
 
