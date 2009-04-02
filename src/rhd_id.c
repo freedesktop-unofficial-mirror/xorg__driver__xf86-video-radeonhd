@@ -237,6 +237,8 @@ const PCI_ID_LIST = {
     RHD_DEVICE_MATCH(  0x9456, RHD_RV770 ), /* Denali ATI FirePro Graphics Accelerator  */
     RHD_DEVICE_MATCH(  0x945A, RHD_M98 ), /* M98 */
     RHD_DEVICE_MATCH(  0x945B, RHD_M98 ), /* M98 */
+    RHD_DEVICE_MATCH(  0x9460, RHD_RV770 ), /* RV790 */
+    RHD_DEVICE_MATCH(  0x9462, RHD_RV770 ), /* RV790 */
     RHD_DEVICE_MATCH(  0x946A, RHD_M98 ), /* M98 */
     RHD_DEVICE_MATCH(  0x946B, RHD_M98 ), /* M98 */
     RHD_DEVICE_MATCH(  0x947A, RHD_M98 ), /* M98 */
