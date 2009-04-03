@@ -383,10 +383,10 @@ extern Bool RHDUseAtom(RHDPtr rhdPtr, enum RHD_CHIPSETS *BlackList, enum atomSub
 #define RHDRegMask(ptr, offset, value, mask)	\
 do {						\
     CARD32 tmp;					\
-    tmp = RHDRegRead(ptr, offset);		\
-    tmp &= ~mask;				\
-    tmp |= (value & mask);			\
-    RHDRegWrite(ptr, offset, tmp);		\
+    tmp = RHDRegRead((ptr), (offset));		\
+    tmp &= ~(mask);				\
+    tmp |= ((value) & (mask));			\
+    RHDRegWrite((ptr), (offset), tmp);		\
 } while(0)
 
 extern CARD32 _RHDReadMC(int scrnIndex, CARD32 addr);
