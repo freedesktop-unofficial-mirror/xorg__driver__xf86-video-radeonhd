@@ -30,9 +30,7 @@ has the following limitations:
 .\".TP "\w'\fB\(bu\fR'u+1n"
 .TP 2
 \(bu
-On R6xx and R7xx based cards:
-.B NO
-support for hardware-based 2D & 3D acceleration, no support for Xvideo.
+Support for hardware-based 2D acceleration and Xvideo needs more testing on R6xx and R7xx based cards.
 .TP
 \(bu
 No TV and Component connector support so far.
