@@ -2003,8 +2003,6 @@ RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn)
     RHDPtr         rhdPtr  = RHDPTR(pScrn);
     struct rhdDri *rhdDRI    = rhdPtr->dri;
 
-    RHDFUNC(rhdPtr);
-
     if (!rhdDRI->gartLocation)
         return 0;
 
