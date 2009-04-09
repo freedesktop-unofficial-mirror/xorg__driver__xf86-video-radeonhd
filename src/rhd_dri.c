@@ -1629,10 +1629,6 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	RHDSetAgpBase(rhdDRI, pScreen);
     }
 
-    if ( (ret = drmCommandNone(rhdDRI->drmFD, DRM_RADEON_CP_RESUME)) )
-	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "%s: CP resume %d\n", __func__, ret);
-
     /* TODO: maybe using CP_INIT instead of CP_RESUME is enough, so we wouldn't
      * need an additional copy of the GART table in main memory. OTOH the table
      * must be initialized but not allocated anew. */
@@ -1643,7 +1639,9 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 
     RHDDRISetVBlankInterrupt(pScrn, rhdDRI->have3Dwindows);
 
-    DRIUnlock(pScrn->pScreen);
+    if ( (ret = drmCommandNone(rhdDRI->drmFD, DRM_RADEON_CP_RESUME)) )
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "%s: CP resume %d\n", __func__, ret);
 }
 
 /* Stop all before vt switch / suspend */

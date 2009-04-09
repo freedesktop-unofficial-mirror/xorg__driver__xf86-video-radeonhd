@@ -1448,6 +1448,12 @@ RHDEnterVT(int scrnIndex, int flags)
 	RHDCSIdle(rhdPtr->CS);
     }
 
+#ifdef USE_DRI
+    if (rhdPtr->dri) {
+        DRIUnlock(pScrn->pScreen);
+    }
+#endif
+
     return TRUE;
 }
 
