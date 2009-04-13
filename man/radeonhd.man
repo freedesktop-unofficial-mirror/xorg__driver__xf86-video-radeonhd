@@ -415,7 +415,7 @@ mailing list.
 .TP
 .BI "Option \*qAudio\*q \*q" boolean \*q
 This option enables the audio hardware, which is responsible for delivering audio data
-to the different HDMI capable conntectors and used to communicate with the audio
+to the different HDMI capable connectors and used to communicate with the audio
 driver of the operation system. The default is
 .BR off .
 .TP
@@ -619,7 +619,7 @@ int32
 .RS
 .PD
 .PP
-Specifies the backlight intensity on laptop panels, if controlable by the driver.
+Specifies the backlight intensity on laptop panels, if controllable by the driver.
 .RE
 .TP
 .B _Coherent
