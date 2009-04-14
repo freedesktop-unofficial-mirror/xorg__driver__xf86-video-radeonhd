@@ -25,6 +25,10 @@
 #ifndef RHD_MC_H
 # define RHD_MC_H
 
+/* seriously ?! @#$%% */
+# define uint32_t CARD32
+# define uint64_t CARD64
+
 extern void RHDMCInit(RHDPtr rhdPtr);
 extern void RHDMCDestroy(RHDPtr rhdPtr);
 extern void RHDMCSave(RHDPtr rhdPtr);
