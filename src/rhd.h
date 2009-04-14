@@ -81,7 +81,7 @@ enum RHD_CHIPSETS {
     RHD_M72,
     RHD_M74,
     RHD_M76,
-    /* RV670 came into existence after RV6x0 and M7x */
+    /* R600 second batch - RV670 came into existence after RV6x0 and M7x */
     RHD_RV670,
     RHD_M88,
     RHD_R680,
@@ -92,11 +92,17 @@ enum RHD_CHIPSETS {
     RHD_RS780,
     RHD_RS880,
     RHD_RV770,
+    /* R700 */
     RHD_R700,
     RHD_M98,
     RHD_RV730,
     RHD_M96,
     RHD_RV710,
+    RHD_M92,
+    RHD_M93,
+    RHD_M97,
+    RHD_RV790,
+    RHD_RV740,
     RHD_CHIP_END
 };
 

@@ -166,23 +166,38 @@ RS740, RS740M
 .B RS780
 Radeon HD 3100/3200/3300 Series
 .TP 8
-.B RV770
-Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
-.TP 8
 .B R700
 Radeon R700
 .TP 8
-.B M98
-Radeon M98 Mobility
+.B RV710
+Radeon HD4570, HD4350
 .TP 8
 .B RV730
 Radeon HD4670, HD4650
 .TP 8
-.B M96
-Radeon M96 Mobility
+.B RV740
+Radeon HD4770. EXPERIMENTAL AND UNTESTED
 .TP 8
-.B RV710
-Radeon HD4570, HD4350
+.B RV770
+Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
+.TP 8
+.B RV790
+Radeon HD 4890
+.TP 8
+.B M92
+Mobility Radeon HD4330, HD4530, HD4570. EXPERIMENTAL
+.TP 8
+.B M93
+Mobility Radeon M93. EXPERIMENTAL AND UNTESTED
+.TP 8
+.B M96
+Mobility Radeon HD4600
+.TP 8
+.B M97
+Mobility Radeon HD4860. EXPERIMENTAL AND UNTESTED
+.TP 8
+.B M98
+Mobility Radeon HD4850, HD4870
 .\" END_DEVICE_LIST marker - do not delete
 .PD
 .\"

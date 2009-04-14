@@ -72,12 +72,17 @@ BEGIN_DEVICE_LIST
   * RS690:	Radeon X1200, X1250, X1270
   * RS740:	RS740, RS740M
   * RS780:	Radeon HD 3100/3200/3300 Series
-  * RV770:	Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
   * R700:	Radeon R700
-  * M98:	Radeon M98 Mobility
-  * RV730:	Radeon HD4670, HD4650
-  * M96:	Radeon M96 Mobility
   * RV710:	Radeon HD4570, HD4350
+  * RV730:	Radeon HD4670, HD4650
+  * RV740:	Radeon HD4770. EXPERIMENTAL AND UNTESTED
+  * RV770:	Radeon HD 4800 Series; Everest, K2, Denali ATI FirePro
+  * RV790:	Radeon HD 4890
+  * M92:	Mobility Radeon HD4330, HD4530, HD4570. EXPERIMENTAL
+  * M93:	Mobility Radeon M93. EXPERIMENTAL AND UNTESTED
+  * M96:	Mobility Radeon HD4600
+  * M97:	Mobility Radeon HD4860. EXPERIMENTAL AND UNTESTED
+  * M98:	Mobility Radeon HD4850, HD4870
 END_DEVICE_LIST
 
 
