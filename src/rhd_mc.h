@@ -25,9 +25,9 @@
 #ifndef RHD_MC_H
 # define RHD_MC_H
 
-/* seriously ?! @#$%% */
-# define uint32_t CARD32
-# define uint64_t CARD64
+/* to be fixed for good !@#$ */
+#include <stdint.h>
+#define CARD64 uint64_t
 
 extern void RHDMCInit(RHDPtr rhdPtr);
 extern void RHDMCDestroy(RHDPtr rhdPtr);

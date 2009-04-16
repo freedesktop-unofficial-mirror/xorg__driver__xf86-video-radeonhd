@@ -61,6 +61,7 @@
 #include "xf86.h"
 
 #include "rhd.h"
+#include "rhd_mc.h"
 #include "rhd_regs.h"
 #include "rhd_crtc.h" /* for definition of Crtc->Id */
 
