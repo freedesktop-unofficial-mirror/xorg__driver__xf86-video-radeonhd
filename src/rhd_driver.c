@@ -117,6 +117,7 @@
 #include "rhd_randr.h"
 #include "rhd_cs.h"
 #include "rhd_audio.h"
+#include "rhd_pm.h"
 #include "r5xx_accel.h"
 #include "rhd_video.h"
 
@@ -252,7 +253,9 @@ typedef enum {
     OPTION_UNVERIFIED_FEAT,
     OPTION_AUDIO,
     OPTION_HDMI,
-    OPTION_COHERENT
+    OPTION_COHERENT,
+    OPTION_FORCE_LOW_POWER,
+    OPTION_LOW_POWER_CLOCK
 } RHDOpts;
 
 static const OptionInfoRec RHDOptions[] = {
@@ -282,6 +285,8 @@ static const OptionInfoRec RHDOptions[] = {
     { OPTION_AUDIO,		   "Audio",	           OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_HDMI,		   "HDMI",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_COHERENT,             "COHERENT",		   OPTV_ANYSTR,  {0}, FALSE },
+    { OPTION_FORCE_LOW_POWER,      "ForceLowPowerMode",    OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_LOW_POWER_CLOCK,      "LowPowerModeEngineClock", OPTV_INTEGER, {0}, FALSE },
     { -1, NULL, OPTV_NONE,	{0}, FALSE }
 };
 
@@ -1125,6 +1130,25 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     /* must be after RGB ordering fixed */
     fbPictureInit(pScreen, 0, 0);
     xf86SetBlackWhitePixels(pScreen);
+
+    /* Static power management */
+    if (rhdPtr->lowPowerMode.val.bool) {
+        if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
+            rhdPtr->lowPowerModeEngineClock.val.integer = RHDGetDefaultEngineClock(rhdPtr) / 2;
+        }
+
+        if (rhdPtr->lowPowerModeEngineClock.val.integer) {
+            xf86DrvMsg(scrnIndex, X_INFO, "Force low power mode: engine clock at %dHz\n",
+                       rhdPtr->lowPowerModeEngineClock.val.integer);
+            RHDSetEngineClock(rhdPtr, rhdPtr->lowPowerModeEngineClock.val.integer);
+
+            /* Induce logging of new engine clock */
+            RHDGetEngineClock(rhdPtr);
+        } else {
+            xf86DrvMsg(scrnIndex, X_WARNING,
+                       "ForceLowPowerMode disabled: could not determine default engine clock\n");
+        }
+    }
 
 #ifdef USE_DRI
     if (DriScreenInited)
@@ -2820,6 +2844,11 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->hdmi, "none");
     RhdGetOptValString(rhdPtr->Options, OPTION_COHERENT,
 		       &rhdPtr->coherent, NULL);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_FORCE_LOW_POWER,
+                        &rhdPtr->lowPowerMode, FALSE);
+    RhdGetOptValInteger(rhdPtr->Options, OPTION_LOW_POWER_CLOCK,
+                        &rhdPtr->lowPowerModeEngineClock, 0);
+
 #ifdef ATOM_BIOS
     rhdParseAtomBIOSUsage(pScrn);
 #endif

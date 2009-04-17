@@ -247,6 +247,8 @@ typedef struct RHDRec {
     RHDOpt		audio;
     RHDOpt		hdmi;
     RHDOpt		coherent;
+    RHDOpt              lowPowerMode;
+    RHDOpt              lowPowerModeEngineClock;
     enum RHD_HPD_USAGE	hpdUsage;
     unsigned int        FbMapSize;
     pointer             FbBase;   /* map base of fb   */
