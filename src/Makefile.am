@@ -76,6 +76,8 @@ radeonhd_drv_la_SOURCES = \
 	rhd_output.h \
 	rhd_pll.c \
 	rhd_pll.h \
+	rhd_pm.c \
+	rhd_pm.h \
 	rhd_randr.c \
 	rhd_randr.h \
 	rhd_regs.h \
