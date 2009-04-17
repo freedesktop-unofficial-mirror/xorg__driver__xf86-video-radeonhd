@@ -1899,21 +1899,13 @@ rhdUnmapFB(RHDPtr rhdPtr)
     if (!rhdPtr->FbBase)
 	return;
 
-    switch (rhdPtr->ChipSet) {
-   	case RHD_RS690:
-	case RHD_RS740:
-	    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
-			    rhdPtr->FbMapSize);
-	    break;
-	default:
 #ifdef XSERVER_LIBPCIACCESS
-	    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->FbBase,
-				   rhdPtr->FbMapSize);
+    pci_device_unmap_range(rhdPtr->PciInfo, (pointer)rhdPtr->FbBase,
+			   rhdPtr->FbMapSize);
 #else
-	    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
-			    rhdPtr->FbMapSize);
+    xf86UnMapVidMem(rhdPtr->scrnIndex, (pointer)rhdPtr->FbBase,
+		    rhdPtr->FbMapSize);
 #endif
-    }
 
     rhdPtr->FbBase = NULL;
 }
