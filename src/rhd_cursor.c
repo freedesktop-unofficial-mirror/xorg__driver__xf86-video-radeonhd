@@ -89,6 +89,15 @@ setCursorPos(struct rhdCursor *Cursor, CARD32 x, CARD32 y,
 }
 
 static void
+setCursorSize(struct rhdCursor *Cursor, CARD32 width, CARD32 height)
+{
+    ASSERT ((width  > 0) && (width  <= MAX_CURSOR_WIDTH));
+    ASSERT ((height > 0) && (height <= MAX_CURSOR_HEIGHT));
+    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE,
+		(width - 1) << 16 | (height - 1));
+}
+
+static void
 enableCursor(struct rhdCursor *Cursor, Bool Enable)
 {
     if (Enable)
@@ -106,10 +115,6 @@ setCursorImage(struct rhdCursor *Cursor)
 
     RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SURFACE_ADDRESS,
 		rhdPtr->FbIntAddress + Cursor->Base);
-    ASSERT ((Cursor->Width > 0) && (Cursor->Width  <= MAX_CURSOR_WIDTH));
-    ASSERT ((Cursor->Height > 0) && (Cursor->Height <= MAX_CURSOR_HEIGHT));
-    RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_SIZE,
-		(Cursor->Width - 1) << 16 | (Cursor->Height - 1));
 }
 
 /* Upload image.
@@ -204,6 +209,9 @@ convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
 	    } else
 		*d++ = 0;
 	}
+	/* Add one empty column for dynamic width adaption (cursor corruption) */
+	if (bits->width < MAX_CURSOR_WIDTH)
+	    *d++ = 0;
 	src  += srcPitch;
 	mask += srcPitch;
 	dest += MAX_CURSOR_WIDTH;
@@ -212,38 +220,59 @@ convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
 
 /* Enable/disable cursor according to visibility, and set cursor pos */
 static void
-displayCursor(struct rhdCrtc *Crtc)
+displayCursor(struct rhdCrtc *Crtc, int active)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
 
-    /* Hardware doesn't allow negative cursor pos. Use hardware
-     * hotspot support for that. Cannot exceed width, but cursor is
-     * not visible in this case. */
-
-    /* xorg bug#13405: Cursor corruptions
-     * With both CRTC enabled but HW cursor active only on one, the reported
-     * corruption is seen. If HW cursor for both CRTC is forced to stay on, then no
-     * corruption occurs. */
-#if 0
-    if (Cursor->X >= Crtc->X - Cursor->Width  &&
+    if (active                                &&
+	Cursor->X >= Crtc->X - Cursor->Width  &&
 	Cursor->X <  Crtc->X + Crtc->Width    &&
 	Cursor->Y >= Crtc->Y - Cursor->Height &&
 	Cursor->Y <  Crtc->Y + Crtc->Height) {
-#endif
-	int X, Y, HotX, HotY;
 
+	int X, Y, HotX, HotY;
+	int width, cursor_end, frame_end;
+
+	/* Hardware doesn't allow negative cursor pos. Use hardware hotspot
+	 * support for that. Cannot exceed width, but cursor is not visible
+	 * in this case. */
 	X = Cursor->X >= 0 ? Cursor->X : 0;
 	Y = Cursor->Y >= 0 ? Cursor->Y : 0;
 	HotX = Cursor->X >= 0 ? 0 : -Cursor->X;
 	HotY = Cursor->Y >= 0 ? 0 : -Cursor->Y;
 
-	enableCursor(Cursor, TRUE);
-	setCursorPos(Cursor, X, Y, HotX, HotY);
-#if 0
+	/* set cursor size
+	 * Related to xorg bug#13405 (Cursor corruptions)
+	 * Apparently the cursor image cannot end on a multiple of 128 pixels.
+	 * Also, for panning, the end of the cursor image cannot extend past
+	 * the end of the viewport. */
+	width      =             Cursor->Width;
+	cursor_end = Cursor->X + width;
+	frame_end  = Crtc->X   + Crtc->Width;
+
+	if (cursor_end > frame_end) {
+	    width     -= cursor_end - frame_end;
+	    cursor_end = Cursor->X + width;
+	}
+	if (! (cursor_end & 0x7f)) {
+	    if (width >= MAX_CURSOR_WIDTH || cursor_end + 1 > frame_end)
+		width--;
+	    else
+		width++;
+	}
+	if (width <= 0) {
+	    width = 1;
+	    X++;
+	}
+
+	enableCursor  (Cursor, TRUE);
+	setCursorPos  (Cursor, X, Y, HotX, HotY);
+	setCursorSize (Cursor, width, Cursor->Height);
+
     } else
-	enableCursor(Cursor, FALSE);
-#endif
+	enableCursor (Cursor, FALSE);
 }
+
 
 /*
  * Internal Driver + Xorg Interface
@@ -262,7 +291,7 @@ rhdShowCursor(ScrnInfoPtr pScrn)
 	    struct rhdCursor *Cursor = Crtc->Cursor;
 
 	    lockCursor   (Cursor, TRUE);
-	    displayCursor(Crtc);
+	    displayCursor(Crtc,   TRUE);
 	    lockCursor   (Cursor, FALSE);
 	}
     }
@@ -344,8 +373,7 @@ rhdReloadCursor(ScrnInfoPtr pScrn)
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
-	    if (Crtc->Active)
-		displayCursor(Crtc);
+	    displayCursor    (Crtc,   Crtc->Active);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -371,7 +399,7 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 	    Cursor->Y = y + pScrn->frameY0;
 
 	    lockCursor   (Cursor, TRUE);
-	    displayCursor(Crtc);
+	    displayCursor(Crtc,   TRUE);
 	    lockCursor   (Cursor, FALSE);
 	}
     }
@@ -402,6 +430,7 @@ rhdSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
+	    displayCursor    (Crtc,   Crtc->Active);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -430,6 +459,7 @@ rhdLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
+	    displayCursor    (Crtc,   Crtc->Active);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -455,10 +485,15 @@ rhdLoadCursorARGB(ScrnInfoPtr pScrn, CursorPtr cur)
     rhdPtr->CursorBits   = NULL;
 
     /* Hardware only supports 64-wide cursor images. */
-    for (i = 0; i < cur->bits->height; i++)
-	memcpy(rhdPtr->CursorImage + MAX_CURSOR_WIDTH*i,
+    for (i = 0; i < cur->bits->height; i++) {
+	CARD32 *img = rhdPtr->CursorImage + MAX_CURSOR_WIDTH*i;
+	memcpy(img,
 	       cur->bits->argb + cur->bits->width*i,
 	       cur->bits->width*4);
+	/* Add one empty column for dynamic width adaption (cursor corruption) */
+	if (cur->bits->width < MAX_CURSOR_WIDTH)
+	    img[cur->bits->width] = 0;
+    }
 
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
@@ -472,6 +507,7 @@ rhdLoadCursorARGB(ScrnInfoPtr pScrn, CursorPtr cur)
 	    lockCursor       (Cursor, TRUE);
 	    uploadCursorImage(Cursor, rhdPtr->CursorImage);
 	    setCursorImage   (Cursor);
+	    displayCursor    (Crtc,   Crtc->Active);
 	    lockCursor       (Cursor, FALSE);
 	}
     }
@@ -590,7 +626,7 @@ rhdCrtcShowCursor(struct rhdCrtc *Crtc)
     struct rhdCursor *Cursor = Crtc->Cursor;
 
     lockCursor   (Cursor, TRUE);
-    displayCursor(Crtc);
+    displayCursor(Crtc,   TRUE);
     lockCursor   (Cursor, FALSE);
 }
 
@@ -618,7 +654,7 @@ rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
     Cursor->Y = y;
 
     lockCursor   (Cursor, TRUE);
-    displayCursor(Crtc);
+    displayCursor(Crtc,   TRUE);
     lockCursor   (Cursor, FALSE);
 }
 
@@ -648,6 +684,7 @@ rhdCrtcLoadCursorARGB(struct rhdCrtc *Crtc, CARD32 *Image)
     lockCursor       (Cursor, TRUE);
     uploadCursorImage(Cursor, Image);
     setCursorImage   (Cursor);
+    displayCursor    (Crtc,   Crtc->Active);
     lockCursor       (Cursor, FALSE);
 }
 
