@@ -503,7 +503,7 @@ main(int argc, char *argv[])
 		i--;
 		ret = 0;
 	    }
-	    
+
 	    if (addr > 1) ret = 0;
 	    if (ret != 1) {
 		print_help(argv[0], "Invalid LUT id:", argv[i]);
@@ -565,7 +565,7 @@ main(int argc, char *argv[])
     }
 
     /* Map into CPU memory space the required PCI memory */
-    
+
 #ifdef XSERVER_LIBPCIACCESS
     pci_device_probe(device);
 

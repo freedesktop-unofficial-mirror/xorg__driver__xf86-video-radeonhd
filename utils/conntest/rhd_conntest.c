@@ -2469,7 +2469,7 @@ GetBIOS_from_PCI(struct RHDDevice *rhdDevice, struct pci_device *dev, void *io, 
         save_ctxsw_vid_lower_gpio_cntl = RegRead(io, CTXSW_VID_LOWER_GPIO_CNTL);
         save_lower_gpio_en             = RegRead(io, LOWER_GPIO_ENABLE);
     }
-    
+
     /* Set SPI ROM prescale value to change the SCK period */
     if (rhdDevice->type < RHD_R600)
         RegMask(io, SEPROM_CNTL1, 0x0C << 24, SCK_PRESCALE);
@@ -2503,7 +2503,7 @@ GetBIOS_from_PCI(struct RHDDevice *rhdDevice, struct pci_device *dev, void *io, 
 
     /* Read the ROM */
 
-    *size = (dev->rom_size > 0) ? dev->rom_size : 0x20000; 
+    *size = (dev->rom_size > 0) ? dev->rom_size : 0x20000;
 
     rombase =  malloc((size_t)*size);
 
@@ -2922,7 +2922,7 @@ main(int argc, char *argv[])
 	}
 
 #ifdef XSERVER_LIBPCIACCESS
-	printf("Found card: %s - %s\n", 
+	printf("Found card: %s - %s\n",
 	       pci_device_get_vendor_name(device),
 	       pci_device_get_device_name(device));
 #endif
