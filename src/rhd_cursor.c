@@ -625,10 +625,9 @@ void
 rhdCrtcShowCursor(struct rhdCrtc *Crtc)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
-
-    lockCursor   (Cursor, TRUE);
-    displayCursor(Crtc,   TRUE);
-    lockCursor   (Cursor, FALSE);
+    lockCursor  (Cursor, TRUE);
+    enableCursor(Cursor, TRUE);
+    lockCursor  (Cursor, FALSE);
 }
 
 /*
@@ -651,11 +650,26 @@ void
 rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
+    int hotx, hoty;
+
     Cursor->X = x;
     Cursor->Y = y;
 
+    hotx = 0;
+    hoty = 0;
+
+    /* Hardware doesn't allow negative cursor pos; compensate using hotspot */
+    if (x < 0) {
+        hotx = -x;
+        x = 0;
+    }
+    if (y < 0) {
+        hoty = -y;
+        y = 0;
+    }
+
     lockCursor   (Cursor, TRUE);
-    displayCursor(Crtc,   TRUE);
+    setCursorPos (Cursor, x, y, hotx, hoty);
     lockCursor   (Cursor, FALSE);
 }
 
@@ -679,13 +693,14 @@ rhdCrtcLoadCursorARGB(struct rhdCrtc *Crtc, CARD32 *Image)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
 
+    /* X server always loads cursors that are the maximum allowed size */
     Cursor->Width = MAX_CURSOR_WIDTH;
     Cursor->Height = MAX_CURSOR_HEIGHT;
 
     lockCursor       (Cursor, TRUE);
     uploadCursorImage(Cursor, Image);
     setCursorImage   (Cursor);
-    displayCursor    (Crtc,   Crtc->Active);
+    setCursorSize    (Cursor, Cursor->Width, Cursor->Height);
     lockCursor       (Cursor, FALSE);
 }
 
