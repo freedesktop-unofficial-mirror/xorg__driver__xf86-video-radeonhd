@@ -30,7 +30,8 @@ has the following limitations:
 .\".TP "\w'\fB\(bu\fR'u+1n"
 .TP 2
 \(bu
-Support for hardware-based 2D acceleration and Xvideo needs more testing on R6xx and R7xx based cards.
+Support for hardware-based 2D acceleration and Xvideo needs more testing on
+R6xx and R7xx based cards.
 .TP
 \(bu
 No TV and Component connector support so far.
@@ -422,18 +423,19 @@ driver of the operation system. The default is
 .BI "Option \*qHDMI\*q \*q" string \*q
 Possible values are "DVI-I_0", "DVI-I_1"..,"DVI-D_0","DVI-I_1",.., "all".
 This option enables HDMI-Audio and HDMI-Info packets on the specified connector.
-This is the only way enabling HDMI at the moment, since decoding E-EDID data to check if monitor supports HDMI is not implemented (yet).
+This is the only way enabling HDMI at the moment, since decoding E-EDID data
+to check if monitor supports HDMI is not implemented (yet).
 .TP
 .BI "Option \*qCoherent\*q \*q" string \*q
 There are two different ways to program the TMDS encoder in an output
-for best signal quality for the transmitter chip used inside a digital 
-monitor. This option may be used to set the programming for each output 
+for best signal quality for the transmitter chip used inside a digital
+monitor. This option may be used to set the programming for each output
 individually. The string is a space separated list of
-.B <output_transmitter>=on|off. 
-Possible  values for 
-.B <output_transmitter> 
-are: 
-.B TMDS_A, 
+.B <output_transmitter>=on|off.
+Possible  values for
+.B <output_transmitter>
+are:
+.B TMDS_A,
 .B TMDS_B,
 .B UNIPHY_A,
 .B UNIPHY_B,
@@ -441,14 +443,14 @@ are:
 .B AtomOutputLVTMA,
 .B AtomOutputKldskpLvtma,
 .B AtomOutputUniphyA,
-.B  AtomOutputUniphyB. 
-The log file should be consulted 
+.B  AtomOutputUniphyB.
+The log file should be consulted
 on which ones to use. The line:
 .B "Option \*qCoherent\*q \*qTMDS_A=off TMDS_B=on\*q"
-will set coherent mode to 
-.B off 
-for TMDS A and to 
-.B on 
+will set coherent mode to
+.B off
+for TMDS A and to
+.B on
 for TMDS B.
 The default for all outputs is
 .BR off .
@@ -487,11 +489,13 @@ This option isn't implemented yet and has no effect.
 .PD
 .TP
 .BI "Option \*qForceLowPowerMode\*q \*q" boolean \*q
-Enable to statically set GPU engine clock to a lower than default value. This can help reduce power consumption. The default is
+Enable to statically set GPU engine clock to a lower than default value. This
+can help reduce power consumption. The default is
 .B off.
 .TP
 .BI "Option \*qLowPowerModeEngineClock\*q \*q" integer \*q
-Engine clock frequency to use when ForceLowPowerMode is enabled, in Hz. If not set, half of default clock frequency is used.
+Engine clock frequency to use when ForceLowPowerMode is enabled, in Hz. If not
+set, half of default clock frequency is used.
 .\"
 .\"
 .SH RANDR OUTPUT PROPERTIES
@@ -699,5 +703,6 @@ Query the bugtracker for radeonhd bugs
 .\"
 .\"
 .SH AUTHORS
-Egbert Eich, Luc Verhaegen, Matthias Hopf, Hans Ulrich Niedermann, Christian Koenig, Alexander Deucher, and others.
+Egbert Eich, Luc Verhaegen, Matthias Hopf, Hans Ulrich Niedermann,
+Christian Koenig, Alexander Deucher, and others.
 .\" vim: syntax=nroff
