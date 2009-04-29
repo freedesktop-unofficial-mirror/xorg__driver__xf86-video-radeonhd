@@ -485,6 +485,13 @@ This option isn't implemented yet and has no effect.
 .RE
 .PP
 .PD
+.TP
+.BI "Option \*qForceLowPowerMode\*q \*q" boolean \*q
+Enable to statically set GPU engine clock to a lower than default value. This can help reduce power consumption. The default is
+.B off.
+.TP
+.BI "Option \*qLowPowerModeEngineClock\*q \*q" integer \*q
+Engine clock frequency to use when ForceLowPowerMode is enabled, in Hz. If not set, half of default clock frequency is used.
 .\"
 .\"
 .SH RANDR OUTPUT PROPERTIES
