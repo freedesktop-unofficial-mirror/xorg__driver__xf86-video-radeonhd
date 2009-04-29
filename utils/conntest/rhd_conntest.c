@@ -3006,7 +3006,7 @@ main(int argc, char *argv[])
     io = MapBar(device, rhdDevice->bar, devMem);
     saved_errno = errno;
     close (devMem);
-    if (!io) {
+    if (io == (void *) -1) {
 	fprintf(stderr, "Unable to map IO memory: %s.\n",
 		strerror(saved_errno));
 	return 1;
