@@ -2652,7 +2652,9 @@ print_help(const char* progname, const char* message, const char* msgarg)
 	fprintf(stderr, "Usage: %s [options] PCI-tag\n"
 			"       Options: -d: dumpBios\n"
 #ifdef XSERVER_LIBPCIACCESS
+# if HAVE_PCI_DEVICE_ENABLE
 		        "                -e: enable pci card (not normally needed)\n"
+# endif
 		        "                -r: only attempt BIOS read via PCI ROM\n"
 #endif
 			"                -s: scanDDCBus\n"
@@ -2794,7 +2796,9 @@ main(int argc, char *argv[])
 {
 #ifdef XSERVER_LIBPCIACCESS
     struct pci_device *device = NULL;
+# if HAVE_PCI_DEVICE_ENABLE
     int enable_device;
+# endif
 #else
     struct pci_dev *device = NULL;
     struct pci_access *pciAccess;
@@ -2824,7 +2828,9 @@ main(int argc, char *argv[])
 	return 1;
     }
     /* Default actions */
+# if HAVE_PCI_DEVICE_ENABLE
     enable_device = FALSE;
+# endif
     using_vbios = TRUE;
 #else
     /* init libpci */
@@ -2843,9 +2849,12 @@ main(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
 #ifdef XSERVER_LIBPCIACCESS
+# if HAVE_PCI_DEVICE_ENABLE
 	if (!strncmp("-e", argv[i], 3)) {
 	    enable_device = TRUE;
-	}else if (!strncmp("-r", argv[i], 3)) {
+	}else
+# endif
+	if (!strncmp("-r", argv[i], 3)) {
 	    using_vbios = FALSE;
 	}else
 #endif

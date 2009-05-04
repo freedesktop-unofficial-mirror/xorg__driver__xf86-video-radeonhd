@@ -380,11 +380,13 @@ print_help(const char* progname, const char* message, const char* msgarg)
 {
 	if (message != NULL)
 	    fprintf(stderr, "%s %s\n", message, msgarg);
-#ifdef XSERVER_LIBPCIACCESS
-	fprintf(stderr, "Usage: %s [-e] [-r start,end | -w addr val | -l {0|1}] PCI-tag\n"
+	fprintf(stderr, "Usage: %s "
+#if defined(XSERVER_LIBPCIACCESS) && defined (HAVE_PCI_DEVICE_ENABLE)
+			"[-e] "
+#endif
+			"[-r start,end | -w addr val | -l {0|1}] PCI-tag\n"
+#if defined(XSERVER_LIBPCIACCESS) && defined (HAVE_PCI_DEVICE_ENABLE)
 		        "       -e: enable PCI card (not normally needed)\n"
-#else
-	fprintf(stderr, "Usage: %s [-r start,end | -w addr val | -l {0|1}] PCI-tag\n"
 #endif
 			"       PCI-tag: bus:dev.func\n\n",
 		progname);
@@ -399,7 +401,9 @@ main(int argc, char *argv[])
 {
 #ifdef XSERVER_LIBPCIACCESS
     struct pci_device *device = NULL;
+# if HAVE_PCI_DEVICE_ENABLE
     int enable_device = FALSE;
+# endif
 #else
     struct pci_dev *device = NULL;
     struct pci_access *pciAccess;
@@ -450,9 +454,11 @@ main(int argc, char *argv[])
 
     for (i = 1; i < argc; i++) {
 #ifdef XSERVER_LIBPCIACCESS
+# if HAVE_PCI_DEVICE_ENABLE
 	if (!strncmp("-e", argv[i], 3)) {
 	    enable_device = TRUE;
 	}else
+# endif
 #endif
 	if (!strncmp("-r",argv[i],3)) {
 	    action = READ;
