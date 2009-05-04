@@ -649,8 +649,9 @@ rhdCrtcHideCursor(struct rhdCrtc *Crtc)
 void
 rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
 {
+    RHDPtr rhdPtr = RHDPTRI(Crtc);
     struct rhdCursor *Cursor = Crtc->Cursor;
-    int hotx, hoty;
+    int hotx, hoty, width, cursor_end, frame_end;
 
     Cursor->X = x;
     Cursor->Y = y;
@@ -669,6 +670,36 @@ rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
     }
 
     lockCursor   (Cursor, TRUE);
+
+    /* Work around rare corruption cases by adjusting cursor size;
+     * related to bug #13405
+     * For dual-screen:
+     * - Cursor's right-edge must not end on multiples of 128px.
+     * - For panning, cursor image cannot horizontally extend past end of viewport.
+     */
+    if (rhdPtr->Crtc[0]->Active && rhdPtr->Crtc[1]->Active) {
+        width      = Cursor->Width;
+        cursor_end = x + width;
+        frame_end  = Crtc->X   + Crtc->Width;
+
+        if (cursor_end > frame_end) {
+            width     -= cursor_end - frame_end;
+            cursor_end = x + width;
+        }
+        if (! (cursor_end & 0x7f)) {
+            width--;
+        }
+        /* If the cursor is effectively invisible, move it out of visible area */
+        if (width <= 0) {
+            width = 1;
+            x = 0;
+            y = Crtc->Y + Crtc->Height;
+            hotx = 0;
+            hoty = 0;
+        }
+        setCursorSize(Cursor, width, Cursor->Height);
+    }
+
     setCursorPos (Cursor, x, y, hotx, hoty);
     lockCursor   (Cursor, FALSE);
 }
