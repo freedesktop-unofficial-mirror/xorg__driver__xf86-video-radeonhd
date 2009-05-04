@@ -539,8 +539,10 @@ main(int argc, char *argv[])
 		    bus, dev, func);
 	    return 1;
 	}
+# if HAVE_PCI_DEVICE_ENABLE
 	if (enable_device)
 	    pci_device_enable(device);
+# endif
 #else
 	/* find our toy using pci */
 	device = DeviceLocate(pciAccess->devices, bus, dev, func);
