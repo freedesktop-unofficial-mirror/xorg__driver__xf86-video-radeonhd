@@ -539,6 +539,8 @@ main(int argc, char *argv[])
 		    bus, dev, func);
 	    return 1;
 	}
+	if (enable_device)
+	    pci_device_enable(device);
 #else
 	/* find our toy using pci */
 	device = DeviceLocate(pciAccess->devices, bus, dev, func);
@@ -547,8 +549,6 @@ main(int argc, char *argv[])
 		    bus, dev, func);
 	    return 1;
 	}
-	if (enable_device)
-	    pci_device_enable(device);
 #endif
 
 	rhdDevice = DeviceMatch(device);
