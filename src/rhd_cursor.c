@@ -100,11 +100,12 @@ setCursorSize(struct rhdCursor *Cursor, CARD32 width, CARD32 height)
 static void
 enableCursor(struct rhdCursor *Cursor, Bool Enable)
 {
+    /* Make sure mode stays the same even when disabled; bug #13405 */
     if (Enable)
 	/* pre-multiplied ARGB, Enable */
 	RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL, 0x00000201);
     else
-	RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL, 0);
+	RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_CONTROL, 0x00000200);
 }
 
 /* Activate already uploaded cursor image. */
