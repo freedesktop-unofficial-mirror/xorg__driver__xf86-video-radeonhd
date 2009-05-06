@@ -2688,7 +2688,11 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_DEFAULT) {
 	if (rhdPtr->ChipSet < RHD_R600)
+#ifdef USE_EXA
+            rhdPtr->AccelMethod = RHD_ACCEL_EXA;
+#else
 	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
+#endif /* USE_EXA */
 	else
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
