@@ -1325,9 +1325,16 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 {
     RHDPtr            rhdPtr = RHDPTR(out->scrn);
     rhdRandrOutputPtr rout   = (rhdRandrOutputPtr) out->driver_private;
+    char              buf[256];
 
     RHDFUNC(rhdPtr);
 
+    /* Unfortunately, strings are not necessarily 0 terminated */
+    if (value->type == XA_STRING && value->format == 8) {
+	int len = value->size < 255 ? value->size : 255;
+	memcpy (buf, value->data, len);
+	buf[len] = 0;
+    }
     if (property == atom_PanningArea) {
 	int w = 0, h = 0, x = 0, y = 0;
 	struct rhdCrtc *Crtc = rout->Output->Crtc;
@@ -1347,7 +1354,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	}
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
-	switch (sscanf(value->data, "%dx%d+%d+%d", &w, &h, &x, &y)) {
+	switch (sscanf(buf, "%dx%d+%d+%d", &w, &h, &x, &y)) {
 	case 0:
 	case 2:
 	case 4:
@@ -1410,7 +1417,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
     } else if (property == atom_AtomBIOS) {
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
-	if (rhdUpdateAtomBIOSUsage(rhdPtr, value->data)) {
+	if (rhdUpdateAtomBIOSUsage(rhdPtr, buf)) {
 	    char *string = rhdReturnAtomBIOSUsage(rhdPtr);
 	    RRChangeOutputProperty(out->randr_output, atom_AtomBIOS,
 				   XA_STRING, 8, PropModeReplace,
