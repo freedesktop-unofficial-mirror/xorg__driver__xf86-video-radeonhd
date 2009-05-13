@@ -2640,94 +2640,6 @@ _RHDWritePLL(int scrnIndex, CARD16 offset, CARD32 data)
     RHDRegWrite(rhdPtr, CLOCK_CNTL_DATA, data);
 }
 
-#ifdef ATOM_BIOS
-
-/*
- *
- */
-static int
-rhdGetArg(ScrnInfoPtr pScrn, CARD32 *val, char *ptr)
-{
-    int cnt = 0;
-    if (isspace(*ptr) || *ptr == '=') {
-	ptr++;
-	cnt++;
-    }
-    if (!strncasecmp("off",ptr,3)) {
-	*val = RHD_ATOMBIOS_OFF;
-	return cnt + 3;
-    } else if (!strncasecmp("on",ptr,2)) {
-	*val = RHD_ATOMBIOS_ON;
-	return cnt + 2;
-    } else if (!strncasecmp("force_off",ptr,9)) {
-	*val = RHD_ATOMBIOS_OFF | RHD_ATOMBIOS_FORCE;
-	return cnt + 9;
-    } else if (!strncasecmp("force_on",ptr,8)) {
-	*val = RHD_ATOMBIOS_ON | RHD_ATOMBIOS_FORCE;
-	return cnt + 8;
-    } else
-	return 0;
-}
-
-/*
- *
- */
-static void
-rhdParseAtomBIOSUsage(ScrnInfoPtr pScrn)
-{
-    RHDPtr rhdPtr = RHDPTR(pScrn);
-    RHDOpt atombios;
-
-    RhdGetOptValString(rhdPtr->Options, OPTION_ATOMBIOS,
-		       &atombios, NULL);
-    if (atombios.set) {
-	if (atombios.val.string) {
-	    char *ptr = atombios.val.string;
-	    CARD32 val;
-
-	    while (*ptr != '\0') {
-		int c;
-		while (isspace(*ptr))
-		    ptr++;
-		if (*ptr == '\0')
-		    break;
-
-		if (!strncasecmp("crtc",ptr,4)) {
-		    ptr += 4;
-		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
-			goto parse_error;
-		    ptr += c;
-		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_CRTC);
-		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_CRTC);
-		}
-		else if (!strncasecmp("output",ptr,6)) {
-		    ptr += 6;
-		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
-			goto parse_error;
-		    ptr += c;
-		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_OUTPUT);
-		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_OUTPUT);
-		}
-		else if (!strncasecmp("pll",ptr,3)) {
-		    ptr += 3;
-		    if (!(c = rhdGetArg(pScrn,&val,ptr)))
-			goto parse_error;
-		    ptr += c;
-		    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_PLL);
-		    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_PLL);
-		} else goto parse_error;
-	    }
-	}
-    }
-    return;
-
-parse_error:
-    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Cannot parse AtomBIOS usage string: %s\n",atombios.val.string);
-    rhdPtr->UseAtomFlags = 0;
-}
-
-#endif /* ATOM_BIOS */
-
 /*
  * Apart from handling the respective option, this also tries to map out
  * what method is supported on which chips.
@@ -2821,6 +2733,10 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
     RHDOpt hpd;
+#ifdef ATOM_BIOS
+    RHDOpt atombios;
+#endif
+
     /* Collect all of the relevant option flags (fill in pScrn->options) */
     xf86CollectOptions(pScrn, NULL);
     rhdPtr->Options = xnfcalloc(sizeof(RHDOptions), 1);
@@ -2849,10 +2765,6 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 		       &rhdPtr->scaleTypeOpt, "default");
     RhdGetOptValBool   (rhdPtr->Options, OPTION_UNVERIFIED_FEAT,
 			&rhdPtr->unverifiedFeatures, FALSE);
-#ifdef ATOM_BIOS
-    RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
-			&rhdPtr->UseAtomBIOS, FALSE);
-#endif
     RhdGetOptValBool   (rhdPtr->Options, OPTION_AUDIO,
 			&rhdPtr->audio, TRUE);
     RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,
@@ -2865,8 +2777,17 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
                         &rhdPtr->lowPowerModeEngineClock, 0);
 
 #ifdef ATOM_BIOS
-    rhdParseAtomBIOSUsage(pScrn);
+    RhdGetOptValBool   (rhdPtr->Options, OPTION_USE_ATOMBIOS,
+			&rhdPtr->UseAtomBIOS, FALSE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_ATOMBIOS,
+			&atombios, NULL);
+    if (atombios.set && atombios.val.string) {
+	if (! rhdUpdateAtomBIOSUsage (rhdPtr, atombios.val.string))
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Cannot parse AtomBIOS usage string: %s\n",
+		       atombios.val.string);
+    }
 #endif
+
     rhdAccelOptionsHandle(pScrn);
 
     rhdPtr->hpdUsage = RHD_HPD_USAGE_AUTO;

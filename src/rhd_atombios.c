@@ -442,6 +442,92 @@ CailDebug(int scrnIndex, const char *format, ...)
 
 #  endif
 
+static int
+rhdAtomBIOSGetArg(CARD32 *val, char *ptr)
+{
+    int cnt = 0;
+    if (isspace(*ptr) || *ptr == '=') {
+	ptr++;
+	cnt++;
+    }
+    if (!strncasecmp("off",ptr,3)) {
+	*val = RHD_ATOMBIOS_OFF;
+	return cnt + 3;
+    } else if (!strncasecmp("on",ptr,2)) {
+	*val = RHD_ATOMBIOS_ON;
+	return cnt + 2;
+    } else if (!strncasecmp("force_off",ptr,9)) {
+	*val = RHD_ATOMBIOS_OFF | RHD_ATOMBIOS_FORCE;
+	return cnt + 9;
+    } else if (!strncasecmp("force_on",ptr,8)) {
+	*val = RHD_ATOMBIOS_ON | RHD_ATOMBIOS_FORCE;
+	return cnt + 8;
+    } else
+	return 0;
+}
+
+int
+rhdUpdateAtomBIOSUsage(RHDPtr rhdPtr, char *string)
+{
+    char *ptr = string;
+    CARD32 val;
+
+    while (*ptr != '\0') {
+	int c;
+	while (isspace(*ptr))
+	    ptr++;
+	if (*ptr == '\0')
+	    break;
+
+	if (!strncasecmp("crtc",ptr,4)) {
+	    ptr += 4;
+	    if (!(c = rhdAtomBIOSGetArg(&val,ptr)))
+		return FALSE;
+	    ptr += c;
+	    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_CRTC);
+	    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_CRTC);
+	}
+	else if (!strncasecmp("output",ptr,6)) {
+	    ptr += 6;
+	    if (!(c = rhdAtomBIOSGetArg(&val,ptr)))
+		return FALSE;
+	    ptr += c;
+	    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_OUTPUT);
+	    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_OUTPUT);
+	}
+	else if (!strncasecmp("pll",ptr,3)) {
+	    ptr += 3;
+	    if (!(c = rhdAtomBIOSGetArg(&val,ptr)))
+		return FALSE;
+	    ptr += c;
+	    rhdPtr->UseAtomFlags &= ~((RHD_ATOMBIOS_FORCE | RHD_ATOMBIOS_ON | RHD_ATOMBIOS_OFF) << RHD_ATOMBIOS_PLL);
+	    rhdPtr->UseAtomFlags |= (val << RHD_ATOMBIOS_PLL);
+	} else
+	    return FALSE;
+    }
+    return TRUE;
+}
+
+char *
+rhdReturnAtomBIOSUsage(RHDPtr rhdPtr)
+{
+    char *type[] = { "crtc", "output", "pll", NULL };
+    int  shift[] = { RHD_ATOMBIOS_CRTC, RHD_ATOMBIOS_OUTPUT, RHD_ATOMBIOS_PLL };
+    char *vals[] = { "", "on", "off", "unknown", "unknown", "force_on", "force_off", "unknown" };
+    int  i;
+    char buf[40];
+    char *p = buf;
+
+    for (i = 0; type[i]; i++) {
+	int val = (rhdPtr->UseAtomFlags >> shift[i]) & 0x07;
+	if (val)
+	    p += sprintf (p, "%s=%s ", type[i], vals[val]);
+    }
+    if (p != buf)
+	*--p = 0;
+    return strdup(buf);
+}
+
 #  define DEBUG_VERSION(index, handle, version) \
     xf86DrvMsgVerb(handle->scrnIndex, X_INFO, 3, "%s returned version %i for index 0x%x\n" ,__func__,version.cref,index)
 #  define DEBUG_VERSION_NAME(index, handle, name, version)		\

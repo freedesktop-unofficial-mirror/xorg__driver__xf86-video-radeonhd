@@ -492,6 +492,9 @@ struct atomCrtcBlank {
     unsigned short r, g, b;
 };
 
+extern int rhdUpdateAtomBIOSUsage(RHDPtr rhdPtr, char *string);
+extern char *rhdReturnAtomBIOSUsage(RHDPtr rhdPtr);
+
 extern AtomBiosResult RHDAtomBiosFunc(int scrnIndex, atomBiosHandlePtr handle,
 		AtomBiosRequestID id, AtomBiosArgPtr data);
 
