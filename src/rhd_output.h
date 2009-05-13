@@ -115,6 +115,7 @@ void RHDOutputsRestore(RHDPtr rhdPtr);
 void RHDOutputsDestroy(RHDPtr rhdPtr);
 void RHDOutputPrintSensedType(struct rhdOutput *Output);
 void RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connector);
+int RHDOutputTmdsIndex(struct rhdOutput *Output);
 
 /* output local functions. */
 struct rhdOutput *RHDDACAInit(RHDPtr rhdPtr);

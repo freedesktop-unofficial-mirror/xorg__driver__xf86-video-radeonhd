@@ -241,27 +241,21 @@ RHDAudioSetClock(RHDPtr rhdPtr, struct rhdOutput* Output, CARD32 Clock)
 	    break;
 
 	default:
+	    xf86DrvMsg(Audio->scrnIndex, X_ERROR, "%s: unsupported output type\n", __func__);
 	    break;
     }
 
-    switch(Output->Id) {
-	case RHD_OUTPUT_TMDSA:
-	case RHD_OUTPUT_UNIPHYA:
+    switch(RHDOutputTmdsIndex(Output)) {
+	case 0:
 	    RHDRegWrite(Audio, AUDIO_PLL1_MUL, Rate*50);
 	    RHDRegWrite(Audio, AUDIO_PLL1_DIV, Clock*100);
 	    RHDRegWrite(Audio, AUDIO_CLK_SRCSEL, 0);
 	    break;
 
-	case RHD_OUTPUT_LVTMA:
-	case RHD_OUTPUT_UNIPHYB:
-	case RHD_OUTPUT_KLDSKP_LVTMA:
+	case 1:
 	    RHDRegWrite(Audio, AUDIO_PLL2_MUL, Rate*50);
 	    RHDRegWrite(Audio, AUDIO_PLL2_DIV, Clock*100);
 	    RHDRegWrite(Audio, AUDIO_CLK_SRCSEL, 1);
-	    break;
-
-	default:
-	    xf86DrvMsg(Audio->scrnIndex, X_ERROR, "%s: unsupported output type\n", __func__);
 	    break;
     }
 }
@@ -375,7 +369,9 @@ RHDAudioRestore(RHDPtr rhdPtr)
         return;
     }
 
-    /* shoutdown the audio engine before doing anything else */
+    /* 
+     * Shutdown the audio engine before doing anything else.
+     */
     RHDAudioSetEnable(rhdPtr, FALSE);
 
     RHDRegWrite(Audio, AUDIO_TIMING, Audio->StoreTiming);

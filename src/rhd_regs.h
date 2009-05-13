@@ -1113,7 +1113,10 @@ enum {
     HDMI_IEC60958_1       = 0xd4,
     HDMI_IEC60958_2       = 0xd8,
     HDMI_UNKNOWN_2        = 0xdc,
-    HDMI_AUDIO_DEBUG      = 0xe0
+    HDMI_AUDIO_DEBUG_0    = 0xe0,
+    HDMI_AUDIO_DEBUG_1    = 0xe4,
+    HDMI_AUDIO_DEBUG_2    = 0xe8,
+    HDMI_AUDIO_DEBUG_3    = 0xec
 };
 
 #endif /* _RHD_REGS_H */

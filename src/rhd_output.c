@@ -261,3 +261,41 @@ RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connecto
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Failed to %s HDMI on %s\n", val.Bool ? "disable" : "enable", Output->Name);
     }
 }
+
+/*
+ * Returns the TMDS index of the given output, important for HDMI/Audio setup
+ */
+int
+RHDOutputTmdsIndex(struct rhdOutput *Output)
+{
+    struct rhdOutput *i = RHDPTRI(Output)->Outputs;
+    int index;
+
+    switch(Output->Id) {
+	case RHD_OUTPUT_TMDSA:
+	case RHD_OUTPUT_UNIPHYA:
+	    index=0;
+	    break;
+
+	case RHD_OUTPUT_LVTMA:
+	    /* special case check if an TMDSA is present */
+	    index=0;
+	    while(i) {
+		if(i->Id==RHD_OUTPUT_TMDSA)
+		    index++;
+		i = i->Next;
+	    }
+	    break;
+
+	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_KLDSKP_LVTMA:
+	    index=1;
+	    break;
+
+	default:
+	    xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: unsupported output type\n", __func__);
+            index=-1;
+	    break;
+    }
+    return index;
+}

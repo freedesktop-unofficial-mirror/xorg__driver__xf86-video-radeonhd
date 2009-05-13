@@ -39,7 +39,7 @@ struct rhdHdmi {
 	CARD32 StoreEnable;
 	CARD32 StoreControl;
 	CARD32 StoreUnknown[0x3];
-	CARD32 StoredAudioDebugWorkaround;
+	CARD32 StoredAudioDebugWorkaround[0x4];
 
 	CARD32 StoredFrameVersion;
 	CARD32 StoredVideoControl;
