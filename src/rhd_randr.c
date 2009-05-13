@@ -1418,13 +1418,12 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
 	if (rhdUpdateAtomBIOSUsage(rhdPtr, buf)) {
-	    char *string = rhdReturnAtomBIOSUsage(rhdPtr);
-	    RRChangeOutputProperty(out->randr_output, atom_AtomBIOS,
-				   XA_STRING, 8, PropModeReplace,
-				   strlen(string), string, FALSE, FALSE);
-	    free (string);
+	    free (value->data);
+	    value->data = rhdReturnAtomBIOSUsage(rhdPtr);
+	    value->size = strlen(value->data);
 	    return TRUE;
 	}
+	return FALSE;
     } else if (property == atom_EDID || property == atom_EDID2) {
 	/* Don't do anything, but allow change */
 	return TRUE;
