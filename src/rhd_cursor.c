@@ -62,13 +62,16 @@
 static void
 lockCursor(struct rhdCursor *Cursor, Bool Lock)
 {
-    /* Double Buffering: Set _UPDATE_LOCK bit */
+    /* Locking disables double buffering of HW cursor registers.
+     * Set D*CURSOR_UPDATE_LOCK bit to 1 to lock.
+     * We want *_DISABLE_MULTIPLE_UPDATE to always be 0, and since all other
+     * meaningful bits are read-only for D*CUR_UPDATE registers, it is safe
+     * to use RHDRegWrite() instead of RHDRegMask(); the latter is slower.
+     */
     if (Lock)
-	RHDRegMask(Cursor, Cursor->RegOffset + D1CUR_UPDATE,
-		   0x00010000, 0x00010000);
+	RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_UPDATE, 0x00010000);
     else
-	RHDRegMask(Cursor, Cursor->RegOffset + D1CUR_UPDATE,
-		   0x00000000, 0x00010000);
+	RHDRegWrite(Cursor, Cursor->RegOffset + D1CUR_UPDATE, 0x00000000);
 }
 
 /* RadeonHD has hardware support for hotspots, but doesn't allow negative
