@@ -127,7 +127,7 @@ uploadCursorImage(struct rhdCursor *Cursor, CARD32 *img)
     RHDPtr rhdPtr = RHDPTRI(Cursor);
 
     memcpy(((CARD8 *) rhdPtr->FbBase + Cursor->Base), img,
-	   MAX_CURSOR_WIDTH * Cursor->Height * 4);
+	   MAX_CURSOR_WIDTH * MAX_CURSOR_HEIGHT * 4);
 }
 
 static void
@@ -225,9 +225,9 @@ static Bool
 hasVisibleCursor(struct rhdCrtc *Crtc)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
-    if (Cursor->X >= Crtc->X - Cursor->Width  &&
-        Cursor->X <  Crtc->X + Crtc->Width    &&
-        Cursor->Y >= Crtc->Y - Cursor->Height &&
+    if (Cursor->X >= Crtc->X - MAX_CURSOR_WIDTH  &&
+        Cursor->X <  Crtc->X + Crtc->Width       &&
+        Cursor->Y >= Crtc->Y - MAX_CURSOR_HEIGHT &&
         Cursor->Y <  Crtc->Y + Crtc->Height) {
 
         return TRUE;
@@ -596,7 +596,7 @@ rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
      * - For panning, cursor image cannot horizontally extend past end of viewport.
      */
     if (rhdPtr->Crtc[0]->Active && rhdPtr->Crtc[1]->Active) {
-        width      = Cursor->Width;
+        width      = MAX_CURSOR_WIDTH;
         cursor_end = x + width;
         frame_end  = Crtc->X   + Crtc->Width;
 
@@ -615,7 +615,7 @@ rhdCrtcSetCursorPosition(struct rhdCrtc *Crtc, int x, int y)
             hotx = 0;
             hoty = 0;
         }
-        setCursorSize(Cursor, width, Cursor->Height);
+        setCursorSize(Cursor, width, MAX_CURSOR_HEIGHT);
     }
 
     setCursorPos (Cursor, x, y, hotx, hoty);
@@ -642,14 +642,10 @@ rhdCrtcLoadCursorARGB(struct rhdCrtc *Crtc, CARD32 *Image)
 {
     struct rhdCursor *Cursor = Crtc->Cursor;
 
-    /* X server always loads cursors that are the maximum allowed size */
-    Cursor->Width = MAX_CURSOR_WIDTH;
-    Cursor->Height = MAX_CURSOR_HEIGHT;
-
     lockCursor       (Cursor, TRUE);
     uploadCursorImage(Cursor, Image);
     setCursorImage   (Cursor);
-    setCursorSize    (Cursor, Cursor->Width, Cursor->Height);
+    setCursorSize    (Cursor, MAX_CURSOR_WIDTH, MAX_CURSOR_HEIGHT);
     lockCursor       (Cursor, FALSE);
 }
 
