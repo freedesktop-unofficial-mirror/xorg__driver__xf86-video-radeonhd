@@ -24,6 +24,17 @@
 #ifndef _RHD_PM_H
 # define _RHD_PM_H
 
+struct rhdPm {
+	int scrnIndex;
+
+	unsigned long ForcedEngineClock;
+
+	Bool EnableForced;
+};
+
+void RHDPmInit(RHDPtr rhdPtr);
+void RHDPmSetClock(RHDPtr rhdPtr);
+
 unsigned long RHDGetEngineClock(RHDPtr rhdPtr);
 unsigned long RHDGetDefaultEngineClock(RHDPtr rhdPtr);
 unsigned long RHDGetMemoryClock(RHDPtr rhdPtr);

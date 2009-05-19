@@ -37,6 +37,59 @@
 
 #include "rhd_atombios.h"
 
+void
+RHDPmInit(RHDPtr rhdPtr)
+{
+    RHDFUNC(rhdPtr);
+#ifdef ATOM_BIOS
+    struct rhdPm *Pm = (struct rhdPm *) xnfcalloc(sizeof(struct rhdPm), 1);
+
+    Pm->scrnIndex = rhdPtr->scrnIndex;
+    Pm->ForcedEngineClock = 0;
+    Pm->EnableForced = FALSE;
+
+    if (rhdPtr->lowPowerMode.val.bool) {
+        if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
+            Pm->ForcedEngineClock = RHDGetDefaultEngineClock(rhdPtr) / 2;
+            Pm->EnableForced = TRUE;
+            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Force low power mode: calculated engine clock at %ldHz\n",
+                       Pm->ForcedEngineClock);
+        }
+
+        if (rhdPtr->lowPowerModeEngineClock.val.integer) {
+            Pm->ForcedEngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
+            Pm->EnableForced = TRUE;
+            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Force low power mode: forced engine clock at %ldHz\n",
+                       Pm->ForcedEngineClock);
+        } else {
+            xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+                       "ForceLowPowerMode disabled: could not determine default engine clock\n");
+        }
+    }
+
+    rhdPtr->Pm = Pm;
+#else
+    rhdPtr->Pm = NULL;
+#endif
+}
+
+/*
+ * set engine clock
+ */
+void
+RHDPmSetClock(RHDPtr rhdPtr)
+{
+    struct rhdPm *Pm = rhdPtr->Pm;
+    if (!Pm || !Pm->EnableForced) return;
+
+    RHDFUNC(Pm);
+
+    RHDSetEngineClock(rhdPtr, Pm->ForcedEngineClock);
+
+    /* Induce logging of new engine clock */
+    RHDGetEngineClock(rhdPtr);
+}
+
 unsigned long
 RHDGetEngineClock(RHDPtr rhdPtr) {
 #ifdef ATOM_BIOS

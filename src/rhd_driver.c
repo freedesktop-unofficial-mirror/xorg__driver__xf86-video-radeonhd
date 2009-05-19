@@ -804,6 +804,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     RHDAudioInit(rhdPtr);
     RHDLUTsInit(rhdPtr);
     RHDCursorsInit(rhdPtr); /* do this irrespective of hw/sw cursor setting */
+    RHDPmInit(rhdPtr);
 
     if (!RHDConnectorsInit(rhdPtr, rhdPtr->Card)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
@@ -1132,23 +1133,7 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     xf86SetBlackWhitePixels(pScreen);
 
     /* Static power management */
-    if (rhdPtr->lowPowerMode.val.bool) {
-        if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
-            rhdPtr->lowPowerModeEngineClock.val.integer = RHDGetDefaultEngineClock(rhdPtr) / 2;
-        }
-
-        if (rhdPtr->lowPowerModeEngineClock.val.integer) {
-            xf86DrvMsg(scrnIndex, X_INFO, "Force low power mode: engine clock at %dHz\n",
-                       rhdPtr->lowPowerModeEngineClock.val.integer);
-            RHDSetEngineClock(rhdPtr, rhdPtr->lowPowerModeEngineClock.val.integer);
-
-            /* Induce logging of new engine clock */
-            RHDGetEngineClock(rhdPtr);
-        } else {
-            xf86DrvMsg(scrnIndex, X_WARNING,
-                       "ForceLowPowerMode disabled: could not determine default engine clock\n");
-        }
-    }
+    RHDPmSetClock(rhdPtr);
 
 #ifdef USE_DRI
     if (DriScreenInited)

@@ -344,6 +344,8 @@ typedef struct RHDRec {
     RHDOpt		UseAtomBIOS;
     CARD32		UseAtomFlags;
 
+    struct rhdPm       *Pm;
+
     struct rhdOutput *DigEncoderOutput[2];
 # define RHD_CHECKDEBUGFLAG(rhdPtr, FLAG) (rhdPtr->DebugFlags & (1 << FLAG))
 #ifndef NO_ASSERT
