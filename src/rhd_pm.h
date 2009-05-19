@@ -28,12 +28,16 @@ struct rhdPm {
 	int scrnIndex;
 
 	unsigned long ForcedEngineClock;
+	unsigned long StoredEngineClock;
 
 	Bool EnableForced;
+	Bool Stored;
 };
 
 void RHDPmInit(RHDPtr rhdPtr);
 void RHDPmSetClock(RHDPtr rhdPtr);
+void RHDPmSave(RHDPtr rhdPtr);
+void RHDPmRestore(RHDPtr rhdPtr);
 
 unsigned long RHDGetEngineClock(RHDPtr rhdPtr);
 unsigned long RHDGetDefaultEngineClock(RHDPtr rhdPtr);

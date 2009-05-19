@@ -1419,6 +1419,9 @@ RHDEnterVT(int scrnIndex, int flags)
     /* enable/disable audio */
     RHDAudioSetEnable(rhdPtr, rhdPtr->audio.val.bool);
 
+    /* Static power management */
+    RHDPmSetClock(rhdPtr);
+
 #ifdef USE_DRI
     if (rhdPtr->dri)
 	RHDDRIEnterVT(pScrn->pScreen);
@@ -2447,6 +2450,8 @@ rhdSave(RHDPtr rhdPtr)
     RHDCrtcSave(rhdPtr->Crtc[0]);
     RHDCrtcSave(rhdPtr->Crtc[1]);
     rhdSaveCursor(pScrn);
+
+    RHDPmSave(rhdPtr);
 }
 
 /*
@@ -2472,6 +2477,8 @@ rhdRestore(RHDPtr rhdPtr)
     /* restore after restoring CRTCs - check rhd_crtc.c for why */
     RHDCrtcRestore(rhdPtr->Crtc[0]);
     RHDCrtcRestore(rhdPtr->Crtc[1]);
+
+    RHDPmRestore(rhdPtr);
 
     RHDOutputsRestore(rhdPtr);
 #ifdef ATOM_BIOS

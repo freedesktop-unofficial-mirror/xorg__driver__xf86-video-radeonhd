@@ -90,6 +90,44 @@ RHDPmSetClock(RHDPtr rhdPtr)
     RHDGetEngineClock(rhdPtr);
 }
 
+/*
+ * save current engine clock
+ */
+void
+RHDPmSave(RHDPtr rhdPtr)
+{
+    struct rhdPm *Pm = rhdPtr->Pm;
+    if (!Pm) return;
+
+    RHDFUNC(Pm);
+
+    Pm->StoredEngineClock = RHDGetEngineClock(rhdPtr);
+    Pm->Stored = TRUE;
+}
+
+/*
+ * restore saved engine clock
+ */
+void
+RHDPmRestore(RHDPtr rhdPtr)
+{
+    struct rhdPm *Pm = rhdPtr->Pm;
+    if (!Pm) return;
+
+    RHDFUNC(Pm);
+
+    if (!Pm->Stored) {
+        xf86DrvMsg(Pm->scrnIndex, X_ERROR, "%s: trying to restore "
+                   "uninitialized values.\n", __func__);
+        return;
+    }
+
+    RHDSetEngineClock(rhdPtr, Pm->StoredEngineClock);
+
+    /* Induce logging of new engine clock */
+    RHDGetEngineClock(rhdPtr);
+}
+
 unsigned long
 RHDGetEngineClock(RHDPtr rhdPtr) {
 #ifdef ATOM_BIOS
