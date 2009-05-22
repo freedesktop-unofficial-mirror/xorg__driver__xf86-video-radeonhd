@@ -28,9 +28,8 @@ struct rhdPm {
 	int scrnIndex;
 
 	unsigned long ForcedEngineClock;
-	unsigned long StoredEngineClock;
 
-	Bool EnableForced;
+	unsigned long StoredEngineClock;
 	Bool Stored;
 };
 
