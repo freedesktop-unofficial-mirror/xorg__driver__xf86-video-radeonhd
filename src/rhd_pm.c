@@ -47,6 +47,7 @@ RHDPmInit(RHDPtr rhdPtr)
     Pm->scrnIndex = rhdPtr->scrnIndex;
 
     Pm->ForcedEngineClock = 0;
+    Pm->ForcedMemoryClock = 0;
 
     Pm->Stored = FALSE;
 
@@ -70,6 +71,21 @@ RHDPmInit(RHDPtr rhdPtr)
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: forced "
                        "engine clock at %ldHz\n", Pm->ForcedEngineClock);
         }
+
+        #if 0
+        unsigned long defaultMemory = RHDGetDefaultMemoryClock(rhdPtr);
+        if (defaultMemory) {
+            Pm->ForcedMemoryClock = defaultMemory / 2;
+            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
+                        "calculated memory clock at %ldHz\n", 
+                        Pm->ForcedEngineClock);
+        }
+        else {
+            xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "ForceLowPowerMode: "
+                        "downclocking memory disabled: could not determine "
+                        "default memory clock\n");
+        }
+        #endif
     }
 
     rhdPtr->Pm = Pm;
@@ -79,7 +95,7 @@ RHDPmInit(RHDPtr rhdPtr)
 }
 
 /*
- * set engine clock
+ * set engine and memory clocks
  */
 void
 RHDPmSetClock(RHDPtr rhdPtr)
@@ -95,6 +111,13 @@ RHDPmSetClock(RHDPtr rhdPtr)
         /* Induce logging of new engine clock */
         RHDGetEngineClock(rhdPtr);
     }
+
+    if (Pm->ForcedMemoryClock) {
+        RHDSetMemoryClock(rhdPtr, Pm->ForcedMemoryClock);
+
+        /* Induce logging of new memory clock */
+        RHDGetMemoryClock(rhdPtr);
+    }
 }
 
 /*
@@ -109,6 +132,9 @@ RHDPmSave(RHDPtr rhdPtr)
     RHDFUNC(Pm);
 
     Pm->StoredEngineClock = RHDGetEngineClock(rhdPtr);
+    #if 0
+    Pm->StoredMemoryClock = RHDGetMemoryClock(rhdPtr);
+    #endif
     Pm->Stored = TRUE;
 }
 
@@ -133,6 +159,13 @@ RHDPmRestore(RHDPtr rhdPtr)
 
     /* Induce logging of new engine clock */
     RHDGetEngineClock(rhdPtr);
+
+    #if 0
+    RHDSetMemoryClock(rhdPtr, Pm->StoredMemoryClock);
+
+    /* Induce logging of new memory clock */
+    RHDGetMemoryClock(rhdPtr);
+    #endif
 }
 
 unsigned long
