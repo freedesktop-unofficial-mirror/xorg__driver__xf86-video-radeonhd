@@ -172,6 +172,18 @@ RHDGetMemoryClock(RHDPtr rhdPtr) {
         return 0;
 }
 
+unsigned long
+RHDGetDefaultMemoryClock(RHDPtr rhdPtr) {
+#ifdef ATOM_BIOS
+    union AtomBiosArg data;
+    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+                        GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS) {
+        return data.clockValue;
+    } else
+#endif
+        return 0;
+}
+
 Bool
 RHDSetEngineClock(RHDPtr rhdPtr, unsigned long clk) {
 #ifdef ATOM_BIOS

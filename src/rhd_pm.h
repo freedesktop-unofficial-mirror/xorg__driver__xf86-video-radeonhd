@@ -42,6 +42,7 @@ void RHDPmRestore(RHDPtr rhdPtr);
 unsigned long RHDGetEngineClock(RHDPtr rhdPtr);
 unsigned long RHDGetDefaultEngineClock(RHDPtr rhdPtr);
 unsigned long RHDGetMemoryClock(RHDPtr rhdPtr);
+unsigned long RHDGetDefaultMemoryClock(RHDPtr rhdPtr);
 
 Bool RHDSetEngineClock(RHDPtr rhdPtr, unsigned long clk);
 Bool RHDSetMemoryClock(RHDPtr rhdPtr, unsigned long clk);
