@@ -45,25 +45,33 @@ RHDPmInit(RHDPtr rhdPtr)
     struct rhdPm *Pm = (struct rhdPm *) xnfcalloc(sizeof(struct rhdPm), 1);
 
     Pm->scrnIndex = rhdPtr->scrnIndex;
+
     Pm->ForcedEngineClock = 0;
     Pm->EnableForced = FALSE;
 
+    Pm->Stored = FALSE;
+
     if (rhdPtr->lowPowerMode.val.bool) {
         if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
-            Pm->ForcedEngineClock = RHDGetDefaultEngineClock(rhdPtr) / 2;
-            Pm->EnableForced = TRUE;
-            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Force low power mode: calculated engine clock at %ldHz\n",
-                       Pm->ForcedEngineClock);
+            unsigned long defaultEngine = RHDGetDefaultEngineClock(rhdPtr);
+            if (defaultEngine) {
+                Pm->ForcedEngineClock = defaultEngine / 2;
+                Pm->EnableForced = TRUE;
+                xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
+                           "calculated engine clock at %ldHz\n", 
+                           Pm->ForcedEngineClock);
+            }
+            else {
+                xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "ForceLowPowerMode: "
+                           "downclocking engine disabled: could not determine "
+                           "default engine clock\n");
+            }
         }
-
-        if (rhdPtr->lowPowerModeEngineClock.val.integer) {
+        else {
             Pm->ForcedEngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             Pm->EnableForced = TRUE;
-            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Force low power mode: forced engine clock at %ldHz\n",
-                       Pm->ForcedEngineClock);
-        } else {
-            xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
-                       "ForceLowPowerMode disabled: could not determine default engine clock\n");
+            xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: forced "
+                       "engine clock at %ldHz\n", Pm->ForcedEngineClock);
         }
     }
 
