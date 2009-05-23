@@ -65,6 +65,9 @@
 #include "rhd_regs.h"
 #include "rhd_crtc.h" /* for definition of Crtc->Id */
 
+#include "r600_reg_auto_r6xx.h"
+#include "r600_reg_r6xx.h"
+
 struct rhdMC {
     int scrnIndex;
 
@@ -392,7 +395,9 @@ R600MCRestore(struct rhdMC *MC)
 static Bool
 R600MCWaitIdle(struct rhdMC *MC)
 {
-    if (!(RHDRegRead(MC, SRBM_STATUS) & 0x3f00))
+    if (!(RHDRegRead(MC, SRBM_STATUS) &
+            (VMC_BUSY_bit | MCB_BUSY_bit |
+             MCDZ_BUSY_bit | MCDY_BUSY_bit | MCDX_BUSY_bit | MCDW_BUSY_bit)))
 	return TRUE;
     return FALSE;
 }

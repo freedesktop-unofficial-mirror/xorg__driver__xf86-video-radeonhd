@@ -34,7 +34,7 @@ enum {
     MM_INDEX                                              = 0x0000,
     MM_DATA                                               = 0x0004,
 
-    /*SRBM_STATUS                                         = 0x0e50, */
+    SRBM_STATUS                                           = 0x0e50,
 	RLC_RQ_PENDING_bit                                = 1 << 3,
 	RCU_RQ_PENDING_bit                                = 1 << 4,
 	GRBM_RQ_PENDING_bit                               = 1 << 5,
