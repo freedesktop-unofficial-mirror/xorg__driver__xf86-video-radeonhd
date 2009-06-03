@@ -2446,13 +2446,14 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		ps.pclk_v2.ucMiscInfo |= (atomGetDevice(handle, Config->u.v2.Device)
 					  << MISC_DEVICE_INDEX_SHIFT);
 	    RHDDebug(handle->scrnIndex,"%s Device: %i PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x "
-		     "PLL: %i Crtc: %i MiscInfo: 0x%x\n",
+		     "FracFbDiv: %i PLL: %i Crtc: %i MiscInfo: 0x%x\n",
 		   __func__,
 		   Config->u.v2.Device,
 		   ps.pclk_v2.usPixelClock,
 		   ps.pclk_v2.usRefDiv,
 		   ps.pclk_v2.usFbDiv,
 		   ps.pclk_v2.ucPostDiv,
+		   ps.pclk_v2.ucFracFbDiv,
 		   ps.pclk_v2.ucPpll,
 		   ps.pclk_v2.ucCRTC,
 		   ps.pclk_v2.ucMiscInfo
@@ -2539,13 +2540,14 @@ rhdAtomSetPixelClock(atomBiosHandlePtr handle, enum atomPxclk PCLKId, struct ato
 		| (Config->u.v3.UsePpll ?  PIXEL_CLOCK_MISC_USE_ENGINE_FOR_DISPCLK : 0x0)
 		| ((Config->Crtc == atomCrtc2) ? PIXEL_CLOCK_MISC_CRTC_SEL_CRTC2 : PIXEL_CLOCK_MISC_CRTC_SEL_CRTC1);
 
-	    RHDDebug(handle->scrnIndex,"%s PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x PLL: %i OutputType: %x "
-		   "EncoderMode: %x MiscInfo: 0x%x\n",
+	    RHDDebug(handle->scrnIndex,"%s PixelClock: %i RefDiv: 0x%x FbDiv: 0x%x PostDiv: 0x%x FracFbDiv: %i PLL: %i "
+		   "OutputType: %x EncoderMode: %x MiscInfo: 0x%x\n",
 		   __func__,
 		   ps.pclk_v3.usPixelClock,
 		   ps.pclk_v3.usRefDiv,
 		   ps.pclk_v3.usFbDiv,
 		   ps.pclk_v3.ucPostDiv,
+		   ps.pclk_v3.ucFracFbDiv,
 		   ps.pclk_v3.ucPpll,
 		   ps.pclk_v3.ucTransmitterId,
 		   ps.pclk_v3.ucEncoderMode,
