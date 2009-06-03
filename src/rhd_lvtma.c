@@ -240,9 +240,9 @@ LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
     switch (Action) {
 	case rhdPropertyCheck:
 	    switch (Property) {
-		if (Private->BlLevel < 0)
-		    return FALSE;
 		case RHD_OUTPUT_BACKLIGHT:
+		    if (Private->BlLevel < 0)
+			return FALSE;
 		    return TRUE;
 		default:
 		    return FALSE;
