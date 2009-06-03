@@ -1154,10 +1154,11 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	break;
     case RHD_ACCEL_XAA:
 	if (rhdPtr->ChipSet < RHD_R600) {
-	    if (!R5xxXAAInit(pScrn, pScreen))
+	    if (!R5xxXAAInit(pScrn, pScreen)) {
 		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
                 xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                            "Failed to initalize XAA; disabling acceleration.\n");
+            }
 	} else {
 	    rhdPtr->AccelMethod = RHD_ACCEL_NONE;
             xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
@@ -1167,10 +1168,11 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 #ifdef USE_DRI
     case RHD_ACCEL_EXA:
 	if (rhdPtr->ChipSet < RHD_R600) {
-	    if (!R5xxEXAInit(pScrn, pScreen))
+	    if (!R5xxEXAInit(pScrn, pScreen)) {
 		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
                 xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                            "Failed to initalize EXA; disabling acceleration.\n");
+            }
 	} else {
 	    if (!R6xxEXAInit(pScrn, pScreen)) {
 		rhdPtr->AccelMethod = RHD_ACCEL_NONE;
