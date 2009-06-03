@@ -1459,8 +1459,7 @@ DigPropertyControl(struct rhdOutput *Output,
 	{
 	    if (!Private->Transmitter.Property)
 		return FALSE;
-	    Private->Transmitter.Property(Output, Action, Property, val);
-	    break;
+	    return Private->Transmitter.Property(Output, Action, Property, val);
 	}
 	default:
 	    return FALSE;
