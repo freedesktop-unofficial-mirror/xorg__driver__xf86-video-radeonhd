@@ -1525,6 +1525,17 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 	err = RRChangeOutputProperty(out->randr_output, atom_Coherent,
 				     XA_INTEGER, 32, PropModeReplace,
 				     1, &val.Bool, FALSE, FALSE);
+    } else if (property == atom_HdmiProperty) {
+	if (rout->Output->Property == NULL)
+	    return FALSE;
+
+	if (!rout->Output->Property(rout->Output, rhdPropertyGet,
+				    RHD_OUTPUT_HDMI, &val))
+	    return FALSE;
+
+	err = RRChangeOutputProperty(out->randr_output, atom_HdmiProperty,
+				     XA_INTEGER, 32, PropModeReplace,
+				     1, &val.Bool, FALSE, FALSE);
     }
 
     if (err != 0) {
