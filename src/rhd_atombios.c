@@ -130,6 +130,8 @@ static AtomBiosResult
 rhdAtomSetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult
 rhdAtomGetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomPmSetup(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 
 
 enum msgDataFormat {
@@ -283,6 +285,10 @@ struct atomBIOSRequests {
      "Set Engine Clock",			MSG_FORMAT_NONE},
     {SET_MEMORY_CLOCK, rhdAtomSetClock,
      "Set Memory Clock",			MSG_FORMAT_NONE},
+    {ATOM_PM_SETUP, rhdAtomPmSetup,
+     "Set Power Management",			MSG_FORMAT_NONE},
+    {ATOM_PM_CLOCKGATING_SETUP, rhdAtomPmSetup,
+     "Set Dynamic Clock Gating",		MSG_FORMAT_NONE},
     {FUNC_END,					NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -5178,6 +5184,40 @@ rhdAtomSetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr
                 (func == SET_ENGINE_CLOCK) ? "Engine" : "Memory");
     return ATOM_FAILED;
 }
+
+static AtomBiosResult
+rhdAtomPmSetup(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    AtomBiosArgRec execData;
+    ENABLE_ASIC_STATIC_PWR_MGT_PS_ALLOCATION pwrmgt_ps;
+    DYNAMIC_CLOCK_GATING_PS_ALLOCATION dynclk_ps;
+
+    RHDFUNC(handle);
+    execData.exec.dataSpace = NULL;
+
+    if (func == ATOM_PM_SETUP) {
+	pwrmgt_ps.ucEnable = data->val;
+	execData.exec.index = GetIndexIntoMasterTable(COMMAND, EnableASIC_StaticPwrMgt);
+	execData.exec.pspace = &pwrmgt_ps;
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "Attempting to %sable power management\n", data->val ? "en":"dis");
+    } else if (func == ATOM_PM_CLOCKGATING_SETUP) {
+	dynclk_ps.ucEnable = data->val;
+        execData.exec.index = GetIndexIntoMasterTable(COMMAND, DynamicClockGating);
+	execData.exec.pspace = &dynclk_ps;
+	xf86DrvMsg(handle->scrnIndex, X_INFO, "Attempting to %sable clock gating\n", data->val ? "en":"dis");
+    } else
+	return ATOM_NOT_IMPLEMENTED;
+
+    if (RHDAtomBiosFunc(handle->scrnIndex, handle,
+	                ATOMBIOS_EXEC, &execData) == ATOM_SUCCESS) {
+	return ATOM_SUCCESS;
+    }
+
+    xf86DrvMsg(handle->scrnIndex, X_WARNING, "Failed to set %s\n",
+                (func == ATOM_PM_SETUP) ? "power management" : "dynamic clock gating");
+    return ATOM_FAILED;
+}
+
 
 # ifdef ATOM_BIOS_PARSER
 

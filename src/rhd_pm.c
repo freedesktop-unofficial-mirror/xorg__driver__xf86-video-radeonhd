@@ -40,9 +40,9 @@
 void
 RHDPmInit(RHDPtr rhdPtr)
 {
-    RHDFUNC(rhdPtr);
 #ifdef ATOM_BIOS
     struct rhdPm *Pm = (struct rhdPm *) xnfcalloc(sizeof(struct rhdPm), 1);
+    RHDFUNC(rhdPtr);
 
     Pm->scrnIndex = rhdPtr->scrnIndex;
 
@@ -105,6 +105,21 @@ RHDPmSetClock(RHDPtr rhdPtr)
 
     RHDFUNC(Pm);
 
+    /* ATM unconditionally enable power management features
+     * if low power mode requested */
+    if (rhdPtr->atomBIOS) {
+	union AtomBiosArg data;
+
+	data.val = 1;
+	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			ATOM_PM_SETUP, &data);
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    data.val = 1;
+	    RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_PM_CLOCKGATING_SETUP, &data);
+	}
+    }
+
     if (Pm->ForcedEngineClock) {
         RHDSetEngineClock(rhdPtr, Pm->ForcedEngineClock);
 
@@ -166,6 +181,20 @@ RHDPmRestore(RHDPtr rhdPtr)
     /* Induce logging of new memory clock */
     RHDGetMemoryClock(rhdPtr);
     #endif
+
+    /* Don't know how to save state yet - unconditionally disable */
+    if (rhdPtr->atomBIOS) {
+	union AtomBiosArg data;
+
+	data.val = 0;
+	RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			ATOM_PM_SETUP, &data);
+	if (rhdPtr->ChipSet < RHD_R600) {
+	    data.val = 0;
+	    RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    ATOM_PM_CLOCKGATING_SETUP, &data);
+	}
+    }
 }
 
 unsigned long

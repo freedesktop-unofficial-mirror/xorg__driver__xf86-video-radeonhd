@@ -105,6 +105,8 @@ typedef enum _AtomBiosRequestID {
     GET_MEMORY_CLOCK,
     SET_ENGINE_CLOCK,
     SET_MEMORY_CLOCK,
+    ATOM_PM_SETUP,
+    ATOM_PM_CLOCKGATING_SETUP,
     FUNC_END
 } AtomBiosRequestID;
 
