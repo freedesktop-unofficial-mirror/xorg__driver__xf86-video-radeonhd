@@ -751,6 +751,7 @@ rhdCards[] =
     { 0x7187, 0x1545, 0x1930, "RV516 : Radeon X1300", RHD_CARD_FLAG_NONE, VGA_A0_TV_B_DVI_XB11, DEVINFO_EMPTY },
     /* 0x7188 : M64 : Mobility Radeon X2300 */
     /* 0x718A : M64 : Mobility Radeon X2300 */
+    { 0x718A, 0x1043, 0x1449, "Asus F3JR", RHD_CARD_FLAG_HPDOFF, ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
     /* 0x718B : M62 : Mobility Radeon X1350 */
     /* 0x718C : M62 : Mobility Radeon X1350 */
     /* 0x718D : M64 : Mobility Radeon X1450 */
