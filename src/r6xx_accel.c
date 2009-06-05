@@ -832,6 +832,7 @@ set_default_state(ScrnInfoPtr pScrn, drmBufPtr ib)
 	sq_conf.num_es_stack_entries = 0;
 	break;
     case RHD_RV730:
+    case RHD_RV740:
     case RHD_M96:
 	sq_conf.num_ps_gprs = 84;
 	sq_conf.num_vs_gprs = 36;
