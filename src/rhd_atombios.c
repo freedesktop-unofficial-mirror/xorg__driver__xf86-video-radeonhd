@@ -4450,6 +4450,7 @@ rhdAtomConnectorInfoFromObjectHeader(atomBiosHandlePtr handle,
 	}
 	cp[ncon].Type = rhdAtomGetConnectorID(handle, rhd_connector_objs[obj_id].con, num);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name,name);
+	cp[ncon].DDC  = RHD_DDC_NONE;
 
 	for (j = 0; ((j < SrcDstTable->ucNumberOfSrc) &&
 		     (j < MAX_OUTPUTS_PER_CONNECTOR)); j++) {
