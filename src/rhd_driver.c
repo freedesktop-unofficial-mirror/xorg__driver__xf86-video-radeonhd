@@ -989,8 +989,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load XAA module."
 		       " Falling back to ShadowFB.\n");
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
-	} else
+	}
+	/* This is functionally void since 7.0 (old version scheme,
+	 * and removed since 1.6.99.1 (new version scheme) */
+	/* Assume anything >= 6.* is old version scheme */
+#if XORG_VERSION_CURRENT >= 6 * 10000000
+	else
 	    xf86LoaderReqSymLists(xaaSymbols, NULL);
+#endif
     }
 
 #ifdef USE_EXA
@@ -1000,9 +1006,14 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to load EXA module."
 		       " Falling back to ShadowFB.\n");
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
-	} else {
-	    xf86LoaderReqSymLists(exaSymbols, NULL);
 	}
+	/* This is functionally void since 7.0 (old version scheme,
+	 * and removed since 1.6.99.1 (new version scheme) */
+	/* Assume anything >= 6.* is old version scheme */
+#if XORG_VERSION_CURRENT >= 6 * 10000000
+	else
+	    xf86LoaderReqSymLists(exaSymbols, NULL);
+#endif
     }
 #endif /* USE_EXA */
 
