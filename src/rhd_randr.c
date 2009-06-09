@@ -1501,7 +1501,7 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
     int err = BadValue;
     union rhdPropertyData val;
 
-    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "In %s\n", __func__);
+    RHDFUNC(rhdPtr);
 
     if (property == atom_Backlight) {
 	if (rout->Output->Property == NULL)
@@ -1538,10 +1538,10 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 				     1, &val.Bool, FALSE, FALSE);
     }
 
-    if (err != 0) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "In %s RRChangeOutputProperty error: %d\n", __func__, err);
+    RHDDebug(rhdPtr->scrnIndex, "%s 0x%x returns %d\n", __func__, property, err);
+
+    if (err != 0)
 	return FALSE;
-    }
     return TRUE;
 }
 
