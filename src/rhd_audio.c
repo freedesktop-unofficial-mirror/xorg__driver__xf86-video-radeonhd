@@ -188,7 +188,7 @@ RHDAudioSetEnable(RHDPtr rhdPtr, Bool Enable)
     if (!Audio)	return;
     RHDFUNC(Audio);
 
-    RHDRegMask(Audio, AUDIO_ENABLE, Enable ? 0x80000000 : 0x0, 0x80000000);
+    RHDRegMask(Audio, AUDIO_ENABLE, Enable ? 0x81000000 : 0x0, 0x81000000);
     if(Enable) {
 	/* the hardware generates an interrupt if audio starts/stops playing,
 	 * but since drm doesn't support this interrupt, we check
