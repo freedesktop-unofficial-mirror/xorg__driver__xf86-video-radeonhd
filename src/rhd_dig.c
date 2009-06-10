@@ -308,7 +308,6 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 	RHDRegMask(Output, RV620_LVTMA_TRANSMITTER_CONTROL,
 		   doCoherent ? 0 : RV62_LVTMA_BYPASS_PLL, RV62_LVTMA_BYPASS_PLL);
 
-    Private->Mode = Mode;
 #ifdef ATOM_BIOS
     RHDDebug(Output->scrnIndex, "%s: SynthClock: %i Hex: %x EncoderMode: %x\n",__func__,
 	     (Mode->SynthClock),(Mode->SynthClock / 10), Private->EncoderMode);
@@ -1480,6 +1479,8 @@ DigMode(struct rhdOutput *Output, DisplayModePtr Mode)
     struct rhdCrtc *Crtc = Output->Crtc;
 
     RHDFUNC(Output);
+
+    Private->Mode = Mode;
 
     /*
      * For dual link capable DVI we need to decide from the pix clock if we are dual link.
