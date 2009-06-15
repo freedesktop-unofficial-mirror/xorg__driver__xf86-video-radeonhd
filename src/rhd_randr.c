@@ -115,6 +115,8 @@ struct rhdRandrCrtc {
     } u;
 };
 
+#define ATOM_EDID             "EDID"
+#define ATOM_EDID2            "EDID_DATA"
 #define ATOM_SIGNAL_FORMAT    "SignalFormat"
 #define ATOM_CONNECTOR_TYPE   "ConnectorType"
 #define ATOM_CONNECTOR_NUMBER "ConnectorNumber"
@@ -130,7 +132,7 @@ static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
     atom_HdmiProperty;
 static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
 static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
-static Atom atom_AtomBIOS;
+static Atom atom_EDID, atom_EDID2, atom_AtomBIOS;
 
 
 /* Get RandR property values */
@@ -551,6 +553,10 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 	first_output = out;
 
     /* Create atoms for RandR 1.3 properties */
+    atom_EDID            = MakeAtom(ATOM_EDID,
+				    sizeof(ATOM_EDID)-1, TRUE);
+    atom_EDID2           = MakeAtom(ATOM_EDID2,
+				    sizeof(ATOM_EDID2)-1, TRUE);
     atom_SignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
 				    sizeof(ATOM_SIGNAL_FORMAT)-1, TRUE);
     atom_ConnectorType   = MakeAtom(ATOM_CONNECTOR_TYPE,
@@ -1412,6 +1418,9 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	    free (string);
 	    return TRUE;
 	}
+    } else if (property == atom_EDID || property == atom_EDID2) {
+	/* Don't do anything, but allow change */
+	return TRUE;
     }
 
     return FALSE;	/* Others are not mutable */
