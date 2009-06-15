@@ -33,6 +33,10 @@
 # include "config.h"
 #endif
 
+/* The _AtomBIOS property is experimental for now - only enable if needed.
+ * Beware - there be dragons and crashes */
+#define ENABLE_PROPERTY_ATOMBIOS 0
+
 /* Xserver interface */
 #include "xf86.h"
 
@@ -119,12 +123,14 @@ struct rhdRandrCrtc {
 #define ATOM_BACKLIGHT        "_Backlight"
 #define ATOM_COHERENT         "_Coherent"
 #define ATOM_HDMI             "_HDMI"
+#define ATOM_ATOMBIOS         "_AtomBIOS"
 
 static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
     atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent,
     atom_HdmiProperty;
 static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
 static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
+static Atom atom_AtomBIOS;
 
 
 /* Get RandR property values */
@@ -538,8 +544,11 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     CARD32            num;
     int               err;
     INT32             range[2];
+    static xf86OutputPtr first_output = NULL;
 
     RHDFUNC(rhdPtr);
+    if (! first_output)
+	first_output = out;
 
     /* Create atoms for RandR 1.3 properties */
     atom_SignalFormat    = MakeAtom(ATOM_SIGNAL_FORMAT,
@@ -552,6 +561,8 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 				    sizeof(ATOM_OUTPUT_NUMBER)-1, TRUE);
     atom_PanningArea     = MakeAtom(ATOM_PANNING_AREA,
 				    sizeof(ATOM_PANNING_AREA)-1, TRUE);
+    atom_AtomBIOS        = MakeAtom(ATOM_ATOMBIOS,
+				    sizeof(ATOM_ATOMBIOS)-1, TRUE);
 
     /* Create atoms for RandR 1.3 property values */
     atom_unknown         = MakeAtom("unknown", 7, TRUE);
@@ -609,6 +620,22 @@ rhdRROutputCreateResources(xf86OutputPtr out)
     RRChangeOutputProperty(out->randr_output, atom_PanningArea,
 			   XA_STRING, 8, PropModeReplace,
 			   0, NULL, FALSE, FALSE);
+
+#if ENABLE_PROPERTY_ATOMBIOS
+    /* AtomBIOS usage */
+    /* We don't have per-CRTC or even per-GPU properties;
+     * so fake this by only applying to first output */
+    if (out == first_output) {
+	char *string;
+	RRConfigureOutputProperty(out->randr_output, atom_AtomBIOS,
+				  FALSE, FALSE, FALSE, 0, NULL);
+	string = rhdReturnAtomBIOSUsage(rhdPtr);
+	RRChangeOutputProperty(out->randr_output, atom_AtomBIOS,
+			       XA_STRING, 8, PropModeReplace,
+			       strlen(string), string, FALSE, FALSE);
+	free (string);
+    }
+#endif
 
     if (rout->Output->Property) {
 	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_BACKLIGHT, NULL)) {
@@ -1374,6 +1401,17 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 					  RHD_OUTPUT_HDMI, NULL);
 	}
 	return FALSE;
+    } else if (property == atom_AtomBIOS) {
+	if (value->type != XA_STRING || value->format != 8)
+	    return FALSE;
+	if (rhdUpdateAtomBIOSUsage(rhdPtr, value->data)) {
+	    char *string = rhdReturnAtomBIOSUsage(rhdPtr);
+	    RRChangeOutputProperty(out->randr_output, atom_AtomBIOS,
+				   XA_STRING, 8, PropModeReplace,
+				   strlen(string), string, FALSE, FALSE);
+	    free (string);
+	    return TRUE;
+	}
     }
 
     return FALSE;	/* Others are not mutable */
