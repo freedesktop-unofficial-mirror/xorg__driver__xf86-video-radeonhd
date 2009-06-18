@@ -57,7 +57,7 @@ RHDPmInit(RHDPtr rhdPtr)
             if (defaultEngine) {
                 Pm->ForcedEngineClock = defaultEngine / 2;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
-                           "calculated engine clock at %ldHz\n", 
+                           "calculated engine clock at %ldkHz\n", 
                            Pm->ForcedEngineClock);
             }
             else {
@@ -69,7 +69,7 @@ RHDPmInit(RHDPtr rhdPtr)
         else {
             Pm->ForcedEngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: forced "
-                       "engine clock at %ldHz\n", Pm->ForcedEngineClock);
+                       "engine clock at %ldkHz\n", Pm->ForcedEngineClock);
         }
 
         #if 0
@@ -77,8 +77,8 @@ RHDPmInit(RHDPtr rhdPtr)
         if (defaultMemory) {
             Pm->ForcedMemoryClock = defaultMemory / 2;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
-                        "calculated memory clock at %ldHz\n", 
-                        Pm->ForcedEngineClock);
+                        "calculated memory clock at %ldkHz\n", 
+                        Pm->ForcedMemoryClock);
         }
         else {
             xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "ForceLowPowerMode: "
