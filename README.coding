@@ -1,0 +1,122 @@
+Developer's Documentation
+=========================
+
+This is a stub only ATM. Please fill in stuff as you find something out that
+has been non-trivial (which means that you had to actually think about what
+that piece of cra^H^Hode is actually doing).
+
+There is no explicit style guide ATM. Please consider to code in a similar way
+as it is already done. Please add abstraction where it is useful, but don't
+overdesign. The AtomBIOS layer is probably a bit overdesigned, but that has
+only been understood when the code was already there and working fine. So we'll
+keep it that way.
+
+
+Source Code Layout
+==================
+
+All source code files - they still need a oneliner as description...
+
+
+General Stuff
+-------------
+
+rhd.h
+rhd_audio.[ch]
+rhd_card.h
+rhd_connector.[ch]
+rhd_crtc.[ch]
+rhd_cursor.[ch]
+rhd_driver.c
+rhd_edid.c
+rhd_hdmi.[ch]
+rhd_helper.c
+rhd_i2c.[ch]
+rhd_id.c
+rhd_lut.[ch]
+rhd_mc.[ch]
+rhd_modes.[ch]
+rhd_monitor.[ch]
+rhd_output.[ch]
+rhd_pll.[ch]
+rhd_pm.[ch]
+rhd_randr.[ch]
+rhd_vga.[ch]
+rhd_video.[ch]
+
+Register Definitions
+--------------------
+
+r5xx_3dregs.h
+r5xx_regs.h
+r600_reg.h
+r600_reg_auto_r6xx.h
+r600_reg_r6xx.h
+r600_reg_r7xx.h
+rhd_regs.h
+
+AtomBIOS related
+----------------
+
+AtomBios/
+rhd_atombios.[ch]
+rhd_atomcrtc.c
+rhd_atomout.[ch]
+rhd_atompll.c
+rhd_atomwrapper.[ch]
+rhd_biosscratch.[ch]
+
+Output Drivers
+--------------
+rhd_dac.c
+rhd_ddia.c
+rhd_dig.c
+rhd_lvtma.c
+rhd_tmds.c
+
+Acceleration
+------------
+
+r5xx_accel.[ch]
+r5xx_exa.c
+r5xx_xaa.c
+r600_exa.c
+r600_shader.[ch]
+r600_state.h
+r600_textured_videofuncs.c
+r6xx_accel.[ch]
+radeon_exa_render.c
+radeon_textured_videofuncs.c
+rhd_cs.[ch]
+rhd_shadow.[ch]
+
+3D Support
+----------
+
+radeon_3d.c
+radeon_dri.h
+radeon_drm.h
+rhd_dri.[ch]
+
+
+Digital blocks
+==============
+
+There are 4 known digital output blocks you can meet on cards:
+1) TMDSA (can transmit TMDS)
+2) LVTMA (can transmit TMDS or LVDS)
+3) DDIA (can transmit TMDS)
+4) UNIPHY (can transmit TMDS or LVDS or DisplayPort's signal)
+
+TMDS signal is used for DVI and HDMI
+LVDS signal is used for PANEL
+DisplayPort's signal is used for DisplayPort of course
+
+Generally:
+DDIA can be found on RS600, RS690 and RS740
+UNIPHY can be found on DCE 3+ devices (RV620+)
+TMDSA can be found on rest of R5xx, R6xx
+
+Note there are cards with external DisplayPort chip which uses DVO
+data protocol with an i2c control bus for communication with GPU
+
