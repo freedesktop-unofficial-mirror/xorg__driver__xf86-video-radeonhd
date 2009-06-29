@@ -225,24 +225,23 @@ convertBitsToARGB(struct rhd_Cursor_Bits *bits, CARD32 *dest,
  * Returns if CRTC has a visible cursor
  */
 static Bool
-hasVisibleCursor(struct rhdCrtc *Crtc)
+hasVisibleCursor(struct rhdCrtc *Crtc, int X, int Y)
 {
-    struct rhdCursor *Cursor = Crtc->Cursor;
-    if (Cursor->X >= Crtc->X - MAX_CURSOR_WIDTH  &&
-        Cursor->X <  Crtc->X + Crtc->Width       &&
-        Cursor->Y >= Crtc->Y - MAX_CURSOR_HEIGHT &&
-        Cursor->Y <  Crtc->Y + Crtc->Height) {
+    if (((X + MAX_CURSOR_WIDTH) < Crtc->X) &&
+	((Y + MAX_CURSOR_HEIGHT) < Crtc->Y))
+	return FALSE;
 
-        return TRUE;
-    } else
+    if ((X >= (Crtc->X + Crtc->Width)) &&
+	(Y >= (Crtc->Y + Crtc->Height)))
         return FALSE;
+
+    return TRUE;
 }
 
 
 /*
  * Internal Driver + Xorg Interface
  */
-
 void
 rhdShowCursor(ScrnInfoPtr pScrn)
 {
@@ -252,11 +251,9 @@ rhdShowCursor(ScrnInfoPtr pScrn)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex
-            && hasVisibleCursor(Crtc)) {
-
+	if (Crtc->Active && (Crtc->scrnIndex == pScrn->scrnIndex) &&
+	    hasVisibleCursor(Crtc, Crtc->Cursor->X, Crtc->Cursor->Y))
             rhdCrtcShowCursor(Crtc);
-	}
     }
 }
 
@@ -344,12 +341,10 @@ rhdSetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
     for (i = 0; i < 2; i++) {
 	struct rhdCrtc *Crtc = rhdPtr->Crtc[i];
 
-	if (Crtc->Active && Crtc->scrnIndex == pScrn->scrnIndex
-            && hasVisibleCursor(Crtc)) {
-
-	    /* Given cursor pos is always relative to frame - make absolute */
-            rhdCrtcSetCursorPosition(Crtc, x+pScrn->frameX0, y+pScrn->frameY0);
-	}
+	/* Cursor here is relative to frame. */
+	if (Crtc->Active && (Crtc->scrnIndex == pScrn->scrnIndex) &&
+	    hasVisibleCursor(Crtc, x + pScrn->frameX0, y + pScrn->frameY0))
+	    rhdCrtcSetCursorPosition(Crtc, x + pScrn->frameX0, y + pScrn->frameY0);
     }
 }
 
