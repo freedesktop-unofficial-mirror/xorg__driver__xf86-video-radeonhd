@@ -1118,13 +1118,15 @@ static Bool RHDDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
 
     if (rhdDRI->irq) {
         if (on) {
+	    value = DRM_RADEON_VBLANK_CRTC1;
+
 #ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
-	    xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
-  	    if (xf86_config->num_crtc > 1 && xf86_config->crtc[1]->enabled)
-	        value = DRM_RADEON_VBLANK_CRTC1 | DRM_RADEON_VBLANK_CRTC2;
-	    else
+	    if (RHDPTR(pScrn)->randr) {
+		xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
+		if (xf86_config->num_crtc > 1 && xf86_config->crtc[1]->enabled)
+		    value |= DRM_RADEON_VBLANK_CRTC2;
+	    }
 #endif
-	        value = DRM_RADEON_VBLANK_CRTC1;
 	}
 
 	if (RHDDRISetParam(pScrn, RADEON_SETPARAM_VBLANK_CRTC, value)) {
