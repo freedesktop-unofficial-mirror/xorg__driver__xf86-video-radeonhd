@@ -527,10 +527,9 @@ static void RHDDRIInitGARTValues(struct rhdDri * rhdDRI)
 }
 
 /* Set AGP transfer mode according to requests and constraints */
-static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
+static Bool RHDSetAgpMode(struct rhdDri * rhdDRI)
 {
-    ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTRI(rhdDRI);
     unsigned long mode   = drmAgpGetMode(rhdDRI->drmFD);	/* Default mode */
     unsigned int  vendor = drmAgpVendorId(rhdDRI->drmFD);
     unsigned int  device = drmAgpDeviceId(rhdDRI->drmFD);
@@ -553,7 +552,7 @@ static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 	    else
 		rhdDRI->agpMode = 1;
 	}
-	xf86DrvMsg(pScreen->myNum, X_DEFAULT, "Using AGP %dx\n", rhdDRI->agpMode);
+	xf86DrvMsg(rhdDRI->scrnIndex, X_DEFAULT, "Using AGP %dx\n", rhdDRI->agpMode);
 
 	mode &= ~AGP_MODE_MASK;
 	if (is_v3) {
@@ -572,12 +571,12 @@ static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
     } else
 	rhdDRI->agpMode = 8; /* doesn't matter at this point */
 
-    xf86DrvMsg(pScreen->myNum, X_INFO,
+    xf86DrvMsg(rhdDRI->scrnIndex, X_INFO,
 	       "[agp] Mode 0x%08lx [AGP 0x%04x/0x%04x]\n",
 	       mode, vendor, device);
 
     if (drmAgpEnable(rhdDRI->drmFD, mode) < 0) {
-	xf86DrvMsg(pScreen->myNum, X_ERROR, "[agp] AGP not enabled\n");
+	xf86DrvMsg(rhdDRI->scrnIndex, X_ERROR, "[agp] AGP not enabled\n");
 	drmAgpRelease(rhdDRI->drmFD);
 	return FALSE;
     }
@@ -586,10 +585,9 @@ static Bool RHDSetAgpMode(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 }
 
 /* Initialize Radeon's AGP registers */
-static void RHDSetAgpBase(struct rhdDri * rhdDRI, ScreenPtr pScreen)
+static void RHDSetAgpBase(struct rhdDri * rhdDRI)
 {
-    ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
-    RHDPtr rhdPtr = RHDPTR(pScrn);
+    RHDPtr rhdPtr = RHDPTRI(rhdDRI);
 
     if (rhdPtr->ChipSet < RHD_R600)
 	RHDRegWrite (rhdDRI, AGP_BASE, drmAgpBase(rhdDRI->drmFD));
@@ -608,7 +606,7 @@ static Bool RHDDRIAgpInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 	return FALSE;
     }
 
-    if (!RHDSetAgpMode(rhdDRI, pScreen))
+    if (!RHDSetAgpMode(rhdDRI))
 	return FALSE;
 
     RHDDRIInitGARTValues(rhdDRI);
@@ -709,7 +707,7 @@ static Bool RHDDRIAgpInit(struct rhdDri * rhdDRI, ScreenPtr pScreen)
 	       "[agp] GART Texture map mapped at 0x%08lx\n",
 	       (unsigned long)rhdDRI->gartTex);
 
-    RHDSetAgpBase(rhdDRI, pScreen);
+    RHDSetAgpBase(rhdDRI);
 
     return TRUE;
 }
@@ -1626,9 +1624,9 @@ void RHDDRIEnterVT(ScreenPtr pScreen)
 	return;
 
     if (rhdPtr->cardType == RHD_CARD_AGP) {
-	if (!RHDSetAgpMode(rhdDRI, pScreen))
+	if (!RHDSetAgpMode(rhdDRI))
 	    return;
-	RHDSetAgpBase(rhdDRI, pScreen);
+	RHDSetAgpBase(rhdDRI);
     }
 
     /* TODO: maybe using CP_INIT instead of CP_RESUME is enough, so we wouldn't
