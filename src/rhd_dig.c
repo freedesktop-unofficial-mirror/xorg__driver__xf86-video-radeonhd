@@ -187,19 +187,19 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
     RHDFUNC(Output);
     switch (Action) {
 	case rhdPropertyCheck:
-	    if (Private->BlLevel < 0)
-		return FALSE;
 	switch (Property) {
 	    case RHD_OUTPUT_BACKLIGHT:
-		    return TRUE;
+		if (Private->BlLevel < 0)
+		    return FALSE;
+		return TRUE;
 	    default:
 		return FALSE;
 	}
 	case rhdPropertyGet:
-	    if (Private->BlLevel < 0)
-		return FALSE;
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    if (Private->BlLevel < 0)
+			return FALSE;
 		    val->integer = Private->BlLevel;
 		    return TRUE;
 		default:
@@ -207,10 +207,10 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	    }
 	    break;
 	case rhdPropertySet:
-	    if (Private->BlLevel < 0)
-		return FALSE;
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    if (Private->BlLevel < 0)
+			return FALSE;
 		    Private->BlLevel = val->integer;
 		    return TRUE;
 		default:
@@ -1312,7 +1312,7 @@ GetLVDSInfo(RHDPtr rhdPtr, struct DIGPrivate *Private)
 			   & RV62_LVDS_24BIT_ENABLE) != 0);
 
     tmp = RHDRegRead(rhdPtr, RV620_LVTMA_BL_MOD_CNTL);
-    if (tmp & 0x1)
+    if (tmp & LVTMA_BL_MOD_EN)
 	Private->BlLevel = ( tmp >> LVTMA_BL_MOD_LEVEL_SHIFT )  & 0xff;
     else
 	Private->BlLevel = -1;
