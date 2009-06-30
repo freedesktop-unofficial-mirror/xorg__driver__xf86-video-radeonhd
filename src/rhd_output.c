@@ -215,11 +215,11 @@ RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connecto
     RHDPtr rhdPtr = RHDPTRI(Output);
 
     if(Output->Connector == Connector)
-	return; /* output is allready attached to this connector -> nothing todo */
+	return; /* output is already attached to this connector -> nothing todo */
 
     Output->Connector = Connector;
 
-    if(!Output->Property) /* property controll available? */
+    if(!Output->Property) /* property control available? */
 	return;  /* no -> we are done here */
 
     /* yes -> check if we need to set any properties */
