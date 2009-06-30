@@ -105,6 +105,7 @@ RHDPmSetClock(RHDPtr rhdPtr)
 
     RHDFUNC(Pm);
 
+#ifdef ATOM_BIOS
     /* ATM unconditionally enable power management features
      * if low power mode requested */
     if (rhdPtr->atomBIOS) {
@@ -119,6 +120,7 @@ RHDPmSetClock(RHDPtr rhdPtr)
 			    ATOM_PM_CLOCKGATING_SETUP, &data);
 	}
     }
+#endif
 
     if (Pm->ForcedEngineClock) {
         RHDSetEngineClock(rhdPtr, Pm->ForcedEngineClock);
@@ -182,6 +184,7 @@ RHDPmRestore(RHDPtr rhdPtr)
     RHDGetMemoryClock(rhdPtr);
     #endif
 
+#ifdef ATOM_BIOS
     /* Don't know how to save state yet - unconditionally disable */
     if (rhdPtr->atomBIOS) {
 	union AtomBiosArg data;
@@ -195,6 +198,7 @@ RHDPmRestore(RHDPtr rhdPtr)
 			    ATOM_PM_CLOCKGATING_SETUP, &data);
 	}
     }
+#endif
 }
 
 unsigned long

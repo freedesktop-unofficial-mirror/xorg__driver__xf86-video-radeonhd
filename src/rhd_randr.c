@@ -1414,6 +1414,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 					  RHD_OUTPUT_HDMI, NULL);
 	}
 	return FALSE;
+#if ENABLE_PROPERTY_ATOMBIOS
     } else if (property == atom_AtomBIOS) {
 	if (value->type != XA_STRING || value->format != 8)
 	    return FALSE;
@@ -1424,6 +1425,7 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 	    return TRUE;
 	}
 	return FALSE;
+#endif
     } else if (property == atom_EDID || property == atom_EDID2) {
 	/* Don't do anything, but allow change */
 	return TRUE;
@@ -1464,8 +1466,8 @@ rhdRRCrtcShadowAllocate(xf86CrtcPtr crtc, int Width, int Height)
 	return ((char *)rhdPtr->FbBase
 		+ rhdRRCrtc->u.MemEXA->offset);
     }
-
 #endif /* USE_EXA */
+
     if (rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
 	int Align = (4096 + OctPerPixel - 1) / OctPerPixel;
 	Size = (Size + OctPerPixel - 1) / OctPerPixel;
