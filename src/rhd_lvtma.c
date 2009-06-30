@@ -138,12 +138,11 @@ struct LVDSPrivate {
     CARD32 StoreMacroControl;
     CARD32 StoreTXControl;
     CARD32 StoreBlModCntl;
-#ifdef NOT_YET
+
     /* to hook in AtomBIOS property callback */
     Bool (*WrappedPropertyCallback) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
     void *PropertyPrivate;
-#endif
 };
 
 /*
@@ -719,10 +718,8 @@ LVDSDestroy(struct rhdOutput *Output)
     if (!Private)
 	return;
 
-#ifdef NOT_YET
     if (Private->PropertyPrivate)
 	RhdAtomDestroyBacklightControlProperty(Output, Private->PropertyPrivate);
-#endif
     xfree(Private);
     Output->Private = NULL;
 }
@@ -1308,7 +1305,6 @@ TMDSBDestroy(struct rhdOutput *Output)
     Output->Private = NULL;
 }
 
-#ifdef NOT_YET
 static Bool
 LVDSPropertyWrapper(struct rhdOutput *Output,
 		    enum rhdPropertyAction Action,
@@ -1327,7 +1323,6 @@ LVDSPropertyWrapper(struct rhdOutput *Output,
 
     return ret;
 }
-#endif
 
 /*
  *
@@ -1367,16 +1362,12 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	Output->Property = LVDSPropertyControl;
 	Output->Destroy = LVDSDestroy;
 	Output->Private = Private =  LVDSInfoRetrieve(rhdPtr);
-#ifdef NOT_YET
 	if (Private->BlLevel < 0) {
 	    Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output, &Private->WrappedPropertyCallback,
 								    &Private->PropertyPrivate);
 	    if (Private->PropertyPrivate)
 		Output->Property = LVDSPropertyWrapper;
 	} else
-#else
-	if (Private->BlLevel >= 0)
-#endif
 	    LVDSDebugBacklight(Output);
 
     } else {

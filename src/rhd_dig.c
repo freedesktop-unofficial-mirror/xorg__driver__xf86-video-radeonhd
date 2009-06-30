@@ -65,11 +65,9 @@ struct transmitter {
     void (*Destroy) (struct rhdOutput *Output);
     Bool (*Property) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
-#ifdef NOT_YET
     Bool (*WrappedPropertyCallback) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
     void *PropertyPrivate;
-#endif
     void *Private;
 };
 
@@ -1543,10 +1541,8 @@ DigDestroy(struct rhdOutput *Output)
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
     RHDHdmiDestroy(Private->Hdmi);
-#ifdef NOT_YET
     if (Transmitter->PropertyPrivate)
 	RhdAtomDestroyBacklightControlProperty(Output, Transmitter->PropertyPrivate);
-#endif
     xfree(Private);
     Output->Private = NULL;
 }
@@ -1641,7 +1637,6 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 /*
  *
  */
-#ifdef NOT_YET
 static Bool
 digTransmitterPropertyWrapper(struct rhdOutput *Output,
 			      enum rhdPropertyAction Action,
@@ -1660,7 +1655,6 @@ digTransmitterPropertyWrapper(struct rhdOutput *Output,
 
     return ret;
 }
-#endif
 
 /*
  *
@@ -1831,7 +1825,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    Private->EncoderMode = LVDS;
 	    GetLVDSInfo(rhdPtr, Private);
 #ifdef ATOM_BIOS
-#ifdef NOT_YET
 	    if (Private->BlLevel < 0) {
 		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output,
 									&Private->Transmitter.WrappedPropertyCallback,
@@ -1839,7 +1832,6 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 		if (Private->Transmitter.PropertyPrivate)
 		    Private->Transmitter.Property = digTransmitterPropertyWrapper;
 	    }
-#endif
 #endif
 	    Private->Hdmi = NULL;
 	    break;

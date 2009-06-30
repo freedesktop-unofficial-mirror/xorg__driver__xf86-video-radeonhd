@@ -1200,13 +1200,13 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
     RHDFUNC(Output);
 
     Private = xnfcalloc(sizeof(struct rhdAtomOutputPrivate), 1);
+    TransmitterConfig = &Private->TransmitterConfig;
 
     switch (Output->Id) {
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	case RHD_OUTPUT_UNIPHYE:
 	case RHD_OUTPUT_UNIPHYF:
 	    /* We set up a those parameters although they may never be needed for BL control */
-	    TransmitterConfig = &Private->TransmitterConfig;
 	    switch (Output->Id) {
 		case RHD_OUTPUT_KLDSKP_LVTMA:
 		    Private->TransmitterId = atomTransmitterLVTMA;
@@ -1222,7 +1222,6 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 		default:
 		    return 0;  /* never get here */
 	    }
-	    TransmitterConfig = &Private->TransmitterConfig;
 	    TransmitterConfig->Mode = atomLVDS;
 	    if (rhdPtr->DigEncoderOutput[0] == Output)
 		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderDIG1;
