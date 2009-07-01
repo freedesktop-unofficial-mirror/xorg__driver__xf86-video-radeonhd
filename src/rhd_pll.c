@@ -733,8 +733,10 @@ RV620PLL1Power(struct rhdPLL *PLL, int Power)
 	usleep(2);
 
 	/* Sometimes we have to keep unused PLL running, see bug #18016 */
-	if ((RHDRegRead(PLL, RV620_EXT1_DIFF_POST_DIV_CNTL) & 0x0100) == 0)
+	if ((RHDRegRead(PLL, RV620_EXT1_DIFF_POST_DIV_CNTL) & RV62_EXT1_DIFF_DRIVER_ENABLE) == 0)
 	    RHDRegMask(PLL, P1PLL_CNTL, 0x02, 0x02); /* Power down */
+	else
+	  xf86DrvMsg(PLL->scrnIndex, X_WARNING, "PHYA differential clock driver not disabled\n");
 	usleep(200);
 
 	RHDRegMask(PLL, P1PLL_CNTL, 0x2000, 0x2000); /* reset anti-glitch */
@@ -786,8 +788,10 @@ RV620PLL2Power(struct rhdPLL *PLL, int Power)
 	usleep(2);
 
 	/* Sometimes we have to keep unused PLL running, see bug #18016 */
-	if ((RHDRegRead(PLL, RV620_EXT2_DIFF_POST_DIV_CNTL) & 0x0100) == 0)
+	if ((RHDRegRead(PLL, RV620_EXT2_DIFF_POST_DIV_CNTL) &  RV62_EXT2_DIFF_DRIVER_ENABLE) == 0)
 	    RHDRegMask(PLL, P2PLL_CNTL, 0x02, 0x02); /* Power down */
+	else
+	  xf86DrvMsg(PLL->scrnIndex, X_WARNING, "PHYB differential clock driver not disabled\n");
 	usleep(200);
 
 	RHDRegMask(PLL, P2PLL_CNTL, 0x2000, 0x2000); /* reset anti-glitch */
