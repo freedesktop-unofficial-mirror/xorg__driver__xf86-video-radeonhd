@@ -14,6 +14,9 @@ AM_INIT_AUTOMAKE([dist-bzip2])
 
 AM_MAINTAINER_MODE
 
+AC_CONFIG_FILES([shave shave-libtool])
+
+
 # Program checks.
 AC_DISABLE_STATIC
 AC_PROG_CC
@@ -363,6 +366,8 @@ AC_DEFINE_UNQUOTED([PACKAGE_VERSION_PATCHLEVEL],
 		[$(echo $PACKAGE_VERSION | cut -d . -f 3)],
 		[Patchlevel Version])
 fi
+
+SHAVE_INIT(.,enable)
 
 AC_OUTPUT([
 	Makefile
