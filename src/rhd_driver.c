@@ -66,8 +66,13 @@
 /* Needed by Resources Access Control (RAC) */
 #include "xf86RAC.h"
 
+#ifdef HAVE_XEXTPROTO_71
+#include "X11/extensions/dpmsconst.h"
+#else
 #define DPMS_SERVER
 #include "X11/extensions/dpms.h"
+#endif
+
 
 /* int10 - for now at least */
 #include "xf86int10.h"
