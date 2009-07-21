@@ -375,7 +375,7 @@ RHDFreeRec(ScrnInfoPtr pScrn)
     RHDI2CFunc(pScrn->scrnIndex, rhdPtr->I2C, RHD_I2C_TEARDOWN, NULL);
 #ifdef ATOM_BIOS
     RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-		    ATOMBIOS_TEARDOWN, NULL);
+		    ATOM_TEARDOWN, NULL);
 #endif
     RHDShadowDestroy(rhdPtr);
     if (rhdPtr->CursorInfo)
@@ -644,7 +644,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     {
 	AtomBiosArgRec atomBiosArg;
 
-	if (RHDAtomBiosFunc(pScrn->scrnIndex, NULL, ATOMBIOS_INIT, &atomBiosArg)
+	if (RHDAtomBiosFunc(pScrn->scrnIndex, NULL, ATOM_INIT, &atomBiosArg)
 	    == ATOM_SUCCESS) {
 	    rhdPtr->atomBIOS = atomBiosArg.atomhandle;
 	} else {
@@ -748,28 +748,28 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
         atomBiosArg.fb.start = rhdPtr->FbFreeStart;
         atomBiosArg.fb.size = rhdPtr->FbFreeSize;
-        if (RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, ATOMBIOS_ALLOCATE_FB_SCRATCH,
+        if (RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, ATOM_ALLOCATE_FB_SCRATCH,
 			  &atomBiosArg) == ATOM_SUCCESS) {
 	    rhdPtr->FbFreeStart = atomBiosArg.fb.start;
 	    rhdPtr->FbFreeSize = atomBiosArg.fb.size;
 	}
 
-	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_ENGINE_CLOCK,
+	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_DEFAULT_ENGINE_CLOCK,
 			&atomBiosArg);
-	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, GET_DEFAULT_MEMORY_CLOCK,
+	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_DEFAULT_MEMORY_CLOCK,
 			&atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+			ATOM_GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
+			ATOM_GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, &atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+			ATOM_GET_MAX_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			    GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
+			    ATOM_GET_MIN_PIXEL_CLOCK_PLL_INPUT, &atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			    GET_MAX_PIXEL_CLK, &atomBiosArg);
+			    ATOM_GET_MAX_PIXEL_CLK, &atomBiosArg);
 	RHDAtomBiosFunc(pScrn->scrnIndex, rhdPtr->atomBIOS,
-			GET_REF_CLOCK, &atomBiosArg);
+			ATOM_GET_REF_CLOCK, &atomBiosArg);
     }
 #endif
 
@@ -862,7 +862,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
 	    data.chipset = rhdPtr->ChipSet;
 	    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				ATOMBIOS_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
+				ATOM_GET_OUTPUT_DEVICE_LIST, &data) == ATOM_SUCCESS)
 		OutputDeviceList = data.OutputDeviceList;
 	}
 

@@ -1157,7 +1157,7 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 
     if (rhdPtr->ChipSet < RHD_R600) {
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg)
+			    ATOM_GET_DEFAULT_ENGINE_CLOCK, &atomBiosArg)
 	    == ATOM_SUCCESS)
 	    return (0x7f << 8)
 		+ (atomBiosArg.val / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
@@ -1166,13 +1166,13 @@ rhdGetI2CPrescale(RHDPtr rhdPtr)
 		+ (DEFAULT_ENGINE_CLOCK / (4 * 0x7f * TARGET_HW_I2C_CLOCK));
     } else if (rhdPtr->ChipSet < RHD_RV620) {
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
+			    ATOM_GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
 	    return (atomBiosArg.val / TARGET_HW_I2C_CLOCK);
 	else
 	    return (DEFAULT_REF_CLOCK / TARGET_HW_I2C_CLOCK);
     } else {
 	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			    GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
+			    ATOM_GET_REF_CLOCK, &atomBiosArg) == ATOM_SUCCESS)
 	    return (atomBiosArg.val / (4 * TARGET_HW_I2C_CLOCK));
 	else
 	    return (DEFAULT_REF_CLOCK / (4 * TARGET_HW_I2C_CLOCK));

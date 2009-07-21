@@ -141,10 +141,10 @@ rhdGetDefaultPmState (RHDPtr rhdPtr) {
 
     memset (&state, 0, sizeof(state));
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 GET_DEFAULT_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+			 ATOM_GET_DEFAULT_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
 	state.EngineClock = data.clockValue;
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
+			 ATOM_GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
         state.MemoryClock = data.clockValue;
     /* FIXME: Voltage */
 
@@ -157,10 +157,10 @@ rhdPmGetRawState (RHDPtr rhdPtr)
     union AtomBiosArg data;
 
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 GET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+			 ATOM_GET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
         rhdPtr->Pm->Current.EngineClock = data.clockValue;
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 GET_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
+			 ATOM_GET_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
         rhdPtr->Pm->Current.MemoryClock = data.clockValue;
     /* FIXME: Voltage */
 
@@ -180,14 +180,14 @@ rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState state)
     if (state.EngineClock && state.EngineClock != rhdPtr->Pm->Current.EngineClock) {
 	data.clockValue = state.EngineClock;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			     SET_ENGINE_CLOCK, &data) != ATOM_SUCCESS)
+			     ATOM_SET_ENGINE_CLOCK, &data) != ATOM_SUCCESS)
 	    ret = FALSE;
     }
 #if 0	/* don't do for the moment */
     if (state.MemoryClock && state.MemoryClock != rhdPtr->Pm->Current.MemoryClock) {
 	data.clockValue = state.MemoryClock;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			     SET_MEMORY_CLOCK, &data) != ATOM_SUCCESS)
+			     ATOM_SET_MEMORY_CLOCK, &data) != ATOM_SUCCESS)
 	    ret = FALSE;
     }
 #endif

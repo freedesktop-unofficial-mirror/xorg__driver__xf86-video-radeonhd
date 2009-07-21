@@ -1239,13 +1239,13 @@ RHDSetupLimits(RHDPtr rhdPtr, CARD32 *RefClock,
     *PixMax = RHD_PLL_MAX_DEFAULT;
 
 #ifdef ATOM_BIOS
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, "minimum PLL output",
+    getPLLValuesFromAtomBIOS(rhdPtr, ATOM_GET_MIN_PIXEL_CLOCK_PLL_OUTPUT, "minimum PLL output",
 			     IntMin,  PLL_MIN);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
+    getPLLValuesFromAtomBIOS(rhdPtr, ATOM_GET_MAX_PIXEL_CLOCK_PLL_OUTPUT, "maximum PLL output",
 			     IntMax, PLL_MAX);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_MAX_PIXEL_CLK, "Pixel Clock",
+    getPLLValuesFromAtomBIOS(rhdPtr, ATOM_GET_MAX_PIXEL_CLK, "Pixel Clock",
 			     PixMax, PLL_MAX);
-    getPLLValuesFromAtomBIOS(rhdPtr, GET_REF_CLOCK, "reference clock",
+    getPLLValuesFromAtomBIOS(rhdPtr, ATOM_GET_REF_CLOCK, "reference clock",
 			     RefClock, PLL_NONE);
     if (*IntMax == 0) {
 	if (rhdPtr->ChipSet < RHD_RV620)

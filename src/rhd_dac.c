@@ -290,7 +290,7 @@ DACGetElectrical(RHDPtr rhdPtr, enum outputType type, int dac, CARD8 *bandgap, C
 
 	if (atomBiosArg.val = 0x18,
 	    RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-				   ATOMBIOS_GET_CODE_DATA_TABLE,
+				   ATOM_GET_CODE_DATA_TABLE,
 				   &atomBiosArg) == ATOM_SUCCESS) {
 	    struct AtomDacCodeTableData *data
 		= (struct AtomDacCodeTableData *)atomBiosArg.CommandDataTable.loc;

@@ -331,7 +331,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	AtomBiosResult Result;
 
 	Result = RHDAtomBiosFunc(Connector->scrnIndex, rhdPtr->atomBIOS,
-				 ATOMBIOS_GET_PANEL_MODE, &data);
+				 ATOM_GET_PANEL_MODE, &data);
 	if (Result == ATOM_SUCCESS) {
 	    Mode = data.mode;
 	    Mode->type |= M_T_PREFERRED;
@@ -339,7 +339,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	if (!EDID) {
 	    Result = RHDAtomBiosFunc(Connector->scrnIndex,
 				     rhdPtr->atomBIOS,
-				     ATOMBIOS_GET_PANEL_EDID, &data);
+				     ATOM_GET_PANEL_EDID, &data);
 	    if (Result == ATOM_SUCCESS)
 		EDID = xf86InterpretEDID(Connector->scrnIndex,
 					 data.EDIDBlock);

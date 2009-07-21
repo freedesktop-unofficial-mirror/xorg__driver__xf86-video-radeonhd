@@ -319,7 +319,7 @@ LVTMATransmitterSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModeP
 
     /* Get data from DIG2TransmitterControl table */
     data.val = 0x4d;
-    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOMBIOS_GET_CODE_DATA_TABLE,
+    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_GET_CODE_DATA_TABLE,
 			&data) == ATOM_SUCCESS) {
 	AtomBiosArgRec data1;
 	CARD32 *d_p = NULL;
