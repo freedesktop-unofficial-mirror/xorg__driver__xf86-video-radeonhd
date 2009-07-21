@@ -197,6 +197,8 @@ static int pix24bpp = 0;
 # define FGLRX_SYS_PATH "/sys/module/fglrx"
 #endif
 
+#if XORG_VERSION_CURRENT >= 6 * 10000000
+
 static const char *xaaSymbols[] = {
     "XAACreateInfoRec",
     "XAADestroyInfoRec",
@@ -204,7 +206,7 @@ static const char *xaaSymbols[] = {
     NULL
 };
 
-#ifdef USE_EXA
+# ifdef USE_EXA
 static const char *exaSymbols[] = {
     "exaDriverAlloc",
     "exaDriverFini",
@@ -215,7 +217,8 @@ static const char *exaSymbols[] = {
     "exaWaitSync",
     NULL
 };
-#endif /* USE_EXA */
+# endif /* USE_EXA */
+#endif
 
 _X_EXPORT DriverRec RADEONHD = {
     RHD_VERSION,
@@ -770,11 +773,20 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     }
 #endif
 
+    if (rhdPtr->ChipSet >= RHD_R600 && rhdPtr->AccelMethod == RHD_ACCEL_XAA) {
+	rhdPtr->AccelMethod = RHD_ACCEL_EXA;
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Accel Method XAA not supported on this chipset generation."
+		   " Defaulting to EXA\n");
+    }
 #ifdef USE_DRI
     RHDDRIPreInit(pScrn);
 #else
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "DRI support has been disabled at compile time\n");
+    if (rhdPtr->ChipSet >= RHD_R600 && rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
+	rhdPtr->AccelMethod = RHD_SHADOW_FB;
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Accel Method EXA requires DRI on this chip. Falling back to SHADOW_FB.\n");
+    }
 #endif
     if (rhdPtr->AccelMethod == RHD_ACCEL_FORCE_SHADOWFB)
 	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
