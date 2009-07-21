@@ -24,15 +24,19 @@
 #ifndef _RHD_PM_H
 # define _RHD_PM_H
 
+struct rhdPmState {
+    /* All entries: 0 means unknown / unspecified / dontchange */
+    unsigned long EngineClock;
+    unsigned long MemoryClock;
+    unsigned long Voltage;
+};
+
 struct rhdPm {
-	int scrnIndex;
+    int               scrnIndex;
 
-	unsigned long ForcedEngineClock;
-	unsigned long ForcedMemoryClock;
-
-	unsigned long StoredEngineClock;
-	unsigned long StoredMemoryClock;
-	Bool Stored;
+    struct rhdPmState Forced;
+    struct rhdPmState Stored;
+    Bool              IsStored;
 };
 
 void RHDPmInit(RHDPtr rhdPtr);
@@ -40,12 +44,9 @@ void RHDPmSetClock(RHDPtr rhdPtr);
 void RHDPmSave(RHDPtr rhdPtr);
 void RHDPmRestore(RHDPtr rhdPtr);
 
-unsigned long RHDGetEngineClock(RHDPtr rhdPtr);
-unsigned long RHDGetDefaultEngineClock(RHDPtr rhdPtr);
-unsigned long RHDGetMemoryClock(RHDPtr rhdPtr);
-unsigned long RHDGetDefaultMemoryClock(RHDPtr rhdPtr);
+struct rhdPmState RHDGetPmState(RHDPtr rhdPtr);
+struct rhdPmState RHDGetDefaultPmState(RHDPtr rhdPtr);
 
-Bool RHDSetEngineClock(RHDPtr rhdPtr, unsigned long clk);
-Bool RHDSetMemoryClock(RHDPtr rhdPtr, unsigned long clk);
+Bool RHDSetPmState(RHDPtr rhdPtr, struct rhdPmState state);
 
 #endif /* _RHD_PM_H */

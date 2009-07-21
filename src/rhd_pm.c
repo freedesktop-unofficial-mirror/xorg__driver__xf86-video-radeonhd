@@ -24,6 +24,7 @@
 /*
  * Authors:
  *   Yang Zhao <yang@yangman.ca>
+ *   Matthias Hopf <mhopf@suse.de>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,19 +47,18 @@ RHDPmInit(RHDPtr rhdPtr)
 
     Pm->scrnIndex = rhdPtr->scrnIndex;
 
-    Pm->ForcedEngineClock = 0;
-    Pm->ForcedMemoryClock = 0;
-
-    Pm->Stored = FALSE;
+    memset (&Pm->Forced, 0, sizeof(Pm->Forced));
+    memset (&Pm->Stored, 0, sizeof(Pm->Stored));
+    Pm->IsStored = FALSE;
 
     if (rhdPtr->lowPowerMode.val.bool) {
+	struct rhdPmState state = RHDGetDefaultPmState(rhdPtr);
         if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
-            unsigned long defaultEngine = RHDGetDefaultEngineClock(rhdPtr);
-            if (defaultEngine) {
-                Pm->ForcedEngineClock = defaultEngine / 2;
+            if (state.EngineClock) {
+                Pm->Forced.EngineClock = state.EngineClock / 2;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
                            "calculated engine clock at %ldkHz\n", 
-                           Pm->ForcedEngineClock);
+                           Pm->Forced.EngineClock);
             }
             else {
                 xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "ForceLowPowerMode: "
@@ -67,25 +67,24 @@ RHDPmInit(RHDPtr rhdPtr)
             }
         }
         else {
-            Pm->ForcedEngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
+            Pm->Forced.EngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: forced "
-                       "engine clock at %ldkHz\n", Pm->ForcedEngineClock);
+                       "engine clock at %ldkHz\n", Pm->Forced.EngineClock);
         }
 
-        #if 0
-        unsigned long defaultMemory = RHDGetDefaultMemoryClock(rhdPtr);
-        if (defaultMemory) {
-            Pm->ForcedMemoryClock = defaultMemory / 2;
+        if (state.MemoryClock) {
+            Pm->Forced.MemoryClock = state.MemoryClock / 2;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "ForceLowPowerMode: "
                         "calculated memory clock at %ldkHz\n", 
-                        Pm->ForcedMemoryClock);
+                        Pm->Forced.MemoryClock);
         }
         else {
             xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "ForceLowPowerMode: "
                         "downclocking memory disabled: could not determine "
                         "default memory clock\n");
         }
-        #endif
+
+	/* FIXME: voltage */
     }
 
     rhdPtr->Pm = Pm;
@@ -122,19 +121,9 @@ RHDPmSetClock(RHDPtr rhdPtr)
     }
 #endif
 
-    if (Pm->ForcedEngineClock) {
-        RHDSetEngineClock(rhdPtr, Pm->ForcedEngineClock);
-
-        /* Induce logging of new engine clock */
-        RHDGetEngineClock(rhdPtr);
-    }
-
-    if (Pm->ForcedMemoryClock) {
-        RHDSetMemoryClock(rhdPtr, Pm->ForcedMemoryClock);
-
-        /* Induce logging of new memory clock */
-        RHDGetMemoryClock(rhdPtr);
-    }
+    RHDSetPmState(rhdPtr, Pm->Forced);
+    /* Induce logging of new engine clock */
+    RHDGetPmState(rhdPtr);
 }
 
 /*
@@ -148,11 +137,8 @@ RHDPmSave(RHDPtr rhdPtr)
 
     RHDFUNC(Pm);
 
-    Pm->StoredEngineClock = RHDGetEngineClock(rhdPtr);
-    #if 0
-    Pm->StoredMemoryClock = RHDGetMemoryClock(rhdPtr);
-    #endif
-    Pm->Stored = TRUE;
+    Pm->Stored   = RHDGetPmState(rhdPtr);
+    Pm->IsStored = TRUE;
 }
 
 /*
@@ -166,23 +152,14 @@ RHDPmRestore(RHDPtr rhdPtr)
 
     RHDFUNC(Pm);
 
-    if (!Pm->Stored) {
+    if (!Pm->IsStored) {
         xf86DrvMsg(Pm->scrnIndex, X_ERROR, "%s: trying to restore "
                    "uninitialized values.\n", __func__);
         return;
     }
-
-    RHDSetEngineClock(rhdPtr, Pm->StoredEngineClock);
-
+    RHDSetPmState(rhdPtr, Pm->Stored);
     /* Induce logging of new engine clock */
-    RHDGetEngineClock(rhdPtr);
-
-    #if 0
-    RHDSetMemoryClock(rhdPtr, Pm->StoredMemoryClock);
-
-    /* Induce logging of new memory clock */
-    RHDGetMemoryClock(rhdPtr);
-    #endif
+    RHDGetPmState(rhdPtr);
 
 #ifdef ATOM_BIOS
     /* Don't know how to save state yet - unconditionally disable */
@@ -201,78 +178,72 @@ RHDPmRestore(RHDPtr rhdPtr)
 #endif
 }
 
-unsigned long
-RHDGetEngineClock(RHDPtr rhdPtr) {
+struct rhdPmState
+RHDGetPmState(RHDPtr rhdPtr)
+{
+    struct rhdPmState state;
+    memset(&state, 0, sizeof(state));
+
 #ifdef ATOM_BIOS
     union AtomBiosArg data;
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                        GET_ENGINE_CLOCK, &data) == ATOM_SUCCESS) {
-        return data.clockValue;
-    } else
+                        GET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+        state.EngineClock = data.clockValue;
+    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+                        GET_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
+        state.MemoryClock = data.clockValue;
+    /* FIXME: Voltage */
 #endif
-        return 0;
+    return state;
 }
 
-unsigned long
-RHDGetDefaultEngineClock(RHDPtr rhdPtr) {
-#ifdef ATOM_BIOS
-    union AtomBiosArg data;
-    if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                        GET_DEFAULT_ENGINE_CLOCK, &data) == ATOM_SUCCESS) {
-        return data.clockValue;
-    } else
-#endif
-        return 0;
-}
+struct rhdPmState
+RHDGetDefaultPmState(RHDPtr rhdPtr) {
+    struct rhdPmState state;
+    memset(&state, 0, sizeof(state));
 
-unsigned long
-RHDGetMemoryClock(RHDPtr rhdPtr) {
 #ifdef ATOM_BIOS
     union AtomBiosArg data;
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                        GET_MEMORY_CLOCK, &data) == ATOM_SUCCESS) {
-        return data.clockValue;
-    } else
-#endif
-        return 0;
-}
-
-unsigned long
-RHDGetDefaultMemoryClock(RHDPtr rhdPtr) {
-#ifdef ATOM_BIOS
-    union AtomBiosArg data;
+                        GET_DEFAULT_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+        state.EngineClock = data.clockValue;
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                        GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS) {
-        return data.clockValue;
-    } else
+                        GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
+        state.MemoryClock = data.clockValue;
+    /* FIXME: Voltage */
 #endif
-        return 0;
+    return state;
 }
 
 Bool
-RHDSetEngineClock(RHDPtr rhdPtr, unsigned long clk) {
+RHDSetPmState(RHDPtr rhdPtr, struct rhdPmState state)
+{
 #ifdef ATOM_BIOS
     union AtomBiosArg data;
+    Bool ret = TRUE;
 
     /* TODO: Idle first; find which idles are needed and expose them */
-    data.clockValue = clk;
-    return RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                           SET_ENGINE_CLOCK, &data) == ATOM_SUCCESS;
+    /* FIXME: Voltage */
+    /* FIXME: If Voltage is to be rised, then do that first, then change frequencies.
+     *        If Voltage is to be lowered, do it the other way round. */
+    if (state.EngineClock) {
+	data.clockValue = state.EngineClock;
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    SET_ENGINE_CLOCK, &data) != ATOM_SUCCESS)
+	    ret = FALSE;
+    }
+#if 0	/* don't do for the moment */
+    if (state.MemoryClock) {
+	data.clockValue = state.MemoryClock;
+	if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			    SET_MEMORY_CLOCK, &data) != ATOM_SUCCESS)
+	    ret = FALSE;
+    }
+#endif
+    return ret;
 #else
-    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS required to set engine clock\n");
+    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS required to set clocks\n");
+    return FALSE;
 #endif
 }
 
-Bool
-RHDSetMemoryClock(RHDPtr rhdPtr, unsigned long clk) {
-#ifdef ATOM_BIOS
-    union AtomBiosArg data;
-
-    /* TODO: Idle first; find which idles are needed and expose them */
-    data.clockValue = clk;
-    return RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-                           SET_MEMORY_CLOCK, &data) == ATOM_SUCCESS;
-#else
-    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "AtomBIOS required to set engine clock\n");
-#endif
-}
