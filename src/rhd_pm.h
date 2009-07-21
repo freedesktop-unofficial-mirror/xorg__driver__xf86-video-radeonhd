@@ -26,27 +26,57 @@
 
 struct rhdPmState {
     /* All entries: 0 means unknown / unspecified / dontchange */
-    unsigned long EngineClock;
-    unsigned long MemoryClock;
-    unsigned long Voltage;
+    uint32_t EngineClock;
+    uint32_t MemoryClock;
+    uint32_t Voltage;
+};
+
+/* Note about settings: RHD_PM_OFF may always change the memory clock, while
+ * for the others it remains to be seen whether we can change it without video
+ * disturbance. */
+/* TODO: forced settings overwrite default settings (Q: in which cases? RHD_PM_OFF?) */
+enum rhdPmState_e {
+    /* DPMS off (Q: what about screensavers, what about 3D offscreen rendering apps) */
+    RHD_PM_OFF,
+    /* DPMS on, no activity for some time */
+    RHD_PM_IDLE,
+    /* Simple 2D activity */
+    RHD_PM_SLOW_2D,
+    /* Advanced 2D activity, e.g. video playback */
+    RHD_PM_FAST_2D,
+    /* Simple 3D activity, e.g. compiz (Q: how to select? indirect rendering only? */
+    RHD_PM_SLOW_3D,
+    /* Fast 3D activity, e.g. games. Usually using default AtomBIOS setting. */
+    RHD_PM_FAST_3D,
+    /* Use theoretical chip maximum, maybe beyond default - not selected automatically */
+    RHD_PM_MAX_3D,
+    /* User supplied */
+    RHD_PM_USER,
+    RHD_PM_NUM_STATES
 };
 
 struct rhdPm {
     int               scrnIndex;
 
-    struct rhdPmState Forced;
+    /* R/O */
+    struct rhdPmState Default;
+    struct rhdPmState Minimum;
+    struct rhdPmState Maximum;
+
+    struct rhdPmState States[RHD_PM_NUM_STATES];
+    struct rhdPmState Current;
     struct rhdPmState Stored;
-    Bool              IsStored;
+
+    Bool              (*DefineState) (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState state);
+    Bool              (*SelectState) (RHDPtr rhdPtr, enum rhdPmState_e num);
+#if 0	/* TODO: expose? */
+    Bool              (*SetRawState) (RHDPtr rhdPtr, struct rhdPmState state);
+    struct rhdPmState (*GetRawState) (RHDPtr rhdPtr);
+#endif
 };
 
 void RHDPmInit(RHDPtr rhdPtr);
-void RHDPmSetClock(RHDPtr rhdPtr);
 void RHDPmSave(RHDPtr rhdPtr);
 void RHDPmRestore(RHDPtr rhdPtr);
-
-struct rhdPmState RHDGetPmState(RHDPtr rhdPtr);
-struct rhdPmState RHDGetDefaultPmState(RHDPtr rhdPtr);
-
-Bool RHDSetPmState(RHDPtr rhdPtr, struct rhdPmState state);
 
 #endif /* _RHD_PM_H */

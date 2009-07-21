@@ -1161,7 +1161,8 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     xf86SetBlackWhitePixels(pScreen);
 
     /* Static power management */
-    RHDPmSetClock(rhdPtr);
+    if (rhdPtr->Pm)
+	rhdPtr->Pm->SelectState (rhdPtr, RHD_PM_IDLE);
 
 #ifdef USE_DRI
     if (DriScreenInited)
@@ -1460,7 +1461,8 @@ RHDEnterVT(int scrnIndex, int flags)
     RHDAudioSetEnable(rhdPtr, rhdPtr->audio.val.bool);
 
     /* Static power management */
-    RHDPmSetClock(rhdPtr);
+    if (rhdPtr->Pm)
+	rhdPtr->Pm->SelectState (rhdPtr, RHD_PM_IDLE);
 
 #ifdef USE_DRI
     if (rhdPtr->dri)
