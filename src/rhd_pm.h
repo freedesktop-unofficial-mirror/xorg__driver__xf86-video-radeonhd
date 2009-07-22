@@ -67,11 +67,11 @@ struct rhdPm {
     struct rhdPmState Current;
     struct rhdPmState Stored;
 
-    Bool              (*DefineState) (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState state);
-    Bool              (*SelectState) (RHDPtr rhdPtr, enum rhdPmState_e num);
+    Bool (*DefineState) (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState *state);
+    Bool (*SelectState) (RHDPtr rhdPtr, enum rhdPmState_e num);
 #if 0	/* TODO: expose? */
-    Bool              (*SetRawState) (RHDPtr rhdPtr, struct rhdPmState state);
-    struct rhdPmState (*GetRawState) (RHDPtr rhdPtr);
+    Bool (*SetRawState) (RHDPtr rhdPtr, struct rhdPmState *state);
+    void (*GetRawState) (RHDPtr rhdPtr, struct rhdPmState *state);
 #endif
 };
 

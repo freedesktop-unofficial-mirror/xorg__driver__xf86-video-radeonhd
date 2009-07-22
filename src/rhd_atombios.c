@@ -132,6 +132,12 @@ static AtomBiosResult
 rhdAtomGetClock(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult
 rhdAtomPmSetup(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomGetVoltage(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomSetVoltage(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 
 
 enum msgDataFormat {
@@ -289,7 +295,13 @@ struct atomBIOSRequests {
      "Set Power Management",			MSG_FORMAT_NONE},
     {ATOM_PM_CLOCKGATING_SETUP, rhdAtomPmSetup,
      "Set Dynamic Clock Gating",		MSG_FORMAT_NONE},
-    {ATOM_FUNC_END,					NULL,
+    {ATOM_GET_CHIP_LIMITS, rhdAtomChipLimits,
+     "Get Chip Limits",				MSG_FORMAT_NONE},
+    {ATOM_GET_VOLTAGE, rhdAtomGetVoltage,
+     "Current Chip Voltage",			MSG_FORMAT_DEC},
+    {ATOM_SET_VOLTAGE, rhdAtomSetVoltage,
+     "Set Chip Voltage",			MSG_FORMAT_NONE},
+    {ATOM_FUNC_END,				NULL,
      NULL,					MSG_FORMAT_NONE}
 };
 
@@ -5303,6 +5315,191 @@ rhdAtomPmSetup(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr 
     xf86DrvMsg(handle->scrnIndex, X_WARNING, "Failed to set %s\n",
                 (func == ATOM_PM_SETUP) ? "power management" : "dynamic clock gating");
     return ATOM_FAILED;
+}
+
+static AtomBiosResult
+rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    atomDataTablesPtr atomDataPtr = handle->atomDataPtr;
+    AtomBiosArgRec		    execData;
+    ATOM_VOLTAGE_OBJECT_INFO	   *voltage;
+    AtomChipLimits		   *lim = &data->chipLimits;
+    CARD8    crev, frev;
+    uint16_t FirmwareInfoRev = 0;
+
+    RHDFUNC(handle);
+    memset (lim, 0, sizeof (*lim));
+
+    if (rhdAtomGetTableRevisionAndSize (
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->FirmwareInfo.base),
+	    &crev,&frev,NULL))
+	FirmwareInfoRev = (frev << 8) | crev;
+
+    xf86DrvMsg (handle->scrnIndex, X_INFO, "FirmwareInfo Revision %04x\n", FirmwareInfoRev);
+    switch (FirmwareInfoRev) {
+    case 0x104:
+	{
+	    ATOM_FIRMWARE_INFO_V1_4 *fw = atomDataPtr->FirmwareInfo.FirmwareInfo_V_1_4;
+	    lim->DefaultVDDCVoltage = fw->usBootUpVDDCVoltage;
+	}
+    case 0x103:	/* fall through */
+	{
+	    ATOM_FIRMWARE_INFO_V1_3 *fw = atomDataPtr->FirmwareInfo.FirmwareInfo_V_1_3;
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ul3DAccelerationEngineClock %lu\n",
+			(unsigned long) fw->ul3DAccelerationEngineClock * 10);
+	}
+    case 0x102:	/* fall through */
+    case 0x101:	/* fall through */
+	{
+	    ATOM_FIRMWARE_INFO *fw = atomDataPtr->FirmwareInfo.FirmwareInfo;
+	    lim->MaxEngineClock = fw->ulASICMaxEngineClock * 10;
+	    lim->MaxMemoryClock = fw->ulASICMaxMemoryClock * 10;
+	    /* Scary bits: PLL post divider is 2 ?!? Minimum for pixel PLL, so probably here as well */
+	    lim->MinEngineClock = fw->usMinEngineClockPLL_Output * 5;
+	    lim->MinMemoryClock = fw->usMinMemoryClockPLL_Output * 5;
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ulDriverTargetEngineClock %lu\n",
+			(unsigned long) fw->ulDriverTargetEngineClock * 10);
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ulDriverTargetMemoryClock %lu\n",
+			(unsigned long) fw->ulDriverTargetMemoryClock * 10);
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ucASICMaxTemperature %d\n",
+			(int) fw->ucASICMaxTemperature);
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Scary bits: Estimated MinEngineClock %d kHz\n",
+			(int) fw->usMinEngineClockPLL_Output * 5);
+	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Scary bits: Estimated MinMemoryClock %d kHz\n",
+			(int) fw->usMinMemoryClockPLL_Output * 5);
+	    break;
+	}
+    default:
+	xf86DrvMsg(handle->scrnIndex, X_ERROR, "Unusupported FirmwareInfo Revision\n");
+	return ATOM_NOT_IMPLEMENTED;
+    }
+
+    if ( (voltage = atomDataPtr->VoltageObjectInfo) ) {
+	char *last = ((char *) voltage) + voltage->sHeader.usStructureSize;
+	while ((char *) &voltage->asVoltageObj[0].ucVoltageType < last) {
+	    if (voltage->asVoltageObj[0].ucVoltageType == SET_VOLTAGE_TYPE_ASIC_VDDC) {
+		lim->MinVDDCVoltage = voltage->asVoltageObj[0].asFormula.usVoltageBaseLevel;
+		lim->MaxVDDCVoltage = lim->MinVDDCVoltage +
+		    voltage->asVoltageObj[0].asFormula.usVoltageStep *
+		    (voltage->asVoltageObj[0].asFormula.ucNumOfVoltageEntries - 1) /
+		    (voltage->asVoltageObj[0].asFormula.ucFlag & 0x01 ? 2 : 1);
+		break;
+	    }
+	    voltage = (ATOM_VOLTAGE_OBJECT_INFO *) (((char *) voltage) + voltage->asVoltageObj[0].ucSize);
+	}
+    } else
+	xf86DrvMsg (handle->scrnIndex, X_INFO, "No VoltageObjectInfo table\n");
+
+    if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_GET_DEFAULT_ENGINE_CLOCK,
+			 &execData) == ATOM_SUCCESS)
+	lim->DefaultEngineClock = execData.val;
+    if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_GET_DEFAULT_MEMORY_CLOCK,
+			 &execData) == ATOM_SUCCESS)
+	lim->DefaultMemoryClock = execData.val;
+
+    return ATOM_SUCCESS;
+}
+
+#define SET_VOLTAGE_GET_MAX_VOLTAGE	6
+static AtomBiosResult
+rhdAtomGetVoltage (atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    AtomBiosArgRec execData;
+    CARD8    crev, frev;
+    uint16_t SetVoltageRev = 0;
+    int      SetVoltageIdx;
+
+    RHDFUNC(handle);
+
+    SetVoltageIdx = GetIndexIntoMasterTable (COMMAND, SetVoltage);
+    if (rhdAtomGetCommandTableRevisionSize (handle, SetVoltageIdx, &crev, &frev, NULL))
+	SetVoltageRev = (frev << 8) | crev;
+
+    execData.exec.dataSpace = NULL;
+
+    switch (SetVoltageRev) {
+    case 0x0101:
+	{
+	    SET_VOLTAGE_PARAMETERS	setVolt;
+	    xf86DrvMsg (handle->scrnIndex, X_WARNING, "Not supporting SetVoltage V1 yet\n");
+	    setVolt.ucVoltageType  = SET_VOLTAGE_GET_MAX_VOLTAGE;
+	    setVolt.ucVoltageMode  = SET_ASIC_VOLTAGE_MODE_ALL_SOURCE;
+	    setVolt.ucVoltageIndex = 0;
+	    execData.exec.index    = SetVoltageIdx;
+	    execData.exec.pspace   = &setVolt;
+	    if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_EXEC, &execData) == ATOM_SUCCESS) {
+		xf86DrvMsg (handle->scrnIndex, X_INFO,
+			    "Unused attribute: SET_VOLTAGE_GET_MAX_VOLTAGE: type %d mode %d index %d\n",
+			    setVolt.ucVoltageType, setVolt.ucVoltageMode, setVolt.ucVoltageIndex);
+		/* TODO: Map index into voltage */
+	    }
+	    return ATOM_NOT_IMPLEMENTED;
+	}
+    case 0x0102:
+	{
+	    SET_VOLTAGE_PARAMETERS_V2	setVolt2;
+	    setVolt2.ucVoltageType = SET_VOLTAGE_GET_MAX_VOLTAGE;
+	    setVolt2.ucVoltageMode = SET_ASIC_VOLTAGE_MODE_GET_GPIOVAL;
+	    setVolt2.usVoltageLevel = 0;
+	    execData.exec.index    = SetVoltageIdx;
+	    execData.exec.pspace   = &setVolt2;
+	    if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_EXEC, &execData) == ATOM_SUCCESS) {
+		data->val = setVolt2.usVoltageLevel;
+		return ATOM_SUCCESS;
+	    }
+	    return ATOM_FAILED;
+        }
+    default:
+	xf86DrvMsg(handle->scrnIndex, X_WARNING, "Unusupported SetVoltage Revision\n");
+	return ATOM_NOT_IMPLEMENTED;
+    }
+}
+
+static AtomBiosResult
+rhdAtomSetVoltage (atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    AtomBiosArgRec execData;
+    CARD8    crev, frev;
+    uint16_t SetVoltageRev = 0;
+    int      SetVoltageIdx;
+
+    RHDFUNC(handle);
+
+    SetVoltageIdx = GetIndexIntoMasterTable (COMMAND, SetVoltage);
+    if (rhdAtomGetCommandTableRevisionSize (handle, SetVoltageIdx, &crev, &frev, NULL))
+	SetVoltageRev = (frev << 8) | crev;
+
+    execData.exec.dataSpace = NULL;
+
+    switch (SetVoltageRev) {
+    case 0x0101:
+	{
+#if 0
+	    SET_VOLTAGE_PARAMETERS	setVolt;
+	    setVolt.ucVoltageType  = SET_VOLTAGE_TYPE_ASIC_VDDC;
+            setVolt.ucVoltageMode  = SET_ASIC_VOLTAGE_MODE_ALL_SOURCE;
+	    setVolt.ucVoltageIndex = ###INDEX###;
+	    execData.exec.index    = SetVoltageIdx;
+	    execData.exec.pspace   = &setVolt;
+	    return RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_EXEC, &execData);
+#endif
+	    xf86DrvMsg (handle->scrnIndex, X_WARNING, "Not supporting SetVoltage V1 yet\n");
+	    return ATOM_NOT_IMPLEMENTED;
+	}
+    case 0x0102:
+	{
+	    SET_VOLTAGE_PARAMETERS_V2	setVolt2;
+	    setVolt2.ucVoltageType  = SET_VOLTAGE_TYPE_ASIC_VDDC;
+            setVolt2.ucVoltageMode  = SET_ASIC_VOLTAGE_MODE_ALL_SOURCE;
+	    setVolt2.usVoltageLevel = data->val;
+	    execData.exec.index     = SetVoltageIdx;
+	    execData.exec.pspace    = &setVolt2;
+	    return RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_EXEC, &execData);
+        }
+    default:
+	xf86DrvMsg(handle->scrnIndex, X_WARNING, "Unusupported SetVoltage Revision\n");
+	return ATOM_NOT_IMPLEMENTED;
+    }
 }
 
 

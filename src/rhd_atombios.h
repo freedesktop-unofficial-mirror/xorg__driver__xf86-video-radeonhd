@@ -107,6 +107,9 @@ typedef enum _AtomBiosRequestID {
     ATOM_SET_MEMORY_CLOCK,
     ATOM_PM_SETUP,
     ATOM_PM_CLOCKGATING_SETUP,
+    ATOM_GET_CHIP_LIMITS,
+    ATOM_GET_VOLTAGE,
+    ATOM_SET_VOLTAGE,
     ATOM_FUNC_END
 } AtomBiosRequestID;
 
@@ -193,6 +196,19 @@ typedef struct AtomGoldenSettings
 
 } AtomGoldenSettings;
 
+typedef struct AtomChipLimits
+{
+    uint32_t MinEngineClock;
+    uint32_t MaxEngineClock;
+    uint32_t DefaultEngineClock;
+    uint32_t MinMemoryClock;
+    uint32_t MaxMemoryClock;
+    uint32_t DefaultMemoryClock;
+    uint32_t MinVDDCVoltage;
+    uint32_t MaxVDDCVoltage;
+    uint32_t DefaultVDDCVoltage;
+} AtomChipLimits;
+
 typedef union AtomBiosArg
 {
     CARD32 val;
@@ -216,6 +232,7 @@ typedef union AtomBiosArg
     AtomFbRec			fb;
     enum RHD_TV_MODE		tvMode;
     unsigned long		clockValue;
+    AtomChipLimits		chipLimits;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 enum atomCrtc {

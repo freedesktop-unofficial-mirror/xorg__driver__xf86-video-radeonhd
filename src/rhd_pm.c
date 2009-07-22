@@ -41,20 +41,69 @@
 
 #ifdef ATOM_BIOS
 
+#define EXTRA_MIN_ENGINE_CLOCK	200000
+#define EXTRA_MAX_ENGINE_CLOCK	3000000
+#define EXTRA_MIN_MEMORY_CLOCK	200000
+#define EXTRA_MAX_MEMORY_CLOCK	3000000
+#define EXTRA_MIN_VOLTAGE	500
+#define EXTRA_MAX_VOLTAGE	2000
+
 static char *PmLevels[] = {
     "Off", "Idle", "Slow2D", "Fast2D", "Slow3D", "Fast3D", "Max3D", "User"
 } ;
 
 
+static void
+rhdPmPrint (struct rhdPm *Pm, char *name, struct rhdPmState *state)
+{
+    xf86DrvMsg(Pm->scrnIndex, X_INFO, "  %-8s %8d kHz / %8d kHz / %6.3f V\n",
+	       name, state->EngineClock, state->MemoryClock,
+	       state->Voltage / 1000.0);
+}
+
 /* Certain clocks require certain voltage settings */
 /* TODO: So far we only know few safe points. Interpolate? */
-static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting)
+static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, int forceVoltage)
 {
     uint32_t compare = setting->Voltage ? setting->Voltage : Pm->Current.Voltage;
-    /* Only set to lower Voltages than compare if 0 */
-    /* TODO: logic missing */
+    if (! setting->EngineClock)
+	setting->EngineClock = Pm->Current.EngineClock;
+    if (setting->EngineClock < Pm->Minimum.EngineClock)
+	setting->EngineClock = Pm->Minimum.EngineClock;
+    if (setting->EngineClock < EXTRA_MIN_ENGINE_CLOCK)
+	setting->EngineClock = EXTRA_MIN_ENGINE_CLOCK;
+    if (setting->EngineClock > Pm->Maximum.EngineClock)
+	setting->EngineClock = Pm->Maximum.EngineClock;
+    if (setting->EngineClock > EXTRA_MAX_ENGINE_CLOCK)
+	setting->EngineClock = Pm->Default.EngineClock;
+    if (setting->EngineClock > EXTRA_MAX_ENGINE_CLOCK)
+	setting->EngineClock = EXTRA_MAX_ENGINE_CLOCK;
+    if (! setting->MemoryClock)
+	setting->MemoryClock = Pm->Current.MemoryClock;
+    if (setting->MemoryClock < Pm->Minimum.MemoryClock)
+	setting->MemoryClock = Pm->Minimum.MemoryClock;
+    if (setting->MemoryClock < EXTRA_MIN_MEMORY_CLOCK)
+	setting->MemoryClock = EXTRA_MIN_MEMORY_CLOCK;
+    if (setting->MemoryClock > Pm->Maximum.MemoryClock)
+	setting->MemoryClock = Pm->Maximum.MemoryClock;
+    if (setting->MemoryClock > EXTRA_MAX_MEMORY_CLOCK)
+	setting->MemoryClock = Pm->Default.MemoryClock;
+    if (setting->MemoryClock > EXTRA_MAX_MEMORY_CLOCK)
+	setting->MemoryClock = EXTRA_MAX_MEMORY_CLOCK;
     if (! setting->Voltage)
-	setting->Voltage = Pm->Default.Voltage;
+	setting->Voltage     = Pm->Current.Voltage;
+    if (setting->Voltage     < Pm->Minimum.Voltage)
+	setting->Voltage     = Pm->Minimum.Voltage;
+    if (setting->Voltage     < EXTRA_MIN_VOLTAGE)
+	setting->Voltage     = EXTRA_MIN_VOLTAGE;
+    if (setting->Voltage     > Pm->Maximum.Voltage)
+	setting->Voltage     = Pm->Maximum.Voltage;
+    if (setting->Voltage     > EXTRA_MAX_VOLTAGE)
+	setting->Voltage     = Pm->Default.Voltage;
+    if (setting->Voltage     > EXTRA_MAX_VOLTAGE)
+	setting->Voltage     = EXTRA_MAX_VOLTAGE;
+    /* TODO: voltage adaption logic missing */
+    /* Only set to lower Voltages than compare if 0 */
 }
 
 static void rhdPmCopySetting (struct rhdPm *Pm, struct rhdPmState *to, struct rhdPmState *from)
@@ -65,7 +114,7 @@ static void rhdPmCopySetting (struct rhdPm *Pm, struct rhdPmState *to, struct rh
 	to->MemoryClock = from->MemoryClock;
     if (from->Voltage)
 	to->Voltage     = from->Voltage;
-    rhdPmValidateSetting (Pm, to);
+    rhdPmValidateSetting (Pm, to, 0);
 }
 
 /* Have: a list of possible power settings, eventual minimum and maximum settings.
@@ -116,9 +165,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 		       Pm->States[RHD_PM_IDLE].MemoryClock);
         }
 
-	/* TODO: force voltage */
-	Pm->States[RHD_PM_IDLE].Voltage = 0;
-	rhdPmValidateSetting (Pm, &Pm->States[RHD_PM_IDLE]);
+	rhdPmValidateSetting (Pm, &Pm->States[RHD_PM_IDLE], 1);
     }
 
     rhdPmCopySetting (Pm, &Pm->States[RHD_PM_MAX_3D], &Pm->Maximum);
@@ -126,72 +173,70 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
 		"Power management: used engine clock / memory clock / voltage:\n");
     ASSERT (sizeof(PmLevels) / sizeof(char *) == RHD_PM_NUM_STATES);
-    for (i = 0; i < RHD_PM_NUM_STATES; i++) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "  %s: %d / %d / %.3f\n",
-		   PmLevels[i],
-		   Pm->States[i].EngineClock, Pm->States[i].MemoryClock,
-		   Pm->States[i].Voltage / 1000.0);
-    }
+    for (i = 0; i < RHD_PM_NUM_STATES; i++)
+	rhdPmPrint (Pm, PmLevels[i], &Pm->States[i]);
 }
 
-static struct rhdPmState
-rhdGetDefaultPmState (RHDPtr rhdPtr) {
-    struct rhdPmState state;
-    union AtomBiosArg data;
-
-    memset (&state, 0, sizeof(state));
-    if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 ATOM_GET_DEFAULT_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
-	state.EngineClock = data.clockValue;
-    if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			 ATOM_GET_DEFAULT_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
-        state.MemoryClock = data.clockValue;
-    /* FIXME: Voltage */
-
-    return state;
-}
-
-static struct rhdPmState
-rhdPmGetRawState (RHDPtr rhdPtr)
+static void
+rhdPmGetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
 {
     union AtomBiosArg data;
 
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			 ATOM_GET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
-        rhdPtr->Pm->Current.EngineClock = data.clockValue;
+        state->EngineClock = data.clockValue;
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			 ATOM_GET_MEMORY_CLOCK, &data) == ATOM_SUCCESS)
-        rhdPtr->Pm->Current.MemoryClock = data.clockValue;
-    /* FIXME: Voltage */
-
-    return rhdPtr->Pm->Current;
+        state->MemoryClock = data.clockValue;
+    if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			 ATOM_GET_VOLTAGE, &data) == ATOM_SUCCESS)
+        state->Voltage = data.val;
 }
 
 static Bool
-rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState state)
+rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
 {
     union AtomBiosArg data;
     Bool ret = TRUE;
+    struct rhdPmState dummy;
 
     /* TODO: Idle first; find which idles are needed and expose them */
     /* FIXME: Voltage */
     /* FIXME: If Voltage is to be rised, then do that first, then change frequencies.
      *        If Voltage is to be lowered, do it the other way round. */
-    if (state.EngineClock && state.EngineClock != rhdPtr->Pm->Current.EngineClock) {
-	data.clockValue = state.EngineClock;
+    if (state->EngineClock && state->EngineClock != rhdPtr->Pm->Current.EngineClock) {
+	data.clockValue = state->EngineClock;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			     ATOM_SET_ENGINE_CLOCK, &data) != ATOM_SUCCESS)
+			     ATOM_SET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+	    rhdPtr->Pm->Current.EngineClock = state->EngineClock;
+	else
 	    ret = FALSE;
     }
 #if 0	/* don't do for the moment */
-    if (state.MemoryClock && state.MemoryClock != rhdPtr->Pm->Current.MemoryClock) {
-	data.clockValue = state.MemoryClock;
+    if (state->MemoryClock && state->MemoryClock != rhdPtr->Pm->Current.MemoryClock) {
+	data.clockValue = state->MemoryClock;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			     ATOM_SET_MEMORY_CLOCK, &data) != ATOM_SUCCESS)
+	    rhdPtr->Pm->Current.MemoryClock = state->MemoryClock;
+	else
 	    ret = FALSE;
     }
 #endif
-    rhdPmGetRawState (rhdPtr);
+#if 0	/* don't do for the moment */
+    if (state->Voltage && state->Voltage != rhdPtr->Pm->Current.Voltage) {
+	data.val = state->Voltage;
+	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			     ATOM_SET_VOLTAGE, &data) != ATOM_SUCCESS)
+	    rhdPtr->Pm->Current.Voltage = state->Voltage;
+	else
+	    ret = FALSE;
+    }
+#endif
+
+    /* AtomBIOS might change values, so that later comparisons would fail, even
+     * if re-setting wouldn't change the actual values. So don't save real
+     * state in Current, but update only to current values. */
+    rhdPmGetRawState (rhdPtr, &dummy);
     return ret;
 }
 
@@ -203,11 +248,11 @@ rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState state)
 static Bool
 rhdPmSelectState (RHDPtr rhdPtr, enum rhdPmState_e num)
 {
-    return rhdPmSetRawState (rhdPtr, rhdPtr->Pm->States[num]);
+    return rhdPmSetRawState (rhdPtr, &rhdPtr->Pm->States[num]);
 }
 
 static Bool
-rhdPmDefineState (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState state)
+rhdPmDefineState (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState *state)
 {
     ASSERT(0);
 }
@@ -215,6 +260,7 @@ rhdPmDefineState (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState state)
 void RHDPmInit(RHDPtr rhdPtr)
 {
     struct rhdPm *Pm = (struct rhdPm *) xnfcalloc(sizeof(struct rhdPm), 1);
+    union AtomBiosArg data;
     RHDFUNC(rhdPtr);
 
     rhdPtr->Pm = Pm;
@@ -223,25 +269,44 @@ void RHDPmInit(RHDPtr rhdPtr)
     Pm->SelectState = rhdPmSelectState;
     Pm->DefineState = rhdPmDefineState;
 
-    rhdPmGetRawState (rhdPtr);			/* Sets Pm->Current */
-    Pm->Default     = rhdGetDefaultPmState (rhdPtr);
-
-    /* TODO: Get all settings */
-
-    if (! Pm->Default.Voltage)
-	rhdPmValidateSetting (Pm, &Pm->Default);
-    if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock)
-	memcpy (&Pm->Default, &Pm->Current, sizeof (Pm->Current));
-    if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock) {
-	/* Not getting the default setting is fatal */
+    if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			 ATOM_GET_CHIP_LIMITS, &data) != ATOM_SUCCESS) {
+	/* Not getting the information is fatal */
 	xfree (Pm);
 	rhdPtr->Pm = NULL;
 	return;
     }
+    Pm->Minimum.EngineClock = data.chipLimits.MinEngineClock;
+    Pm->Minimum.MemoryClock = data.chipLimits.MinMemoryClock;
+    Pm->Minimum.Voltage     = data.chipLimits.MinVDDCVoltage;
+    Pm->Maximum.EngineClock = data.chipLimits.MaxEngineClock;
+    Pm->Maximum.MemoryClock = data.chipLimits.MaxMemoryClock;
+    Pm->Maximum.Voltage     = data.chipLimits.MaxVDDCVoltage;
+    Pm->Default.EngineClock = data.chipLimits.DefaultEngineClock;
+    Pm->Default.MemoryClock = data.chipLimits.DefaultMemoryClock;
+    Pm->Default.Voltage     = data.chipLimits.DefaultVDDCVoltage;
 
-    rhdPmCopySetting (Pm, &Pm->Minimum, &Pm->Default);
-    rhdPmCopySetting (Pm, &Pm->Maximum, &Pm->Default);
-    /* TODO: get min/max settings if possible from AtomBIOS */
+    memcpy (&Pm->Current, &Pm->Default, sizeof (Pm->Default));
+    rhdPmGetRawState (rhdPtr, &Pm->Current);
+
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Raw Ranges\n");
+    rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
+    rhdPmPrint (Pm, "Global Maximum", &Pm->Maximum);
+    rhdPmPrint (Pm, "Global Default", &Pm->Default);
+
+    /* TODO: Get all settings */
+
+    /* Validate */
+    if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock)
+	memcpy (&Pm->Default, &Pm->Current, sizeof (Pm->Current));
+    rhdPmValidateSetting (Pm, &Pm->Default, 1);
+    rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
+    rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
+
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Valdiated Ranges\n");
+    rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
+    rhdPmPrint (Pm, "Global Maximum", &Pm->Maximum);
+    rhdPmPrint (Pm, "Global Default", &Pm->Default);
 
     rhdPmSelectSettings (rhdPtr);
 }
@@ -285,7 +350,8 @@ RHDPmSave (RHDPtr rhdPtr)
 
     if (!Pm) return;
 
-    Pm->Stored   = rhdPmGetRawState (rhdPtr);
+    memcpy (&Pm->Stored, &Pm->Default, sizeof (Pm->Default));
+    rhdPmGetRawState (rhdPtr, &Pm->Stored);
 }
 
 /*
@@ -322,8 +388,6 @@ RHDPmRestore (RHDPtr rhdPtr)
 		    "uninitialized values.\n", __func__);
         return;
     }
-    rhdPmSetRawState (rhdPtr, Pm->Stored);
-    /* Induce logging of new engine clock */
-    rhdPmGetRawState (rhdPtr);
+    rhdPmSetRawState (rhdPtr, &Pm->Stored);
 }
 
