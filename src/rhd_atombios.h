@@ -110,6 +110,7 @@ typedef enum _AtomBiosRequestID {
     ATOM_GET_CHIP_LIMITS,
     ATOM_GET_VOLTAGE,
     ATOM_SET_VOLTAGE,
+    ATOM_GET_CHIP_CONFIGS,
     ATOM_FUNC_END
 } AtomBiosRequestID;
 
@@ -203,6 +204,13 @@ typedef struct AtomChipLimits
     struct rhdPowerState Default;
 } AtomChipLimits;
 
+typedef struct AtomChipConfigs
+{
+    int    num;
+    struct rhdPowerState *Settings;
+} AtomChipConfigs;
+
+
 typedef union AtomBiosArg
 {
     CARD32 val;
@@ -227,6 +235,7 @@ typedef union AtomBiosArg
     enum RHD_TV_MODE		tvMode;
     unsigned long		clockValue;
     AtomChipLimits		chipLimits;
+    AtomChipConfigs		chipConfigs;
 } AtomBiosArgRec, *AtomBiosArgPtr;
 
 enum atomCrtc {

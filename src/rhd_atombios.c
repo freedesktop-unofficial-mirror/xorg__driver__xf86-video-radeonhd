@@ -74,7 +74,7 @@ typedef unsigned short USHORT;
 #  endif
 # endif
 
-# include "atombios.h"
+# include "atombios_rev.h"
 # include "ObjectID.h"
 
 typedef AtomBiosResult (*AtomBiosRequestFunc)(atomBiosHandlePtr handle,
@@ -138,6 +138,8 @@ static AtomBiosResult
 rhdAtomGetVoltage(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 static AtomBiosResult
 rhdAtomSetVoltage(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
+static AtomBiosResult
+rhdAtomChipConfigs(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data);
 
 
 enum msgDataFormat {
@@ -301,6 +303,8 @@ struct atomBIOSRequests {
      "Current Chip Voltage",			MSG_FORMAT_DEC},
     {ATOM_SET_VOLTAGE, rhdAtomSetVoltage,
      "Set Chip Voltage",			MSG_FORMAT_NONE},
+    {ATOM_GET_CHIP_CONFIGS, rhdAtomChipConfigs,
+     "Get Chip Configs",			MSG_FORMAT_NONE},
     {ATOM_FUNC_END,				NULL,
      NULL,					MSG_FORMAT_NONE}
 };
@@ -356,7 +360,13 @@ typedef struct _atomDataTables
         ATOM_COMPONENT_VIDEO_INFO       *ComponentVideoInfo;
         ATOM_COMPONENT_VIDEO_INFO_V21   *ComponentVideoInfo_v21;
     } ComponentVideoInfo;
-/**/unsigned char                       *PowerPlayInfo;
+    union {
+	void                            *base;
+	ATOM_POWERPLAY_INFO             *PowerPlayInfo;
+	ATOM_POWERPLAY_INFO_V2          *PowerPlayInfo_V_2_1;
+	ATOM_POWERPLAY_INFO_V3          *PowerPlayInfo_V_3_1;
+	ATOM_POWERPLAY_INFO_V4          *PowerPlayInfo_V_4_1;
+    } PowerPlayInfo;
     COMPASSIONATE_DATA                  *CompassionateData;
     ATOM_DISPLAY_DEVICE_PRIORITY_INFO   *SaveRestoreInfo;
 /**/unsigned char                       *PPLL_SS_Info;
@@ -5398,6 +5408,72 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 	lim->Default.MemoryClock = execData.val;
 
     return ATOM_SUCCESS;
+}
+
+
+static AtomBiosResult
+rhdAtomChipConfigs(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgPtr data)
+{
+    atomDataTablesPtr atomDataPtr = handle->atomDataPtr;
+    AtomChipConfigs		   *conf = &data->chipConfigs;
+    CARD8    crev, frev;
+    uint16_t PowerPlayInfoRev = 0;
+
+    RHDFUNC(handle);
+    memset (conf, 0, sizeof (*conf));
+
+    if (rhdAtomGetTableRevisionAndSize (
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->PowerPlayInfo.base),
+	    &crev,&frev,NULL))
+	PowerPlayInfoRev = (frev << 8) | crev;
+    xf86DrvMsg (handle->scrnIndex, X_INFO, "PowerPlayInfo Revision %04x\n", PowerPlayInfoRev);
+
+    switch (PowerPlayInfoRev) {
+    case 0x101:
+    case 0x201:
+    case 0x301:
+	xf86DrvMsg (handle->scrnIndex, X_WARNING, "PowerPlayInfo Revision not yet implemented\n");
+	return ATOM_NOT_IMPLEMENTED;
+
+    case 0x401:
+	{
+	    ATOM_POWERPLAY_INFO_V4    *pp = atomDataPtr->PowerPlayInfo.PowerPlayInfo_V_4_1;
+	    unsigned char             *uc = ((unsigned char *)pp) + _U16 (pp->OffsetPowerIndexEntries);	/* ATOM_POWERINDEX_INFO_V4 */
+	    ATOM_POWERMODE_INFO_V4    *pm = (ATOM_POWERMODE_INFO_V4 *)    (((unsigned char *)pp) + _U16 (pp->OffsetPowerModeEntries));
+	    ATOM_POWERUNKNOWN_INFO_V4 *pu = (ATOM_POWERUNKNOWN_INFO_V4 *) (((unsigned char *)pp) + _U16 (pp->OffsetPowerUnknownEntries));
+	    int i, j, num = 0;
+
+	    for (i = 0; i < pp->NumPowerIndexEntries && uc < (unsigned char *) pm; i++) {
+		uc++;			/* First entry is index */
+		for (j = 1; j < pp->SizeOfPowerIndexEntry; j++) {
+		    if (*uc > num)
+			num = *uc;
+		    uc++;
+		}
+	    }
+	    conf->num = num;
+	    if (i < pp->NumPowerIndexEntries)
+		xf86DrvMsg (handle->scrnIndex, X_ERROR,
+			    "Expected %d ATOM_POWERINDEX_INFO_V4 entries, got only %d\n", num, i);
+
+	    conf->Settings = xnfcalloc (num, sizeof (struct rhdPowerState));
+	    for (i = 0; i < num && pm < (ATOM_POWERMODE_INFO_V4 *) pu; i++) {
+		conf->Settings[i].EngineClock = _U24 (pm->engineClock) * 10;
+		conf->Settings[i].MemoryClock = _U24 (pm->memoryClock) * 10;
+		conf->Settings[i].VDDCVoltage = _U16 (pm->voltage);
+		pm++;
+	    }
+	    if (i < num)
+		xf86DrvMsg (handle->scrnIndex, X_ERROR,
+			    "Expected %d ATOM_POWERMODE_INFO_V4 entries, got only %d\n", num, i);
+
+	    return ATOM_SUCCESS;
+	}
+
+    default:
+	xf86DrvMsg (handle->scrnIndex, X_ERROR, "Unusupported PowerPlayInfo Revision\n");
+	return ATOM_NOT_IMPLEMENTED;
+    }
 }
 
 #define SET_VOLTAGE_GET_MAX_VOLTAGE	6

@@ -139,6 +139,25 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
     rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
     rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
     rhdPmValidateSetting (Pm, &Pm->Default, 1);
+
+    if (Pm->NumKnown) {
+	int i;
+	for (i = 0; i < Pm->NumKnown; i++) {
+	    if (Pm->Maximum.EngineClock < Pm->Known[i].EngineClock)
+		Pm->Maximum.EngineClock = Pm->Known[i].EngineClock;
+	    if (Pm->Maximum.MemoryClock < Pm->Known[i].MemoryClock)
+		Pm->Maximum.MemoryClock = Pm->Known[i].MemoryClock;
+	    if (Pm->Maximum.VDDCVoltage < Pm->Known[i].VDDCVoltage)
+		Pm->Maximum.VDDCVoltage = Pm->Known[i].VDDCVoltage;
+	    if (Pm->Minimum.EngineClock > Pm->Known[i].EngineClock && Pm->Known[i].EngineClock)
+		Pm->Minimum.EngineClock = Pm->Known[i].EngineClock;
+	    if (Pm->Minimum.MemoryClock > Pm->Known[i].MemoryClock && Pm->Known[i].MemoryClock)
+		Pm->Minimum.MemoryClock = Pm->Known[i].MemoryClock;
+	    if (Pm->Minimum.VDDCVoltage > Pm->Known[i].VDDCVoltage && Pm->Known[i].VDDCVoltage)
+		Pm->Minimum.VDDCVoltage = Pm->Known[i].VDDCVoltage;
+	}
+    }
+
     if (Pm->Minimum.VDDCVoltage == Pm->Maximum.VDDCVoltage)
 	Pm->Minimum.VDDCVoltage = Pm->Maximum.VDDCVoltage = Pm->Default.VDDCVoltage = 0;
 }
@@ -313,7 +332,13 @@ void RHDPmInit(RHDPtr rhdPtr)
     rhdPmPrint (Pm, "Maximum", &Pm->Maximum);
     rhdPmPrint (Pm, "Default", &Pm->Default);
 
-    /* TODO: Get all settings */
+    if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
+			 ATOM_GET_CHIP_CONFIGS, &data) == ATOM_SUCCESS) {
+	Pm->NumKnown = data.chipConfigs.num;
+	Pm->Known    = data.chipConfigs.Settings;
+    } else
+	xf86DrvMsg (rhdPtr->scrnIndex, X_ERROR,
+		    "Power Management: Cannot get known good chip configurations\n");
 
     /* Validate */
     if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock)
@@ -325,7 +350,19 @@ void RHDPmInit(RHDPtr rhdPtr)
     rhdPmPrint (Pm, "Maximum", &Pm->Maximum);
     rhdPmPrint (Pm, "Default", &Pm->Default);
 
+    if (Pm->NumKnown) {
+	int i;
+	xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
+		    "Power Management: Known Good Configurations\n");
+	for (i = 0; i < Pm->NumKnown; i++) {
+	    char buf[4];		/* number of known entries is 8bit */
+	    snprintf (buf, 4, "%d", i+1);
+	    rhdPmPrint (Pm, buf, &Pm->Known[i]);
+	}
+    }
+
     rhdPmSelectSettings (rhdPtr);
+    /* TODO: cleanup function: xfree(): Pm->Known[], Pm */
 }
 
 #else		/* ATOM_BIOS */

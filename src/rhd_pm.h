@@ -55,6 +55,9 @@ struct rhdPm {
     struct rhdPowerState Default;
     struct rhdPowerState Minimum;
     struct rhdPowerState Maximum;
+    /* Known good settings (in addition to Default). May be NULL */
+    int    NumKnown;
+    struct rhdPowerState *Known;
 
     struct rhdPowerState States[RHD_PM_NUM_STATES];
     struct rhdPowerState Current;
