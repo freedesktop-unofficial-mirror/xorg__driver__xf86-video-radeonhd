@@ -85,10 +85,10 @@ typedef struct
 #pragma offset ATOM_VRAM_INFO_V3             aVramInfo                *(offset_ATOM_VRAM_INFO_V3_aVramInfo(d,i))
 #pragma count  ATOM_VRAM_INFO_V3             aVramInfo                (count_ATOM_VRAM_INFO_V3_aVramInfo(d))
 #pragma offset ATOM_VRAM_INFO_V3             asMemPatch               *(data + d->usMemClkPatchTblOffset)
-// Needs more love
+/* Needs more love */
 #pragma return ATOM_VRAM_INFO_V3             -                        0
 
-// Doesn't look completely reasonable, but seems ok...
+/* Doesn't look completely reasonable, but seems ok... */
 #pragma count  ATOM_ASIC_PROFILE_VOLTAGE     asLeakVol                ((d->usSize - offsetof(ATOM_ASIC_PROFILE_VOLTAGE,asLeakVol)) / sizeof(ATOM_LEAKID_VOLTAGE))
 
 #pragma count  ATOM_VOLTAGE_FORMULA          ucVIDAdjustEntries       (d->ucNumOfVoltageEntries)
@@ -140,8 +140,7 @@ static inline int count_ATOM_VOLTAGE_OBJECT_INFO_asVoltageObj(ATOM_VOLTAGE_OBJEC
  * Reverse engineered tables
  */
 
-//ucTableFormatRevision=4
-//ucTableContentRevision=1
+/* ucTableFormatRevision=4 / ucTableContentRevision=1 */
 
 #pragma count  ATOM_POWERINDEX_INFO_V4 Index (((ATOM_POWERPLAY_INFO_V4*)start)->SizeOfPowerIndexEntry-1)
 typedef struct _ATOM_POWERINDEX_INFO_V4
@@ -177,7 +176,7 @@ typedef struct  _ATOM_POWERUNKNOWN_INFO_V4
 
 typedef struct  _ATOM_POWERPLAY_INFO_V4
 {
-  ATOM_COMMON_TABLE_HEADER	sHeader; 
+  ATOM_COMMON_TABLE_HEADER	sHeader;
   UCHAR    unknown4;
   UCHAR    NumPowerIndexEntries;
   UCHAR    SizeOfPowerIndexEntry;
@@ -191,7 +190,7 @@ typedef struct  _ATOM_POWERPLAY_INFO_V4
   U16      unknown23[5];
   U16      OffsetPowerModeEntries2;
   U16      OffsetPowerUnknownEntries2;
-  UCHAR    unknown37[3];		// RV770 only
+  UCHAR    unknown37[3];		/* Only on some BIOSes (e.g. RV770) */
   ATOM_POWERINDEX_INFO_V4 asPowerIndexInfo[4];
   ATOM_POWERMODE_INFO_V4 asPowerModeInfo[10];
   ATOM_POWERUNKNOWN_INFO_V4 asPowerUnknownInfo[4];
