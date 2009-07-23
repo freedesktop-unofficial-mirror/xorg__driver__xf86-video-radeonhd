@@ -308,7 +308,8 @@ for w in \
   -Wpointer-arith -Woverlength-strings -Wvolatile-register-var \
   -Winit-self -Wbad-function-cast \
   -Wstrict-prototypes -Wold-style-definition \
-  -Wnested-externs -Wdisabled-optimization ;
+  -Wnested-externs -Wdisabled-optimization \
+  -Wno-unknown-pragmas ;
 do
   AC_PROG_CC_FLAG($w,[WARN_CFLAGS="$WARN_CFLAGS $w"],)
 done
