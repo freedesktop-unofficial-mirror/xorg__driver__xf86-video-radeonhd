@@ -74,7 +74,7 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
 	setting->EngineClock = Pm->Minimum.EngineClock;
     if (setting->EngineClock < COMPARE_MIN_ENGINE_CLOCK)
 	setting->EngineClock = SAVE_MIN_ENGINE_CLOCK;
-    if (setting->EngineClock > Pm->Maximum.EngineClock)
+    if (setting->EngineClock > Pm->Maximum.EngineClock && Pm->Maximum.EngineClock)
 	setting->EngineClock = Pm->Maximum.EngineClock;
     if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
 	setting->EngineClock = Pm->Default.EngineClock;
@@ -86,7 +86,7 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
 	setting->MemoryClock = Pm->Minimum.MemoryClock;
     if (setting->MemoryClock < COMPARE_MIN_MEMORY_CLOCK)
 	setting->MemoryClock = SAVE_MIN_MEMORY_CLOCK;
-    if (setting->MemoryClock > Pm->Maximum.MemoryClock)
+    if (setting->MemoryClock > Pm->Maximum.MemoryClock && Pm->Maximum.MemoryClock)
 	setting->MemoryClock = Pm->Maximum.MemoryClock;
     if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
 	setting->MemoryClock = Pm->Default.MemoryClock;
@@ -100,7 +100,7 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
 	setting->Voltage     = Pm->Current.Voltage;
     if (setting->Voltage     < COMPARE_MIN_VOLTAGE)
 	setting->Voltage     = 0;
-    if (setting->Voltage     > Pm->Maximum.Voltage)
+    if (setting->Voltage     > Pm->Maximum.Voltage && Pm->Maximum.Voltage)
 	setting->Voltage     = Pm->Maximum.Voltage;
     if (setting->Voltage     > COMPARE_MAX_VOLTAGE)
 	setting->Voltage     = Pm->Default.Voltage;
@@ -124,22 +124,22 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
 	Pm->Maximum.MemoryClock = Pm->Current.MemoryClock;
     if (Pm->Maximum.Voltage     < Pm->Current.Voltage)
 	Pm->Maximum.Voltage     = Pm->Current.Voltage;
-    if (Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock)
+    if((Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock) || ! Pm->Minimum.EngineClock)
 	Pm->Minimum.EngineClock = Pm->Default.EngineClock;
-    if (Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock)
+    if((Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock) || ! Pm->Minimum.MemoryClock)
 	Pm->Minimum.MemoryClock = Pm->Default.MemoryClock;
-    if (Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)
+    if((Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)     || ! Pm->Minimum.Voltage)
 	Pm->Minimum.Voltage     = Pm->Default.Voltage;
-    if (Pm->Minimum.EngineClock > Pm->Current.EngineClock && Pm->Current.EngineClock)
+    if((Pm->Minimum.EngineClock > Pm->Current.EngineClock && Pm->Current.EngineClock) || ! Pm->Minimum.EngineClock)
 	Pm->Minimum.EngineClock = Pm->Current.EngineClock;
-    if (Pm->Minimum.MemoryClock > Pm->Current.MemoryClock && Pm->Current.MemoryClock)
+    if((Pm->Minimum.MemoryClock > Pm->Current.MemoryClock && Pm->Current.MemoryClock) || ! Pm->Minimum.MemoryClock)
 	Pm->Minimum.MemoryClock = Pm->Current.MemoryClock;
-    if (Pm->Minimum.Voltage     > Pm->Current.Voltage     && Pm->Current.Voltage)
+    if((Pm->Minimum.Voltage     > Pm->Current.Voltage     && Pm->Current.Voltage)     || ! Pm->Minimum.Voltage)
 	Pm->Minimum.Voltage     = Pm->Current.Voltage;
     rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
     rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
     rhdPmValidateSetting (Pm, &Pm->Default, 1);
-    if (! Pm->Minimum.Voltage || ! Pm->Maximum.Voltage)
+    if (Pm->Minimum.Voltage == Pm->Maximum.Voltage)
 	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
 }
 
@@ -327,7 +327,7 @@ void RHDPmInit(RHDPtr rhdPtr)
     rhdPmGetRawState (rhdPtr, &Pm->Current);
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
-		"Power Management: used engine clock / memory clock / core (VDDC) voltage\n");
+		"Power Management: used engine clock / memory clock / core (VDDC) voltage   (0: ignore)\n");
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power Management: Raw Ranges\n");
     rhdPmPrint (Pm, "Minimum", &Pm->Minimum);
     rhdPmPrint (Pm, "Maximum", &Pm->Maximum);
