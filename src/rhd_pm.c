@@ -41,12 +41,14 @@
 
 #ifdef ATOM_BIOS
 
-#define EXTRA_MIN_ENGINE_CLOCK	200000
-#define EXTRA_MAX_ENGINE_CLOCK	3000000
-#define EXTRA_MIN_MEMORY_CLOCK	200000
-#define EXTRA_MAX_MEMORY_CLOCK	3000000
-#define EXTRA_MIN_VOLTAGE	500
-#define EXTRA_MAX_VOLTAGE	2000
+#define COMPARE_MIN_ENGINE_CLOCK	100000
+#define SAVE_MIN_ENGINE_CLOCK		200000
+#define COMPARE_MAX_ENGINE_CLOCK	3000000
+#define COMPARE_MIN_MEMORY_CLOCK	100000
+#define SAVE_MIN_MEMORY_CLOCK		200000
+#define COMPARE_MAX_MEMORY_CLOCK	3000000
+#define COMPARE_MIN_VOLTAGE		500
+#define COMPARE_MAX_VOLTAGE		2000
 
 static char *PmLevels[] = {
     "Off", "Idle", "Slow2D", "Fast2D", "Slow3D", "Fast3D", "Max3D", "User"
@@ -70,38 +72,40 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
 	setting->EngineClock = Pm->Current.EngineClock;
     if (setting->EngineClock < Pm->Minimum.EngineClock)
 	setting->EngineClock = Pm->Minimum.EngineClock;
-    if (setting->EngineClock < EXTRA_MIN_ENGINE_CLOCK)
-	setting->EngineClock = EXTRA_MIN_ENGINE_CLOCK;
+    if (setting->EngineClock < COMPARE_MIN_ENGINE_CLOCK)
+	setting->EngineClock = SAVE_MIN_ENGINE_CLOCK;
     if (setting->EngineClock > Pm->Maximum.EngineClock)
 	setting->EngineClock = Pm->Maximum.EngineClock;
-    if (setting->EngineClock > EXTRA_MAX_ENGINE_CLOCK)
+    if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
 	setting->EngineClock = Pm->Default.EngineClock;
-    if (setting->EngineClock > EXTRA_MAX_ENGINE_CLOCK)
-	setting->EngineClock = EXTRA_MAX_ENGINE_CLOCK;
+    if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
+	setting->EngineClock = 0;
     if (! setting->MemoryClock)
 	setting->MemoryClock = Pm->Current.MemoryClock;
     if (setting->MemoryClock < Pm->Minimum.MemoryClock)
 	setting->MemoryClock = Pm->Minimum.MemoryClock;
-    if (setting->MemoryClock < EXTRA_MIN_MEMORY_CLOCK)
-	setting->MemoryClock = EXTRA_MIN_MEMORY_CLOCK;
+    if (setting->MemoryClock < COMPARE_MIN_MEMORY_CLOCK)
+	setting->MemoryClock = SAVE_MIN_MEMORY_CLOCK;
     if (setting->MemoryClock > Pm->Maximum.MemoryClock)
 	setting->MemoryClock = Pm->Maximum.MemoryClock;
-    if (setting->MemoryClock > EXTRA_MAX_MEMORY_CLOCK)
+    if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
 	setting->MemoryClock = Pm->Default.MemoryClock;
-    if (setting->MemoryClock > EXTRA_MAX_MEMORY_CLOCK)
-	setting->MemoryClock = EXTRA_MAX_MEMORY_CLOCK;
+    if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
+	setting->MemoryClock = 0;
     if (! setting->Voltage)
 	setting->Voltage     = Pm->Current.Voltage;
     if (setting->Voltage     < Pm->Minimum.Voltage)
 	setting->Voltage     = Pm->Minimum.Voltage;
-    if (setting->Voltage     < EXTRA_MIN_VOLTAGE)
-	setting->Voltage     = EXTRA_MIN_VOLTAGE;
+    if (setting->Voltage     < COMPARE_MIN_VOLTAGE)
+	setting->Voltage     = Pm->Current.Voltage;
+    if (setting->Voltage     < COMPARE_MIN_VOLTAGE)
+	setting->Voltage     = 0;
     if (setting->Voltage     > Pm->Maximum.Voltage)
 	setting->Voltage     = Pm->Maximum.Voltage;
-    if (setting->Voltage     > EXTRA_MAX_VOLTAGE)
+    if (setting->Voltage     > COMPARE_MAX_VOLTAGE)
 	setting->Voltage     = Pm->Default.Voltage;
-    if (setting->Voltage     > EXTRA_MAX_VOLTAGE)
-	setting->Voltage     = EXTRA_MAX_VOLTAGE;
+    if (setting->Voltage     > COMPARE_MAX_VOLTAGE)
+	setting->Voltage     = 0;
     /* TODO: voltage adaption logic missing */
     /* Only set to lower Voltages than compare if 0 */
 }
@@ -302,6 +306,20 @@ void RHDPmInit(RHDPtr rhdPtr)
     rhdPmValidateSetting (Pm, &Pm->Default, 1);
     rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
     rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
+    if (Pm->Maximum.EngineClock < Pm->Default.EngineClock)
+	Pm->Maximum.EngineClock = Pm->Default.EngineClock;
+    if (Pm->Maximum.MemoryClock < Pm->Default.MemoryClock)
+	Pm->Maximum.MemoryClock = Pm->Default.MemoryClock;
+    if (Pm->Maximum.Voltage     < Pm->Default.Voltage)
+	Pm->Maximum.Voltage     = Pm->Default.Voltage;
+    if (Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock)
+	Pm->Minimum.EngineClock = Pm->Default.EngineClock;
+    if (Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock)
+	Pm->Minimum.MemoryClock = Pm->Default.MemoryClock;
+    if (Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)
+	Pm->Minimum.Voltage     = Pm->Default.Voltage;
+    if (! Pm->Minimum.Voltage || ! Pm->Maximum.Voltage)
+	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Validated Ranges\n");
     rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
