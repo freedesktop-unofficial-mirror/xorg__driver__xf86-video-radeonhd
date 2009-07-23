@@ -110,6 +110,39 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
     /* Only set to lower Voltages than compare if 0 */
 }
 
+static void rhdPmValidateMinMax (struct rhdPm *Pm)
+{
+    if (Pm->Maximum.EngineClock < Pm->Default.EngineClock)
+	Pm->Maximum.EngineClock = Pm->Default.EngineClock;
+    if (Pm->Maximum.MemoryClock < Pm->Default.MemoryClock)
+	Pm->Maximum.MemoryClock = Pm->Default.MemoryClock;
+    if (Pm->Maximum.Voltage     < Pm->Default.Voltage)
+	Pm->Maximum.Voltage     = Pm->Default.Voltage;
+    if (Pm->Maximum.EngineClock < Pm->Current.EngineClock)
+	Pm->Maximum.EngineClock = Pm->Current.EngineClock;
+    if (Pm->Maximum.MemoryClock < Pm->Current.MemoryClock)
+	Pm->Maximum.MemoryClock = Pm->Current.MemoryClock;
+    if (Pm->Maximum.Voltage     < Pm->Current.Voltage)
+	Pm->Maximum.Voltage     = Pm->Current.Voltage;
+    if (Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock)
+	Pm->Minimum.EngineClock = Pm->Default.EngineClock;
+    if (Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock)
+	Pm->Minimum.MemoryClock = Pm->Default.MemoryClock;
+    if (Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)
+	Pm->Minimum.Voltage     = Pm->Default.Voltage;
+    if (Pm->Minimum.EngineClock > Pm->Current.EngineClock && Pm->Current.EngineClock)
+	Pm->Minimum.EngineClock = Pm->Current.EngineClock;
+    if (Pm->Minimum.MemoryClock > Pm->Current.MemoryClock && Pm->Current.MemoryClock)
+	Pm->Minimum.MemoryClock = Pm->Current.MemoryClock;
+    if (Pm->Minimum.Voltage     > Pm->Current.Voltage     && Pm->Current.Voltage)
+	Pm->Minimum.Voltage     = Pm->Current.Voltage;
+    rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
+    rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
+    rhdPmValidateSetting (Pm, &Pm->Default, 1);
+    if (! Pm->Minimum.Voltage || ! Pm->Maximum.Voltage)
+	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
+}
+
 static void rhdPmCopySetting (struct rhdPm *Pm, struct rhdPmState *to, struct rhdPmState *from)
 {
     if (from->EngineClock)
@@ -305,23 +338,7 @@ void RHDPmInit(RHDPtr rhdPtr)
     /* Validate */
     if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock)
 	memcpy (&Pm->Default, &Pm->Current, sizeof (Pm->Current));
-    rhdPmValidateSetting (Pm, &Pm->Default, 1);
-    rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
-    rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
-    if (Pm->Maximum.EngineClock < Pm->Default.EngineClock)
-	Pm->Maximum.EngineClock = Pm->Default.EngineClock;
-    if (Pm->Maximum.MemoryClock < Pm->Default.MemoryClock)
-	Pm->Maximum.MemoryClock = Pm->Default.MemoryClock;
-    if (Pm->Maximum.Voltage     < Pm->Default.Voltage)
-	Pm->Maximum.Voltage     = Pm->Default.Voltage;
-    if (Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock)
-	Pm->Minimum.EngineClock = Pm->Default.EngineClock;
-    if (Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock)
-	Pm->Minimum.MemoryClock = Pm->Default.MemoryClock;
-    if (Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)
-	Pm->Minimum.Voltage     = Pm->Default.Voltage;
-    if (! Pm->Minimum.Voltage || ! Pm->Maximum.Voltage)
-	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
+    rhdPmValidateMinMax  (Pm);
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power Management: Validated Ranges\n");
     rhdPmPrint (Pm, "Minimum", &Pm->Minimum);
