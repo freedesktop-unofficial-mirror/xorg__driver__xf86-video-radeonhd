@@ -303,7 +303,7 @@ void RHDPmInit(RHDPtr rhdPtr)
     rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
     rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
 
-    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Valdiated Ranges\n");
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Validated Ranges\n");
     rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
     rhdPmPrint (Pm, "Global Maximum", &Pm->Maximum);
     rhdPmPrint (Pm, "Global Default", &Pm->Default);
