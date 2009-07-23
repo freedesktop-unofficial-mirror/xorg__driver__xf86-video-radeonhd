@@ -127,16 +127,16 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     int uv_offset;
 
     static float ps_alu_consts[] = {
-        1.0,  0.0,      1.4020,    0,  /* r - c[0] */
-        1.0, -0.34414, -0.71414,  0,  /* g - c[1] */
-        1.0,  1.7720,   0.0,        0,  /* b - c[2] */
+	1.0,  0.0,      1.5748,   0,  /* r - c[0] */
+	1.0, -0.18732, -0.46812,  0,  /* g - c[1] */
+	1.0,  1.8556,   0.0,      0,  /* b - c[2] */
 	/* Constants for undoing Y'CbCr scaling
 	 *  - Y' is scaled from 16:235
 	 *  - Cb/Cr are scaled from 16:240
 	 * Unscaled value N' = N * N_mul + N_shift (N' in range [-0.5, 0.5])
 	 * Vector is [Y_mul, Y_shfit, C_mul, C_shift]
 	 */
-        256.0/219.0, -16.0/219.0, 256.0/224.0, -128.0/224.0,
+	255.0/219.0, -16.0/219.0, 255.0/224.0, -128.0/224.0,
     };
 
     CLEAR (cb_conf);
