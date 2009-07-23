@@ -59,7 +59,7 @@ static void
 rhdPmPrint (struct rhdPm *Pm, char *name, struct rhdPowerState *state)
 {
     xf86DrvMsg(Pm->scrnIndex, X_INFO, "  %-8s %8d kHz / %8d kHz / %6.3f V\n",
-	       name, state->EngineClock, state->MemoryClock,
+	       name, (int) state->EngineClock, (int) state->MemoryClock,
 	       state->VDDCVoltage / 1000.0);
 }
 
@@ -168,24 +168,24 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 	    Pm->States[RHD_PM_IDLE].EngineClock = Pm->Default.EngineClock / 2;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "ForceLowPowerMode: calculated engine clock at %dkHz\n",
-			   Pm->States[RHD_PM_IDLE].EngineClock);
+			   (int) Pm->States[RHD_PM_IDLE].EngineClock);
         } else {
             Pm->States[RHD_PM_IDLE].EngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 		       "ForceLowPowerMode: forced engine clock at %dkHz\n",
-		       Pm->States[RHD_PM_IDLE].EngineClock);
+		       (int) Pm->States[RHD_PM_IDLE].EngineClock);
         }
 
         if (!rhdPtr->lowPowerModeMemoryClock.val.integer) {
 	    Pm->States[RHD_PM_IDLE].MemoryClock = Pm->Default.MemoryClock / 2;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "ForceLowPowerMode: calculated memory clock at %dkHz\n",
-			   Pm->States[RHD_PM_IDLE].MemoryClock);
+			   (int) Pm->States[RHD_PM_IDLE].MemoryClock);
         } else {
             Pm->States[RHD_PM_IDLE].MemoryClock = rhdPtr->lowPowerModeMemoryClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 		       "ForceLowPowerMode: forced memory clock at %dkHz\n",
-		       Pm->States[RHD_PM_IDLE].MemoryClock);
+		       (int) Pm->States[RHD_PM_IDLE].MemoryClock);
         }
 
 	rhdPmValidateSetting (Pm, &Pm->States[RHD_PM_IDLE], 1);
