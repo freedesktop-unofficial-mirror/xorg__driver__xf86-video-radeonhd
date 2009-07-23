@@ -382,6 +382,14 @@ enum rhdOptStatus {
     RHD_OPTION_ON
 };
 
+struct rhdPowerState {
+    /* All entries: 0 means unknown / unspecified / dontchange */
+    /* Clocks in kHz, Voltage in mV */
+    CARD32 EngineClock;
+    CARD32 MemoryClock;
+    CARD32 VDDCVoltage;
+};
+
 /* rhd_driver.c */
 /* Some handy functions that makes life so much more readable */
 extern unsigned int RHDReadPCIBios(RHDPtr rhdPtr, unsigned char **prt);

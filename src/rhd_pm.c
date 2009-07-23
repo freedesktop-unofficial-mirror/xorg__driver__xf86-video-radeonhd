@@ -56,18 +56,18 @@ static char *PmLevels[] = {
 
 
 static void
-rhdPmPrint (struct rhdPm *Pm, char *name, struct rhdPmState *state)
+rhdPmPrint (struct rhdPm *Pm, char *name, struct rhdPowerState *state)
 {
     xf86DrvMsg(Pm->scrnIndex, X_INFO, "  %-8s %8d kHz / %8d kHz / %6.3f V\n",
 	       name, state->EngineClock, state->MemoryClock,
-	       state->Voltage / 1000.0);
+	       state->VDDCVoltage / 1000.0);
 }
 
 /* Certain clocks require certain voltage settings */
 /* TODO: So far we only know few safe points. Interpolate? */
-static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, int forceVoltage)
+static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPowerState *setting, int forceVoltage)
 {
-    uint32_t compare = setting->Voltage ? setting->Voltage : Pm->Current.Voltage;
+    uint32_t compare = setting->VDDCVoltage ? setting->VDDCVoltage : Pm->Current.VDDCVoltage;
     if (! setting->EngineClock)
 	setting->EngineClock = Pm->Current.EngineClock;
     if (setting->EngineClock < Pm->Minimum.EngineClock)
@@ -92,20 +92,20 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPmState *setting, 
 	setting->MemoryClock = Pm->Default.MemoryClock;
     if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
 	setting->MemoryClock = 0;
-    if (! setting->Voltage)
-	setting->Voltage     = Pm->Current.Voltage;
-    if (setting->Voltage     < Pm->Minimum.Voltage)
-	setting->Voltage     = Pm->Minimum.Voltage;
-    if (setting->Voltage     < COMPARE_MIN_VOLTAGE)
-	setting->Voltage     = Pm->Current.Voltage;
-    if (setting->Voltage     < COMPARE_MIN_VOLTAGE)
-	setting->Voltage     = 0;
-    if (setting->Voltage     > Pm->Maximum.Voltage && Pm->Maximum.Voltage)
-	setting->Voltage     = Pm->Maximum.Voltage;
-    if (setting->Voltage     > COMPARE_MAX_VOLTAGE)
-	setting->Voltage     = Pm->Default.Voltage;
-    if (setting->Voltage     > COMPARE_MAX_VOLTAGE)
-	setting->Voltage     = 0;
+    if (! setting->VDDCVoltage)
+	setting->VDDCVoltage = Pm->Current.VDDCVoltage;
+    if (setting->VDDCVoltage < Pm->Minimum.VDDCVoltage)
+	setting->VDDCVoltage = Pm->Minimum.VDDCVoltage;
+    if (setting->VDDCVoltage < COMPARE_MIN_VOLTAGE)
+	setting->VDDCVoltage = Pm->Current.VDDCVoltage;
+    if (setting->VDDCVoltage < COMPARE_MIN_VOLTAGE)
+	setting->VDDCVoltage = 0;
+    if (setting->VDDCVoltage > Pm->Maximum.VDDCVoltage && Pm->Maximum.VDDCVoltage)
+	setting->VDDCVoltage = Pm->Maximum.VDDCVoltage;
+    if (setting->VDDCVoltage > COMPARE_MAX_VOLTAGE)
+	setting->VDDCVoltage = Pm->Default.VDDCVoltage;
+    if (setting->VDDCVoltage > COMPARE_MAX_VOLTAGE)
+	setting->VDDCVoltage = 0;
     /* TODO: voltage adaption logic missing */
     /* Only set to lower Voltages than compare if 0 */
 }
@@ -116,46 +116,35 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
 	Pm->Maximum.EngineClock = Pm->Default.EngineClock;
     if (Pm->Maximum.MemoryClock < Pm->Default.MemoryClock)
 	Pm->Maximum.MemoryClock = Pm->Default.MemoryClock;
-    if (Pm->Maximum.Voltage     < Pm->Default.Voltage)
-	Pm->Maximum.Voltage     = Pm->Default.Voltage;
+    if (Pm->Maximum.VDDCVoltage < Pm->Default.VDDCVoltage)
+	Pm->Maximum.VDDCVoltage = Pm->Default.VDDCVoltage;
     if (Pm->Maximum.EngineClock < Pm->Current.EngineClock)
 	Pm->Maximum.EngineClock = Pm->Current.EngineClock;
     if (Pm->Maximum.MemoryClock < Pm->Current.MemoryClock)
 	Pm->Maximum.MemoryClock = Pm->Current.MemoryClock;
-    if (Pm->Maximum.Voltage     < Pm->Current.Voltage)
-	Pm->Maximum.Voltage     = Pm->Current.Voltage;
+    if (Pm->Maximum.VDDCVoltage < Pm->Current.VDDCVoltage)
+	Pm->Maximum.VDDCVoltage = Pm->Current.VDDCVoltage;
     if((Pm->Minimum.EngineClock > Pm->Default.EngineClock && Pm->Default.EngineClock) || ! Pm->Minimum.EngineClock)
 	Pm->Minimum.EngineClock = Pm->Default.EngineClock;
     if((Pm->Minimum.MemoryClock > Pm->Default.MemoryClock && Pm->Default.MemoryClock) || ! Pm->Minimum.MemoryClock)
 	Pm->Minimum.MemoryClock = Pm->Default.MemoryClock;
-    if((Pm->Minimum.Voltage     > Pm->Default.Voltage     && Pm->Default.Voltage)     || ! Pm->Minimum.Voltage)
-	Pm->Minimum.Voltage     = Pm->Default.Voltage;
+    if((Pm->Minimum.VDDCVoltage > Pm->Default.VDDCVoltage && Pm->Default.VDDCVoltage) || ! Pm->Minimum.VDDCVoltage)
+	Pm->Minimum.VDDCVoltage = Pm->Default.VDDCVoltage;
     if((Pm->Minimum.EngineClock > Pm->Current.EngineClock && Pm->Current.EngineClock) || ! Pm->Minimum.EngineClock)
 	Pm->Minimum.EngineClock = Pm->Current.EngineClock;
     if((Pm->Minimum.MemoryClock > Pm->Current.MemoryClock && Pm->Current.MemoryClock) || ! Pm->Minimum.MemoryClock)
 	Pm->Minimum.MemoryClock = Pm->Current.MemoryClock;
-    if((Pm->Minimum.Voltage     > Pm->Current.Voltage     && Pm->Current.Voltage)     || ! Pm->Minimum.Voltage)
-	Pm->Minimum.Voltage     = Pm->Current.Voltage;
+    if((Pm->Minimum.VDDCVoltage > Pm->Current.VDDCVoltage && Pm->Current.VDDCVoltage) || ! Pm->Minimum.VDDCVoltage)
+	Pm->Minimum.VDDCVoltage = Pm->Current.VDDCVoltage;
     rhdPmValidateSetting (Pm, &Pm->Maximum, 1);
     rhdPmValidateSetting (Pm, &Pm->Minimum, 1);
     rhdPmValidateSetting (Pm, &Pm->Default, 1);
-    if (Pm->Minimum.Voltage == Pm->Maximum.Voltage)
-	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
-}
-
-static void rhdPmCopySetting (struct rhdPm *Pm, struct rhdPmState *to, struct rhdPmState *from)
-{
-    if (from->EngineClock)
-	to->EngineClock = from->EngineClock;
-    if (from->MemoryClock)
-	to->MemoryClock = from->MemoryClock;
-    if (from->Voltage)
-	to->Voltage     = from->Voltage;
-    rhdPmValidateSetting (Pm, to, 0);
+    if (Pm->Minimum.VDDCVoltage == Pm->Maximum.VDDCVoltage)
+	Pm->Minimum.VDDCVoltage = Pm->Maximum.VDDCVoltage = Pm->Default.VDDCVoltage = 0;
 }
 
 /* Have: a list of possible power settings, eventual minimum and maximum settings.
- * Want: all rhdPmState_e settings */
+ * Want: all rhdPowerState_e settings */
 static void rhdPmSelectSettings (RHDPtr rhdPtr)
 {
     int i;
@@ -163,15 +152,12 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 
     /* Initialize with default; STORED state is special */
     for (i = 0; i < RHD_PM_NUM_STATES; i++)
-	memcpy (&Pm->States[i], &Pm->Default, sizeof(struct rhdPmState));
+	memcpy (&Pm->States[i], &Pm->Default, sizeof(struct rhdPowerState));
 
     /* TODO: This still needs a lot of work */
 
-    /* RHD_PM_OFF: minimum if available, otherwise take lowest config,
-     * recalc Voltage */
-    /* TODO: copy lowest config  (Q: do that for setting Minimum?) */
-    Pm->States[RHD_PM_OFF].Voltage = 0;
-    rhdPmCopySetting (Pm, &Pm->States[RHD_PM_OFF], &Pm->Minimum);
+    /* RHD_PM_OFF: minimum */
+    memcpy (&Pm->States[RHD_PM_OFF], &Pm->Minimum, sizeof (struct rhdPowerState));
 
     /* Idle: !!!HACK!!! Take half the default */
     /* TODO: copy lowest config with default Voltage/Mem setting? */
@@ -205,7 +191,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 	rhdPmValidateSetting (Pm, &Pm->States[RHD_PM_IDLE], 1);
     }
 
-    rhdPmCopySetting (Pm, &Pm->States[RHD_PM_MAX_3D], &Pm->Maximum);
+    memcpy (&Pm->States[RHD_PM_MAX_3D], &Pm->Maximum, sizeof (struct rhdPowerState));
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
 		"Power Management: Final Levels\n");
@@ -215,7 +201,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 }
 
 static void
-rhdPmGetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
+rhdPmGetRawState (RHDPtr rhdPtr, struct rhdPowerState *state)
 {
     union AtomBiosArg data;
 
@@ -227,15 +213,15 @@ rhdPmGetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
         state->MemoryClock = data.clockValue;
     if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			 ATOM_GET_VOLTAGE, &data) == ATOM_SUCCESS)
-        state->Voltage = data.val;
+        state->VDDCVoltage = data.val;
 }
 
 static Bool
-rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
+rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPowerState *state)
 {
     union AtomBiosArg data;
     Bool ret = TRUE;
-    struct rhdPmState dummy;
+    struct rhdPowerState dummy;
 
     /* TODO: Idle first; find which idles are needed and expose them */
     /* FIXME: Voltage */
@@ -260,11 +246,11 @@ rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
     }
 #endif
 #if 0	/* don't do for the moment */
-    if (state->Voltage && state->Voltage != rhdPtr->Pm->Current.Voltage) {
-	data.val = state->Voltage;
+    if (state->VDDCVoltage && state->VDDCVoltage != rhdPtr->Pm->Current.VDDCVoltage) {
+	data.val = state->VDDCVoltage;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
 			     ATOM_SET_VOLTAGE, &data) != ATOM_SUCCESS)
-	    rhdPtr->Pm->Current.Voltage = state->Voltage;
+	    rhdPtr->Pm->Current.VDDCVoltage = state->VDDCVoltage;
 	else
 	    ret = FALSE;
     }
@@ -283,13 +269,13 @@ rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPmState *state)
  */
 
 static Bool
-rhdPmSelectState (RHDPtr rhdPtr, enum rhdPmState_e num)
+rhdPmSelectState (RHDPtr rhdPtr, enum rhdPowerState_e num)
 {
     return rhdPmSetRawState (rhdPtr, &rhdPtr->Pm->States[num]);
 }
 
 static Bool
-rhdPmDefineState (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState *state)
+rhdPmDefineState (RHDPtr rhdPtr, enum rhdPowerState_e num, struct rhdPowerState *state)
 {
     ASSERT(0);
 }
@@ -313,15 +299,9 @@ void RHDPmInit(RHDPtr rhdPtr)
 	rhdPtr->Pm = NULL;
 	return;
     }
-    Pm->Minimum.EngineClock = data.chipLimits.MinEngineClock;
-    Pm->Minimum.MemoryClock = data.chipLimits.MinMemoryClock;
-    Pm->Minimum.Voltage     = data.chipLimits.MinVDDCVoltage;
-    Pm->Maximum.EngineClock = data.chipLimits.MaxEngineClock;
-    Pm->Maximum.MemoryClock = data.chipLimits.MaxMemoryClock;
-    Pm->Maximum.Voltage     = data.chipLimits.MaxVDDCVoltage;
-    Pm->Default.EngineClock = data.chipLimits.DefaultEngineClock;
-    Pm->Default.MemoryClock = data.chipLimits.DefaultMemoryClock;
-    Pm->Default.Voltage     = data.chipLimits.DefaultVDDCVoltage;
+    memcpy (&Pm->Minimum, &data.chipLimits.Minimum, sizeof (struct rhdPowerState));
+    memcpy (&Pm->Maximum, &data.chipLimits.Maximum, sizeof (struct rhdPowerState));
+    memcpy (&Pm->Default, &data.chipLimits.Default, sizeof (struct rhdPowerState));
 
     memcpy (&Pm->Current, &Pm->Default, sizeof (Pm->Default));
     rhdPmGetRawState (rhdPtr, &Pm->Current);

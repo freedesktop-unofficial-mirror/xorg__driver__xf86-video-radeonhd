@@ -24,18 +24,11 @@
 #ifndef _RHD_PM_H
 # define _RHD_PM_H
 
-struct rhdPmState {
-    /* All entries: 0 means unknown / unspecified / dontchange */
-    uint32_t EngineClock;
-    uint32_t MemoryClock;
-    uint32_t Voltage;
-};
-
 /* Note about settings: RHD_PM_OFF may always change the memory clock, while
  * for the others it remains to be seen whether we can change it without video
  * disturbance. */
 /* TODO: forced settings overwrite default settings (Q: in which cases? RHD_PM_OFF?) */
-enum rhdPmState_e {
+enum rhdPowerState_e {
     /* DPMS off (Q: what about screensavers, what about 3D offscreen rendering apps) */
     RHD_PM_OFF,
     /* DPMS on, no activity for some time */
@@ -59,19 +52,19 @@ struct rhdPm {
     int               scrnIndex;
 
     /* R/O */
-    struct rhdPmState Default;
-    struct rhdPmState Minimum;
-    struct rhdPmState Maximum;
+    struct rhdPowerState Default;
+    struct rhdPowerState Minimum;
+    struct rhdPowerState Maximum;
 
-    struct rhdPmState States[RHD_PM_NUM_STATES];
-    struct rhdPmState Current;
-    struct rhdPmState Stored;
+    struct rhdPowerState States[RHD_PM_NUM_STATES];
+    struct rhdPowerState Current;
+    struct rhdPowerState Stored;
 
-    Bool (*DefineState) (RHDPtr rhdPtr, enum rhdPmState_e num, struct rhdPmState *state);
-    Bool (*SelectState) (RHDPtr rhdPtr, enum rhdPmState_e num);
+    Bool (*DefineState) (RHDPtr rhdPtr, enum rhdPowerState_e num, struct rhdPowerState *state);
+    Bool (*SelectState) (RHDPtr rhdPtr, enum rhdPowerState_e num);
 #if 0	/* TODO: expose? */
-    Bool (*SetRawState) (RHDPtr rhdPtr, struct rhdPmState *state);
-    void (*GetRawState) (RHDPtr rhdPtr, struct rhdPmState *state);
+    Bool (*SetRawState) (RHDPtr rhdPtr, struct rhdPowerState *state);
+    void (*GetRawState) (RHDPtr rhdPtr, struct rhdPowerState *state);
 #endif
 };
 

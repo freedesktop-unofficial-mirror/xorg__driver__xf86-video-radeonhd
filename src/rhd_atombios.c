@@ -5340,7 +5340,7 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
     case 0x104:
 	{
 	    ATOM_FIRMWARE_INFO_V1_4 *fw = atomDataPtr->FirmwareInfo.FirmwareInfo_V_1_4;
-	    lim->DefaultVDDCVoltage = fw->usBootUpVDDCVoltage;
+	    lim->Default.VDDCVoltage = fw->usBootUpVDDCVoltage;
 	}
     case 0x103:	/* fall through */
 	{
@@ -5352,11 +5352,11 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
     case 0x101:	/* fall through */
 	{
 	    ATOM_FIRMWARE_INFO *fw = atomDataPtr->FirmwareInfo.FirmwareInfo;
-	    lim->MaxEngineClock = fw->ulASICMaxEngineClock * 10;
-	    lim->MaxMemoryClock = fw->ulASICMaxMemoryClock * 10;
+	    lim->Maximum.EngineClock = fw->ulASICMaxEngineClock * 10;
+	    lim->Maximum.MemoryClock = fw->ulASICMaxMemoryClock * 10;
 	    /* Scary bits: PLL post divider is 2 ?!? Minimum for pixel PLL, so probably here as well */
-	    lim->MinEngineClock = fw->usMinEngineClockPLL_Output * 5;
-	    lim->MinMemoryClock = fw->usMinMemoryClockPLL_Output * 5;
+	    lim->Minimum.EngineClock = fw->usMinEngineClockPLL_Output * 5;
+	    lim->Minimum.MemoryClock = fw->usMinMemoryClockPLL_Output * 5;
 	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ulDriverTargetEngineClock %lu\n",
 			(unsigned long) fw->ulDriverTargetEngineClock * 10);
 	    xf86DrvMsg (handle->scrnIndex, X_INFO, "Unused attribute: ulDriverTargetMemoryClock %lu\n",
@@ -5378,8 +5378,8 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 	char *last = ((char *) voltage) + voltage->sHeader.usStructureSize;
 	while ((char *) &voltage->asVoltageObj[0].ucVoltageType < last) {
 	    if (voltage->asVoltageObj[0].ucVoltageType == SET_VOLTAGE_TYPE_ASIC_VDDC) {
-		lim->MinVDDCVoltage = voltage->asVoltageObj[0].asFormula.usVoltageBaseLevel;
-		lim->MaxVDDCVoltage = lim->MinVDDCVoltage +
+		lim->Minimum.VDDCVoltage = voltage->asVoltageObj[0].asFormula.usVoltageBaseLevel;
+		lim->Maximum.VDDCVoltage = lim->Minimum.VDDCVoltage +
 		    voltage->asVoltageObj[0].asFormula.usVoltageStep *
 		    (voltage->asVoltageObj[0].asFormula.ucNumOfVoltageEntries - 1) /
 		    (voltage->asVoltageObj[0].asFormula.ucFlag & 0x01 ? 2 : 1);
@@ -5392,10 +5392,10 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 
     if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_GET_DEFAULT_ENGINE_CLOCK,
 			 &execData) == ATOM_SUCCESS)
-	lim->DefaultEngineClock = execData.val;
+	lim->Default.EngineClock = execData.val;
     if (RHDAtomBiosFunc (handle->scrnIndex, handle, ATOM_GET_DEFAULT_MEMORY_CLOCK,
 			 &execData) == ATOM_SUCCESS)
-	lim->DefaultMemoryClock = execData.val;
+	lim->Default.MemoryClock = execData.val;
 
     return ATOM_SUCCESS;
 }
