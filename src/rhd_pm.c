@@ -175,7 +175,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
     rhdPmCopySetting (Pm, &Pm->States[RHD_PM_MAX_3D], &Pm->Maximum);
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
-		"Power management: used engine clock / memory clock / voltage:\n");
+		"Power Management: Final Levels\n");
     ASSERT (sizeof(PmLevels) / sizeof(char *) == RHD_PM_NUM_STATES);
     for (i = 0; i < RHD_PM_NUM_STATES; i++)
 	rhdPmPrint (Pm, PmLevels[i], &Pm->States[i]);
@@ -293,10 +293,12 @@ void RHDPmInit(RHDPtr rhdPtr)
     memcpy (&Pm->Current, &Pm->Default, sizeof (Pm->Default));
     rhdPmGetRawState (rhdPtr, &Pm->Current);
 
-    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Raw Ranges\n");
-    rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
-    rhdPmPrint (Pm, "Global Maximum", &Pm->Maximum);
-    rhdPmPrint (Pm, "Global Default", &Pm->Default);
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
+		"Power Management: used engine clock / memory clock / core (VDDC) voltage\n");
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power Management: Raw Ranges\n");
+    rhdPmPrint (Pm, "Minimum", &Pm->Minimum);
+    rhdPmPrint (Pm, "Maximum", &Pm->Maximum);
+    rhdPmPrint (Pm, "Default", &Pm->Default);
 
     /* TODO: Get all settings */
 
@@ -321,10 +323,10 @@ void RHDPmInit(RHDPtr rhdPtr)
     if (! Pm->Minimum.Voltage || ! Pm->Maximum.Voltage)
 	Pm->Minimum.Voltage = Pm->Maximum.Voltage = Pm->Default.Voltage = 0;
 
-    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power management: Validated Ranges\n");
-    rhdPmPrint (Pm, "Global Minimum", &Pm->Minimum);
-    rhdPmPrint (Pm, "Global Maximum", &Pm->Maximum);
-    rhdPmPrint (Pm, "Global Default", &Pm->Default);
+    xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power Management: Validated Ranges\n");
+    rhdPmPrint (Pm, "Minimum", &Pm->Minimum);
+    rhdPmPrint (Pm, "Maximum", &Pm->Maximum);
+    rhdPmPrint (Pm, "Default", &Pm->Default);
 
     rhdPmSelectSettings (rhdPtr);
 }
