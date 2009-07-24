@@ -162,6 +162,23 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
 	Pm->Minimum.VDDCVoltage = Pm->Maximum.VDDCVoltage = Pm->Default.VDDCVoltage = 0;
 }
 
+/* Some AtomBIOSes provide broken current clocks (esp. memory) */
+static void rhdPmValidateClearSetting (struct rhdPm *Pm, struct rhdPowerState *setting)
+{
+    if (setting->EngineClock < COMPARE_MIN_ENGINE_CLOCK)
+	setting->EngineClock = 0;
+    if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
+	setting->EngineClock = 0;
+    if (setting->MemoryClock < COMPARE_MIN_MEMORY_CLOCK)
+	setting->MemoryClock = 0;
+    if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
+	setting->MemoryClock = 0;
+    if (setting->VDDCVoltage < COMPARE_MIN_VOLTAGE)
+	setting->VDDCVoltage = 0;
+    if (setting->VDDCVoltage > COMPARE_MAX_VOLTAGE)
+	setting->VDDCVoltage = 0;
+}
+
 /* Have: a list of possible power settings, eventual minimum and maximum settings.
  * Want: all rhdPowerState_e settings */
 static void rhdPmSelectSettings (RHDPtr rhdPtr)
@@ -324,6 +341,7 @@ void RHDPmInit(RHDPtr rhdPtr)
 
     memcpy (&Pm->Current, &Pm->Default, sizeof (Pm->Default));
     rhdPmGetRawState (rhdPtr, &Pm->Current);
+    rhdPmValidateClearSetting (Pm, &Pm->Current);
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO,
 		"Power Management: used engine clock / memory clock / core (VDDC) voltage   (0: ignore)\n");
@@ -344,6 +362,7 @@ void RHDPmInit(RHDPtr rhdPtr)
     if (! Pm->Default.EngineClock || ! Pm->Default.MemoryClock)
 	memcpy (&Pm->Default, &Pm->Current, sizeof (Pm->Current));
     rhdPmValidateMinMax  (Pm);
+    rhdPmValidateSetting (Pm, &Pm->Current, 0);
 
     xf86DrvMsg (rhdPtr->scrnIndex, X_INFO, "Power Management: Validated Ranges\n");
     rhdPmPrint (Pm, "Minimum", &Pm->Minimum);
@@ -406,6 +425,7 @@ RHDPmSave (RHDPtr rhdPtr)
 
     memcpy (&Pm->Stored, &Pm->Default, sizeof (Pm->Default));
     rhdPmGetRawState (rhdPtr, &Pm->Stored);
+    rhdPmValidateClearSetting (Pm, &Pm->Stored);
 }
 
 /*
