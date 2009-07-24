@@ -5014,6 +5014,7 @@ rhdAtomExec (atomBiosHandlePtr handle,
     int idx = data->exec.index;
     void *pspace = data->exec.pspace;
     pointer *dataSpace = data->exec.dataSpace;
+    unsigned short offset;
 
     RHDFUNCI(handle->scrnIndex);
 
@@ -5031,6 +5032,15 @@ rhdAtomExec (atomBiosHandlePtr handle,
 	} else
 	    *dataSpace = (CARD8*)handle->scratchBase;
     }
+
+    /* OMFG - ParseTable returns CD_SUCCESS if the command table does not exist */
+    offset = ((USHORT *)&(((ATOM_MASTER_COMMAND_TABLE *)handle->codeTable)
+			  ->ListOfCommandTables))[idx];
+    if (! offset) {
+	xf86DrvMsg(handle->scrnIndex, X_ERROR, "AtomBIOS command table %d does not exist\n", idx);
+	return ATOM_NOT_IMPLEMENTED;
+    }
+
     ret = ParseTableWrapper(pspace, idx, handle,
 			    handle->BIOSBase,
 			    &msg);
