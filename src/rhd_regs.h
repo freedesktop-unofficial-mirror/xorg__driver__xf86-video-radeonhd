@@ -31,12 +31,19 @@ enum {
     BUS_CNTL		  =       0x4C, /* (RW) */
     MC_IND_INDEX	  =       0x70, /* (RW) */
     MC_IND_DATA           =       0x74, /* (RW) */
+    RS600_MC_INDEX	  =	  0x70,
+    RS600_MC_DATA	  =	  0x74,
+    RS690_MC_INDEX	  =	  0x78,
+    RS690_MC_DATA	  =	  0x7c,
+    RS780_MC_INDEX	  =	  0x28f8,
+    RS780_MC_DATA	  =	  0x28fc,
+
+    RS60_MC_NB_MC_INDEX	  =	  0x78,
+    RS60_MC_NB_MC_DATA	  =	  0x7C,
     CONFIG_CNTL		  =	  0xE0,
-    RS60_MC_NB_MC_INDEX		  =	  0x78,
-    RS60_MC_NB_MC_DATA		  =	  0x7C,
-    PCIE_RS69_MC_INDEX		  =	  0xE8,
-    PCIE_RS69_MC_DATA		  =	  0xEC,
-    R5XX_CONFIG_MEMSIZE            = 0x00F8,
+    PCIE_RS69_MC_INDEX	  =	  0xE8,
+    PCIE_RS69_MC_DATA	  =	  0xEC,
+    R5XX_CONFIG_MEMSIZE	  =	  0x00F8,
 
     HDP_FB_LOCATION       =	  0x0134,
 
@@ -863,6 +870,29 @@ enum RS69_MC_MISC_UMA_CNTL_BITS {
 enum _rs600MCRegs {
     RS60_MC_SYSTEM_STATUS	=       0x0,
     RS60_NB_FB_LOCATION		=	0xa
+};
+
+enum RS600_MC_INDEX_BITS {
+    RS600_MC_INDEX_ADDR_MASK	 = 0xffff,
+    RS600_MC_INDEX_SEQ_RBS_0	 = (1 << 16),
+    RS600_MC_INDEX_SEQ_RBS_1	 = (1 << 17),
+    RS600_MC_INDEX_SEQ_RBS_2	 = (1 << 18),
+    RS600_MC_INDEX_SEQ_RBS_3	 = (1 << 19),
+    RS600_MC_INDEX_AIC_RBS	 = (1 << 20),
+    RS600_MC_INDEX_CITF_ARB0	 = (1 << 21),
+    RS600_MC_INDEX_CITF_ARB1	 = (1 << 22),
+    RS600_MC_INDEX_WR_EN	 = (1 << 23)
+};
+
+enum RS690_MC_INDEX_BITS {
+    RS690_MC_INDEX_ADDR_MASK	 = 0x1ff,
+    RS690_MC_INDEX_WR_EN	 = (1 << 9),
+    RS690_MC_INDEX_WR_ACK	 = 0x7f
+};
+
+enum RS780_MC_INDEX_BITS {
+    RS780_MC_INDEX_ADDR_MASK	 = 0x1ff,
+    RS780_MC_INDEX_WR_EN	 = (1 << 9)
 };
 
 enum _rs780NBRegs {

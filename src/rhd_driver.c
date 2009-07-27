@@ -2577,32 +2577,23 @@ CARD32
 _RHDReadMC(int scrnIndex, CARD32 addr)
 {
     RHDPtr rhdPtr = RHDPTR(xf86Screens[scrnIndex]);
-    CARD32 ret;
+    CARD32 ret = 0;
 
     if (rhdPtr->ChipSet < RHD_RS600) {
 	RHDRegWrite(rhdPtr, MC_IND_INDEX, addr);
 	ret = RHDRegRead(rhdPtr, MC_IND_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
-	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_INDEX, addr);
-	ret = RHDRegRead(rhdPtr, RS60_MC_NB_MC_DATA);
+	RHDRegWrite(rhdPtr, RS600_MC_INDEX, ((addr & RS600_MC_INDEX_ADDR_MASK) | RS600_MC_INDEX_CITF_ARB0));
+	ret = RHDRegRead(rhdPtr, RS600_MC_DATA);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
-#ifdef XSERVER_LIBPCIACCESS
-	CARD32 data = addr & ~PCIE_RS69_MC_IND_WR_EN;
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), PCIE_RS69_MC_INDEX, 4, NULL);
-	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, PCIE_RS69_MC_DATA, 4, NULL);
-#else
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS69_MC_INDEX, addr & ~PCIE_RS69_MC_IND_WR_EN);
-	ret = pciReadLong(rhdPtr->NBPciTag, PCIE_RS69_MC_DATA);
-#endif
+	RHDRegWrite(rhdPtr, RS690_MC_INDEX, (addr & RS690_MC_INDEX_ADDR_MASK));
+        ret = RHDRegRead(rhdPtr, RS690_MC_DATA);
+    } else if (rhdPtr->ChipSet == RHD_RS780 || rhdPtr->ChipSet == RHD_RS880) {
+	RHDRegWrite(rhdPtr, RS780_MC_INDEX, (addr & RS780_MC_INDEX_ADDR_MASK));
+	ret = RHDRegRead(rhdPtr, RS780_MC_DATA);
     } else {
-#ifdef XSERVER_LIBPCIACCESS
-	CARD32 data = addr & ~PCIE_RS78_MC_IND_WR_EN;
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &(data), PCIE_RS78_NB_MC_IND_INDEX, 4, NULL);
-	pci_device_cfg_read(rhdPtr->NBPciInfo, &ret, PCIE_RS78_NB_MC_IND_DATA, 4, NULL);
-#else
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS78_NB_MC_IND_INDEX, (addr & ~PCIE_RS78_MC_IND_WR_EN));
-	ret = pciReadLong(rhdPtr->NBPciTag, PCIE_RS78_NB_MC_IND_DATA);
-#endif
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: shouldn't be here\n", __func__);
     }
 #ifdef RHD_DEBUG
     RHDDebug(scrnIndex,"%s(0x%08X) = 0x%08X\n",__func__,(unsigned int)addr,
@@ -2625,28 +2616,18 @@ _RHDWriteMC(int scrnIndex, CARD32 addr, CARD32 data)
 	RHDRegWrite(rhdPtr, MC_IND_INDEX, addr | MC_IND_WR_EN);
 	RHDRegWrite(rhdPtr, MC_IND_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS600) {
-	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_INDEX, addr | RS60_NB_MC_IND_WR_EN);
-	RHDRegWrite(rhdPtr, RS60_MC_NB_MC_DATA, data);
+        RHDRegWrite(rhdPtr, RS600_MC_INDEX, ((addr & RS600_MC_INDEX_ADDR_MASK) | RS600_MC_INDEX_CITF_ARB0 | RS600_MC_INDEX_WR_EN));
+        RHDRegWrite(rhdPtr, RS600_MC_DATA, data);
     } else if (rhdPtr->ChipSet == RHD_RS690 || rhdPtr->ChipSet == RHD_RS740) {
-#ifdef XSERVER_LIBPCIACCESS
-	CARD32 tmp = addr | PCIE_RS69_MC_IND_WR_EN;
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &tmp, PCIE_RS69_MC_INDEX, 4, NULL);
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &data, PCIE_RS69_MC_DATA, 4, NULL);
-#else
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS69_MC_INDEX, addr | PCIE_RS69_MC_IND_WR_EN);
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS69_MC_DATA, data);
-#endif
-
-    } else  {
-#ifdef XSERVER_LIBPCIACCESS
-	CARD32 tmp = addr | PCIE_RS78_MC_IND_WR_EN;
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &tmp, PCIE_RS78_NB_MC_IND_INDEX, 4, NULL);
-	pci_device_cfg_write(rhdPtr->NBPciInfo, &data, PCIE_RS78_NB_MC_IND_DATA, 4, NULL);
-#else
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS78_NB_MC_IND_INDEX, addr | PCIE_RS78_MC_IND_WR_EN);
-	pciWriteLong(rhdPtr->NBPciTag, PCIE_RS78_NB_MC_IND_DATA, data);
-#endif
-
+	RHDRegWrite(rhdPtr, RS690_MC_INDEX, ((addr & RS690_MC_INDEX_ADDR_MASK) | RS690_MC_INDEX_WR_EN));
+        RHDRegWrite(rhdPtr, RS690_MC_DATA, data);
+        RHDRegWrite(rhdPtr, RS690_MC_INDEX, RS690_MC_INDEX_WR_ACK);
+    } else if (rhdPtr->ChipSet == RHD_RS780 || rhdPtr->ChipSet == RHD_RS880) {
+	RHDRegWrite(rhdPtr, RS780_MC_INDEX, ((addr & RS780_MC_INDEX_ADDR_MASK) | RS780_MC_INDEX_WR_EN));
+        RHDRegWrite(rhdPtr, RS780_MC_DATA, data);
+    } else {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: shouldn't be here\n", __func__);
     }
 }
 
