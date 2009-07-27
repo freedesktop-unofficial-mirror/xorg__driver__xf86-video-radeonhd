@@ -32,11 +32,10 @@ enum {
     MC_IND_INDEX	  =       0x70, /* (RW) */
     MC_IND_DATA           =       0x74, /* (RW) */
     CONFIG_CNTL		  =	  0xE0,
-    /* RS690 ?? */
     RS60_MC_NB_MC_INDEX		  =	  0x78,
     RS60_MC_NB_MC_DATA		  =	  0x7C,
-    RS69_MC_INDEX		  =	  0xE8,
-    RS69_MC_DATA		  =	  0xEC,
+    PCIE_RS69_MC_INDEX		  =	  0xE8,
+    PCIE_RS69_MC_DATA		  =	  0xEC,
     R5XX_CONFIG_MEMSIZE            = 0x00F8,
 
     HDP_FB_LOCATION       =	  0x0134,
@@ -815,8 +814,8 @@ enum RS69_DDIA_PCIE_LINK_CONTROL3_BITS {
 };
 
 enum RS69_MC_INDEX_BITS {
-    RS69_MC_IND_ADDR = (0x1 << 0),
-    RS69_MC_IND_WR_EN = (0x1 << 9)
+    PCIE_RS69_MC_IND_ADDR = (0x1 << 0),
+    PCIE_RS69_MC_IND_WR_EN = (0x1 << 9)
 };
 
 enum RS60_MC_NB_MC_INDEX_BITS {
@@ -867,21 +866,21 @@ enum _rs600MCRegs {
 };
 
 enum _rs780NBRegs {
-    RS78_NB_MC_IND_INDEX	= 0x70,
-    RS78_NB_MC_IND_DATA         = 0x74
+    PCIE_RS78_NB_MC_IND_INDEX	= 0x70,
+    PCIE_RS78_NB_MC_IND_DATA         = 0x74
 };
 
 enum RS78_NB_IND_INDEX_BITS {
-    RS78_NB_MC_IND_INDEX_MASK = (0xffff << 0),
-    RS78_MC_IND_SEQ_RBS_0     = (0x1 << 16),
-    RS78_MC_IND_SEQ_RBS_1     = (0x1 << 17),
-    RS78_MC_IND_SEQ_RBS_2     = (0x1 << 18),
-    RS78_MC_IND_SEQ_RBS_3     = (0x1 << 19),
-    RS78_MC_IND_AIC_RBS       = (0x1 << 20),
-    RS78_MC_IND_CITF_ARB0     = (0x1 << 21),
-    RS78_MC_IND_CITF_ARB1     = (0x1 << 22),
-    RS78_MC_IND_WR_EN         = (0x1 << 23),
-    RS78_MC_IND_RD_INV        = (0x1 << 24)
+    PCIE_RS78_NB_MC_IND_INDEX_MASK = (0xffff << 0),
+    PCIE_RS78_MC_IND_SEQ_RBS_0     = (0x1 << 16),
+    PCIE_RS78_MC_IND_SEQ_RBS_1     = (0x1 << 17),
+    PCIE_RS78_MC_IND_SEQ_RBS_2     = (0x1 << 18),
+    PCIE_RS78_MC_IND_SEQ_RBS_3     = (0x1 << 19),
+    PCIE_RS78_MC_IND_AIC_RBS       = (0x1 << 20),
+    PCIE_RS78_MC_IND_CITF_ARB0     = (0x1 << 21),
+    PCIE_RS78_MC_IND_CITF_ARB1     = (0x1 << 22),
+    PCIE_RS78_MC_IND_WR_EN         = (0x1 << 23),
+    PCIE_RS78_MC_IND_RD_INV        = (0x1 << 24)
 };
 
 enum _rs780MCRegs {
