@@ -323,7 +323,7 @@ RS690MCRestore(struct rhdMC *MC)
 static Bool
 RS690MCWaitIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, RS69_MC_SYSTEM_STATUS) & RS6X_MC_SEQUENCER_IDLE)
+    if (RHDReadMC(MC, RS69_MC_SYSTEM_STATUS) & RS6X_MC_SYSTEM_IDLE)
 	return TRUE;
     return FALSE;
 }
