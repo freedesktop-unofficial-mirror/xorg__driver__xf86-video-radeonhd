@@ -1869,7 +1869,7 @@ rhdMapFB(RHDPtr rhdPtr)
 	    option = X_CONFIG;
 	    SetIGPMemory = rhdPtr->unverifiedFeatures.val.bool;
 	}
-	if (SetIGPMemory && RHD_MC_IGP_SideportMemoryPresent(rhdPtr)) {
+	if (SetIGPMemory && ! RHD_MC_IGP_SideportMemoryPresent(rhdPtr)) {
 	    SetIGPMemory = FALSE;
 	    option = X_DEFAULT;
 	}
