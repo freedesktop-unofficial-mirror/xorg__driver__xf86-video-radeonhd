@@ -351,7 +351,7 @@ RHDHdmiUpdateAudioSettings(
 
     xf86DrvMsg(hdmi->scrnIndex, X_INFO, "%s: %s with "
 	"%d channels, %d Hz sampling rate, %d bits per sample,\n",
-	 __func__, playing ? "playing" : "stoped", channels, rate, bps);
+	 __func__, playing ? "playing" : "stopped", channels, rate, bps);
     xf86DrvMsg(hdmi->scrnIndex, X_INFO, "%s: "
 	"0x%02x IEC60958 status bits and 0x%02x category code\n",
 	 __func__, (int)status_bits, (int)category_code);
