@@ -541,10 +541,12 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 	goto error0;
     }
 
+#ifndef XSERVER_LIBPCIACCESS
     if (rhdPtr->pEnt->resources) {
         xfree(rhdPtr->pEnt);
 	goto error0;
     }
+#endif
 
     pScrn->videoRam = rhdPtr->pEnt->device->videoRam;
     rhdPtr->entityIndex = rhdPtr->pEnt->index;
@@ -1277,7 +1279,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
                          CMAP_PALETTED_TRUECOLOR | CMAP_RELOAD_ON_MODE_SWITCH))
 	return FALSE;
 
+#ifndef XSERVER_LIBPCIACCESS
     pScrn->racIoFlags = pScrn->racMemFlags = racflag;
+#endif
 
     /* Function to unblank, so that we don't show an uninitialised FB */
     pScreen->SaveScreen = RHDSaveScreen;

@@ -29,7 +29,9 @@
 #include "git_version.h"
 
 #include "xf86.h"
+#ifndef XSERVER_LIBPCIACCESS
 #include "xf86Resources.h"
+#endif
 
 #include "rhd.h"
 #ifdef ATOM_BIOS
@@ -101,7 +103,6 @@ SymTabRec RHDChipsets[] = {
     { -1,      NULL }
 };
 
-resRange res_none[] = { _END };
 
 /*
  * This is what people would refer to as "Petite".
@@ -113,6 +114,8 @@ resRange res_none[] = { _END };
 # define PCI_ID_LIST struct pci_id_match RHDDeviceMatch[]
 # define LIST_END { 0, 0, (~0), (~0), 0, 0, 0 }
 #else
+resRange res_none[] = { _END };
+
 # define RHD_DEVICE_ENTRY(d, i, r) \
     { (i), (d), r }
 # define RHD_DEVICE_MATCH(d, i) \
