@@ -651,6 +651,31 @@ Sets the coherent flag for TMDS signals. See also
 .IR "Coherent" .
 .\"
 .\"
+.SH XVIDEO ATTRIBUTES
+On R600 and above, the following XVideo attributes are supported.
+Use
+.B xvattr
+to query and set these values at runtime.
+.TP
+.B XV_COLORSPACE
+Select the Y'CbCr color space of the source video.  Accepted values
+are 'auto-detect'(0), 'Rec.601'(1), and 'Rec.709'(2).
+.RS
+.PP
+Rec.709 is the standard which applies to high-definition television
+broadcasting and "HD" digital video in general; Rec.601 applies to all
+other digital video.
+When 'auto-detect' is selected, Rec.709 is used for videos encoded
+at least 928px wide, and Rec.601 is used otherwise.
+This cut-off is lower than 720p so that the correct color space can be
+applied to some media with non-standard resolutions that have high-probability
+of having originated from Rec.709 encoded content.
+.PP
+Default is
+.B 'auto-detect'(0).
+.RE
+.\"
+.\"
 .SH KNOWN BUGS
 As the
 .B radeonhd

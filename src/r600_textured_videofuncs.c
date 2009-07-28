@@ -126,7 +126,8 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     shader_config_t vs_conf, ps_conf;
     int uv_offset;
 
-    static float ps_alu_consts[] = {
+    /* Constants for Rec.709 */
+    static float ps_alu_consts_rec709[] = {
 	1.0,  0.0,      1.5748,   0,  /* r - c[0] */
 	1.0, -0.18732, -0.46812,  0,  /* g - c[1] */
 	1.0,  1.8556,   0.0,      0,  /* b - c[2] */
@@ -138,6 +139,31 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	 */
 	255.0/219.0, -16.0/219.0, 255.0/224.0, -128.0/224.0,
     };
+
+    /* Constants for Rec.601
+     * Same structure as above */
+    static float ps_alu_consts_rec601[] = {
+        1.0,  0.0,      1.4020,   0,  /* r - c[0] */
+        1.0, -0.34414, -0.71414,  0,  /* g - c[1] */
+        1.0,  1.7720,   0.0,      0,  /* b - c[2] */
+        255.0/219.0, -16.0/219.0, 255.0/224.0, -128.0/224.0,
+    };
+
+    float *ps_alu_consts;
+
+    /* Pick Y'CbCr color space to use
+     * For video with _encoded_ width of 928 or above, choose Rec. 709. This should cover
+     * 720p and 1080i/p, as well as most videos with non-standard resolutions that most likely
+     * came from such a source.
+     * The exact value of the cutoff is aribrary as there is no standarization of resolution
+     * between "EDTV" and 720p HD content.
+     * */
+    if ((pPriv->color_space == RHD_XV_COLOR_SPACE_REC709) ||
+        (pPriv->color_space == RHD_XV_COLOR_SPACE_AUTODETECT && pPriv->src_w >= 928)) {
+        ps_alu_consts = ps_alu_consts_rec709;
+    } else {
+        ps_alu_consts = ps_alu_consts_rec601;
+    }
 
     CLEAR (cb_conf);
     CLEAR (tex_res);
@@ -220,7 +246,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     ps_setup                    (pScrn, accel_state->ib, &ps_conf);
 
     /* PS alu constants */
-    set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
+    set_alu_consts(pScrn, accel_state->ib, 0, sizeof(ps_alu_consts_rec709) / SQ_ALU_CONSTANT_offset, ps_alu_consts);
 
     /* Texture */
     switch(pPriv->id) {
