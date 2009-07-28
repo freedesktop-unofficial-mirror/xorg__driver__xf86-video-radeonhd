@@ -38,7 +38,11 @@
 /* For PIO/MMIO */
 #include "compiler.h"
 
+#ifndef XSERVER_LIBPCIACCESS
 #include "xf86Resources.h"
+/* Needed by Resources Access Control (RAC) */
+#include "xf86RAC.h"
+#endif
 
 #include "xf86PciInfo.h"
 /* do we need to access PCI config space directly? */
@@ -62,9 +66,6 @@
 #include "xf86cmap.h"
 
 #include "fb.h"
-
-/* Needed by Resources Access Control (RAC) */
-#include "xf86RAC.h"
 
 #ifdef HAVE_XEXTPROTO_71
 #include "X11/extensions/dpmsconst.h"
@@ -562,10 +563,12 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 
     pScrn->chipset = (char *)xf86TokenToString(RHDChipsets, rhdPtr->ChipSet);
 
+#ifndef XSERVER_LIBPCIACCESS
     /* We will disable access to VGA legacy resources emulation and
        save/restore VGA thru MMIO when necessary */
     if (xf86RegisterResources(rhdPtr->entityIndex, NULL, ResNone))
 	goto error0;
+#endif
 
 #ifndef  ATOM_ASIC_INIT
     if (xf86LoadSubModule(pScrn, "int10")) {
