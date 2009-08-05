@@ -316,6 +316,7 @@ R600DoneSolid(PixmapPtr pPix)
 	(rhdPtr->ChipSet == RHD_M74) ||
 	(rhdPtr->ChipSet == RHD_M82) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RS880) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
 			    accel_state->vb_size, accel_state->vb_mc_addr);
@@ -559,6 +560,7 @@ R600DoCopy(ScrnInfoPtr pScrn)
 	(rhdPtr->ChipSet == RHD_M74) ||
 	(rhdPtr->ChipSet == RHD_M82) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RS880) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
 			    accel_state->vb_size, accel_state->vb_mc_addr);
@@ -1723,6 +1725,7 @@ static void R600DoneComposite(PixmapPtr pDst)
 	(rhdPtr->ChipSet == RHD_M74) ||
 	(rhdPtr->ChipSet == RHD_M82) ||
 	(rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RS880) ||
 	(rhdPtr->ChipSet == RHD_RV710))
 	cp_set_surface_sync(pScrn, accel_state->ib, TC_ACTION_ENA_bit,
 			    accel_state->vb_size, accel_state->vb_mc_addr);
