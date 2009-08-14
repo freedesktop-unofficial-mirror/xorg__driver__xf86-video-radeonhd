@@ -5037,7 +5037,7 @@ rhdAtomExec (atomBiosHandlePtr handle,
     offset = ((USHORT *)&(((ATOM_MASTER_COMMAND_TABLE *)handle->codeTable)
 			  ->ListOfCommandTables))[idx];
     if (! offset) {
-	xf86DrvMsg(handle->scrnIndex, X_ERROR, "AtomBIOS command table %d does not exist\n", idx);
+	xf86DrvMsg(handle->scrnIndex, X_WARNING, "AtomBIOS command table %d does not exist\n", idx);
 	return ATOM_NOT_IMPLEMENTED;
     }
 
