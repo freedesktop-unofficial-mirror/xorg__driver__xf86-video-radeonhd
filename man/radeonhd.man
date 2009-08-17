@@ -236,21 +236,22 @@ is the newer but more experimental hardware-based acceleration technique.
 .RS
 .PD
 .PP
-The default is
-.BR "depending on the chipset" ,
-driver version, and state of acceleration techniques and tries to give the best
-user experience.
-.br
+Default value
+.B depends on the chipset
+and the acceleration techniques available for that chipset, and is chosen to
+give the best user experience.
+.PP
+Note that R600 and above require
+.BR DRI
+to be enabled for "exa".
+.PP
 Rotation isn't supported for the AccelMethods \*qnone\*q and \*qshadowfb\*q.
 .RE
 .TP
 .BI "Option \*qDRI\*q"
 Use this option to enable 3D and Xv acceleration using DRI.
-Currently, the default is
-.B on
-on R5xx and RS6xx chips, and
-.B off
-on all others.
+Default is
+.B on.
 .TP
 .BI "Option \*qOffscreenSize\*q \*q" <integer>M|<integer>% \*q
 Specify the amount of framebuffer memory used for offscreen pixmaps, in

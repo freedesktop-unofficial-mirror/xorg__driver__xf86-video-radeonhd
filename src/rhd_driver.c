@@ -2691,14 +2691,14 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	rhdPtr->AccelMethod = RHD_ACCEL_DEFAULT;
 
     if (rhdPtr->AccelMethod == RHD_ACCEL_DEFAULT) {
-	if (rhdPtr->ChipSet < RHD_R600)
 #ifdef USE_EXA
-            rhdPtr->AccelMethod = RHD_ACCEL_EXA;
+        rhdPtr->AccelMethod = RHD_ACCEL_EXA;
 #else
+	if (rhdPtr->ChipSet < RHD_R600)
 	    rhdPtr->AccelMethod = RHD_ACCEL_XAA;
-#endif /* USE_EXA */
 	else
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+#endif /* USE_EXA */
     }
 
     if (noAccel.set && noAccel.val.bool &&
@@ -2707,15 +2707,6 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
 
-#if 0
-    if (rhdPtr->ChipSet >= RHD_R600) {
-	if (rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
-	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: HW 2D acceleration is"
-		       " not implemented yet.\n",  pScrn->chipset);
-	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
-	}
-    }
-#endif
     /* Now for some pretty print */
     switch (rhdPtr->AccelMethod) {
 #ifdef USE_EXA

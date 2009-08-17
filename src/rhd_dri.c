@@ -1163,19 +1163,6 @@ Bool RHDDRIPreInit(ScrnInfoPtr pScrn)
 	return FALSE;
     }
 
-    if (rhdPtr->ChipSet >= RHD_R600) {
-	if (rhdPtr->useDRI.set && rhdPtr->useDRI.val.bool) {
-	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
-		       "Direct rendering for R600 and up forced on - "
-		       "This is NOT officially supported yet "
-		       "and may cause instability or lockups\n");
-	} else {
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "Direct rendering not officially supported on R600 and up\n");
-	    return FALSE;
-	}
-    }
-
     if (!RHDDRIVersionCheck(rhdPtr)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 		   "%s: Version check failed. Disabling DRI.\n", __func__);
