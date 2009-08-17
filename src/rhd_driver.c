@@ -784,7 +784,11 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
 		   " Defaulting to EXA\n");
     }
 #ifdef USE_DRI
-    RHDDRIPreInit(pScrn);
+    ret = RHDDRIPreInit(pScrn);
+    if (!ret && rhdPtr->ChipSet >= RHD_R600 && rhdPtr->AccelMethod > RHD_ACCEL_SHADOWFB) {
+        xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Falling back to ShadowFB acceleration\n");
+        rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
+    }
 #else
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "DRI support has been disabled at compile time\n");
