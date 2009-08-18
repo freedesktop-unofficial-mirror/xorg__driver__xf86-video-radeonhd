@@ -127,7 +127,7 @@ struct rhdRandrCrtc {
 #define ATOM_CONNECTOR_NUMBER "ConnectorNumber"
 #define ATOM_OUTPUT_NUMBER    "_OutputNumber"
 #define ATOM_PANNING_AREA     "_PanningArea"
-#define ATOM_BACKLIGHT        "_Backlight"
+#define ATOM_BACKLIGHT        "Backlight"
 #define ATOM_COHERENT         "_Coherent"
 #define ATOM_HDMI             "_HDMI"
 #define ATOM_ATOMBIOS         "_AtomBIOS"

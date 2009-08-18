@@ -618,7 +618,7 @@ panning, which is included in Xserver 1.6.  It is considerable more flexible,
 and should support rotated pans.
 .RE
 .TP
-.B _Backlight
+.B Backlight
 .RS
 .TP 16
 .PD 0
