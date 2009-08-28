@@ -1077,7 +1077,9 @@ RHDScreenInit(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     ScrnInfoPtr pScrn;
     RHDPtr rhdPtr;
     VisualPtr visual;
+#ifndef XSERVER_LIBPCIACCESS
     unsigned int racflag = 0;
+#endif
 #ifdef USE_DRI
     Bool DriScreenInited = FALSE;
 #endif

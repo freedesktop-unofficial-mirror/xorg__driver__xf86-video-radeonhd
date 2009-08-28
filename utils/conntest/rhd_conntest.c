@@ -1224,7 +1224,7 @@ R6xxI2CSetupStatus(void *map, int channel)
 static Bool
 R6xxI2CStatus(void *map)
 {
-    int count = 800;
+    unsigned int count = 800;
     CARD32 val = 0;
 
     while (--count) {
@@ -1402,7 +1402,7 @@ enum _rhdRS69I2CBits {
 static Bool
 RS69I2CStatus(void *map)
 {
-    int count = 2000;
+    unsigned int count = 2000;
     volatile CARD32 val;
 
     while (--count) {
@@ -1949,7 +1949,7 @@ enum rv620I2CBits {
 static Bool
 RV620I2CStatus(void *map)
 {
-    int count = 50;
+    unsigned int count = 50;
     volatile CARD32 val;
 
     while (--count) {

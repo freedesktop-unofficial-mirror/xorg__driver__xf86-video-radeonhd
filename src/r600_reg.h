@@ -87,14 +87,6 @@ enum {
 	WAIT_MEM    = (1<<4)
 };
 
-/* CP packet types */
-enum {
-    RADEON_CP_PACKET0              = 0x00000000,
-    RADEON_CP_PACKET1              = 0x40000000,
-    RADEON_CP_PACKET2              = 0x80000000,
-    RADEON_CP_PACKET3              = 0xC0000000
-};
-
 /* Packet3 commands */
 enum {
     IT_NOP                               = 0x10,

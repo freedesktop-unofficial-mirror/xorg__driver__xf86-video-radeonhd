@@ -87,7 +87,7 @@
 #define IS_RADEONHD_DRIVER 1
 #include "radeon_dri.h"
 
-#ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
+#ifdef RANDR_12_SUPPORT		/* FIXME check / move to rhd_randr.c */
 # include "xf86i2c.h" /* this is complete BS, stop using unnamed structs! */
 # include "xf86Crtc.h"
 #endif
@@ -158,7 +158,7 @@ struct rhdDri {
     drmAddress        ring;             /* Map */
     int               ringSizeLog2QW;
 
-    // TODO: what is r/o ring space for (1 page)
+    /* TODO: what is r/o ring space for (1 page) */
     unsigned long     ringReadOffset;   /* Offset into GART space */
     drm_handle_t      ringReadPtrHandle; /* Handle from drmAddMap */
     drmSize           ringReadMapSize;  /* Size of map */
@@ -890,11 +890,11 @@ static int RHDDRIKernelInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 	return FALSE;
     }
 
-    // FIXME: this is to be moved to rhd_cp
-    /* DRM_RADEON_CP_INIT does an engine reset, which resets some engine
-     * registers back to their default values, so we need to restore
-     * those engine register here. */
-//    R5xx2DSetup(pScrn);
+    /* - FIXME: this is to be moved to rhd_cp
+     * - DRM_RADEON_CP_INIT does an engine reset, which resets some engine
+     *   registers back to their default values, so we need to restore
+     *   those engine register here.
+     * - R5xx2DSetup(pScrn); */
 
     return TRUE;
 }
@@ -978,8 +978,8 @@ static void RHDDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 		       "[drm] falling back to irq-free operation\n");
 	    rhdDRI->irq = 0;
 	} else {
-// FIXME
-//	    rhdDRI->ModeReg->gen_int_cntl = RHDRegRead (rhdDRI,  RADEON_GEN_INT_CNTL );
+/* FIXME 
+	    rhdDRI->ModeReg->gen_int_cntl = RHDRegRead (rhdDRI,  RADEON_GEN_INT_CNTL ); */
 	}
     }
 
@@ -1118,7 +1118,7 @@ static Bool RHDDRISetVBlankInterrupt(ScrnInfoPtr pScrn, Bool on)
         if (on) {
 	    value = DRM_RADEON_VBLANK_CRTC1;
 
-#ifdef RANDR_12_SUPPORT		// FIXME check / move to rhd_randr.c
+#ifdef RANDR_12_SUPPORT		/* FIXME check / move to rhd_randr.c */
 	    if (RHDPTR(pScrn)->randr) {
 		xf86CrtcConfigPtr   xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
 		if (xf86_config->num_crtc > 1 && xf86_config->crtc[1]->enabled)
@@ -1671,7 +1671,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
     ScrnInfoPtr    pScrn  = xf86Screens[pScreen->myNum];
     RHDPtr         rhdPtr = RHDPTR(pScrn);
     struct rhdDri *rhdDRI   = rhdPtr->dri;
-    //drm_radeon_init_t drmInfo;
+    /* drm_radeon_init_t drmInfo; */
     drm_radeon_init_t drmInfo;
 
     RHDFUNC(pScrn);
@@ -1680,7 +1680,7 @@ Bool RHDDRICloseScreen(ScreenPtr pScreen)
 	RHDDRISetVBlankInterrupt (pScrn, FALSE);
 	drmCtlUninstHandler(rhdDRI->drmFD);
 	rhdDRI->irq = 0;
-//	rhdDRI->ModeReg->gen_int_cntl = 0;
+/*	rhdDRI->ModeReg->gen_int_cntl = 0; */
     }
 
     /* invalidate GART location for EXA */
@@ -1771,8 +1771,8 @@ static void RHDDRITransitionSingleToMulti3d(ScreenPtr pScreen)
 
 static void RHDDRITransitionMultiToSingle3d(ScreenPtr pScreen)
 {
-    /* Let the remaining 3d app start page flipping again */
-//    RHDEnablePageFlip(pScreen);
+    /* Let the remaining 3d app start page flipping again 
+     * RHDEnablePageFlip(pScreen); */
 }
 
 static void RHDDRITransitionTo3d(ScreenPtr pScreen)
@@ -1781,8 +1781,8 @@ static void RHDDRITransitionTo3d(ScreenPtr pScreen)
     struct rhdDri *rhdDRI   = RHDPTR(pScrn)->dri;
 
     rhdDRI->have3Dwindows = TRUE;
-//    RHDChangeSurfaces(pScrn);	// FIXME needed for tiling
-//    RHDEnablePageFlip(pScreen);
+/*    RHDChangeSurfaces(pScrn);	*//* FIXME needed for tiling */
+/*    RHDEnablePageFlip(pScreen); */
 
     RHDDRISetVBlankInterrupt(pScrn, TRUE);
 }
@@ -1807,7 +1807,7 @@ static void RHDDRITransitionTo2d(ScreenPtr pScreen)
 		   "[dri] RHDDRITransitionTo2d: "
 		   "kernel failed to unflip buffers.\n");
     }
-//    RHDChangeSurfaces(pScrn);
+/*   RHDChangeSurfaces(pScrn); */
 
     RHDDRISetVBlankInterrupt(pScrn, FALSE);
 }
@@ -1914,7 +1914,7 @@ RHDDRMCPBuffer(int scrnIndex)
 	int ret = drmDMA(Dri->drmFD, &dma);
 	if (!ret) {
 	    buf = &Dri->buffers->list[indx];
-	    //xf86DrvMsg(scrnIndex, X_INFO, "%s: index %d, addr %p\n",  __func__, buf->idx, buf->address);
+	    /* xf86DrvMsg(scrnIndex, X_INFO, "%s: index %d, addr %p\n",  __func__, buf->idx, buf->address); */
 	    buf->used = 0;
 	    return buf;
 	} else if (ret != -16)

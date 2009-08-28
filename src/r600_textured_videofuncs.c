@@ -194,7 +194,7 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
     /* Init */
     start_3d(pScrn, accel_state->ib);
 
-    //cp_set_surface_sync(pScrn, accel_state->ib);
+    /* cp_set_surface_sync(pScrn, accel_state->ib); */
 
     set_default_state(pScrn, accel_state->ib);
 
@@ -343,12 +343,12 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	tex_res.dst_sel_z           = SQ_SEL_1;
 	tex_res.dst_sel_w           = SQ_SEL_1;
 	tex_res.interlaced          = 0;
-	// XXX tex bases need to be 256B aligned
+	/* XXX tex bases need to be 256B aligned */
 	tex_res.base                = accel_state->src_mc_addr[0] + uv_offset;
 	tex_res.mip_base            = accel_state->src_mc_addr[0] + uv_offset;
 	set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
-	// xxx: switch to bicubic
+	/* xxx: switch to bicubic */
 	tex_samp.xy_mag_filter      = SQ_TEX_XY_FILTER_BILINEAR;
 	tex_samp.xy_min_filter      = SQ_TEX_XY_FILTER_BILINEAR;
 
@@ -419,12 +419,12 @@ R600DisplayTexturedVideo(ScrnInfoPtr pScrn, struct RHDPortPriv *pPriv)
 	tex_res.dst_sel_z           = SQ_SEL_1;
 	tex_res.dst_sel_w           = SQ_SEL_1;
 	tex_res.interlaced          = 0;
-	// XXX tex bases need to be 256B aligned
+	/* XXX tex bases need to be 256B aligned */
 	tex_res.base                = accel_state->src_mc_addr[0];
 	tex_res.mip_base            = accel_state->src_mc_addr[0];
 	set_tex_resource            (pScrn, accel_state->ib, &tex_res);
 
-	// xxx: switch to bicubic
+	/* xxx: switch to bicubic */
 	tex_samp.xy_mag_filter      = SQ_TEX_XY_FILTER_BILINEAR;
 	tex_samp.xy_min_filter      = SQ_TEX_XY_FILTER_BILINEAR;
 
