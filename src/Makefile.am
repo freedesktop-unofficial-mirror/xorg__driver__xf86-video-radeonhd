@@ -18,6 +18,7 @@ radeonhd_drv_la_LIBADD += @PCIACCESS_LIBS@
 endif
 
 radeonhd_drv_la_SOURCES = \
+	atombios_rev.h \
 	r5xx_3dregs.h \
 	r5xx_accel.c \
 	r5xx_accel.h \
