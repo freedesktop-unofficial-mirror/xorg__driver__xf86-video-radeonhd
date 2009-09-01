@@ -675,7 +675,7 @@ rhdBIOSScratchUpdateBIOSScratchForOutput(struct rhdOutput *Output)
 	/* connected - enable */
 	Device = rhdBIOSScratchSetDeviceForOutput(Output);
 
-	if (Device == atomNone && rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE) {
+	if (Device == atomNone && (!rhdPtr->Card || rhdPtr->Card->ConnectorInfo[0].Type != RHD_CONNECTOR_NONE)) {
 	    xf86DrvMsg(Output->scrnIndex, X_WARNING, "%s: AtomBIOS DeviceID unknown\n",__func__);
 	    return Device;
 	}
