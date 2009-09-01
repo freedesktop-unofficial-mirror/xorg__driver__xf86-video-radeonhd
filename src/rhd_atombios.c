@@ -4834,38 +4834,53 @@ rhdAtomConnectorInfoFromSupportedDevices(atomBiosHandlePtr handle,
 	cp[ncon].Name = xstrdup(devices[n].name);
 	cp[ncon].Name = RhdAppendString(cp[ncon].Name, devices[n].outputName);
 
-	if (devices[n].dual) {
-	    if (devices[n].ddc == RHD_DDC_NONE)
+	if (devices[n].ddc == RHD_DDC_NONE) {
+	    if (devices[n].dual)
 		xf86DrvMsg(handle->scrnIndex, X_ERROR,
 			   "No DDC channel for device %s found."
 			   " Cannot find matching device.\n",devices[n].name);
-	    else {
-		for (i = n + 1; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
+	} else {
+	    for (i = n + 1; i < ATOM_MAX_SUPPORTED_DEVICE; i++) {
 
-		    if (!devices[i].dual)
-			continue;
+		if (!devices[n].dual && !devices[i].dual)
+		    continue;
 
-		    if (devices[n].ddc != devices[i].ddc)
-			continue;
+		if (devices[n].ddc != devices[i].ddc)
+		    continue;
 
-		    if (((devices[n].ot == RHD_OUTPUT_DACA
-			  || devices[n].ot == RHD_OUTPUT_DACB)
-			 && (devices[i].ot == RHD_OUTPUT_LVTMA
-			     || devices[i].ot == RHD_OUTPUT_TMDSA))
-			|| ((devices[i].ot == RHD_OUTPUT_DACA
-			     || devices[i].ot == RHD_OUTPUT_DACB)
-			    && (devices[n].ot == RHD_OUTPUT_LVTMA
-				|| devices[n].ot == RHD_OUTPUT_TMDSA))) {
+		if ((devices[n].ot == RHD_OUTPUT_DACA
+		     || devices[n].ot == RHD_OUTPUT_DACB)
+		    && (devices[i].ot == RHD_OUTPUT_LVTMA
+			|| devices[i].ot == RHD_OUTPUT_TMDSA)) {
 
-			cp[ncon].Output[1] = devices[i].ot;
+		    /* If VGA is listed before DVI, swap */
+		    cp[ncon].Output[0] = devices[i].ot;
+		    cp[ncon].Output[1] = devices[n].ot;
+		    cp[ncon].Type      = devices[i].con;
 
-			if (cp[ncon].HPD == RHD_HPD_NONE)
-			    cp[ncon].HPD = devices[i].hpd;
+		    if (cp[ncon].HPD == RHD_HPD_NONE)
+			cp[ncon].HPD = devices[i].hpd;
 
-			cp[ncon].Name = RhdAppendString(cp[ncon].Name,
-							devices[i].outputName);
-			devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
-		    }
+		    xfree (cp[ncon].Name);
+		    cp[ncon].Name = xstrdup(devices[i].name);
+		    cp[ncon].Name = RhdAppendString(cp[ncon].Name,
+						    devices[i].outputName);
+		    cp[ncon].Name = RhdAppendString(cp[ncon].Name,
+						    devices[n].outputName);
+		    devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
+		} else if ((devices[i].ot == RHD_OUTPUT_DACA
+			    || devices[i].ot == RHD_OUTPUT_DACB)
+			   && (devices[n].ot == RHD_OUTPUT_LVTMA
+			       || devices[n].ot == RHD_OUTPUT_TMDSA)) {
+
+		    cp[ncon].Output[1] = devices[i].ot;
+
+		    if (cp[ncon].HPD == RHD_HPD_NONE)
+			cp[ncon].HPD = devices[i].hpd;
+
+		    cp[ncon].Name = RhdAppendString(cp[ncon].Name,
+						    devices[i].outputName);
+		    devices[i].ot = RHD_OUTPUT_NONE; /* zero the device */
 		}
 	    }
 	}
