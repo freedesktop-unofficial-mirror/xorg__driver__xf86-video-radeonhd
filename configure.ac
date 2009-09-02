@@ -314,15 +314,15 @@ do
   AC_PROG_CC_FLAG($w,[WARN_CFLAGS="$WARN_CFLAGS $w"],)
 done
 
-# Due to AtomBIOS spitting out too much with -pedantic
+# atombios.h prohibits -std=c99 due to unnamed unions
 PEDANTIC_CFLAGS=""
-for w in -pedantic -Wno-long-long -Wno-variadic-macros ; do
+for w in -Wno-long-long -Wno-variadic-macros ; do
   AC_PROG_CC_FLAG($w,[PEDANTIC_CFLAGS="$PEDANTIC_CFLAGS $w"],)
 done
 
 # AtomBios special flags
 ATOMBIOS_CFLAGS=""
-for w in -std=c99 -Wno-unknown-pragmas ; do
+for w in -Wno-unknown-pragmas ; do
   AC_PROG_CC_FLAG($w,[ATOMBIOS_CFLAGS="$ATOMBIOS_CFLAGS $w"],)
 done
 
