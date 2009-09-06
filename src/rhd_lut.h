@@ -36,7 +36,8 @@ struct rhdLUT {
 
     void (*Save) (struct rhdLUT *LUT);
     void (*Restore) (struct rhdLUT *LUT);
-    void (*Set) (struct rhdLUT *LUT, int numColors, int *indices, LOCO *colors);
+    void (*Set) (struct rhdLUT *LUT, CARD16 *red, CARD16 *green, CARD16 *blue);
+    void (*SetRows) (struct rhdLUT *LUT, int numColors, int *indices, LOCO *colors);
 
     /* because RandR does not specifically initialise a gamma ramp when
        setting up a CRTC */

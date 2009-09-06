@@ -1686,13 +1686,70 @@ RHDLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices, LOCO *colors,
     RHDPtr rhdPtr = RHDPTR(pScrn);
     struct rhdCrtc *Crtc;
 
-    Crtc = rhdPtr->Crtc[0];
-    if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active)
-	Crtc->LUT->Set(Crtc->LUT, numColors, indices, colors);
+    CARD16 red[256], green[256], blue[256];
+    int i, index, j, n;
+    Bool partial_table = FALSE;
 
-    Crtc = rhdPtr->Crtc[1];
-    if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active)
-	Crtc->LUT->Set(Crtc->LUT, numColors, indices, colors);
+    switch (pScrn->depth) {
+    case 8:
+    case 24:
+    case 32:
+        if (numColors < 256) {
+            partial_table = TRUE;
+            break;
+        }
+        for (i = 0; i < numColors; i++) {
+            index = indices[i];
+            red[index] = colors[index].red << 6;
+            green[index] = colors[index].green << 6;
+            blue[index] = colors[index].blue << 6;
+        }
+        break;
+    case 16:
+        if (numColors < 64) {
+            partial_table = TRUE;
+            break;
+        }
+        /* 6 bits of green, 5 bits of red and blue each */
+        for (i = 0; i < numColors; i++) {
+            index = indices[i];
+            n = index * 4;
+            for (j = 0; j < 4; j++) {
+                red[n + j] = colors[index/2].red << 6;
+                green[n + j] = colors[index].green << 6;
+                blue[n + j] = colors[index/2].blue << 6;
+            }
+        }
+        break;
+    case 15:
+        if (numColors < 32) {
+            partial_table = TRUE;
+            break;
+        }
+        /* 5 bits each */
+        for (i = 0; i < numColors; i++) {
+            int j, n;
+
+            index = indices[i];
+            n = index * 8;
+            for (j = 0; j < 8; j++) {
+                red[n + j] = colors[index].red << 6;
+                green[n + j] = colors[index].green << 6;
+                blue[n+ j] = colors[index].blue << 6;
+            }
+        }
+        break;
+    }
+
+    for (i = 0; i < 2; i++) {
+        Crtc = rhdPtr->Crtc[i];
+        if ((pScrn->scrnIndex == Crtc->scrnIndex) && Crtc->Active) {
+            if (!partial_table)
+                Crtc->LUT->Set(Crtc->LUT, red, green, blue);
+            else
+                Crtc->LUT->SetRows(Crtc->LUT, numColors, indices, colors);
+        }
+    }
 }
 
 /*

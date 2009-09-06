@@ -486,34 +486,23 @@ rhdRRCrtcCommit(xf86CrtcPtr crtc)
     RHDDebugRandrState(rhdPtr, rhdCrtc->Name);
 }
 
-/*
- * They just had to do NIH again here: Old X functionality provides a size, a
- * list of indices, and a table of RGB unsigned shorts. RandR provides what
- * is below. Apart from horribly breaking any attempt at being backwards
- * compatible, this also pretty much rules out the usage of indexed colours, as
- * each time even a single colour is changed an entirely new table has to be
- * uploaded. Just cute. -- libv.
- */
 static void
 rhdRRCrtcGammaSet(xf86CrtcPtr crtc, CARD16 *red, CARD16 *green, CARD16 *blue,
 		  int size)
 {
     struct rhdCrtc *rhdCrtc = ((struct rhdRandrCrtc *)(crtc->driver_private))->rhdCrtc;
-    int indices[0x100]; /* would RandR use a size larger than 256? */
-    LOCO colors[0x100];
-    int i;
-
     RHDDebug(rhdCrtc->scrnIndex, "%s: %s.\n", __func__, rhdCrtc->Name);
 
-    /* thanks so very much */
-    for (i = 0; i < size; i++) {
-	indices[i] = i;
-	colors[i].red = red[i] >> 6;
-	colors[i].green = green[i] >> 6;
-	colors[i].blue = blue[i] >> 6;
+    if (size < 256) {
+        xf86DrvMsg(rhdCrtc->scrnIndex, X_ERROR,
+                   "LUT: only %d rows of LUT given, when 256 expected; aborting", size);
+        return;
+    } else if (size > 256) {
+        xf86DrvMsg(rhdCrtc->scrnIndex, X_WARNING,
+                   "LUT: %d rows of LUT given, when 256 expected; some rows are ignored", size);
     }
 
-    rhdCrtc->LUT->Set(rhdCrtc->LUT, size, indices, colors);
+    rhdCrtc->LUT->Set(rhdCrtc->LUT, red, green, blue);
 }
 
 /* Dummy, because not tested for NULL */
