@@ -55,7 +55,7 @@ struct rhdLUT {
     CARD32 StoreWhiteGreen;
     CARD32 StoreWhiteBlue;
 
-    CARD16 StoreEntry[0x300];
+    CARD32 StoreEntry[256];
 };
 
 void RHDLUTsInit(RHDPtr rhdPtr);

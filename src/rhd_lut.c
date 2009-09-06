@@ -69,8 +69,8 @@ LUTxSave(struct rhdLUT *LUT)
 	RHDRegWrite(LUT, DC_LUT_READ_PIPE_SELECT, 1);
 
     RHDRegWrite(LUT, DC_LUT_RW_INDEX, 0);
-    for (i = 0; i < 0x300; i++)
-	LUT->StoreEntry[i] = RHDRegRead(LUT, DC_LUT_SEQ_COLOR);
+    for (i = 0; i < 256; i++)
+	LUT->StoreEntry[i] = RHDRegRead(LUT, DC_LUT_30_COLOR);
 
     LUT->Stored = TRUE;
 }
@@ -112,8 +112,8 @@ LUTxRestore(struct rhdLUT *LUT)
     RHDRegWrite(LUT, DC_LUT_RW_MODE, 0); /* Table */
     RHDRegWrite(LUT, DC_LUT_WRITE_EN_MASK, 0x0000003F);
     RHDRegWrite(LUT, DC_LUT_RW_INDEX, 0);
-    for (i = 0; i < 0x300; i++)
-	RHDRegWrite(LUT, DC_LUT_SEQ_COLOR, LUT->StoreEntry[i]);
+    for (i = 0; i < 256; i++)
+	RHDRegWrite(LUT, DC_LUT_30_COLOR, LUT->StoreEntry[i]);
 
     RHDRegWrite(LUT, RegOff + DC_LUTA_CONTROL, LUT->StoreControl);
 }
