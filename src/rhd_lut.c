@@ -155,6 +155,7 @@ rhdLUTSet(struct rhdLUT *LUT, CARD16 *red, CARD16 *green, CARD16 *blue)
     RHDRegWrite(LUT, DC_LUT_RW_MODE, 0); /* table */
     RHDRegWrite(LUT, DC_LUT_WRITE_EN_MASK, 0x0000003F);
 
+    RHDRegWrite(LUT, DC_LUT_RW_INDEX, 0);
     for (i = 0; i < 256; i++) {
         RHDRegWrite(LUT, DC_LUT_30_COLOR,
                     ((red[i] & 0xFFC0) << 14) | ((green[i] & 0xFFC0) << 4) | (blue[i] >> 6));
