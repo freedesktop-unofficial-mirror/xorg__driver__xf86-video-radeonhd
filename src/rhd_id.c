@@ -573,6 +573,13 @@ RHDIsIGP(enum RHD_CHIPSETS chipset)
    {RHD_CONNECTOR_DVI, "DVI-I", RHD_DDC_1, RHD_HPD_0, \
 	 { RHD_OUTPUT_TMDSA, RHD_OUTPUT_DACB } } }
 
+/* Wyse R-Class broke connector table info (DDC) in later BIOSes */
+#define DVI_AB2_DVI_C3 \
+  { {RHD_CONNECTOR_DVI, "DVI-I DFP3 CRT1", RHD_DDC_2, RHD_HPD_NONE, \
+       { RHD_OUTPUT_LVTMA, RHD_OUTPUT_DACA  }}, \
+    {RHD_CONNECTOR_DVI, "DVI-D DFP2", RHD_DDC_3, RHD_HPD_NONE, \
+       { RHD_OUTPUT_DVO, RHD_OUTPUT_NONE }}}
+
 
 #if defined(USE_ID_CONNECTORS) || !defined(ATOM_BIOS)
 
@@ -841,6 +848,7 @@ rhdCards[] =
     /* 0x791E : RS690 : Radeon X1200 */
     { 0x791E, 0x1043, 0x826D, "Asus M2A-VM", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
     /* 0x791F : RS690 : Radeon X1200 */
+    { 0x791F, 0x1002, 0x053A, "Wyse R-Class", RHD_CARD_FLAG_NONE, DVI_AB2_DVI_C3, DEVINFO_EMPTY },
     { 0x791F, 0x103C, 0x30C2, "HP/Compaq 6715b", RHD_CARD_FLAG_NONE, ID_CONNECTORINFO_EMPTY, DEVINFO_EMPTY },
     /* 0x793F : RS600 : Radeon Xpress 1200 */
     /* 0x7941 : RS600 : Radeon Xpress 1200 */
