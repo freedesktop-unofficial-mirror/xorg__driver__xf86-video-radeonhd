@@ -651,9 +651,9 @@ R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
 	h -= hpass;
 
 	/* this is quite a big hammer, but we have no other option here */
-	RHDCSFlush(CS);
 	RHDCSIdle(CS);
 	R5xx2DIdle(pScrn);
+	RHDCSFlush(CS);
 
 	/* Copy out data from previous blit */
 	if ((wpass == BufferPitch) && (wpass == (unsigned int) dstpitch)) {
