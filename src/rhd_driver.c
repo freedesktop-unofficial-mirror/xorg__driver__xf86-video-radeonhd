@@ -1351,8 +1351,8 @@ rhdEngineIdle(ScrnInfoPtr pScrn)
 	    R5xxEngineWaitIdleFull(CS);
 	}
 
-	RHDCSFlush(CS);
 	RHDCSIdle(CS);
+	RHDCSFlush(CS);
     }
 
     if (rhdPtr->TwoDPrivate) {
@@ -1511,8 +1511,8 @@ RHDEnterVT(int scrnIndex, int flags)
 	if (rhdPtr->ChipSet < RHD_R600)
 	    R5xxEngineWaitIdleFull(rhdPtr->CS);
 
-	RHDCSFlush(rhdPtr->CS);
 	RHDCSIdle(rhdPtr->CS);
+	RHDCSFlush(rhdPtr->CS);
     }
 
 #ifdef USE_DRI
