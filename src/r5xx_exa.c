@@ -124,9 +124,9 @@ R5xxEXASync(ScreenPtr pScreen, int marker)
     if (ExaPrivate->exaMarkerSynced != marker) {
 	struct RhdCS *CS = RHDPTR(pScrn)->CS;
 
+	RHDCSFlush(CS);
 	RHDCSIdle(CS);
 	R5xx2DIdle(pScrn);
-	RHDCSFlush(CS);
 
 	ExaPrivate->exaMarkerSynced = marker;
     }
