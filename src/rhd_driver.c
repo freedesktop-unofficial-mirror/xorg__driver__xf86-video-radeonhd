@@ -793,7 +793,7 @@ RHDPreInit(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
 	       "DRI support has been disabled at compile time\n");
     if (rhdPtr->ChipSet >= RHD_R600 && rhdPtr->AccelMethod == RHD_ACCEL_EXA) {
-	rhdPtr->AccelMethod = RHD_SHADOW_FB;
+	rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 	xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "Accel Method EXA requires DRI on this chip. Falling back to SHADOW_FB.\n");
     }
 #endif
