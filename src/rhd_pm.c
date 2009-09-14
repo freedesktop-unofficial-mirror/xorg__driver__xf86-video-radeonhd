@@ -38,6 +38,9 @@
 
 #include "rhd_atombios.h"
 
+/* seriously ?! @#$%% */
+# define uint32_t CARD32
+
 
 #ifdef ATOM_BIOS
 
