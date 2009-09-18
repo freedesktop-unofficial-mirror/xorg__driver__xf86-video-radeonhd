@@ -191,7 +191,7 @@ rhdLUTSetRows(struct rhdLUT *LUT, int numColors, int *indices, LOCO *colors)
         index = indices[i];
         RHDRegWrite(LUT, DC_LUT_RW_INDEX, index);
         RHDRegWrite(LUT, DC_LUT_30_COLOR,
-                    (colors[index].red << 20) | (colors[index].green) << 10) | (colors[index].blue);
+                    (colors[index].red << 20) | (colors[index].green << 10) | (colors[index].blue));
     }
 }
 
