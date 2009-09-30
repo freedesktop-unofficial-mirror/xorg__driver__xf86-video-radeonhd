@@ -2788,6 +2788,14 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 		   "All methods of acceleration have been disabled.\n");
 	break;
     }
+
+    /* If shadowfb is explicitely selected AND dri is not explicitely asked
+     * for, disable dri as they don't go along */
+    if (rhdPtr->AccelMethod == RHD_ACCEL_SHADOWFB && ! rhdPtr->useDRI.set) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_CONFIG,
+		   "Disabling DRI by default with AccelMethod shadowfb.\n");
+	rhdPtr->useDRI.val.bool = FALSE;
+    }
 }
 
 /*
