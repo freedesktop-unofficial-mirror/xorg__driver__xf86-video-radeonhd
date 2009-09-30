@@ -476,7 +476,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, int line, I2CByte *WriteBuffer,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C);
 
-    if (!RHDRegRead(I2CPtr, R5_DC_I2C_ARBITRATION) & R5_DC_I2C_SW_CAN_USE_I2C) {
+    if (! (RHDRegRead(I2CPtr, R5_DC_I2C_ARBITRATION) & R5_DC_I2C_SW_CAN_USE_I2C)) {
 	RHDDebug(I2CPtr->scrnIndex, "%s SW cannot use I2C line %i\n",__func__,line);
 	ret = FALSE;
     } else {
