@@ -2758,6 +2758,10 @@ rhdAccelOptionsHandle(ScrnInfoPtr pScrn)
 	else
 	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
 #endif /* USE_EXA */
+	/* RV740: EXA is extremely slow due to DFS breaking for <32x32 images
+	 * and Composite breaking with partial DFS */
+	if (rhdPtr->ChipSet == RHD_RV740)
+	    rhdPtr->AccelMethod = RHD_ACCEL_SHADOWFB;
     }
 
     if (noAccel.set && noAccel.val.bool &&
