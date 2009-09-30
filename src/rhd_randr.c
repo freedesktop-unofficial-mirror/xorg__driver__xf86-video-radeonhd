@@ -1973,6 +1973,21 @@ RHDRandrPreInit(ScrnInfoPtr pScrn)
     xfree(RandrOutput);
     rhdPtr->randr = randr;
 
+    /* Unless we're able to shrink/enlarge FB on the fly (GEM etc.), allocate
+     * large enough (TM) virtual size */
+    if (!pScrn->display->virtualX || !pScrn->display->virtualY) {
+        /* Have at least enough space for double buffering and z Buffer + some textures */
+        if (2 * 1920*1920 * ((unsigned)pScrn->bitsPerPixel/8) <= rhdPtr->FbFreeSize / 4) {
+            /* Fits on 128MB and up */
+            pScrn->display->virtualX = 2 * 1920;
+            pScrn->display->virtualY = 1920;
+        } else if (2 * 1680*1280 * ((unsigned)pScrn->bitsPerPixel/8) <= rhdPtr->FbFreeSize / 4) {
+            /* Fits on 64MB and up */
+            pScrn->display->virtualX = 2 * 1680;
+            pScrn->display->virtualY = 1280;
+        }
+    }
+
     if (!xf86InitialConfiguration(pScrn, FALSE)) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
 		   "RandR: No valid modes. Disabling RandR support.\n");
