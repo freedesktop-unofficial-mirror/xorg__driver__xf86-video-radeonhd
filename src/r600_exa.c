@@ -1393,6 +1393,11 @@ static Bool R600PrepareComposite(int op, PicturePtr pSrcPicture,
     cb_config_t cb_conf;
     shader_config_t vs_conf, ps_conf;
 
+    /* RV740 seems to be particularly problematic */
+    /* if ((rhdPtr->ChipSet == RHD_RV740) && (w < 32 || h < 32)) */
+    if (rhdPtr->ChipSet == RHD_RV740)
+	return FALSE;
+
     /* return FALSE; */
 
     if (pMask) {
@@ -1855,6 +1860,12 @@ R600DownloadFromScreen(PixmapPtr pSrc, int x, int y, int w, int h,
     uint32_t scratch_pitch = scratch_pitch_bytes / (bpp / 8);
     int wpass = w * (bpp/8);
     drmBufPtr scratch;
+
+    /* RV740 seems to be particularly problematic with small xfers */
+    /* if ((rhdPtr->ChipSet == RHD_RV740) && (w < 32 || h < 32)) */
+    /* Composite in software with DFS partially active breaks badly */
+    if (rhdPtr->ChipSet == RHD_RV740)
+	return FALSE;
 
     if (src_pitch & 7)
 	return FALSE;
