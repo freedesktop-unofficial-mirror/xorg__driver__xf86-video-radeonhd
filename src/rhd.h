@@ -142,6 +142,8 @@ union rhdPropertyData
     Bool Bool;
 };
 
+#define RHD_BACKLIGHT_PROPERTY_MAX 255
+
 #define RHD_CONNECTORS_MAX 6
 
 /* Just define where which PCI BAR lives for now. Will deal with different

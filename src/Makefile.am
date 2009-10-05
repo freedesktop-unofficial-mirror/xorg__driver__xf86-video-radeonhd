@@ -88,7 +88,9 @@ radeonhd_drv_la_SOURCES = \
 	rhd_vga.c \
 	rhd_vga.h \
 	rhd_video.c \
-	rhd_video.h
+	rhd_video.h \
+	rhd_acpi.c \
+	rhd_acpi.h
 
 nodist_radeonhd_drv_la_SOURCES = \
 	git_version.h

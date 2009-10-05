@@ -124,6 +124,6 @@ struct rhdOutput *RHDTMDSAInit(RHDPtr rhdPtr);
 struct rhdOutput *RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type);
 struct rhdOutput *RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType);
 struct rhdOutput *RHDDDIAInit(RHDPtr rhdPtr);
-struct rhdOutput *RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType, rhdOutputType OutputType);
+struct rhdOutput *RHDAtomOutputInit(RHDPtr rhdPtr, enum rhdConnectorType ConnectorType, enum rhdOutputType OutputType);
 
 #endif /* _RHD_OUTPUT_H */

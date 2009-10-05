@@ -42,6 +42,7 @@
 #include "rhd_output.h"
 #include "rhd_regs.h"
 #include "rhd_hdmi.h"
+#include "rhd_acpi.h"
 #ifdef ATOM_BIOS
 #include "rhd_atombios.h"
 #include "rhd_atomout.h"
@@ -119,6 +120,8 @@ struct DIGPrivate
     CARD32 OffDelay;
     struct rhdFMTDither FMTDither;
     int BlLevel;
+
+    void (*SetBacklight)(struct rhdOutput *Output, int val);
 };
 
 /*
@@ -157,11 +160,8 @@ LVTMATransmitterModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
 }
 
 static void
-LVDSSetBacklight(struct rhdOutput *Output)
+LVDSSetBacklight(struct rhdOutput *Output, int level)
 {
-    struct DIGPrivate *Private = (struct DIGPrivate *) Output->Private;
-    int level = Private->BlLevel;
-
     RHDFUNC(Output);
 
     RHDRegMask(Output, RV620_LVTMA_PWRSEQ_REF_DIV,
@@ -218,7 +218,9 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	case rhdPropertyCommit:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
-		    LVDSSetBacklight(Output);
+		    if (Private->BlLevel < 0)
+			return FALSE;
+		    Private->SetBacklight(Output, Private->BlLevel);
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -1824,15 +1826,29 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	case RHD_CONNECTOR_PANEL:
 	    Private->EncoderMode = LVDS;
 	    GetLVDSInfo(rhdPtr, Private);
+	    if (Private->BlLevel >= 0) {
+		Private->SetBacklight = LVDSSetBacklight;
+		xf86DrvMsg(Output->scrnIndex,X_INFO, "Native Backlight Control found.\n");
+	    }  else {
+		Private->BlLevel = RhdACPIGetBacklightControl(Output);
+		if (Private->BlLevel >= 0) {
+		    xf86DrvMsg(Output->scrnIndex,X_INFO, "ACPI Backlight Control found.\n");
+		    Private->SetBacklight = RhdACPISetBacklightControl;
+		}
 #ifdef ATOM_BIOS
-	    if (Private->BlLevel < 0) {
-		Private->BlLevel = RhdAtomSetupBacklightControlProperty(Output,
-									&Private->Transmitter.WrappedPropertyCallback,
-									&Private->Transmitter.PropertyPrivate);
-		if (Private->Transmitter.PropertyPrivate)
-		    Private->Transmitter.Property = digTransmitterPropertyWrapper;
-	    }
+		else {
+		    Private->BlLevel = RhdAtomSetupBacklightControlProperty(
+			Output,
+			&Private->Transmitter.WrappedPropertyCallback,
+			&Private->Transmitter.PropertyPrivate);
+		    if (Private->Transmitter.PropertyPrivate)
+			Private->Transmitter.Property = digTransmitterPropertyWrapper;
+		    xf86DrvMsg(Output->scrnIndex,X_INFO,
+			       "Falling back to AtomBIOS controlled Backlight.\n");
+		}
 #endif
+	    }
+
 	    Private->Hdmi = NULL;
 	    break;
 	case RHD_CONNECTOR_DVI:

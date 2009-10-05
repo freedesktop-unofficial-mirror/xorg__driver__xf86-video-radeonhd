@@ -643,7 +643,7 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 				      sizeof(ATOM_BACKLIGHT)-1, TRUE);
 
 	    range[0] = 0;
-	    range[1] = 255;
+	    range[1] = RHD_BACKLIGHT_PROPERTY_MAX;
 	    err = RRConfigureOutputProperty(out->randr_output, atom_Backlight,
 					    FALSE, TRUE, FALSE, 2, range);
 	    if (err != 0)
@@ -653,7 +653,7 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 		union rhdPropertyData val;
 
 		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_BACKLIGHT, &val))
-		    val.integer = 255;
+		    val.integer = RHD_BACKLIGHT_PROPERTY_MAX; /* max */
 
 		err = RRChangeOutputProperty(out->randr_output, atom_Backlight,
 					     XA_INTEGER, 32, PropModeReplace,
