@@ -336,5 +336,5 @@ RHDLUTCopyForRR(struct rhdLUT *LUT)
         blue[i] = (entry << 6) & 0xFFC0;
     }
 
-    rhdLUTSet(LUT, red, green, blue)
+    rhdLUTSet(LUT, red, green, blue);
 }
