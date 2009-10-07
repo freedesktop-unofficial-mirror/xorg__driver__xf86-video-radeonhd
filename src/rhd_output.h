@@ -59,7 +59,8 @@ typedef enum rhdSensedOutput {
 enum rhdOutputProperty {
     RHD_OUTPUT_BACKLIGHT,
     RHD_OUTPUT_COHERENT,
-    RHD_OUTPUT_HDMI
+    RHD_OUTPUT_HDMI,
+    RHD_OUTPUT_AUDIO_WORKAROUND
 };
 
 enum rhdOutputAllocation {

@@ -1119,6 +1119,7 @@ enum AGP_STATUS_BITS {
 enum {
     /* HDMI registers */
     HDMI_ENABLE           = 0x00,
+    HDMI_STATUS           = 0x04,
     HDMI_CNTL             = 0x08,
     HDMI_UNKNOWN_0        = 0x0C,
     HDMI_AUDIOCNTL        = 0x10,

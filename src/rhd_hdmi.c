@@ -229,26 +229,16 @@ HdmiAudioInfoFrame(
 }
 
 /*
- * it's unknown what these bits do excatly, but it's indeed quite usefull for debugging
+ * test if audio buffer is filled enough to start playing
  */
-static void
-HdmiAudioDebugWorkaround(struct rhdHdmi* hdmi, Bool Enable)
+static Bool
+IsAudioBufferFilled(struct rhdHdmi *hdmi)
 {
-    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_0, 0x00FFFFFF);
-    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_1, 0x007FFFFF);
-    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_2, 0x00000001);
-    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_3, 0x00000001);
-
-    if(Enable) {
-	RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x1000, 0x1000);
-    } else {
-	RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0, 0x1000);
-    }
+    return (RHDRegRead(hdmi, hdmi->Offset+HDMI_STATUS) & 0x10) != 0;
 }
 
 /*
  * allocate/initialize the HDMI structure
- * and register with audio engine
  * output selects which engine is used
  */
 struct rhdHdmi*
@@ -291,7 +281,6 @@ RHDHdmiInit(RHDPtr rhdPtr, struct rhdOutput* Output)
 		break;
 	}
 	hdmi->Stored = FALSE;
-	RHDAudioRegisterHdmi(rhdPtr, hdmi);
 	return hdmi;
     } else
 	return NULL;
@@ -308,8 +297,6 @@ RHDHdmiSetMode(struct rhdHdmi *hdmi, DisplayModePtr Mode)
 
     RHDAudioSetClock(RHDPTRI(hdmi), hdmi->Output, Mode->Clock);
 
-    HdmiAudioDebugWorkaround(hdmi, FALSE);
-
     RHDRegWrite(hdmi, hdmi->Offset+HDMI_UNKNOWN_0, 0x1000);
     RHDRegWrite(hdmi, hdmi->Offset+HDMI_UNKNOWN_1, 0x0);
     RHDRegWrite(hdmi, hdmi->Offset+HDMI_UNKNOWN_2, 0x1000);
@@ -323,11 +310,37 @@ RHDHdmiSetMode(struct rhdHdmi *hdmi, DisplayModePtr Mode)
     HdmiVideoInfoFrame(hdmi, RGB, FALSE, 0, 0, 0,
 	0, 0, FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
+    /* it's unknown what these bits do excatly, but it's indeed quite usefull for debugging */
+    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_0, 0x00FFFFFF);
+    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_1, 0x007FFFFF);
+    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_2, 0x00000001);
+    RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIO_DEBUG_3, 0x00000001);
+
+    RHDHdmiCommitAudioWorkaround(hdmi);
+
     /* audio packets per line, does anyone know how to calc this ? */
-    RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x020000, 0x1F0000);
+    RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x00040000, 0x001F0000);
 
     /* update? reset? don't realy know */
     RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x14000000, 0x14000000);
+}
+
+/*
+ * have buffer status changed since last call?
+ */
+Bool
+RHDHdmiBufferStatusChanged(struct rhdHdmi* hdmi)
+{
+    Bool status, result;
+
+    if(!hdmi) return FALSE;
+    RHDFUNC(hdmi);
+
+    status = IsAudioBufferFilled(hdmi);
+    result = hdmi->SavedBufferStatus != status;
+    hdmi->SavedBufferStatus = status;
+
+    return result;
 }
 
 /*
@@ -336,7 +349,6 @@ RHDHdmiSetMode(struct rhdHdmi *hdmi, DisplayModePtr Mode)
 void
 RHDHdmiUpdateAudioSettings(
     struct rhdHdmi* hdmi,
-    Bool playing,
     int channels,
     int rate,
     int bps,
@@ -351,13 +363,11 @@ RHDHdmiUpdateAudioSettings(
 
     xf86DrvMsg(hdmi->scrnIndex, X_INFO, "%s: %s with "
 	"%d channels, %d Hz sampling rate, %d bits per sample,\n",
-	 __func__, playing ? "playing" : "stopped", channels, rate, bps);
+	__func__, IsAudioBufferFilled(hdmi) ? "playing" : "stopped",
+	channels, rate, bps);
     xf86DrvMsg(hdmi->scrnIndex, X_INFO, "%s: "
 	"0x%02x IEC60958 status bits and 0x%02x category code\n",
-	 __func__, (int)status_bits, (int)category_code);
-
-    /* start delivering audio frames */
-    RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, playing ? 1 : 0, 0x1);
+	__func__, (int)status_bits, (int)category_code);
 
     iec = 0;
     if(status_bits & AUDIO_STATUS_PROFESSIONAL)	iec |= 1 << 0;
@@ -395,12 +405,15 @@ RHDHdmiUpdateAudioSettings(
     RHDRegWrite(hdmi, hdmi->Offset+HDMI_AUDIOCNTL, 0x31);
     HdmiAudioInfoFrame(hdmi, channels-1, 0, 0, 0, 0, 0, 0, FALSE);
 
-    /* RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x4000000, 0x4000000); */
-    RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x400000, 0x400000);
+    RHDHdmiCommitAudioWorkaround(hdmi);
+
+    /* update? reset? don't realy know */
+    RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x04000000, 0x04000000);
 }
 
 /*
  * enable/disable the HDMI engine
+ * and register with audio engine
  */
 void
 RHDHdmiEnable(struct rhdHdmi *hdmi, Bool Enable)
@@ -431,6 +444,57 @@ RHDHdmiEnable(struct rhdHdmi *hdmi, Bool Enable)
 	default:
 	    xf86DrvMsg(hdmi->scrnIndex, X_ERROR, "%s: unknown HDMI output type\n", __func__);
 	    break;
+    }
+    if(Enable)
+	RHDAudioRegisterHdmi(RHDPTRI(hdmi), hdmi);
+    else
+	RHDAudioUnregisterHdmi(RHDPTRI(hdmi), hdmi);
+}
+
+/*
+ * enable/disable the audio workaround function
+ */
+void
+RHDHdmiSetAudioWorkaround(struct rhdHdmi* hdmi, Bool Enable)
+{
+    if(!hdmi) return;
+    RHDFUNC(hdmi);
+
+    hdmi->AudioDebugWorkaround = Enable;
+}
+
+/*
+ * get status of the audio workaround function
+ */
+Bool
+RHDHdmiGetAudioWorkaround(struct rhdHdmi* hdmi)
+{
+    if(!hdmi) return FALSE;
+    RHDFUNC(hdmi);
+
+    return hdmi->AudioDebugWorkaround;
+}
+
+/*
+ * commit the audio workaround status to the hardware
+ */
+void
+RHDHdmiCommitAudioWorkaround(struct rhdHdmi* hdmi)
+{
+    if(!hdmi) return;
+    RHDFUNC(hdmi);
+
+    if(IsAudioBufferFilled(hdmi)) {
+	/* disable audio workaround and start delivering of audio frames */
+	RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x00000001, 0x00001001);
+
+    } else if(hdmi->AudioDebugWorkaround) {
+	/* enable audio workaround and start delivering of audio frames */
+	RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x00001001, 0x00001001);
+
+    } else {
+	/* disable audio workaround and stop delivering of audio frames */
+	RHDRegMask(hdmi, hdmi->Offset+HDMI_CNTL, 0x00000000, 0x00001001);
     }
 }
 

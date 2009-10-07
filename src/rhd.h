@@ -247,6 +247,7 @@ typedef struct RHDRec {
     RHDOpt		scaleTypeOpt;
     RHDOpt		unverifiedFeatures;
     RHDOpt		audio;
+    RHDOpt		audioWorkaround;
     RHDOpt		hdmi;
     RHDOpt		coherent;
     RHDOpt              lowPowerMode;

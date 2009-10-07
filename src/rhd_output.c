@@ -260,6 +260,25 @@ RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connecto
 	if(!Output->Property(Output, rhdPropertySet, RHD_OUTPUT_HDMI, &val))
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "Failed to %s HDMI on %s\n", val.Bool ? "disable" : "enable", Output->Name);
     }
+
+    /* check config option if we should enable audio workaround */
+    if (Output->Property(Output, rhdPropertyCheck, RHD_OUTPUT_AUDIO_WORKAROUND, NULL)) {
+	union rhdPropertyData val;
+	switch(RhdParseBooleanOption(&rhdPtr->audioWorkaround, Connector->Name)) {
+	    case RHD_OPTION_NOT_SET:
+	    case RHD_OPTION_OFF:
+		val.Bool = FALSE;
+		break;
+	    case RHD_OPTION_ON:
+	    case RHD_OPTION_DEFAULT:
+		val.Bool = TRUE;
+		break;
+	}
+	if(!Output->Property(Output, rhdPropertySet, RHD_OUTPUT_AUDIO_WORKAROUND, &val))
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		"Failed to %s audio workaorund on %s\n",
+		val.Bool ? "disable" : "enable", Output->Name);
+    }
 }
 
 /*

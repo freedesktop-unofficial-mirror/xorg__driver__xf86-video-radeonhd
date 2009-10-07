@@ -90,14 +90,16 @@ AudioRate(struct rhdAudio* Audio)
     return result;
 }
 
+#if 0
 /*
- * something playing ?
+ * something playing ? (not used anymore)
  */
 static Bool
 AudioPlaying(struct rhdAudio* Audio)
 {
     return (RHDRegRead(Audio, AUDIO_PLAYING) >> 4) & 1;
 }
+#endif
 
 /*
  * iec 60958 status bits
@@ -124,35 +126,36 @@ static CARD32
 AudioUpdateHdmi(OsTimerPtr timer, CARD32 time, pointer ptr)
 {
     struct rhdAudio *Audio = (struct rhdAudio*)ptr;
-    Bool playing = AudioPlaying(Audio);
     int channels = AudioChannels(Audio);
     int rate = AudioRate(Audio);
     int bps = AudioBitsPerSample(Audio);
     CARD8 status_bits = AudioStatusBits(Audio);
     CARD8 category_code = AudioCategoryCode(Audio);
 
+    Bool changes = FALSE;
+
     struct rhdHdmi* hdmi;
 
-    if(playing != Audio->SavedPlaying ||
-	channels != Audio->SavedChannels ||
-	rate != Audio->SavedRate ||
-	bps != Audio->SavedBitsPerSample ||
-	status_bits != Audio->SavedStatusBits ||
-	category_code != Audio->SavedCategoryCode) {
+    changes |= channels != Audio->SavedChannels;
+    changes |= rate != Audio->SavedRate;
+    changes |= bps != Audio->SavedBitsPerSample;
+    changes |= status_bits != Audio->SavedStatusBits;
+    changes |= category_code != Audio->SavedCategoryCode;
 
-	Audio->SavedPlaying = playing;
+    if(changes) {
 	Audio->SavedChannels = channels;
 	Audio->SavedRate = rate;
 	Audio->SavedBitsPerSample = bps;
 	Audio->SavedStatusBits = status_bits;
 	Audio->SavedCategoryCode = category_code;
+    }
 
-	for(hdmi=Audio->Registered; hdmi != NULL; hdmi=hdmi->Next)
+    for(hdmi=Audio->Registered; hdmi != NULL; hdmi=hdmi->Next)
+	if(changes || RHDHdmiBufferStatusChanged(hdmi))
 	    RHDHdmiUpdateAudioSettings(
-		hdmi, playing, channels,
+		hdmi, channels,
 		rate, bps, status_bits,
 		category_code);
-    }
 
     return AUDIO_TIMER_INTERVALL;
 }
@@ -303,6 +306,9 @@ RHDAudioRegisterHdmi(RHDPtr rhdPtr, struct rhdHdmi* rhdHdmi)
     if(!rhdHdmi)
 	return;
 
+    /* make shure the HDMI interface is not registered */
+    RHDAudioUnregisterHdmi(rhdPtr, rhdHdmi);
+
     rhdHdmi->Next = Audio->Registered;
     Audio->Registered = rhdHdmi;
 }
@@ -318,7 +324,7 @@ void RHDAudioUnregisterHdmi(RHDPtr rhdPtr, struct rhdHdmi* rhdHdmi)
     if (!Audio)	return;
     RHDFUNC(Audio);
 
-    for(hdmiPtr=&Audio->Registered; hdmiPtr!=NULL;hdmiPtr=&(*hdmiPtr)->Next)
+    for(hdmiPtr=&Audio->Registered; *hdmiPtr!=NULL;hdmiPtr=&(*hdmiPtr)->Next)
 	if(*hdmiPtr == rhdHdmi) {
 	    *hdmiPtr = rhdHdmi->Next;
 	    rhdHdmi->Next = NULL;

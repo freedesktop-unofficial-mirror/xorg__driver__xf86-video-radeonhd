@@ -261,6 +261,7 @@ typedef enum {
 #endif
     OPTION_UNVERIFIED_FEAT,
     OPTION_AUDIO,
+    OPTION_AUDIO_WORKAROUND,
     OPTION_HDMI,
     OPTION_COHERENT,
     OPTION_FORCE_LOW_POWER,
@@ -292,6 +293,7 @@ static const OptionInfoRec RHDOptions[] = {
 #endif
     { OPTION_UNVERIFIED_FEAT,	   "UnverifiedFeatures",   OPTV_BOOLEAN, {0}, FALSE },
     { OPTION_AUDIO,		   "Audio",	           OPTV_BOOLEAN, {0}, FALSE },
+    { OPTION_AUDIO_WORKAROUND,	   "AudioStreamSilence",   OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_HDMI,		   "HDMI",	           OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_COHERENT,             "COHERENT",		   OPTV_ANYSTR,  {0}, FALSE },
     { OPTION_FORCE_LOW_POWER,      "ForceLowPowerMode",    OPTV_BOOLEAN, {0}, FALSE },
@@ -2844,6 +2846,8 @@ rhdProcessOptions(ScrnInfoPtr pScrn)
 			&rhdPtr->unverifiedFeatures, FALSE);
     RhdGetOptValBool   (rhdPtr->Options, OPTION_AUDIO,
 			&rhdPtr->audio, TRUE);
+    RhdGetOptValString (rhdPtr->Options, OPTION_AUDIO_WORKAROUND,
+			&rhdPtr->audioWorkaround, "none");
     RhdGetOptValString (rhdPtr->Options, OPTION_HDMI,
 			&rhdPtr->hdmi, "none");
     RhdGetOptValString(rhdPtr->Options, OPTION_COHERENT,

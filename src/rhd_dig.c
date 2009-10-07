@@ -262,6 +262,7 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 	    switch (Property) {
 		case RHD_OUTPUT_COHERENT:
 		case RHD_OUTPUT_HDMI:
+		case RHD_OUTPUT_AUDIO_WORKAROUND:
 		    return TRUE;
 	        default:
 		    return FALSE;
@@ -273,6 +274,9 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 		    return TRUE;
 		case RHD_OUTPUT_HDMI:
 		    val->Bool = Private->EncoderMode == TMDS_HDMI;
+		    return TRUE;
+		case RHD_OUTPUT_AUDIO_WORKAROUND:
+		    val->Bool = RHDHdmiGetAudioWorkaround(Private->Hdmi);
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -286,6 +290,9 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 		case RHD_OUTPUT_HDMI:
 		    Private->EncoderMode = val->Bool ? TMDS_HDMI : TMDS_DVI;
 		    break;
+		case RHD_OUTPUT_AUDIO_WORKAROUND:
+		    RHDHdmiSetAudioWorkaround(Private->Hdmi, val->Bool);
+		    break;
 		default:
 		    return FALSE;
 	    }
@@ -296,6 +303,9 @@ TMDSTransmitterPropertyControl(struct rhdOutput *Output,
 		case RHD_OUTPUT_HDMI:
 		    Output->Mode(Output, Private->Mode);
 		    Output->Power(Output, RHD_POWER_ON);
+		    break;
+		case RHD_OUTPUT_AUDIO_WORKAROUND:
+		    RHDHdmiCommitAudioWorkaround(Private->Hdmi);
 		    break;
 		default:
 		    return FALSE;
@@ -1472,6 +1482,7 @@ DigPropertyControl(struct rhdOutput *Output,
 	case RHD_OUTPUT_COHERENT:
 	case RHD_OUTPUT_BACKLIGHT:
 	case RHD_OUTPUT_HDMI:
+	case RHD_OUTPUT_AUDIO_WORKAROUND:
 	{
 	    if (!Private->Transmitter.Property)
 		return FALSE;

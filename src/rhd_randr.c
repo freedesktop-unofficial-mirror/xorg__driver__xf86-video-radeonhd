@@ -130,11 +130,12 @@ struct rhdRandrCrtc {
 #define ATOM_BACKLIGHT        "Backlight"
 #define ATOM_COHERENT         "_Coherent"
 #define ATOM_HDMI             "_HDMI"
+#define ATOM_AUDIO_WORKAROUND "_AudioStreamSilence"
 #define ATOM_ATOMBIOS         "_AtomBIOS"
 
 static Atom atom_SignalFormat, atom_ConnectorType, atom_ConnectorNumber,
     atom_OutputNumber, atom_PanningArea, atom_Backlight, atom_Coherent,
-    atom_HdmiProperty;
+    atom_HdmiProperty, atom_AudioWorkaround;
 static Atom atom_unknown, atom_VGA, atom_TMDS, atom_LVDS, atom_DisplayPort, atom_TV;
 static Atom atom_DVI, atom_DVII, atom_DVID, atom_DVIA, atom_HDMI, atom_Panel;
 static Atom atom_EDID, atom_EDID2, atom_AtomBIOS;
@@ -705,6 +706,30 @@ rhdRROutputCreateResources(xf86OutputPtr out)
 		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_HDMI, &val))
 		    val.Bool = 1;
 		err = RRChangeOutputProperty(out->randr_output, atom_HdmiProperty,
+					     XA_INTEGER, 32, PropModeReplace,
+					     1, &val.Bool, FALSE, FALSE);
+		if (err != 0)
+		    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			       "In %s RRChangeOutputProperty error: %d\n",
+			       __func__, err);
+	    }
+	}
+	if (rout->Output->Property(rout->Output, rhdPropertyCheck, RHD_OUTPUT_AUDIO_WORKAROUND, NULL)) {
+	    atom_AudioWorkaround = MakeAtom(ATOM_AUDIO_WORKAROUND, sizeof(ATOM_AUDIO_WORKAROUND)-1, TRUE);
+
+	    range[0] = 0;
+	    range[1] = 1;
+	    err = RRConfigureOutputProperty(out->randr_output, atom_AudioWorkaround,
+					    FALSE, TRUE, FALSE, 2, range);
+	    if (err != 0)
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+			   "RRConfigureOutputProperty error: %d\n", err);
+	    else {
+		union rhdPropertyData val;
+
+		if (!rout->Output->Property(rout->Output, rhdPropertyGet, RHD_OUTPUT_AUDIO_WORKAROUND, &val))
+		    val.Bool = 1;
+		err = RRChangeOutputProperty(out->randr_output, atom_AudioWorkaround,
 					     XA_INTEGER, 32, PropModeReplace,
 					     1, &val.Bool, FALSE, FALSE);
 		if (err != 0)
@@ -1408,6 +1433,20 @@ rhdRROutputSetProperty(xf86OutputPtr out, Atom property,
 					  RHD_OUTPUT_HDMI, NULL);
 	}
 	return FALSE;
+    } else if (property == atom_AudioWorkaround) {
+	if (value->type != XA_INTEGER || value->format != 32) {
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "%s: wrong value\n", __func__);
+	    return FALSE;
+	}
+	if (rout->Output->Property) {
+	    union rhdPropertyData val;
+	    val.Bool = *(int*)(value->data);
+	    if(rout->Output->Property(rout->Output, rhdPropertySet,
+					  RHD_OUTPUT_AUDIO_WORKAROUND, &val))
+		return rout->Output->Property(rout->Output, rhdPropertyCommit,
+					  RHD_OUTPUT_AUDIO_WORKAROUND, NULL);
+	}
+	return FALSE;
 #if ENABLE_PROPERTY_ATOMBIOS
     } else if (property == atom_AtomBIOS) {
 	if (value->type != XA_STRING || value->format != 8)
@@ -1583,6 +1622,17 @@ rhdRROutputGetProperty(xf86OutputPtr out, Atom property)
 	    return FALSE;
 
 	err = RRChangeOutputProperty(out->randr_output, atom_HdmiProperty,
+				     XA_INTEGER, 32, PropModeReplace,
+				     1, &val.Bool, FALSE, FALSE);
+     } else if (property == atom_AudioWorkaround) {
+	if (rout->Output->Property == NULL)
+	    return FALSE;
+
+	if (!rout->Output->Property(rout->Output, rhdPropertyGet,
+				    RHD_OUTPUT_AUDIO_WORKAROUND, &val))
+	    return FALSE;
+
+	err = RRChangeOutputProperty(out->randr_output, atom_AudioWorkaround,
 				     XA_INTEGER, 32, PropModeReplace,
 				     1, &val.Bool, FALSE, FALSE);
     }
