@@ -141,6 +141,7 @@ struct LVDSPrivate {
     CARD32 StoreBlModCntl;
 
     void (*SetBacklight)(struct rhdOutput *Output, int val);
+    int  (*GetBacklight)(struct rhdOutput *Output);
     /* to hook in AtomBIOS property callback */
     Bool (*WrappedPropertyCallback) (struct rhdOutput *Output,
 		      enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val);
@@ -230,6 +231,28 @@ LVDSSetBacklight(struct rhdOutput *Output, int level)
 /*
  *
  */
+static int
+LVDSGetBacklight(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    CARD32 level;
+
+    if (rhdPtr->ChipSet >= RHD_RS600)
+	level = RHDRegRead(rhdPtr, LVTMA_BL_MOD_CNTL);
+    else
+	level = RHDRegRead(rhdPtr, LVTMA_BL_MOD_CNTL);
+
+    if ((level & 0x01) != 0x01)
+	return -1;
+
+    RHDDebug(Output->scrnIndex, "%s: Backlight %i\n",__func__,(level >> 8) & 0xFF);
+
+    return (level >> 8) & 0xFF;
+}
+
+/*
+ *
+ */
 static Bool
 LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
 		    enum rhdOutputProperty Property, union rhdPropertyData *val)
@@ -249,6 +272,7 @@ LVDSPropertyControl(struct rhdOutput *Output, enum rhdPropertyAction Action,
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    Private->BlLevel = Private->GetBacklight(Output);
 		    if (Private->BlLevel < 0)
 			return FALSE;
 		    val->integer = Private->BlLevel;
@@ -1365,6 +1389,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 
 	if (Private->BlLevel >= 0) {
 	    Private->SetBacklight = LVDSSetBacklight;
+	    Private->GetBacklight = LVDSGetBacklight;
 	    LVDSDebugBacklight(Output);
 		xf86DrvMsg(Output->scrnIndex,X_INFO, "Native Backlight Control found.\n");
 	} else {
@@ -1372,6 +1397,7 @@ RHDLVTMAInit(RHDPtr rhdPtr, CARD8 Type)
 	    if (Private->BlLevel >= 0) {
 		xf86DrvMsg(Output->scrnIndex,X_INFO, "ACPI Backlight Control found.\n");
 		Private->SetBacklight = RhdACPISetBacklightControl;
+		Private->GetBacklight = RhdACPIGetBacklightControl;
 	    }
 #ifdef ATOM_BIOS
 	    else {

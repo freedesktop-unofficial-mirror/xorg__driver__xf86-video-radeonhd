@@ -1,7 +1,7 @@
 /*
- * Copyright 2007, 2008  Luc Verhaegen <libv@exsuse.de>
- * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007 - 2009  Luc Verhaegen <libv@exsuse.de>
+ * Copyright 2007 - 2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007 - 2009  Egbert Eich   <eich@novell.com>
  * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a

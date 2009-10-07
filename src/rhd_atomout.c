@@ -1,7 +1,7 @@
 /*
- * Copyright 2007, 2008  Luc Verhaegen <libv@exsuse.de>
- * Copyright 2007, 2008  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007, 2008  Egbert Eich   <eich@novell.com>
+ * Copyright 2007 - 2009  Luc Verhaegen <libv@exsuse.de>
+ * Copyright 2007 - 2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007 - 2009  Egbert Eich   <eich@novell.com>
  * Copyright 2007, 2008  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -46,6 +46,7 @@
 #include "rhd_atomout.h"
 #include "rhd_biosscratch.h"
 #include "rhd_hdmi.h"
+#include "rhd_acpi.h"
 
 #if defined (ATOM_BIOS) && defined (ATOM_BIOS_PARSER)
 struct rhdAtomOutputPrivate {
@@ -81,6 +82,8 @@ struct rhdAtomOutputPrivate {
     struct rhdHdmi *Hdmi;
 
     int    BlLevel;
+    void (*SetBacklight)(struct rhdOutput *Output, int val);
+    int  (*GetBacklight)(struct rhdOutput *Output);
 };
 
 #define ERROR_MSG(x) 	xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: %s failed.\n", __func__, x)
@@ -278,14 +281,12 @@ atomSetBacklightFromBIOSScratch(struct rhdOutput *Output)
  *
  */
 static void
-atomSetBacklight(struct rhdOutput *Output)
+atomSetBacklight(struct rhdOutput *Output, int val)
 {
     RHDPtr rhdPtr = RHDPTRI(Output);
-    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
-
     RHDFUNC(Output);
 
-    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlSet, &Private->BlLevel);
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlSet, &val);
 
     atomSetBacklightFromBIOSScratch(Output);
 }
@@ -532,6 +533,7 @@ rhdAtomOutputRestore(struct rhdOutput *Output)
 
      data.Address = &Private->Save;
      RHDAtomBiosFunc(Output->scrnIndex, rhdPtr->atomBIOS, ATOM_RESTORE_REGISTERS, &data);
+     /* ??? */
      if (Output->Connector && Output->Connector->Type == RHD_CONNECTOR_PANEL)
 	 atomSetBacklightFromBIOSScratch(Output);
      RHDHdmiRestore(Private->Hdmi);
@@ -566,13 +568,33 @@ rhdAtomOutputModeValid(struct rhdOutput *Output, DisplayModePtr Mode)
     return MODE_OK;
 }
 
+/*
+ *
+ */
+static int
+atomGetBacklight(struct rhdOutput *Output)
+{
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdAtomOutputPrivate *Private = (struct rhdAtomOutputPrivate *) Output->Private;
+    int level;
+
+    RHDFUNC(Output);
+
+    if (Private->BlLevel == -1) return -1;
+
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlSet, &level);
+
+    return level;
+}
+
 
 /*
  *
  */
 static Bool
-LVDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
+LVDSInfoRetrieve(struct rhdOutput *Output, struct rhdAtomOutputPrivate *Private)
 {
+    RHDPtr rhdPtr = RHDPTRI(Output);
     AtomBiosArgRec data;
 
     if (RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS,
@@ -625,7 +647,14 @@ LVDSInfoRetrieve(RHDPtr rhdPtr, struct rhdAtomOutputPrivate *Private)
     }
     Private->Coherent = FALSE;
 
-    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &Private->BlLevel);
+    if ((Private->BlLevel = RhdACPIGetBacklightControl(Output)) >= 0) {
+	Private->SetBacklight = RhdACPISetBacklightControl;
+	Private->GetBacklight = RhdACPIGetBacklightControl;
+    } else {
+	RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &Private->BlLevel);
+	Private->SetBacklight = atomSetBacklight;
+	Private->GetBacklight = atomGetBacklight;
+    }
 
     return TRUE;
 }
@@ -666,6 +695,7 @@ atomLVDSPropertyControl(struct rhdOutput *Output,
 		return FALSE;
 	}
 	case rhdPropertyGet:
+	    Private->BlLevel = Private->GetBacklight(Output);
 	    if (Private->BlLevel < 0)
 		return FALSE;
 	    switch (Property) {
@@ -690,7 +720,7 @@ atomLVDSPropertyControl(struct rhdOutput *Output,
 	case rhdPropertyCommit:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
-		    atomSetBacklight(Output);
+		    Private->SetBacklight(Output,Private->BlLevel);
 		    return TRUE;
 		default:
 		    return FALSE;
@@ -946,7 +976,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    if (OutputType == RHD_OUTPUT_LVTMA) {
 		if (ConnectorType == RHD_CONNECTOR_PANEL) {
 		    Private->OutputControlId = atomLCDOutput;
-		    LVDSInfoRetrieve(rhdPtr, Private);
+		    LVDSInfoRetrieve(Output, Private);
 		    Private->RunDualLink = Private->DualLink;
 		    Private->EncoderId = atomEncoderLVDS;
 		} else {
@@ -1051,7 +1081,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
 	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomLVDS;
-		LVDSInfoRetrieve(rhdPtr, Private);
+		LVDSInfoRetrieve(Output, Private);
 		Private->Hdmi = NULL;
 	    } else {
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
@@ -1125,7 +1155,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    }
 
 	    if (ConnectorType == RHD_CONNECTOR_PANEL)
-		LVDSInfoRetrieve(rhdPtr, Private);
+		LVDSInfoRetrieve(Output, Private);
 	    else
 		TMDSInfoRetrieve(rhdPtr, Private);
 
@@ -1163,7 +1193,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
     }
     if (ConnectorType == RHD_CONNECTOR_PANEL) {
 	Output->Property = atomLVDSPropertyControl;
-	LVDSInfoRetrieve(rhdPtr, Private);
+	LVDSInfoRetrieve(Output, Private);
     } else {
 	Output->Property = atomTMDSPropertyControl;
 	TMDSInfoRetrieve(rhdPtr, Private);
@@ -1229,7 +1259,7 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderDIG2;
 	    else
 		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
-	    LVDSInfoRetrieve(rhdPtr, Private);
+	    LVDSInfoRetrieve(Output, Private);
 	    Private->PixelClock = 0;
 	    Private->Hdmi = NULL;
 	    break;
@@ -1243,6 +1273,8 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
     *PropertyFunc = atomLVDSPropertyControl;
     *PrivatePtr = Private;
     RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &BlLevel);
+    Private->SetBacklight = atomSetBacklight;
+    Private->GetBacklight = atomGetBacklight;
 
     return BlLevel;
 }

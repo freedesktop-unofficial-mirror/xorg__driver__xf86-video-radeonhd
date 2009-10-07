@@ -122,6 +122,8 @@ struct DIGPrivate
     int BlLevel;
 
     void (*SetBacklight)(struct rhdOutput *Output, int val);
+    int  (*GetBacklight)(struct rhdOutput *Output);
+
 };
 
 /*
@@ -176,6 +178,20 @@ LVDSSetBacklight(struct rhdOutput *Output, int level)
 /*
  *
  */
+static int
+LVDSGetBacklight(struct rhdOutput *Output)
+{
+    CARD32 level;
+
+    level = RHDRegRead(Output, RV620_LVTMA_BL_MOD_CNTL);
+    if ((level & 0x01) != 0x01) return -1;
+
+    return (level >> LVTMA_BL_MOD_LEVEL_SHIFT) & 0xFF;
+}
+
+/*
+ *
+ */
 static Bool
 LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	     enum rhdPropertyAction Action, enum rhdOutputProperty Property, union rhdPropertyData *val)
@@ -196,6 +212,7 @@ LVDSTransmitterPropertyControl(struct rhdOutput *Output,
 	case rhdPropertyGet:
 	    switch (Property) {
 		case RHD_OUTPUT_BACKLIGHT:
+		    Private->BlLevel = Private->GetBacklight(Output);
 		    if (Private->BlLevel < 0)
 			return FALSE;
 		    val->integer = Private->BlLevel;
@@ -1828,12 +1845,14 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 	    GetLVDSInfo(rhdPtr, Private);
 	    if (Private->BlLevel >= 0) {
 		Private->SetBacklight = LVDSSetBacklight;
+		Private->GetBacklight = LVDSGetBacklight;
 		xf86DrvMsg(Output->scrnIndex,X_INFO, "Native Backlight Control found.\n");
 	    }  else {
 		Private->BlLevel = RhdACPIGetBacklightControl(Output);
 		if (Private->BlLevel >= 0) {
 		    xf86DrvMsg(Output->scrnIndex,X_INFO, "ACPI Backlight Control found.\n");
 		    Private->SetBacklight = RhdACPISetBacklightControl;
+		    Private->GetBacklight = RhdACPIGetBacklightControl;
 		}
 #ifdef ATOM_BIOS
 		else {
