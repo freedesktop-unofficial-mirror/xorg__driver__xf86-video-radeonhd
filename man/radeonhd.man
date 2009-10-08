@@ -496,7 +496,7 @@ can help reduce power consumption. The default is
 .TP
 .BI "Option \*qLowPowerModeEngineClock\*q \*q" integer \*q
 Engine clock frequency to use when ForceLowPowerMode is enabled, in Hz. If not
-set, half of default clock frequency is used.
+set, the minimum known working frequency is used.
 .\"
 .\"
 .SH RANDR OUTPUT PROPERTIES

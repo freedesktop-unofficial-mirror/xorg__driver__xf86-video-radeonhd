@@ -195,13 +195,12 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
     memcpy (&Pm->States[RHD_PM_OFF], &Pm->Minimum, sizeof (struct rhdPowerState));
 
     if (rhdPtr->lowPowerMode.val.bool) {
-	/* Idle: !!!HACK!!! Take half the default */
 	/* TODO: copy lowest config with default Voltage/Mem setting? */
         if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
-	    Pm->States[RHD_PM_IDLE].EngineClock = Pm->Default.EngineClock / 2;
-                xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-			   "ForceLowPowerMode: calculated engine clock at %dkHz\n",
-			   (int) Pm->States[RHD_PM_IDLE].EngineClock);
+	    Pm->States[RHD_PM_IDLE].EngineClock = Pm->States[RHD_PM_OFF].EngineClock;
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
+		       "ForceLowPowerMode: calculated engine clock at %dkHz\n",
+		       (int) Pm->States[RHD_PM_IDLE].EngineClock);
         } else {
 	    /* TODO: this should actually set the user mode */
             Pm->States[RHD_PM_IDLE].EngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
@@ -211,7 +210,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
         }
 
         if (!rhdPtr->lowPowerModeMemoryClock.val.integer) {
-	    Pm->States[RHD_PM_IDLE].MemoryClock = Pm->Default.MemoryClock / 2;
+	    Pm->States[RHD_PM_IDLE].MemoryClock = Pm->States[RHD_PM_OFF].MemoryClock;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "ForceLowPowerMode: calculated memory clock at %dkHz\n",
 			   (int) Pm->States[RHD_PM_IDLE].MemoryClock);
