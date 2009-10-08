@@ -205,7 +205,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
 	    /* TODO: this should actually set the user mode */
             Pm->States[RHD_PM_IDLE].EngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		       "ForceLowPowerMode: forced engine clock at %dkHz\n",
+		       "ForceLowPowerMode: set idle engine clock to %dkHz\n",
 		       (int) Pm->States[RHD_PM_IDLE].EngineClock);
         }
 
@@ -217,7 +217,7 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
         } else {
             Pm->States[RHD_PM_IDLE].MemoryClock = rhdPtr->lowPowerModeMemoryClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
-		       "ForceLowPowerMode: forced memory clock at %dkHz\n",
+		       "ForceLowPowerMode: set idle memory clock to %dkHz\n",
 		       (int) Pm->States[RHD_PM_IDLE].MemoryClock);
         }
 
