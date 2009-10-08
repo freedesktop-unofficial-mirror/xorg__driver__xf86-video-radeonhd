@@ -898,10 +898,10 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
     RegMask(map, offset + RV620_DACA_CONTROL2, 0x1, 0x1);
     /* enable r/g/b comparators, disable D/SDET ref */
     RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x70000, 0x070101);
-    usleep(100);
+    //usleep(100);
     /* check for connection */
     RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0x01, 0xff);
-    usleep(32);
+    usleep(50);
 
     ret = RegRead(map, offset + RV620_DACA_AUTODETECT_STATUS);
 
