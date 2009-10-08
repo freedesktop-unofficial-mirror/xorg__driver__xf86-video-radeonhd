@@ -194,17 +194,16 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
     /* RHD_PM_OFF: minimum */
     memcpy (&Pm->States[RHD_PM_OFF], &Pm->Minimum, sizeof (struct rhdPowerState));
 
-    /* Idle: !!!HACK!!! Take half the default */
-    /* TODO: copy lowest config with default Voltage/Mem setting? */
-    /* TODO: this should actually set the user mode */
-    Pm->States[RHD_PM_IDLE].EngineClock = Pm->Default.EngineClock / 2;
     if (rhdPtr->lowPowerMode.val.bool) {
+	/* Idle: !!!HACK!!! Take half the default */
+	/* TODO: copy lowest config with default Voltage/Mem setting? */
         if (!rhdPtr->lowPowerModeEngineClock.val.integer) {
 	    Pm->States[RHD_PM_IDLE].EngineClock = Pm->Default.EngineClock / 2;
                 xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 			   "ForceLowPowerMode: calculated engine clock at %dkHz\n",
 			   (int) Pm->States[RHD_PM_IDLE].EngineClock);
         } else {
+	    /* TODO: this should actually set the user mode */
             Pm->States[RHD_PM_IDLE].EngineClock = rhdPtr->lowPowerModeEngineClock.val.integer;
             xf86DrvMsg(rhdPtr->scrnIndex, X_INFO,
 		       "ForceLowPowerMode: forced engine clock at %dkHz\n",
