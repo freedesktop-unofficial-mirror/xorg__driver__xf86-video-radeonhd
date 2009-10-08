@@ -222,6 +222,17 @@ static void rhdPmSelectSettings (RHDPtr rhdPtr)
         }
 
 	rhdPmValidateSetting (Pm, &Pm->States[RHD_PM_IDLE], 1);
+
+        if (rhdPtr->lowPowerModeEngineClock.val.integer < 0) {
+            Pm->States[RHD_PM_IDLE].EngineClock = - rhdPtr->lowPowerModeEngineClock.val.integer;
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		       "ForceLowPowerMode: user requested to ignore validation for engine clock\n");
+	}
+        if (rhdPtr->lowPowerModeMemoryClock.val.integer < 0) {
+            Pm->States[RHD_PM_IDLE].MemoryClock = - rhdPtr->lowPowerModeMemoryClock.val.integer;
+	    xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING,
+		       "ForceLowPowerMode: user requested to ignore validation for memory clock\n");
+	}
     }
 
     memcpy (&Pm->States[RHD_PM_MAX_3D], &Pm->Maximum, sizeof (struct rhdPowerState));
