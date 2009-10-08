@@ -35,6 +35,7 @@
 
 #include "rhd.h"
 #include "rhd_pm.h"
+#include "rhd_i2c.h"
 
 #include "rhd_atombios.h"
 
@@ -274,9 +275,12 @@ rhdPmSetRawState (RHDPtr rhdPtr, struct rhdPowerState *state)
     if (state->EngineClock && state->EngineClock != rhdPtr->Pm->Current.EngineClock) {
 	data.clockValue = state->EngineClock;
 	if (RHDAtomBiosFunc (rhdPtr->scrnIndex, rhdPtr->atomBIOS,
-			     ATOM_SET_ENGINE_CLOCK, &data) == ATOM_SUCCESS)
+			     ATOM_SET_ENGINE_CLOCK, &data) == ATOM_SUCCESS) {
 	    rhdPtr->Pm->Current.EngineClock = state->EngineClock;
-	else
+	    /* On pre-R6xx DDC clock depends on engine clock, thus recalculate */
+	    if (rhdPtr->ChipSet < RHD_R600)
+		RHDI2CFunc(rhdPtr->scrnIndex, rhdPtr->I2C, RHD_I2C_RECALC_PRESCALE, NULL);
+	} else
 	    ret = FALSE;
     }
 #if 0	/* don't do for the moment */

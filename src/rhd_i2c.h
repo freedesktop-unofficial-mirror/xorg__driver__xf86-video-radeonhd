@@ -34,7 +34,8 @@ typedef enum {
     RHD_I2C_PROBE_ADDR_LINE,
     RHD_I2C_PROBE_ADDR,
     RHD_I2C_GETBUS,
-    RHD_I2C_TEARDOWN
+    RHD_I2C_TEARDOWN,
+    RHD_I2C_RECALC_PRESCALE
 } RHDi2cFunc;
 
 typedef union RHDI2CDataArg
