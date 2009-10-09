@@ -462,6 +462,7 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, int line, I2CByte *WriteBuffer,
     I2CBusPtr I2CPtr = i2cDevPtr->pI2CBus;
     rhdI2CPtr I2C = (rhdI2CPtr)(I2CPtr->DriverPrivate.ptr);
     int prescale = I2C->prescale;
+    int i;
     CARD32 save_I2C_CONTROL1, save_494;
     CARD32  tmp32;
     Bool ret = TRUE;
@@ -476,8 +477,13 @@ rhd5xxWriteReadChunk(I2CDevPtr i2cDevPtr, int line, I2CByte *WriteBuffer,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C,
 	       R5_DC_I2C_SW_WANTS_TO_USE_I2C);
 
-    if (! (RHDRegRead(I2CPtr, R5_DC_I2C_ARBITRATION) & R5_DC_I2C_SW_CAN_USE_I2C)) {
-	RHDDebug(I2CPtr->scrnIndex, "%s SW cannot use I2C line %i\n",__func__,line);
+    for (i = 0; i < 50; i++) {
+	if (RHDRegRead(I2CPtr, R5_DC_I2C_ARBITRATION) & R5_DC_I2C_SW_CAN_USE_I2C)
+	    break;
+	usleep(1);
+    }
+    if (i >= 50) {
+	xf86DrvMsg(I2CPtr->scrnIndex,X_ERROR, "%s: SW cannot use I2C line %i\n",__func__,line);
 	ret = FALSE;
     } else {
 
