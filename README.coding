@@ -22,6 +22,7 @@ General Stuff
 -------------
 
 rhd.h
+rhd_acpi.[ch]
 rhd_audio.[ch]
 rhd_card.h
 rhd_connector.[ch]
@@ -58,6 +59,7 @@ rhd_regs.h
 AtomBIOS related
 ----------------
 
+atombios_rev.h:		Reverse engineered AtomBIOS table definitions
 AtomBios/
 rhd_atombios.[ch]
 rhd_atomcrtc.c
