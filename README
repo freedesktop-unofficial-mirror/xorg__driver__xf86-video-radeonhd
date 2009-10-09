@@ -92,6 +92,23 @@ Major Changes
 
 Read ChangeLog for a complete list.
 
+- Version 1.3.0
+
+  - Added support for RV740, M92, M93, M97.
+  - Added support for HDMI audio on RS690 and R700.
+  - Added support for power management.
+  - Implemented almost correct analysis of PowerPlay AtomBIOS tables.
+  - 2D acceleration (EXA) is enabled by default now, except on RV740.
+  - Backlight handling finally fixed - compatible with xbacklight 1.1.1.
+  - Overhaul of memory controller setup. Fixes many "MC not idle" issues.
+  - Overhaul of cursor handling. Fixes most cursor bugs.
+  - Selectable color space for XVideo on R6xx/R7xx.
+  - Tons of bug fixes (DDC, EXA, LUT, RandR, AtomBIOS).
+  - More quirk table entries.
+  - Shave support (cleaner compilation output).
+  - All warnings fixed.
+  - Some start of Developer's documentation in README.coding.
+
 - Version 1.2.5
 
   - Added 2D acceleration for R6xx and R7xx.
