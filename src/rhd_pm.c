@@ -66,7 +66,7 @@ rhdPmPrint (struct rhdPm *Pm, char *name, struct rhdPowerState *state)
 /* TODO: So far we only know few safe points. Interpolate? */
 static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPowerState *setting, int forceVoltage)
 {
-    CARD32 compare = setting->VDDCVoltage ? setting->VDDCVoltage : Pm->Current.VDDCVoltage;
+    /* CARD32 compare = setting->VDDCVoltage ? setting->VDDCVoltage : Pm->Current.VDDCVoltage; */
     if (! setting->EngineClock)
 	setting->EngineClock = Pm->Current.EngineClock;
     if (setting->EngineClock < Pm->Minimum.EngineClock)
