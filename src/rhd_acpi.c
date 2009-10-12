@@ -28,6 +28,7 @@
 
 #if HAVE_XF86_ANSIC_H
 # include "xf86_ansic.h"
+# define dirent _xf86dirent
 #else
 # include <unistd.h>
 # include <sys/types.h>
