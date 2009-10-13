@@ -169,10 +169,6 @@ if test "x$DRI" = xyes; then
 	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto glproto],, [USE_DRI=no])
 fi
 
-if test "x$USE_DRI" = xyes; then
-	AC_CHECK_HEADER(GL/gl.h, [USE_DRI="yes"], [USE_DRI="no"])
-fi
-
 AC_MSG_CHECKING([whether to enable DRI support])
 AC_MSG_RESULT($USE_DRI)
 test "x$USE_DRI" = xyes && AC_DEFINE(USE_DRI, 1, [Build support for DRI])
