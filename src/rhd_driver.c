@@ -3061,7 +3061,8 @@ rhdGetCardType(RHDPtr rhdPtr)
 {
     uint32_t cmd_stat;
 
-    if (rhdPtr->ChipSet == RHD_RS780)
+    if ((rhdPtr->ChipSet == RHD_RS780) ||
+	(rhdPtr->ChipSet == RHD_RS880))
 	return RHD_CARD_PCIE;
 
 #ifdef XSERVER_LIBPCIACCESS
