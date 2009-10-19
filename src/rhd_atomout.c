@@ -582,7 +582,7 @@ atomGetBacklight(struct rhdOutput *Output)
 
     if (Private->BlLevel == -1) return -1;
 
-    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlSet, &level);
+    RHDAtomBIOSScratchBlLevel(rhdPtr, rhdBIOSScratchBlGet, &level);
 
     return level;
 }
