@@ -79,7 +79,7 @@ struct rhdMC {
 
     void (*Save)(struct rhdMC *MC);
     void (*Restore)(struct rhdMC *MC);
-    Bool (*Idle)(struct rhdMC *MC);
+    CARD32 (*Idle)(struct rhdMC *MC);
     CARD64 (*GetFBLocation)(struct rhdMC *MC, CARD32 *size);
     void (*SetupFBLocation)(struct rhdMC *MC, CARD64 Address, CARD32 Size);
     void (*TuneAccessForDisplay)(struct rhdMC *MC, int crtc,
@@ -144,12 +144,14 @@ RV515MCRestore(struct rhdMC *MC)
 /*
  *
  */
-static Bool
-RV515MCWaitIdle(struct rhdMC *MC)
+static CARD32
+RV515MCStateIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, MC_IND_ALL | RV515_MC_STATUS) & RV515_MC_IDLE)
-	return TRUE;
-    return FALSE;
+    CARD32 val;
+
+    if ((val = RHDReadMC(MC, MC_IND_ALL | RV515_MC_STATUS)) & RV515_MC_IDLE)
+	return 0;
+    return val;
 }
 
 /*
@@ -217,12 +219,14 @@ R500MCRestore(struct rhdMC *MC)
 /*
  *
  */
-static Bool
-R500MCWaitIdle(struct rhdMC *MC)
+static CARD32
+R500MCStateIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, MC_IND_ALL | R5XX_MC_STATUS) & R5XX_MC_IDLE)
-	return TRUE;
-    return FALSE;
+    CARD32 val;
+
+    if ((val = RHDReadMC(MC, MC_IND_ALL | R5XX_MC_STATUS)) & R5XX_MC_IDLE)
+	return 0;
+    return val;
 }
 
 /*
@@ -268,12 +272,14 @@ RS600MCRestore(struct rhdMC *MC)
 /*
  *
  */
-static Bool
-RS600MCWaitIdle(struct rhdMC *MC)
+static CARD32
+RS600MCStateIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, RS60_MC_SYSTEM_STATUS) & RS6X_MC_SEQUENCER_IDLE)
-	return TRUE;
-    return FALSE;
+    CARD32 val;
+
+    if ((val = RHDReadMC(MC, RS60_MC_SYSTEM_STATUS)) & RS6X_MC_SEQUENCER_IDLE)
+	return 0;
+    return val;
 }
 
 /*
@@ -320,12 +326,15 @@ RS690MCRestore(struct rhdMC *MC)
 /*
  *
  */
-static Bool
-RS690MCWaitIdle(struct rhdMC *MC)
+static CARD32
+RS690MCStateIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, RS69_MC_SYSTEM_STATUS) & RS6X_MC_SYSTEM_IDLE)
-	return TRUE;
-    return FALSE;
+    CARD32 val;
+
+    if ((val = RHDReadMC(MC, RS69_MC_SYSTEM_STATUS)) & RS6X_MC_SYSTEM_IDLE)
+	return 0;
+
+    return val;
 }
 
 /*
@@ -392,14 +401,16 @@ R600MCRestore(struct rhdMC *MC)
 /*
  *
  */
-static Bool
-R600MCWaitIdle(struct rhdMC *MC)
+static CARD32
+R600MCStateIdle(struct rhdMC *MC)
 {
-    if (!(RHDRegRead(MC, SRBM_STATUS) &
+    CARD32 val;
+
+    if (!((val = RHDRegRead(MC, SRBM_STATUS)) &
             (VMC_BUSY_bit | MCB_BUSY_bit |
              MCDZ_BUSY_bit | MCDY_BUSY_bit | MCDX_BUSY_bit | MCDW_BUSY_bit)))
-	return TRUE;
-    return FALSE;
+	return 0;
+    return val;
 }
 
 /*
@@ -450,11 +461,13 @@ RS780MCRestore(struct rhdMC *MC)
  *
  */
 static Bool
-RS780MCWaitIdle(struct rhdMC *MC)
+RS780MCStateIdle(struct rhdMC *MC)
 {
-    if (RHDReadMC(MC, RS78_MC_SYSTEM_STATUS) & RS78_MC_SEQUENCER_IDLE)
-	return TRUE;
-    return FALSE;
+    CARD32 val;
+
+    if ((val = RHDReadMC(MC, RS78_MC_SYSTEM_STATUS)) & RS78_MC_SEQUENCER_IDLE)
+	return 0;
+    return val;
 }
 
 /*
@@ -566,7 +579,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	    MC->Restore = RV515MCRestore;
 	    MC->SetupFBLocation = RV515MCSetupFBLocation;
 	    MC->GetFBLocation = RV515MCGetFBLocation;
-	    MC->Idle = RV515MCWaitIdle;
+	    MC->Idle = RV515MCStateIdle;
 	    MC->TuneAccessForDisplay = RV515MCTuneMCAccessForDisplay;
 	    break;
 	default:
@@ -574,27 +587,27 @@ RHDMCInit(RHDPtr rhdPtr)
 	    MC->Restore = R500MCRestore;
 	    MC->SetupFBLocation = R500MCSetupFBLocation;
 	    MC->GetFBLocation = R500MCGetFBLocation;
-	    MC->Idle = R500MCWaitIdle;
+	    MC->Idle = R500MCStateIdle;
 	    break;
 	}
     } else if (rhdPtr->ChipSet == RHD_RS600) {
 	MC->Save = RS600MCSave;
 	MC->Restore = RS600MCRestore;
 	MC->SetupFBLocation = RS600MCSetupFBLocation;
-	MC->Idle = RS600MCWaitIdle;
+	MC->Idle = RS600MCStateIdle;
 	MC->GetFBLocation = RS600MCGetFBLocation;
     } else if (rhdPtr->ChipSet < RHD_R600) {
 	MC->Save = RS690MCSave;
 	MC->Restore = RS690MCRestore;
 	MC->SetupFBLocation = RS690MCSetupFBLocation;
-	MC->Idle = RS690MCWaitIdle;
+	MC->Idle = RS690MCStateIdle;
 	MC->GetFBLocation = RS690MCGetFBLocation;
 	MC->TuneAccessForDisplay = RS690MCTuneMCAccessForDisplay;
     } else if (rhdPtr->ChipSet <= RHD_RS880) {
 	MC->Save = R600MCSave;
 	MC->Restore = R600MCRestore;
 	MC->SetupFBLocation = R600MCSetupFBLocation;
-	MC->Idle = R600MCWaitIdle;
+	MC->Idle = R600MCStateIdle;
 	MC->GetFBLocation = R600MCGetFBLocation;
     }
 #ifdef NOTYET
@@ -602,7 +615,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->Save = RS780MCSave;
 	MC->Restore = RS780MCRestore;
 	MC->SetupFBLocation = RS780MCSetupFBLocation;
-	MC->Idle = RS780MCWaitIdle;
+	MC->Idle = RS780MCStateIdle;
 	MC->GetFBLocation = RS780MCGetFBLocation;
     }
 #endif /* NOTYET */
@@ -610,7 +623,7 @@ RHDMCInit(RHDPtr rhdPtr)
 	MC->Save = R700MCSave;
 	MC->Restore = R700MCRestore;
 	MC->SetupFBLocation = R700MCSetupFBLocation;
-	MC->Idle = R600MCWaitIdle;
+	MC->Idle = R600MCStateIdle;
 	MC->GetFBLocation = R700MCGetFBLocation;
     } else {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "I don't know anything about MC on this chipset\n");
@@ -666,6 +679,7 @@ void
 RHDMCRestore(RHDPtr rhdPtr)
 {
     struct rhdMC *MC = rhdPtr->MC;
+    int idle;
 
     ASSERT(MC);
     RHD_UNSETDEBUGFLAG(rhdPtr, MC_SETUP);
@@ -678,11 +692,11 @@ RHDMCRestore(RHDPtr rhdPtr)
 	return;
     }
 
-    if (MC->Idle(MC))
+    if ((idle = MC->Idle(MC)) == 0)
 	MC->Restore(MC);
     else
 	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: MC is still not idle!!!\n", __func__);
+		   "%s: MC is still not idle: 0x%x !!!\n", __func__,idle);
 }
 
 /*
@@ -692,18 +706,19 @@ Bool
 RHDMCIdleWait(RHDPtr rhdPtr, CARD32 count)
 {
     struct rhdMC *MC = rhdPtr->MC;
+    CARD32 idle;
 
     RHDFUNC(rhdPtr);
 
     ASSERT(MC);
 
     do {
-	if (MC->Idle(MC))
+	if ((idle = MC->Idle(MC)) == 0)
 	    return TRUE;
 	usleep(1000);
     } while (count--);
 
-    RHDDebug(rhdPtr->scrnIndex, "%s: MC not idle\n",__func__);
+    RHDDebug(rhdPtr->scrnIndex, "%s: MC not idle: 0x%x\n",__func__,idle);
 
     return FALSE;
 }
@@ -733,17 +748,12 @@ RHDMCSetupFBLocation(RHDPtr rhdPtr, CARD64 Address, CARD32 Size)
     struct rhdMC *MC = rhdPtr->MC;
     CARD64 OldAddress;
     CARD32 OldSize;
+    CARD32 idle;
 
     ASSERT(MC);
     RHD_SETDEBUGFLAG(rhdPtr, MC_SETUP);
 
     RHDFUNC(rhdPtr);
-
-    if (!MC->Idle(MC)) {
-	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
-		   "%s: Cannot setup MC: not idle!!!\n", __func__);
-	return FALSE;
-    }
 
     OldAddress = MC->GetFBLocation(MC, &OldSize);
     if (OldAddress == Address && OldSize == Size)
@@ -753,6 +763,12 @@ RHDMCSetupFBLocation(RHDPtr rhdPtr, CARD64 Address, CARD32 Size)
     if (OldAddress >> 32)
 	xf86DrvMsg(rhdPtr->scrnIndex, X_WARNING, "%s: Board claims to use a "
 		   "higher than 32bit address for its FB\n", __func__);
+
+    if ((idle = MC->Idle(MC))) {
+	xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR,
+		   "%s: Cannot setup MC: not idle %x!!!\n", __func__,idle);
+	return FALSE;
+    }
 
     RHDDebug(rhdPtr->scrnIndex,
 	     "Setting MC from 0x%08X to 0x%08X [Size 0x%08X]\n",
