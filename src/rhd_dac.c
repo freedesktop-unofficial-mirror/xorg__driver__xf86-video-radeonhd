@@ -614,12 +614,11 @@ DACBRestore(struct rhdOutput *Output)
 }
 
 /* ----------------------------------------------------------- */
-
 /*
  *
  */
 static CARD32
-DACSenseRV620(struct rhdOutput *Output, CARD32 offset, Bool TV)
+DACSenseRV620_MethA(struct rhdOutput *Output, CARD32 offset, Bool TV)
 {
     CARD32 ret;
     CARD32 DetectControl, AutodetectIntCtl, ForceData,
@@ -665,29 +664,113 @@ DACSenseRV620(struct rhdOutput *Output, CARD32 offset, Bool TV)
 /*
  *
  */
+static CARD32
+DACSenseRV620_MethB(struct rhdOutput *Output, CARD32 offset, Bool TV)
+{
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
+
+    RHDFUNC(Output);
+
+    CompEnable = RHDRegRead(Output, offset + RV620_DACA_COMPARATOR_ENABLE);
+    Control1 = RHDRegRead(Output, offset + RV620_DACA_MACRO_CNTL);
+    Control2 = RHDRegRead(Output, offset + RV620_DACA_CONTROL2);
+    DetectControl = RHDRegRead(Output, offset + RV620_DACA_AUTODETECT_CONTROL);
+    Enable = RHDRegRead(Output, offset + RV620_DACA_ENABLE);
+
+    RHDRegWrite(Output, offset + RV620_DACA_ENABLE, 1);
+    /* ack autodetect */
+    //    RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
+    RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_CONTROL, 0, 0x00000003);
+    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0, 0x00000001);
+    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0, 0x00ff0000);
+
+    if (offset) { /* We can do TV on DACA but only DACB has mux for separate connector */
+	if (TV)
+	    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x00000100, 0x00000100);
+	else
+	    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0, 0x00000100);
+    }
+    RHDRegWrite(Output, offset + RV620_DACA_FORCE_DATA, 0);
+    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, 0x00000001, 0x0000001);
+
+    RHDRegMask(Output, offset + RV620_DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070101);
+    RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, offset ? 0x00052202 : 0x00052102);
+    RHDRegMask(Output, offset + RV620_DACA_POWERDOWN, 0, 0x00000001); /* Shut down Bandgap Voltage Reference Power */
+    usleep(5);
+
+    RHDRegMask(Output, offset + RV620_DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegWrite(Output, offset + RV620_DACA_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
+    usleep(200);
+
+    RHDRegMask(Output, offset + RV620_DACA_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
+    usleep(88);
+
+    RHDRegMask(Output, offset + RV620_DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RHDRegMask(Output, offset + RV620_DACA_COMPARATOR_ENABLE, 0x00000100, 0x00000100);
+    usleep(100);
+
+    /* Get RGB detect values
+     * If only G is detected, we could have a monochrome monitor,
+     * but we don't bother with this at the moment.
+     */
+    ret = (RHDRegRead(Output, offset + RV620_DAC_COMPARATOR_OUTPUT) & 0x0E0000) >> 17;
+
+    RHDRegMask(Output, offset + RV620_DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RHDRegWrite(Output, offset + RV620_DACA_MACRO_CNTL, Control1);
+    RHDRegMask(Output, offset + RV620_DACA_CONTROL2, Control2, 0x000001FF);
+    RHDRegMask(Output, offset + RV620_DACA_AUTODETECT_CONTROL, DetectControl, 0x000000FF);
+    RHDRegMask(Output, offset + RV620_DACA_ENABLE, Enable, 0x000000FF);
+
+    RHDDebug(Output->scrnIndex, "%s: DAC: 0x0%1X\n", __func__, ret);
+
+    return ret;
+}
+
+/*
+ *
+ */
 static enum rhdSensedOutput
 DACASenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     enum rhdConnectorType Type = Connector->Type;
+    CARD32 sense;
     RHDFUNC(Output);
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
     case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
-	return  (DACSenseRV620(Output, RV620_REG_DACA_OFFSET, FALSE)
-		  & 0x1010100) ? RHD_SENSED_VGA : RHD_SENSED_NONE;
+        sense = DACSenseRV620_MethA(Output, RV620_REG_DACA_OFFSET, FALSE);
+	if (sense & 0x1010100)
+	    return RHD_SENSED_VGA;
+	sense = DACSenseRV620_MethB(Output, RV620_REG_DACA_OFFSET, FALSE);
+	if (sense & 0x7)
+	    return RHD_SENSED_VGA;
+	else
+	    return RHD_SENSED_NONE;
     case RHD_CONNECTOR_TV:
-	switch (DACSenseRV620(Output, RV620_REG_DACA_OFFSET, TRUE)
+	switch (DACSenseRV620_MethA(Output, RV620_REG_DACA_OFFSET, TRUE)
 		& 0x1010100) {
 	    case 0x1010100:
-		return RHD_SENSED_NONE; /* on DAC A we cannot distinguish VGA and CV */
+	        return RHD_SENSED_NONE; /* on DAC A we cannot distinguish VGA and CV */
 	    case 0x10100:
 		return RHD_SENSED_TV_SVIDEO;
 	    case 0x1000000:
 		return RHD_SENSED_TV_COMPOSITE;
 	    default:
-		return RHD_SENSED_NONE;
+		switch (DACSenseRV620_MethB(Output, RV620_REG_DACA_OFFSET, TRUE) & 0x7) {
+		case 0x7:
+		    return RHD_SENSED_TV_COMPONENT;
+		case 0x6:
+		    return RHD_SENSED_TV_SVIDEO;
+		case 0x1:
+		    return RHD_SENSED_TV_COMPOSITE;
+		default:
+		    return RHD_SENSED_NONE;
+		}
 	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,
@@ -704,16 +787,23 @@ static enum rhdSensedOutput
 DACBSenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 {
     enum rhdConnectorType Type = Connector->Type;
+    CARD32 sense;
     RHDFUNC(Output);
 
     switch (Type) {
     case RHD_CONNECTOR_DVI:
     case RHD_CONNECTOR_DVI_SINGLE:
     case RHD_CONNECTOR_VGA:
-	return  (DACSenseRV620(Output, RV620_REG_DACB_OFFSET, FALSE)
-		  & 0x1010100) ? RHD_SENSED_VGA : RHD_SENSED_NONE;
+        sense = DACSenseRV620_MethA(Output, RV620_REG_DACB_OFFSET, FALSE);
+	if (sense & 0x1010100)
+	    return RHD_SENSED_VGA;
+	sense = DACSenseRV620_MethB(Output, RV620_REG_DACB_OFFSET, FALSE);
+	if (sense & 0x7)
+	    return RHD_SENSED_VGA;
+	else
+	    return RHD_SENSED_NONE;
     case RHD_CONNECTOR_TV:
-	switch (DACSenseRV620(Output, RV620_REG_DACB_OFFSET, TRUE)
+	switch (DACSenseRV620_MethA(Output, RV620_REG_DACB_OFFSET, TRUE)
 		& 0x1010100) {
 	    case 0x1000000:
 		return RHD_SENSED_TV_COMPONENT;
@@ -722,7 +812,16 @@ DACBSenseRV620(struct rhdOutput *Output, struct rhdConnector *Connector)
 	    case 0x10100:
 		return RHD_SENSED_TV_COMPOSITE;
 	    default:
-		return RHD_SENSED_NONE;
+		switch (DACSenseRV620_MethB(Output, RV620_REG_DACB_OFFSET, TRUE) & 0x7) {
+		case 0x7:
+		    return RHD_SENSED_TV_COMPONENT;
+		case 0x6:
+		    return RHD_SENSED_TV_SVIDEO;
+		case 0x1:
+		    return RHD_SENSED_TV_COMPOSITE;
+		default:
+		    return RHD_SENSED_NONE;
+		}
 	}
     default:
 	xf86DrvMsg(Output->scrnIndex, X_WARNING,

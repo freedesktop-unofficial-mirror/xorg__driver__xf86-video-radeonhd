@@ -129,7 +129,7 @@ enum {
     RV620_DACA_CONTROL2             = 0x7058,
     RV620_DACA_COMPARATOR_ENABLE    = 0x705C,
 
-    RV620_DACA_CONTROL1             = 0x7ef4,
+    RV620_DACA_MACRO_CNTL           = 0x7ef4,
 
     /* DAC B */
     DACB_ENABLE                    = 0x7A00,
@@ -845,14 +845,103 @@ RS690DACLoadDetect(void *map, Bool tv, int dac)
  *
  */
 static dacOutput
-RV620DACLoadDetect(void *map, Bool tv, int dac)
+RV620DACLoadDetect_MethB(void *map, Bool tv, int dac)
+{
+    CARD32 CompEnable, Control1, Control2, DetectControl, Enable;
+    CARD8 ret;
+    unsigned int offset = 0;
+
+    if (dac) offset = 0x200;
+
+    CompEnable = RegRead(map, offset + RV620_DACA_COMPARATOR_ENABLE);
+    Control1 = RegRead(map, offset + RV620_DACA_MACRO_CNTL);
+    Control2 = RegRead(map, offset + RV620_DACA_CONTROL2);
+    DetectControl = RegRead(map, offset + RV620_DACA_AUTODETECT_CONTROL);
+    Enable = RegRead(map, offset + RV620_DACA_ENABLE);
+
+    /* enable */
+    RegWrite(map, offset + RV620_DACA_ENABLE, 1);
+    /* ack autodetect */
+    RegMask(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL, 0x01, 0x01);
+    /* autodetect off */
+    RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0, 0x3);
+    /* zscale shift off */
+    RegMask(map, offset + RV620_DACA_CONTROL2, 0, 0xff0000);
+    /* dac force off */
+    RegMask(map, offset + RV620_DACA_CONTROL2, 0, 0x1);
+
+    /* set TV */
+    RegMask(map, offset + RV620_DACA_CONTROL2, tv ? 0x100 : 0, 0x100);
+
+    RegWrite(map, offset + RV620_DACA_FORCE_DATA, 0);
+    RegMask(map, offset + RV620_DACA_CONTROL2, 0x1, 0x1);
+
+    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x00070000, 0x00070101);
+    RegWrite(map, offset + RV620_DACA_MACRO_CNTL, offset ? 0x00052202 : 0x00052102);
+
+    RegMask(map, offset + RV620_DACA_POWERDOWN, 0, 0x1); /* Shut down Bandgap Voltage Reference Power */
+    usleep(5000);
+
+    RegMask(map, offset + RV620_DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RegWrite(map, offset + RV620_DACA_FORCE_DATA, 0x1e6); /* 486 out of 1024 */
+    usleep(200);
+
+    RegMask(map, offset + RV620_DACA_POWERDOWN, 0x01010100, 0x01010100); /* Enable RGB */
+    usleep(88);
+
+    RegMask(map, offset + RV620_DACA_POWERDOWN, 0, 0x01010100); /* Shut down RGB */
+
+    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, 0x100, 0x100);
+    usleep(100);
+
+    /* Get RGB detect values
+     * If only G is detected, we could have a monochrome monitor,
+     * but we don't bother with this at the moment.
+     */
+    ret = (RegRead(map, offset + RV620_DAC_COMPARATOR_OUTPUT) & 0x0E0000) >> 17;
+#ifdef DEBUG
+    fprintf(stderr, "DAC%s: %x %s\n", dac ? "B" : "A", ret, tv ? "TV" : "");
+#endif
+    RegMask(map, offset + RV620_DACA_COMPARATOR_ENABLE, CompEnable, 0x00FFFFFF);
+    RegWrite(map, offset + RV620_DACA_MACRO_CNTL, Control1);
+    RegMask(map, offset + RV620_DACA_CONTROL2, Control2, 0x1FF);
+    RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, DetectControl, 0xFF);
+    RegMask(map, offset + RV620_DACA_ENABLE, Enable, 0xFF);
+
+    switch (ret & 0x7) {
+	case 0x7:
+	    if (tv)
+		return DAC_COMPONENT;
+	    else
+		return DAC_VGA;
+	case 0x1:
+	    if (tv)
+		return DAC_COMPOSITE;
+	    else
+		return DAC_NONE;
+	case 0x6:
+	    if (tv)
+		return DAC_SVIDEO;
+	    else
+		return DAC_NONE;
+	default:
+	    return DAC_NONE;
+    }
+}
+
+/*
+ *
+ */
+static dacOutput
+RV620DACLoadDetect_MethA(void *map, Bool tv, int dac)
 {
     CARD32 offset = 0;
     CARD32 ret;
     CARD32 DetectControl, AutodetectIntCtl, ForceData, Control1, Control2, CompEnable;
     if (dac == 1)
 	offset = 0x100;
-    Control1 = RegRead(map, offset + RV620_DACA_CONTROL1); /* 7ef4 */
+    Control1 = RegRead(map, offset + RV620_DACA_MACRO_CNTL); /* 7ef4 */
     Control2 = RegRead(map, offset + RV620_DACA_CONTROL2); /* 7058 */
     ForceData = RegRead(map, offset + RV620_DACA_FORCE_DATA);
     AutodetectIntCtl = RegRead(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL);
@@ -893,7 +982,7 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
     /* autodetect off */
     RegMask(map, offset + RV620_DACA_AUTODETECT_CONTROL, 0x00, 0xff);
     /* bandgap */
-    RegMask(map, offset + RV620_DACA_CONTROL1, dac ? 0x2502 : 0x2002, 0xffff);
+    RegMask(map, offset + RV620_DACA_MACRO_CNTL, dac ? 0x2502 : 0x2002, 0xffff);
     /* DAC RGB async enable */
     RegMask(map, offset + RV620_DACA_CONTROL2, 0x1, 0x1);
     /* enable r/g/b comparators, disable D/SDET ref */
@@ -906,7 +995,7 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
     ret = RegRead(map, offset + RV620_DACA_AUTODETECT_STATUS);
 
     RegWrite(map, offset + RV620_DACA_AUTODETECT_CONTROL, DetectControl);
-    RegWrite(map, offset + RV620_DACA_CONTROL1, Control1);
+    RegWrite(map, offset + RV620_DACA_MACRO_CNTL, Control1);
     RegWrite(map, offset + RV620_DACA_CONTROL2, Control2);
     RegWrite(map, offset + RV620_DACA_FORCE_DATA, ForceData);
     RegWrite(map, offset + RV620_DACA_AUTODETECT_INT_CONTROL,
@@ -930,6 +1019,19 @@ RV620DACLoadDetect(void *map, Bool tv, int dac)
 	default:
 	    return DAC_NONE;
     }
+}
+
+/*
+ *
+ */
+static dacOutput
+RV620DACLoadDetect(void *map, Bool tv, int dac)
+{
+    dacOutput dacType = RV620DACLoadDetect_MethA(map, tv, dac);
+    if (dacType == DAC_NONE)
+	return RV620DACLoadDetect_MethB(map, tv, dac);
+    else
+	return dacType;
 }
 
 /*
