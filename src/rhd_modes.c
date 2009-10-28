@@ -378,7 +378,7 @@ RHDPrintModeline(DisplayModePtr mode)
     if (mode->Flags & V_CLKDIV2) add(&flags, "vclk/2");
 #endif
     xf86Msg(X_NONE, "Modeline \"%s\"  %6.2f  %i %i %i %i  %i %i %i %i%s\n",
-	    mode->name, mode->Clock/1000.,
+	    mode->name, ((float)mode->Clock)/1000.,
 	    mode->HDisplay, mode->HSyncStart, mode->HSyncEnd, mode->HTotal,
 	    mode->VDisplay, mode->VSyncStart, mode->VSyncEnd, mode->VTotal,
 	    flags);

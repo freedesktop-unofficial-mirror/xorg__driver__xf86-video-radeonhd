@@ -1277,11 +1277,13 @@ rhdRROutputGetModes(xf86OutputPtr output)
 
     if (RHDScalePolicy(rout->Connector->Monitor, rout->Connector)) {
 	if (o->Connector->Monitor) {
+	    int Status;
 	    rout->ScaledToMode = RHDModeCopy(o->Connector->Monitor->NativeMode);
 	    xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Found native mode: ");
 	    RHDPrintModeline(rout->ScaledToMode);
-	    if (RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode) != MODE_OK) {
-		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Native mode doesn't validate: deleting\n");
+	    if ((Status = RHDRRValidateScaledToMode(rout->Output, rout->ScaledToMode)) != MODE_OK) {
+		xf86DrvMsg(rhdPtr->scrnIndex, X_ERROR, "Native mode doesn't validate [%s]: deleting\n",
+			   RHDModeStatusToString(Status));
 		xfree(rout->ScaledToMode->name);
 		xfree(rout->ScaledToMode);
 		rout->ScaledToMode = NULL;
