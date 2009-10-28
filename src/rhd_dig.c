@@ -1098,7 +1098,8 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 
     rhdPrintDigDebug(rhdPtr,__func__);
 
-    RHDRegMask(Output, off + RV620_DIG1_CNTL, Output->Crtc->Id,
+    RHDRegMask(Output, off + RV620_DIG1_CNTL,
+	       (Output->Crtc->Id ?  RV62_DIG_SOURCE_SELECT_FMT2 : RV62_DIG_SOURCE_SELECT_FMT1),
 	       RV62_DIG_SOURCE_SELECT);
 
     if (Output->Id == RHD_OUTPUT_UNIPHYA) {
@@ -1146,7 +1147,7 @@ EncoderSet(struct rhdOutput *Output, struct rhdCrtc *Crtc, DisplayModePtr Mode)
 	       (Private->EncoderMode & 0x7) << 8
 	       | RV62_DIG_START
 	       | (Private->RunDualLink ? RV62_DIG_DUAL_LINK_ENABLE : 0)
-	       | Output->Crtc->Id,
+	       | (Output->Crtc->Id ? RV62_DIG_SOURCE_SELECT_FMT2 : RV62_DIG_SOURCE_SELECT_FMT1),
 	       RV62_DIG_MODE
 	       | RV62_DIG_START
 	       | RV62_DIG_DUAL_LINK_ENABLE

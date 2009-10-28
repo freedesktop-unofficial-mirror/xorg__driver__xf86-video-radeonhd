@@ -620,7 +620,9 @@ enum RV620_DIG_CNTL_BITS {
     RV62_DIG_START			   = (0x1 << 6),
     RV62_DIG_MODE			= (0x7 << 8),
     RV62_DIG_STEREOSYNC_SELECT   = (1 << 2),
-    RV62_DIG_SOURCE_SELECT       = (1 << 0)
+    RV62_DIG_SOURCE_SELECT       = (1 << 0),
+    RV62_DIG_SOURCE_SELECT_FMT1  = (0 << 0),
+    RV62_DIG_SOURCE_SELECT_FMT2  = (1 << 0)
 };
 
 enum RV620_DIG_LVDS_DATA_CNTL_BITS {
