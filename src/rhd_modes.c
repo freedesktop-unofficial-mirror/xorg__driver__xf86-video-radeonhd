@@ -1844,3 +1844,40 @@ RHDSynthModes(int scrnIndex, DisplayModePtr Mode)
 	RHDModesAdd(Mode, Tmp);
     }
 }
+
+/*
+ * This function may be used to sanitize bogus PANEL modes reported by AtomBIOS.
+ */
+void
+RHDSanitizeModes(int scrnIndex, DisplayModePtr Modes, char *ReportedBy)
+{
+    while (Modes) {
+	Bool sanitized = FALSE;
+
+	/* do a little sanitization as some BIOSes seem to report bogus modes */
+	if (Modes->HTotal <= Modes->HSyncEnd) {
+	    Modes->HTotal =  Modes->CrtcHTotal = Modes->HSyncEnd + 1;
+	    sanitized = TRUE;
+	}
+	if (Modes->VTotal <= Modes->VSyncEnd) {
+	    Modes->VTotal =  Modes->CrtcVTotal = Modes->VSyncEnd + 1;
+	    sanitized = TRUE;
+	}
+	if (Modes->CrtcHBlankEnd <= Modes->CrtcHSyncEnd) {
+	    Modes->CrtcHBlankEnd  = Modes->CrtcHSyncEnd + 1;
+	    sanitized = TRUE;
+	}
+	if (Modes->CrtcVBlankEnd <= Modes->CrtcVSyncEnd) {
+	    Modes->CrtcVBlankEnd =  Modes->CrtcVSyncEnd + 1;
+	    sanitized = TRUE;
+	}
+	if (sanitized) {
+	    xf86DrvMsg(scrnIndex, X_WARNING, "Mode %s reported by %s sanitized!\n",
+		       Modes->name ? Modes->name : "unnamed",ReportedBy);
+	    Modes->HSync = ((float) Modes->Clock) / ((float)Modes->HTotal);
+	    Modes->VRefresh = (1000.0 * ((float) Modes->Clock))
+		/ ((float)(((float)Modes->HTotal) * ((float)Modes->VTotal)));
+	}
+	Modes = Modes->next;
+    }
+}

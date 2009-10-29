@@ -355,6 +355,7 @@ rhdMonitorPanel(struct rhdConnector *Connector)
     if (Mode) {
 	Monitor->Name = xstrdup("LVDS Panel");
 	Monitor->Modes = RHDModesAdd(Monitor->Modes, Mode);
+	RHDSanitizeModes(Monitor->scrnIndex, Monitor->Modes,"AtomBIOS Panel Mode");
 	Monitor->NativeMode = Mode;
 	Monitor->numHSync = 1;
 	Monitor->HSync[0].lo = Mode->HSync;
@@ -374,27 +375,13 @@ rhdMonitorPanel(struct rhdConnector *Connector)
 	}
     } else if (EDID) {
 	RHDMonitorEDIDSet(Monitor, EDID);
+	RHDSanitizeModes(Monitor->scrnIndex, Monitor->Modes, "AtomBIOS Panel EDID block");
 	rhdPanelEDIDModesFilter(Monitor);
     } else {
 	xf86DrvMsg(Connector->scrnIndex, X_ERROR,
 		   "%s: No panel mode information found.\n", __func__);
 	xfree(Monitor);
 	return NULL;
-    }
-
-    /* Fixup some broken modes - if we can do so, otherwise we might have no
-     * chance of driving the panel at all */
-    if (Monitor->NativeMode) {
-
-	/* Some Panels have H or VSyncEnd values greater than H or VTotal. */
-	if (Monitor->NativeMode->HTotal <= Monitor->NativeMode->HSyncEnd)
-	    Monitor->NativeMode->HTotal =  Monitor->NativeMode->CrtcHTotal = Monitor->NativeMode->HSyncEnd + 1;
-	if (Monitor->NativeMode->VTotal <= Monitor->NativeMode->VSyncEnd)
-	    Monitor->NativeMode->VTotal =  Monitor->NativeMode->CrtcVTotal = Monitor->NativeMode->VSyncEnd + 1;
-	if (Monitor->NativeMode->CrtcHBlankEnd <= Monitor->NativeMode->CrtcHSyncEnd)
-	    Monitor->NativeMode->CrtcHBlankEnd  = Monitor->NativeMode->CrtcHSyncEnd + 1;
-	if (Monitor->NativeMode->CrtcVBlankEnd <= Monitor->NativeMode->CrtcVSyncEnd)
-	    Monitor->NativeMode->CrtcVBlankEnd =  Monitor->NativeMode->CrtcVSyncEnd + 1;
     }
 
     /* panel should be driven at native resolution only. */
