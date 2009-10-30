@@ -2,6 +2,7 @@
  * Copyright 2009  Luc Verhaegen <libv@exsuse.de>
  * Copyright 2009  Matthias Hopf <mhopf@novell.com>
  * Copyright 2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2009  Jung-uk Kim   <jkim@FreeBSD.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -185,6 +186,19 @@ rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
 
     return FALSE;
 }
+#else
+
+/*
+ * Stub
+ */
+static Bool
+rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
+{
+    if (do_write)
+	&val = -1;
+    return FALSE;
+}
+
 #endif
 
 /*
@@ -194,13 +208,12 @@ rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
 int
 RhdACPIGetBacklightControl(struct rhdOutput *Output)
 {
-#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__linux__)
     int ret;
+
     RHDFUNC(Output);
-    if (rhdDoBacklight(Output, FALSE, &ret))
-	return ret;
-#endif
-    return -1;
+
+    rhdDoBacklight(Output, FALSE, &ret);
+    return ret;
 }
 
 /*
@@ -210,7 +223,6 @@ void
 RhdACPISetBacklightControl(struct rhdOutput *Output, int val)
 {
     RHDFUNC(Output);
-#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__linux__)
+
     rhdDoBacklight(Output, TRUE, &val);
-#endif
 }
