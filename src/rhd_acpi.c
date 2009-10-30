@@ -48,6 +48,70 @@
 #include "rhd_acpi.h"
 
 
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+
+#include <stdlib.h>
+#include <sys/sysctl.h>
+
+#define	ACPI_VIDEO_LEVELS	"hw.acpi.video.lcd0.levels"
+#define	ACPI_VIDEO_BRIGHTNESS	"hw.acpi.video.lcd0.brightness"
+
+/*
+ * Get/Set LCD backlight brightness via acpi_video(4).
+ */
+static Bool
+rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
+{
+    int *levels;
+    size_t len;
+    int level, max_val, num_levels;
+    int i;
+    RHDFUNC(Output);
+
+    if (sysctlbyname(ACPI_VIDEO_LEVELS, NULL, &len, NULL, 0) != 0 || len == 0)
+	return FALSE;
+    levels = (int *)malloc(len);
+    if (levels == NULL)
+	return FALSE;
+    if (sysctlbyname(ACPI_VIDEO_LEVELS, levels, &len, NULL, 0) != 0) {
+	free(levels);
+	return FALSE;
+    }
+
+    num_levels = len / sizeof(*levels);
+    for (i = 0, max_val = 0; i < num_levels; i++)
+	if (levels[i] > max_val)
+	    max_val = levels[i];
+
+    if (do_write) {
+	int d1 = max_val * RHD_BACKLIGHT_PROPERTY_MAX + 1;
+	for (i = 0, level = -1; i < num_levels; i++) {
+	    int d2 = abs(*val * max_val - levels[i] * RHD_BACKLIGHT_PROPERTY_MAX);
+	    if (d2 < d1) {
+		level = levels[i];
+		d1 = d2;
+	    }
+	}
+	free(levels);
+	if (level < 0)
+	    return FALSE;
+	if (sysctlbyname(ACPI_VIDEO_BRIGHTNESS, NULL, 0, &level, sizeof(level)) != 0)
+	    return FALSE;
+	RHDDebug(Output->scrnIndex, "%s: Wrote value %i (ACPI %i)\n", __func__, *val, level);
+    } else {
+	free(levels);
+	len = sizeof(level);
+	if (sysctlbyname(ACPI_VIDEO_BRIGHTNESS, &level, &len, NULL, 0) != 0)
+	    return FALSE;
+	*val = level * RHD_BACKLIGHT_PROPERTY_MAX / max_val;
+	RHDDebug(Output->scrnIndex, "%s: Read value %i (ACPI %i)\n", __func__, *val, level);
+    }
+
+    return TRUE;
+}
+
+#elif defined(__linux__)
+
 #define ACPI_PATH "/sys/class/backlight"
 
 /*
@@ -121,6 +185,7 @@ rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
 
     return FALSE;
 }
+#endif
 
 /*
  * RhdACPIGetBacklightControl(): return backlight value in range 0..255;
@@ -129,7 +194,7 @@ rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
 int
 RhdACPIGetBacklightControl(struct rhdOutput *Output)
 {
-#ifdef __linux__
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__linux__)
     int ret;
     RHDFUNC(Output);
     if (rhdDoBacklight(Output, FALSE, &ret))
@@ -145,7 +210,7 @@ void
 RhdACPISetBacklightControl(struct rhdOutput *Output, int val)
 {
     RHDFUNC(Output);
-#ifdef __linux__
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__linux__)
     rhdDoBacklight(Output, TRUE, &val);
 #endif
 }
