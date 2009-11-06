@@ -353,15 +353,12 @@ void
 R5xx2DStart(ScrnInfoPtr pScrn)
 {
     RHDPtr rhdPtr = RHDPTR(pScrn);
+    CARD32 pipe;
 
     RHDFUNC(pScrn);
 
-    if ((rhdPtr->ChipSet != RHD_RS690) &&
-	(rhdPtr->ChipSet != RHD_RS600) &&
-	(rhdPtr->ChipSet != RHD_RS740)) {
-	CARD8 pipe = (RHDRegRead(rhdPtr, R400_GB_PIPE_SELECT) >> 4) & 0xF0;
-	RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, pipe | 0x01);
-    }
+    pipe = (RHDRegRead(rhdPtr, R400_GB_PIPE_SELECT) >> 4) & 0xF0;
+    RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, pipe | 0x01);
 
     RHDRegMask(pScrn, R5XX_GB_TILE_CONFIG, 0, R5XX_ENABLE_TILING);
     RHDRegWrite(pScrn, R5XX_WAIT_UNTIL,
@@ -421,6 +418,15 @@ R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 }
 
 /*
+ * Map the number of GB Pipes the hardware has.
+ */
+static int
+R5xxGBPipesCount(ScrnInfoPtr pScrn)
+{
+    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
+}
+
+/*
  * Handlers for rhdPtr->ThreeDInfo.
  */
 void
@@ -438,6 +444,8 @@ R5xx3DInit(ScrnInfoPtr pScrn)
 
     R5xx3D = (struct R5xx3D *) xnfcalloc(1, sizeof(struct R5xx3D));
     R5xx3D->XHas3DEngineState = FALSE;
+    /* set this up here; not when the engine is running! */
+    R5xx3D->num_gb_pipes = R5xxGBPipesCount(pScrn);
     rhdPtr->ThreeDPrivate = R5xx3D;
 }
 

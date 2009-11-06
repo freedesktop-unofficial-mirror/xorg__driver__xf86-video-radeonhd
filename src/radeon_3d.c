@@ -65,15 +65,7 @@
 
 # define HAS_TCL info->has_tcl
 
-# define R5XXPowerPipes(p) {}
-
-/* Map the number of GB Pipes the hardware has. */
-static int
-R5xxGBPipesCount(ScrnInfoPtr pScrn)
-{
-    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
-}
-#define NUM_GB_PIPES R5xxGBPipesCount(pScrn)
+#define NUM_GB_PIPES info->num_gb_pipes
 
 /* Map the number of FPUs the VPS has. */
 static int
@@ -165,13 +157,7 @@ R5xxPVSFPUCount(ScrnInfoPtr pScrn)
 
 #define HAS_TCL IS_R500_3D
 
-/* Map the number of GB Pipes the hardware has. */
-static int
-R5xxGBPipesCount(ScrnInfoPtr pScrn)
-{
-    return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
-}
-#define NUM_GB_PIPES R5xxGBPipesCount(pScrn)
+#define NUM_GB_PIPES accel_state->num_gb_pipes
 
 /* Map the number of FPUs the VPS has. */
 static int
@@ -202,19 +188,6 @@ R5xxPVSFPUCount(ScrnInfoPtr pScrn)
      }
 }
 #define NUM_PVS_FPUS R5xxPVSFPUCount(pScrn)
-
-/*
- *
- */
-static void
-R5XXPowerPipes(ScrnInfoPtr pScrn)
-{
-    CARD32 tmp = RHDRegRead(pScrn, R400_GB_PIPE_SELECT);
-    RHDWritePLL(pScrn, R500_DYN_SCLK_PWMEM_PIPE, (1 | ((tmp >> 8) & 0xf) << 4));
-}
-/* for radeon, this is done elsewhere, so use:
- * #define R5XXPowerPipes(x)
- */
 
 #endif /* IS_RADEON_DRIVER */
 
@@ -251,9 +224,6 @@ R5xx3DSetup(int scrnIndex)
 	OUT_ACCEL_REG(R300_RB3D_ZCACHE_CTLSTAT, R300_ZC_FLUSH | R300_ZC_FREE);
 	OUT_ACCEL_REG(RADEON_WAIT_UNTIL, RADEON_WAIT_2D_IDLECLEAN | RADEON_WAIT_3D_IDLECLEAN);
 	FINISH_ACCEL();
-
-	if (IS_R500_3D)
-	    R5XXPowerPipes(pScrn);
 
 	gb_tile_config = (R300_ENABLE_TILING | R300_TILE_SIZE_16);
 

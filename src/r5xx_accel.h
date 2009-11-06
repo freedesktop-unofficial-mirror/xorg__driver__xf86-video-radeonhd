@@ -90,6 +90,7 @@ struct R5xx3D {
     /* Size of tiles ... set to 65536x65536 if not tiling in that direction */
     Bool src_tile_width;
     Bool src_tile_height;
+    int num_gb_pipes;
 };
 
 void R5xx3DInit(ScrnInfoPtr pScrn);
