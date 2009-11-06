@@ -136,7 +136,8 @@ rhdAtomScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    ScaleMode = atomScaleExpand;
 	    break;
     }
-    rhdAtomSetScaler(rhdPtr->atomBIOS, Scaler, ScaleMode);
+    ScaleMode = atomScaleDisable;
+    rhdAtomSetScaler(rhdPtr->atomBIOS, Scaler, ScaleMode, ATOM_TVMODE_NONE);
 
     data.Address = NULL;
     RHDAtomBiosFunc(rhdPtr->scrnIndex, rhdPtr->atomBIOS, ATOM_SET_REGISTER_LIST_LOCATION, &data);

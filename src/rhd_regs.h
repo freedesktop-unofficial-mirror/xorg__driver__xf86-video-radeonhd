@@ -407,6 +407,10 @@ enum {
     DC_GPIO_HPD_Y                  = 0x7E9C
 };
 
+enum DXSCL_UPDATE_bits {
+    DXSCL_UPDATE_LOCK = (1 << 16)
+};
+
 enum CONFIG_CNTL_BITS {
     RS69_CFG_ATI_REV_ID_SHIFT      = 8,
     RS69_CFG_ATI_REV_ID_MASK       = 0xF << RS69_CFG_ATI_REV_ID_SHIFT

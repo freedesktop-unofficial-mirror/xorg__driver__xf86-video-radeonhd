@@ -152,6 +152,7 @@ struct AtomDacCodeTableData
 };
 
 typedef enum AtomTVMode {
+    ATOM_TVMODE_NONE = 0,
     ATOM_TVMODE_NTSC = 1 << 0,
     ATOM_TVMODE_NTSCJ = 1 << 1,
     ATOM_TVMODE_PAL = 1 << 2,
@@ -526,7 +527,7 @@ extern Bool rhdAtomASICInit(atomBiosHandlePtr handle);
 extern struct atomCodeTableVersion rhdAtomASICInitVersion(atomBiosHandlePtr handle);
 #   endif
 extern Bool rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scaler,
-		 enum atomScaleMode mode);
+			     enum atomScaleMode mode, enum AtomTVMode tvMode);
 extern struct atomCodeTableVersion rhdAtomSetScalerVersion(atomBiosHandlePtr handle);
 extern Bool rhdAtomDigTransmitterControl(atomBiosHandlePtr handle, enum atomTransmitter id,
 					 enum atomTransmitterAction action,

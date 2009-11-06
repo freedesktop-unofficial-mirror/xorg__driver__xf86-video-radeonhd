@@ -887,7 +887,7 @@ rhdAtomASICInitVersion(atomBiosHandlePtr handle)
  *
  */
 Bool
-rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScaleMode mode)
+rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomScaleMode mode, enum AtomTVMode tvMode)
 {
     ENABLE_SCALER_PARAMETERS scaler;
     AtomBiosArgRec data;
@@ -915,6 +915,38 @@ rhdAtomSetScaler(atomBiosHandlePtr handle, enum atomScaler scalerID, enum atomSc
 	    break;
 	case atomScaleMulttabExpand:
 	    scaler.ucEnable = ATOM_SCALER_MULTI_EX;
+	    break;
+    }
+    switch (tvMode) {
+	case ATOM_TVMODE_NTSC:
+	    scaler.ucTVStandard = ATOM_TV_NTSC;
+	    break;
+	case  ATOM_TVMODE_NTSCJ:
+	    scaler.ucTVStandard = ATOM_TV_NTSCJ;
+	    break;
+	case ATOM_TVMODE_PAL:
+	    scaler.ucTVStandard = ATOM_TV_PAL;
+	    break;
+	case ATOM_TVMODE_PALM:
+	    scaler.ucTVStandard = ATOM_TV_PALM;
+	    break;
+	case ATOM_TVMODE_PALCN:
+	    scaler.ucTVStandard = ATOM_TV_PALCN;
+	    break;
+	case  ATOM_TVMODE_PALN:
+	    scaler.ucTVStandard = ATOM_TV_PALN;
+	    break;
+	case ATOM_TVMODE_PAL60:
+	    scaler.ucTVStandard = ATOM_TV_PAL60;
+	    break;
+	case ATOM_TVMODE_SECAM:
+	    scaler.ucTVStandard = ATOM_TV_SECAM;
+	    break;
+	case ATOM_TVMODE_CV:
+	    scaler.ucTVStandard = ATOM_TV_CV;
+	    break;
+	case ATOM_TVMODE_NONE:
+	    scaler.ucTVStandard = 0;
 	    break;
     }
 

@@ -756,7 +756,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 	    ErrorF("None\n");
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 0);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_TAP_CONTROL, 0);
-	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
+	    RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 2);
 	    break;
 	case RHD_CRTC_SCALE_TYPE_CENTER: /* center of the actual mode */
 	    ErrorF("Center\n");
@@ -773,7 +773,7 @@ DxScaleSet(struct rhdCrtc *Crtc, enum rhdCrtcScaleType Type,
 		RHDRegWrite(Crtc, RegOff + D1MODE_CENTER, 0);
 
 	    RHDRegWrite(Crtc, RegOff + D1SCL_UPDATE, 0);
-	    RHDRegWrite(Crtc, RegOff + D1SCL_DITHER, 0);
+	    RHDRegWrite(Crtc, RegOff + D1SCL_FLIP_CONTROL, 0);
 
 	    RHDRegWrite(Crtc, RegOff + D1SCL_ENABLE, 1);
 	    RHDRegWrite(Crtc, RegOff + D1SCL_HVSCALE, 0x00010001); /* both h/v */
@@ -980,9 +980,9 @@ D1ViewPortStart(struct rhdCrtc *Crtc, CARD16 X, CARD16 Y)
     X = (X + 0x02) & ~0x03;
     Y &= ~0x01;
 
-    RHDRegMask(Crtc, D1SCL_UPDATE, 0x00010000, 0x0001000);
+    RHDRegMask(Crtc, D1SCL_UPDATE, DXSCL_UPDATE_LOCK, DXSCL_UPDATE_LOCK);
     RHDRegWrite(Crtc, D1MODE_VIEWPORT_START, (X << 16) | Y);
-    RHDRegMask(Crtc, D1SCL_UPDATE, 0, 0x0001000);
+    RHDRegMask(Crtc, D1SCL_UPDATE, 0, DXSCL_UPDATE_LOCK);
 
     Crtc->X = X;
     Crtc->Y = Y;
@@ -1000,9 +1000,9 @@ D2ViewPortStart(struct rhdCrtc *Crtc, CARD16 X, CARD16 Y)
     X = (X + 0x02) & ~0x03;
     Y &= ~0x01;
 
-    RHDRegMask(Crtc, D2SCL_UPDATE, 0x00010000, 0x0001000);
+    RHDRegMask(Crtc, D2SCL_UPDATE, DXSCL_UPDATE_LOCK, DXSCL_UPDATE_LOCK);
     RHDRegWrite(Crtc, D2MODE_VIEWPORT_START, (X << 16) | Y);
-    RHDRegMask(Crtc, D2SCL_UPDATE, 0, 0x0001000);
+    RHDRegMask(Crtc, D2SCL_UPDATE, 0, DXSCL_UPDATE_LOCK);
 
     Crtc->X = X;
     Crtc->Y = Y;
