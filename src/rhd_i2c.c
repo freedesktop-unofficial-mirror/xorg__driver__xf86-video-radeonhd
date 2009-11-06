@@ -1365,6 +1365,13 @@ rhdInitI2C(int scrnIndex)
 	}
 	I2CList[i] = I2CPtr;
     }
+    /*
+     * This magic is needed to pry loose the scaler which appears to affect hardware controlled
+     * I2C readout ?!? after the radeon driver has erronously tried to restore this multi tap data
+     * register. I put this here for now before I find a better place for it.
+     */
+    RHDRegRead(rhdPtr, 0x657C);
+
     return I2CList;
  error:
     rhdTearDownI2C(I2CList);
