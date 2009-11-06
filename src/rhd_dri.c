@@ -978,7 +978,7 @@ static void RHDDRIIrqInit(RHDPtr rhdPtr, ScreenPtr pScreen)
 		       "[drm] falling back to irq-free operation\n");
 	    rhdDRI->irq = 0;
 	} else {
-/* FIXME 
+/* FIXME
 	    rhdDRI->ModeReg->gen_int_cntl = RHDRegRead (rhdDRI,  RADEON_GEN_INT_CNTL ); */
 	}
     }
@@ -1771,7 +1771,7 @@ static void RHDDRITransitionSingleToMulti3d(ScreenPtr pScreen)
 
 static void RHDDRITransitionMultiToSingle3d(ScreenPtr pScreen)
 {
-    /* Let the remaining 3d app start page flipping again 
+    /* Let the remaining 3d app start page flipping again
      * RHDEnablePageFlip(pScreen); */
 }
 
@@ -1992,4 +1992,36 @@ RHDDRIGetIntGARTLocation(ScrnInfoPtr pScrn)
         return 0;
 
     return rhdDRI->gartLocation + rhdDRI->bufStart;
+}
+
+/*
+ *
+ */
+Bool
+RHDDRIGetHWParam(ScrnInfoPtr pScrn, enum RHDDRIHWParam param, union rhdValue *val)
+{
+    RHDPtr rhdPtr = RHDPTR(pScrn);
+    struct rhdDri *rhdDRI = rhdPtr->dri;
+    struct drm_radeon_getparam gp;
+    char *name;
+
+    if (!rhdDRI || rhdDRI->drmFD == 0)
+	return FALSE;
+
+    switch (param) {
+    case RHD_NUM_GB_PIPES:
+	gp.param = RADEON_PARAM_NUM_GB_PIPES;
+	gp.value = &(val->Int);
+	name = "number of pipes";
+	break;
+    }
+    if (drmCommandWriteRead(rhdDRI->drmFD, DRM_RADEON_GETPARAM, &gp,
+			    sizeof(gp)) < 0) {
+	xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
+		   "Failed to determine %s from DRM.\n",name);
+	return FALSE;
+    }
+    xf86DrvMsgVerb(pScrn->scrnIndex, 4, X_INFO,
+		   "Got %s param from DRM.\n",name);
+    return TRUE;
 }

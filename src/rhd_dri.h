@@ -25,6 +25,10 @@
 #ifndef _RHD_DRI_
 #define _RHD_DRI_
 
+enum RHDDRIHWParam {
+  RHD_NUM_GB_PIPES
+};
+
 extern Bool RHDDRIPreInit(ScrnInfoPtr pScrn);
 extern Bool RHDDRIAllocateBuffers(ScrnInfoPtr pScrn);
 extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
@@ -34,8 +38,9 @@ extern Bool RHDDRIFinishScreenInit(ScreenPtr pScreen);
 extern void RHDDRIEnterVT(ScreenPtr pScreen);
 extern void RHDDRILeaveVT(ScreenPtr pScreen);
 extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
+extern void RHDDRIContextClaim(ScrnInfoPtr pScrn);
+extern Bool RHDDRIGetHWParam(ScrnInfoPtr pScrn, enum RHDDRIHWParam param, union rhdValue *val);
 
-/* Claim the 3D context */
-void RHDDRIContextClaim(ScrnInfoPtr pScrn);
+
 
 #endif

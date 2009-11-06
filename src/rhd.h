@@ -216,6 +216,16 @@ enum AccelMethod {
     RHD_ACCEL_DEFAULT = 5 /* keep as highest. */
 };
 
+union rhdValue {
+  CARD8 Card8;
+  CARD16 Card16;
+  CARD32 Card32;
+  char Char;
+  short Short;
+  int Int;
+  char *String;
+};
+
 typedef struct RHDRec {
     int                 scrnIndex;
 

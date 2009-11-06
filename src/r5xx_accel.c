@@ -73,7 +73,9 @@
 #include "r5xx_accel.h"
 #include "r5xx_regs.h"
 #include "r5xx_3dregs.h"
-
+#ifdef USE_DRI
+#include "rhd_dri.h"
+#endif
 /*
  * Used by both XAA and EXA code.
  */
@@ -423,6 +425,12 @@ R5xx2DFBValid(RHDPtr rhdPtr, CARD16 Width, CARD16 Height, int bpp,
 static int
 R5xxGBPipesCount(ScrnInfoPtr pScrn)
 {
+#ifdef USE_DRI
+    union rhdValue val;
+
+    if (RHDDRIGetHWParam(pScrn, RHD_NUM_GB_PIPES, &val))
+	return val.Int;
+#endif
     return ((RHDRegRead(pScrn, R400_GB_PIPE_SELECT) >> 12) & 0x03) + 1;
 }
 
