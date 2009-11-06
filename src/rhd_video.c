@@ -347,6 +347,8 @@ R5xxXvCopyPackedDMA(RHDPtr rhdPtr, CARD8 *src, CARD8 *dst,
     CARD16 y = 0, dwords;
     CARD16 hpass = ((CS->Size - 10) * 4) / srcPitch;
 
+    R5xxEngineWaitIdle3D(rhdPtr->CS);
+
     while (h) {
 	if (h < hpass)
 	    hpass = h;
@@ -477,6 +479,8 @@ R5xxXvCopyPlanarDMA(RHDPtr rhdPtr, CARD8 *src1, CARD8 *src2, CARD8 *src3,
 	R5XX_ROP3_S | R5XX_DP_SRC_SOURCE_HOST_DATA |
 	R5XX_GMC_CLR_CMP_CNTL_DIS | R5XX_GMC_WR_MSK_DIS;
     CARD16 y = 0, dwords;
+
+    R5xxEngineWaitIdle3D(rhdPtr->CS);
 
     while (h) {
 	if (h < hpass)

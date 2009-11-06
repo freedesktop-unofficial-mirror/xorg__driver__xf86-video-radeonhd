@@ -125,6 +125,7 @@ do {								\
 # define ADVANCE_RING() RHDCSAdvance(CS)
 
 # define OUT_VIDEO_RING_F(x) OUT_RING(F_TO_DW(x))
+# define RADEON_SWITCH_TO_3D()  R5xxEngineWaitIdle2D(rhdPtr->CS)
 
 #define VTX_DWORD_COUNT 4
 
@@ -243,6 +244,8 @@ FUNC_NAME(RADEONDisplayTexturedVideo)(ScrnInfoPtr pScrn, RADEONPortPrivPtr pPriv
 
     if (!accel_state->XHas3DEngineState)
 	RADEONInit3DEngine(pScrn);
+
+    RADEON_SWITCH_TO_3D();
 
     /* we can probably improve this */
     BEGIN_VIDEO(2);

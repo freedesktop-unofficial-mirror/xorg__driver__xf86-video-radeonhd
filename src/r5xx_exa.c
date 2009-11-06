@@ -205,7 +205,8 @@ R5xxEXASolid(PixmapPtr pPix, int x1, int y1, int x2, int y2)
 static void
 R5xxEXADoneSolid(PixmapPtr pPix)
 {
-    ;
+    struct RhdCS *CS = RHDPTRE(pPix->drawable.pScreen)->CS;
+    R5xxEngineWaitIdle2D(CS);
 }
 
 /*
@@ -315,7 +316,8 @@ R5xxEXACopy(PixmapPtr pDst, int srcX, int srcY, int dstX, int dstY, int w, int h
 static void
 R5xxEXADoneCopy(PixmapPtr pDst)
 {
-    ;
+    struct RhdCS *CS = RHDPTRE(pDst->drawable.pScreen)->CS;
+    R5xxEngineWaitIdle2D(CS);
 }
 
 /*
@@ -481,6 +483,7 @@ R5xxEXAUploadToScreenCP(PixmapPtr pDst, int x, int y, int w, int h,
     }
 
     exaMarkSync(pDst->drawable.pScreen);
+    R5xxEngineWaitIdle2D(CS);
     return TRUE;
 }
 
@@ -676,6 +679,7 @@ R5xxEXADownloadFromScreenCP(PixmapPtr pSrc, int x, int y, int w, int h,
     /* since we had a full idle every time, we make sure we don't do
        yet another system call here */
     ExaPrivate->exaMarkerSynced = ExaPrivate->exaSyncMarker;
+    R5xxEngineWaitIdle2D(CS);
 
     return TRUE;
 }
