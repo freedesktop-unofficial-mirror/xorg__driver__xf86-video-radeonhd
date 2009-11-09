@@ -5452,6 +5452,10 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 		    (voltage->asVoltageObj[0].asFormula.ucFlag & 0x01 ? 2 : 1);
 		break;
 	    }
+	    if (!voltage->asVoltageObj[0].ucSize) {
+	        xf86DrvMsg(handle->scrnIndex, X_WARNING, "VoltageObjectInfo table has invalid entry size info.\n");
+	        break;
+	    }
 	    voltage = (ATOM_VOLTAGE_OBJECT_INFO *) (((char *) voltage) + voltage->asVoltageObj[0].ucSize);
 	}
     } else
