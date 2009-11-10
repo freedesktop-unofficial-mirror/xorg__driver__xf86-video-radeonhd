@@ -5389,10 +5389,11 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 {
     atomDataTablesPtr atomDataPtr = handle->atomDataPtr;
     AtomBiosArgRec		    execData;
-    ATOM_VOLTAGE_OBJECT_INFO	   *voltage;
+    ATOM_VOLTAGE_OBJECT	           *voltage;
     AtomChipLimits		   *lim = &data->chipLimits;
     CARD8    crev, frev;
     uint16_t FirmwareInfoRev = 0;
+    unsigned short voltage_object_size;
 
     RHDFUNC(handle);
     memset (lim, 0, sizeof (*lim));
@@ -5441,22 +5442,31 @@ rhdAtomChipLimits(atomBiosHandlePtr handle, AtomBiosRequestID func, AtomBiosArgP
 	return ATOM_NOT_IMPLEMENTED;
     }
 
-    if ( (voltage = atomDataPtr->VoltageObjectInfo) ) {
-	char *last = ((char *) voltage) + voltage->sHeader.usStructureSize;
-	while ((char *) &voltage->asVoltageObj[0].ucVoltageType < last) {
-	    if (voltage->asVoltageObj[0].ucVoltageType == SET_VOLTAGE_TYPE_ASIC_VDDC) {
-		lim->Minimum.VDDCVoltage = voltage->asVoltageObj[0].asFormula.usVoltageBaseLevel;
+    if (rhdAtomGetTableRevisionAndSize (
+	    (ATOM_COMMON_TABLE_HEADER *)(atomDataPtr->VoltageObjectInfo),
+	    &crev,&frev,&voltage_object_size)) {
+	int size = 0;
+
+	if ((voltage_object_size > handle->BIOSImageSize)
+	    || ((unsigned long)(atomDataPtr->VoltageObjectInfo->asVoltageObj) + voltage_object_size >
+		((unsigned long)handle->BIOSBase + handle->BIOSImageSize))) {
+	    xf86DrvMsg(handle->scrnIndex, X_ERROR,
+		       "%s: Voltage Object information is bogus\n",__func__);
+	}
+	voltage = atomDataPtr->VoltageObjectInfo->asVoltageObj;
+	while (voltage->ucSize) { /* last element ? */
+	    size += voltage->ucSize;
+	    if (size > voltage_object_size)              /* past end of table */
+		break;
+	    if (voltage->ucVoltageType == SET_VOLTAGE_TYPE_ASIC_VDDC) {
+		lim->Minimum.VDDCVoltage = voltage->asFormula.usVoltageBaseLevel;
 		lim->Maximum.VDDCVoltage = lim->Minimum.VDDCVoltage +
-		    voltage->asVoltageObj[0].asFormula.usVoltageStep *
-		    (voltage->asVoltageObj[0].asFormula.ucNumOfVoltageEntries - 1) /
-		    (voltage->asVoltageObj[0].asFormula.ucFlag & 0x01 ? 2 : 1);
+		    voltage->asFormula.usVoltageStep *
+		    (voltage->asFormula.ucNumOfVoltageEntries - 1) /
+		    (voltage->asFormula.ucFlag & 0x01 ? 2 : 1);
 		break;
 	    }
-	    if (!voltage->asVoltageObj[0].ucSize) {
-	        xf86DrvMsg(handle->scrnIndex, X_WARNING, "VoltageObjectInfo table has invalid entry size info.\n");
-	        break;
-	    }
-	    voltage = (ATOM_VOLTAGE_OBJECT_INFO *) (((char *) voltage) + voltage->asVoltageObj[0].ucSize);
+	    voltage = (ATOM_VOLTAGE_OBJECT *) (((char *) voltage) + voltage->ucSize);
 	}
     } else
 	xf86DrvMsg (handle->scrnIndex, X_INFO, "No VoltageObjectInfo table\n");

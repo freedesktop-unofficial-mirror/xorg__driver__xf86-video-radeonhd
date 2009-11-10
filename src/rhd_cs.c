@@ -223,7 +223,6 @@ DRMCPFlush(struct RhdCS *CS)
 	while ((CS->Wptr * 4) & 0x3c) {
 	    RHDCSGrab(CS, 1);
 	    RHDCSWrite(CS, CP_PACKET2());
-	    RHDCSAdvance(CS);
 	}
     }
 
@@ -260,7 +259,6 @@ DRMCPBufferDiscard(struct RhdCS *CS)
 	while ((CS->Wptr * 4) & 0x3c){
 	    RHDCSGrab(CS, 1);
 	    RHDCSWrite(CS, CP_PACKET2());
-	    RHDCSAdvance(CS);
 	}
     }
 
