@@ -1886,8 +1886,9 @@ rhdGetVideoRamSize(RHDPtr rhdPtr)
     if (RamSize > BARSize) {
 	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "The detected amount of videoram"
 		   " exceeds the PCI BAR aperture.\n");
-	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Using only %dkB of the total "
-		   "%dkB.\n", (int) BARSize, (int) RamSize);
+	xf86DrvMsg(rhdPtr->scrnIndex, X_INFO, "Mapping only %dkB of the total "
+		   "%dkB, remaining memory is reserved for GPU.\n",
+		   (int) BARSize, (int) RamSize);
 	return BARSize;
     } else
 	return RamSize;
