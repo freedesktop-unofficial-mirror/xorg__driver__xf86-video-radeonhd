@@ -109,6 +109,23 @@ static void rhdPmValidateSetting (struct rhdPm *Pm, struct rhdPowerState *settin
     /* Only set to lower Voltages than compare if 0 */
 }
 
+/* Some AtomBIOSes provide broken current clocks (esp. memory) */
+static void rhdPmValidateClearSetting (struct rhdPm *Pm, struct rhdPowerState *setting)
+{
+    if (setting->EngineClock < COMPARE_MIN_ENGINE_CLOCK)
+	setting->EngineClock = 0;
+    if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
+	setting->EngineClock = 0;
+    if (setting->MemoryClock < COMPARE_MIN_MEMORY_CLOCK)
+	setting->MemoryClock = 0;
+    if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
+	setting->MemoryClock = 0;
+    if (setting->VDDCVoltage < COMPARE_MIN_VOLTAGE)
+	setting->VDDCVoltage = 0;
+    if (setting->VDDCVoltage > COMPARE_MAX_VOLTAGE)
+	setting->VDDCVoltage = 0;
+}
+
 static void rhdPmValidateMinMax (struct rhdPm *Pm)
 {
     if (Pm->Maximum.EngineClock < Pm->Default.EngineClock)
@@ -142,6 +159,7 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
     if (Pm->NumKnown) {
 	int i;
 	for (i = 0; i < Pm->NumKnown; i++) {
+	    rhdPmValidateClearSetting (Pm, &Pm->Known[i]);
 	    if (Pm->Maximum.EngineClock < Pm->Known[i].EngineClock)
 		Pm->Maximum.EngineClock = Pm->Known[i].EngineClock;
 	    if (Pm->Maximum.MemoryClock < Pm->Known[i].MemoryClock)
@@ -159,23 +177,6 @@ static void rhdPmValidateMinMax (struct rhdPm *Pm)
 
     if (Pm->Minimum.VDDCVoltage == Pm->Maximum.VDDCVoltage)
 	Pm->Minimum.VDDCVoltage = Pm->Maximum.VDDCVoltage = Pm->Default.VDDCVoltage = 0;
-}
-
-/* Some AtomBIOSes provide broken current clocks (esp. memory) */
-static void rhdPmValidateClearSetting (struct rhdPm *Pm, struct rhdPowerState *setting)
-{
-    if (setting->EngineClock < COMPARE_MIN_ENGINE_CLOCK)
-	setting->EngineClock = 0;
-    if (setting->EngineClock > COMPARE_MAX_ENGINE_CLOCK)
-	setting->EngineClock = 0;
-    if (setting->MemoryClock < COMPARE_MIN_MEMORY_CLOCK)
-	setting->MemoryClock = 0;
-    if (setting->MemoryClock > COMPARE_MAX_MEMORY_CLOCK)
-	setting->MemoryClock = 0;
-    if (setting->VDDCVoltage < COMPARE_MIN_VOLTAGE)
-	setting->VDDCVoltage = 0;
-    if (setting->VDDCVoltage > COMPARE_MAX_VOLTAGE)
-	setting->VDDCVoltage = 0;
 }
 
 /* Have: a list of possible power settings, eventual minimum and maximum settings.
