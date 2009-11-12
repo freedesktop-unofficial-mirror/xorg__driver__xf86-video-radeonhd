@@ -1,4 +1,9 @@
 /*
+ * Copyright 2009  Matthias Hopf <mhopf@novell.com>
+ * Copyright 2009  Yang Zhao     <yang@yangman.ca>
+ * Copyright 2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2009  Luc Verhaegen <libv@exsuse.de>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -19,12 +24,6 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- */
-
-/*
- * Authors:
- *   Yang Zhao <yang@yangman.ca>
- *   Matthias Hopf <mhopf@suse.de>
  */
 
 #ifdef HAVE_CONFIG_H
