@@ -2,6 +2,8 @@
  * Copyright 2007-2009  Luc Verhaegen <libv@exsuse.de>
  * Copyright 2007-2009  Matthias Hopf <mhopf@novell.com>
  * Copyright 2007-2009  Egbert Eich   <eich@novell.com>
+ * Copyright      2009  Dave Airlie   <airlied@redhat.com>
+ * Copyright      2009  Hans Ulrich Niedermann <hun@n-dimensional.de>
  * Copyright 2007-2009  Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -88,6 +90,7 @@
 #define _XF86DRI_SERVER_
 #include "dri.h"
 #include "GL/glxint.h"
+#include "xf86drmMode.h"
 #endif
 
 #if HAVE_XF86_ANSIC_H
@@ -398,6 +401,34 @@ RHDAvailableOptions(int chipid, int busid)
  *
  */
 #ifdef XSERVER_LIBPCIACCESS
+
+/* The radeon_kernel_mode_enabled() function is taken verbatim from
+ * radeon's radeon_probe.c file. */
+static Bool radeon_kernel_mode_enabled(ScrnInfoPtr pScrn, struct pci_device *pci_dev)
+{
+    char *busIdString;
+    int ret;
+
+    if (!xf86LoaderCheckSymbol("DRICreatePCIBusID")) {
+      xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0,
+		   "[KMS] No DRICreatePCIBusID symbol, no kernel modesetting.\n");
+	return FALSE;
+    }
+
+    busIdString = DRICreatePCIBusID(pci_dev);
+    ret = drmCheckModesettingSupported(busIdString);
+    xfree(busIdString);
+    if (ret) {
+      xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0,
+		   "[KMS] drm report modesetting isn't supported.\n");
+	return FALSE;
+    }
+
+    xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, 0,
+		   "[KMS] Kernel modesetting enabled.\n");
+    return TRUE;
+}
+
 static Bool
 RHDPciProbe(DriverPtr drv, int entityNum,
 	    struct pci_device *dev, intptr_t matchData)
@@ -408,6 +439,21 @@ RHDPciProbe(DriverPtr drv, int entityNum,
     pScrn = xf86ConfigPciEntity(NULL, 0, entityNum, NULL,
 				RES_SHARED_VGA, NULL, NULL, NULL, NULL);
     if (pScrn != NULL) {
+
+	if (dev) {
+	    Bool kms = radeon_kernel_mode_enabled(pScrn, dev);
+	    if (kms) {
+		xf86DrvMsgVerb(pScrn->scrnIndex, X_ERROR, 0,
+		    "FATAL: RADEONHD does not work with kernel modesetting (KMS).\n"
+		    "\tAppend \"nomodeset\" or \"radeon.modeset=0\" (depending\n"
+		    "\ton your kernel version, or just add both to be sure) to \n"
+		    "\tyour kernel command line in /boot/grub/grub.conf.\n");
+		return FALSE;
+	    } else {
+		xf86DrvMsgVerb(pScrn->scrnIndex, X_ERROR, 0,
+		    "KMS is disabled. This is good for us, because RADEONHD conflicts with KMS.\n");
+	    }
+	}
 
 	pScrn->driverVersion = RHD_VERSION;
 	pScrn->driverName    = RHD_DRIVER_NAME;
