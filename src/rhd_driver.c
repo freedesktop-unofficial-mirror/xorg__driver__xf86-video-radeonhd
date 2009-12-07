@@ -90,7 +90,9 @@
 #define _XF86DRI_SERVER_
 #include "dri.h"
 #include "GL/glxint.h"
+#ifdef HAVE_XF86DRMMODE_H
 #include "xf86drmMode.h"
+#endif
 #endif
 
 #if HAVE_XF86_ANSIC_H
@@ -402,6 +404,7 @@ RHDAvailableOptions(int chipid, int busid)
  */
 #ifdef XSERVER_LIBPCIACCESS
 
+#ifdef HAVE_XF86DRMMODE_H
 /* The radeon_kernel_mode_enabled() function is taken verbatim from
  * radeon's radeon_probe.c file. */
 static Bool radeon_kernel_mode_enabled(ScrnInfoPtr pScrn, struct pci_device *pci_dev)
@@ -428,6 +431,12 @@ static Bool radeon_kernel_mode_enabled(ScrnInfoPtr pScrn, struct pci_device *pci
 		   "[KMS] Kernel modesetting enabled.\n");
     return TRUE;
 }
+#else
+static Bool radeon_kernel_mode_enabled(ScrnInfoPtr pScrn, struct pci_device *pci_dev)
+{
+    return FALSE;
+}
+#endif
 
 static Bool
 RHDPciProbe(DriverPtr drv, int entityNum,
