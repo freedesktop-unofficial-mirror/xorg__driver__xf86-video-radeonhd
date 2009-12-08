@@ -128,20 +128,20 @@ R5xxPVSFPUCount(ScrnInfoPtr pScrn)
 /*
  * Map the macros.
  */
+#ifdef USE_DRI
 #define ACCEL_PREAMBLE() struct RhdCS *CS = rhdPtr->CS; \
                          if (pScrn->pScreen) \
                              RHDDRIContextClaim(pScrn)
+#else
+#define ACCEL_PREAMBLE() struct RhdCS *CS = rhdPtr->CS
+#endif
 
 
 #define BEGIN_ACCEL(Count) RHDCSGrab(CS, 2 * (Count))
 #define OUT_ACCEL_REG(Reg, Value) RHDCSRegWrite(CS, (Reg), (Value))
 #define FINISH_ACCEL()
 
-#ifdef USE_DRI
-#define END_ACCEL() RHDCSAdvance(CS);
-#else
 #define END_ACCEL() RHDCSAdvance(CS)
-#endif
 
 #define uint32_t CARD32
 
@@ -213,8 +213,9 @@ R5xx3DSetup(int scrnIndex)
     accel_state->texW[1] = 1;
     accel_state->texH[1] = 1;
 
+#ifdef USE_DRI
     RHDDRIContextClaim(pScrn);
-
+#endif
 
 #ifdef IS_RADEON_DRIVER
     if (IS_R300_3D || IS_R500_3D) {
