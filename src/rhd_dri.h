@@ -40,7 +40,6 @@ extern void RHDDRILeaveVT(ScreenPtr pScreen);
 extern Bool RHDDRIScreenInit(ScreenPtr pScreen);
 extern void RHDDRIContextClaim(ScrnInfoPtr pScrn);
 extern Bool RHDDRIGetHWParam(ScrnInfoPtr pScrn, enum RHDDRIHWParam param, union rhdValue *val);
-
-
+extern int  RHDKMSEnabled(ScrnInfoPtr pScrn, struct pci_device *pciDev);
 
 #endif

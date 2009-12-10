@@ -1,9 +1,10 @@
 /*
  * Copyright 2000  ATI Technologies Inc., Markham, Ontario,
  * Copyright 2000  VA Linux Systems Inc., Fremont, California.
- * Copyright 2007  Luc Verhaegen <libv@exsuse.de>
- * Copyright 2007  Matthias Hopf <mhopf@novell.com>
- * Copyright 2007  Egbert Eich   <eich@novell.com>
+ * Copyright 2007 - 2009  Luc Verhaegen <libv@exsuse.de>
+ * Copyright 2007 - 2009 Matthias Hopf <mhopf@novell.com>
+ * Copyright 2007 - 2009  Egbert Eich   <eich@novell.com>
+ * Copyright 2009  Hans Ulrich Niedermann <hun@n-dimensional.de>
  * Copyright 2007  Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
@@ -61,6 +62,9 @@
 #ifndef DEPRECATED
 #  define DEPRECATED __attribute__ ((deprecated))
 #  define __user
+#endif
+#ifdef HAVE_XF86DRMMODE_H
+# include "xf86drmMode.h"
 #endif
 #include "radeon_drm.h"
 #include "GL/glxint.h"
@@ -2025,3 +2029,29 @@ RHDDRIGetHWParam(ScrnInfoPtr pScrn, enum RHDDRIHWParam param, union rhdValue *va
 		   "Got %s param from DRM.\n",name);
     return TRUE;
 }
+
+#ifdef XSERVER_LIBPCIACCESS
+int
+RHDKMSEnabled(ScrnInfoPtr pScrn, struct pci_device *pciDev)
+{
+    char *busId;
+    int ret;
+
+#ifdef HAVE_XF86DRMMODE_H
+    if (!xf86LoaderCheckSymbol("DRICreatePCIBusID")) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "No DRICreatePCIBusID symbol\n");
+	return FALSE;
+    }
+    busId = DRICreatePCIBusID(pciDev);
+    ret = drmCheckModesettingSupported(busId);
+    xfree(busId);
+
+    xf86DrvMsg(pScrn->scrnIdex, X_INFO, "[DRM] Kernel mode setting %s\n",
+	       ret ? "enabled" : "disabled");
+    return ret;
+#else
+    return FALSE;
+#endif /* HAVE_XF86DRMMODE_H */
+}
+#endif
