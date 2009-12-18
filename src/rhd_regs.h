@@ -305,6 +305,8 @@ enum {
     AUDIO_PIN_WIDGET_CNTL          = 0x73d4, /* RO */
     AUDIO_STATUS_BITS              = 0x73d8, /* RO */
 
+    R700_AUDIO_UNKNOWN             = 0x7604,
+
     /* HDMI */
     HDMI_TMDS			   = 0x7400,
     HDMI_LVTMA			   = 0x7700,

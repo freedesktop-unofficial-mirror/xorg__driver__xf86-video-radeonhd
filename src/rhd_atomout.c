@@ -808,7 +808,6 @@ rhdAtomOutputDestroy(struct rhdOutput *Output)
     RHDFUNC(Output);
     if (Private->Save)
 	xfree(Private->Save);
-    RHDHdmiDestroy(Private->Hdmi);
 
     if (Private)
 	xfree(Private);
@@ -864,30 +863,38 @@ RHDAtomOutputAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 	     */
 	    if (Private->EncoderId != atomEncoderNone)
 		return TRUE;
+
 	    if (Output->Id != RHD_OUTPUT_KLDSKP_LVTMA
 		&& !rhdPtr->DigEncoderOutput[0]) {
 		rhdPtr->DigEncoderOutput[0] = Output;
 		TransmitterConfig->Encoder = Private->EncoderId = atomEncoderDIG1;
 		xf86DrvMsg(Output->scrnIndex, X_INFO, "Mapping DIG1 encoder to %s\n",TransmitterName);
-		return TRUE;
 	    } else if (!rhdPtr->DigEncoderOutput[1]) {
 		rhdPtr->DigEncoderOutput[1] = Output;
 		TransmitterConfig->Encoder = Private->EncoderId = atomEncoderDIG2;
 		xf86DrvMsg(Output->scrnIndex, X_INFO, "Mapping DIG2 encoder to %s\n",TransmitterName);
-		return TRUE;
 	    } else
 		return FALSE;
+
+	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
+	    RHDHdmiSave(Private->Hdmi);
+	    RHDHdmiCommitAudioWorkaround(Private->Hdmi);
+	    return TRUE;
+
 	case RHD_OUTPUT_FREE:
-		TransmitterConfig->Encoder = Private->EncoderId = atomEncoderNone;
-	    if (rhdPtr->DigEncoderOutput[0] == Output) {
+	    TransmitterConfig->Encoder = Private->EncoderId = atomEncoderNone;
+	    if (rhdPtr->DigEncoderOutput[0] == Output)
 		rhdPtr->DigEncoderOutput[0] = NULL;
-		return TRUE;
-	    } else if (rhdPtr->DigEncoderOutput[1] == Output) {
+	    else if (rhdPtr->DigEncoderOutput[1] == Output)
 		rhdPtr->DigEncoderOutput[1] = NULL;
-		return TRUE;
-	    } else
+	    else
 		return FALSE;
-	    break;
+
+	    RHDHdmiRestore(Private->Hdmi);
+	    RHDHdmiDestroy(Private->Hdmi);
+	    Private->Hdmi = NULL;
+	    return TRUE;
+
 	default:
 	    return FALSE;
     }
@@ -963,6 +970,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 
     EncoderConfig = &Private->EncoderConfig;
     Private->PixelClock = 0;
+    Private->Hdmi = NULL;
 
     switch (OutputType) {
         case RHD_OUTPUT_NONE:
@@ -973,13 +981,11 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    Output->Sense = RHDBIOSScratchDACSense;
 	    Private->EncoderId = atomEncoderDACA;
 	    Private->OutputControlId = atomDAC1Output;
-	    Private->Hdmi = NULL;
 	    break;
 	case RHD_OUTPUT_DACB:
 	    Output->Sense = RHDBIOSScratchDACSense;
 	    Private->EncoderId = atomEncoderDACB;
 	    Private->OutputControlId = atomDAC2Output;
-	    Private->Hdmi = NULL;
 	    break;
 	case RHD_OUTPUT_TMDSA:
 	case RHD_OUTPUT_LVTMA:
@@ -1004,11 +1010,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		Private->DualLink = TRUE;
 	    else
 		Private->DualLink = FALSE;
-
-	    if (ConnectorType != RHD_CONNECTOR_PANEL)
-		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
-	    else
-		Private->Hdmi = NULL;
 
 	    Private->EncoderVersion = rhdAtomEncoderControlVersion(rhdPtr->atomBIOS, Private->EncoderId);
 	    switch (Private->EncoderVersion.cref) {
@@ -1092,12 +1093,10 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 	    if (ConnectorType == RHD_CONNECTOR_PANEL) {
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomLVDS;
 		LVDSInfoRetrieve(Output, Private);
-		Private->Hdmi = NULL;
 	    } else {
 		TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
 		TMDSInfoRetrieve(rhdPtr, Private);
 		Private->Coherent = FALSE;
-		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    }
 	    break;
 
@@ -1173,7 +1172,6 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		case RHD_CONNECTOR_DVI:
 		case RHD_CONNECTOR_DVI_SINGLE:
 		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomDVI;
-		    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 		    break;
 		case RHD_CONNECTOR_PANEL:
 		    TransmitterConfig->Mode = EncoderConfig->u.dig.EncoderMode = atomLVDS;
@@ -1271,7 +1269,6 @@ RhdAtomSetupBacklightControlProperty(struct rhdOutput *Output,
 		TransmitterConfig->Encoder =  Private->EncoderId = atomEncoderNone;
 	    LVDSInfoRetrieve(Output, Private);
 	    Private->PixelClock = 0;
-	    Private->Hdmi = NULL;
 	    break;
 	case RHD_OUTPUT_LVTMA:
 	    Private->OutputControlId = atomLCDOutput;

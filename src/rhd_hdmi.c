@@ -258,21 +258,38 @@ RHDHdmiInit(RHDPtr rhdPtr, struct rhdOutput* Output)
 		break;
 
 	    case RHD_OUTPUT_LVTMA:
-		if(RHDOutputTmdsIndex(Output) == 0)
+		switch(RHDOutputTmdsIndex(Output)) {
+		case 0:
 		    hdmi->Offset = HDMI_TMDS;
-		else
+		    break;
+		case 1:
 		    hdmi->Offset = HDMI_LVTMA;
+		    break;
+	        default:
+		    xfree(hdmi);
+		    return NULL;
+		}
 		break;
 
 	    case RHD_OUTPUT_UNIPHYA:
-		hdmi->Offset = HDMI_TMDS;
-		break;
-
+	    case RHD_OUTPUT_UNIPHYB:
+	    case RHD_OUTPUT_UNIPHYC:
+	    case RHD_OUTPUT_UNIPHYD:
+	    case RHD_OUTPUT_UNIPHYE:
+	    case RHD_OUTPUT_UNIPHYF:
 	    case RHD_OUTPUT_KLDSKP_LVTMA:
-		hdmi->Offset = HDMI_DIG;
+		switch(RHDOutputTmdsIndex(Output)) {
+		case 0:
+		    hdmi->Offset = HDMI_TMDS;
+		    break;
+		case 1:
+		    hdmi->Offset = HDMI_DIG;
+		    break;
+	        default:
+		    xfree(hdmi);
+		    return NULL;
+		}
 		break;
-
-	    /*case RHD_OUTPUT_UNIPHYB: */
 
 	    default:
 		xf86DrvMsg(hdmi->scrnIndex, X_ERROR, "%s: unknown HDMI output type\n", __func__);
@@ -436,6 +453,10 @@ RHDHdmiEnable(struct rhdHdmi *hdmi, Bool Enable)
 
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    /* This part is doubtfull in my opinion */
 	    RHDRegWrite(hdmi, hdmi->Offset+HDMI_ENABLE, Enable ? 0x110 : 0x0);

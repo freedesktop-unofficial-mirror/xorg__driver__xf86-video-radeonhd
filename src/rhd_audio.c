@@ -210,6 +210,14 @@ RHDAudioSetEnable(RHDPtr rhdPtr, Bool Enable)
 		AUDIO_BPS_16|AUDIO_BPS_20,
 		AUDIO_CODEC_PCM
 	);
+
+
+	if(RHDPTRI(Audio)->ChipSet >= RHD_R700)
+	{
+	    /* another bit which use is unknown, but is needed at least on RV710 and RV730 to get audio working */
+	    RHDRegMask(Audio, R700_AUDIO_UNKNOWN, 0x00000001, 0x00000001);
+	}
+
     } else {
 	TimerFree(Audio->Timer);
 	Audio->Timer = NULL;
@@ -239,6 +247,10 @@ RHDAudioSetClock(RHDPtr rhdPtr, struct rhdOutput* Output, CARD32 Clock)
 
 	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	case RHD_OUTPUT_KLDSKP_LVTMA:
 	    RHDRegMask(Audio, AUDIO_TIMING, 0x100, 0x301);
 	    break;

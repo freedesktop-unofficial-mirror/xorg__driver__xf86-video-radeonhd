@@ -1571,7 +1571,6 @@ DigDestroy(struct rhdOutput *Output)
 
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
-    RHDHdmiDestroy(Private->Hdmi);
     if (Transmitter->PropertyPrivate)
 	RhdAtomDestroyBacklightControlProperty(Output, Transmitter->PropertyPrivate);
     xfree(Private);
@@ -1620,7 +1619,6 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 		    Private->EncoderID = ENCODER_DIG2;
 		    xf86DrvMsg(Output->scrnIndex, X_INFO,
 			       "Mapping DIG2 encoder to %s\n",TransmitterName);
-		return TRUE;
 		} else
 		    return FALSE;
 	    } else
@@ -1635,30 +1633,37 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 		    atc->Encoder = atomEncoderDIG1;
 		    xf86DrvMsg(Output->scrnIndex, X_INFO,
 			       "Mapping DIG1 encoder to %s\n",TransmitterName);
-		    return TRUE;
 		} else if (!rhdPtr->DigEncoderOutput[1]) {
 		    rhdPtr->DigEncoderOutput[1] = Output;
 		    Private->EncoderID = ENCODER_DIG2;
 		    atc->Encoder = atomEncoderDIG2;
 		    xf86DrvMsg(Output->scrnIndex, X_INFO,
 			       "Mapping DIG2 encoder to %s\n",TransmitterName);
-		    return TRUE;
 		} else
 		    return FALSE;
 	    }
 #else
 	    return FALSE;
 #endif
+	    if(Private->EncoderMode == TMDS_DVI || Private->EncoderMode == TMDS_HDMI) {
+		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
+		RHDHdmiSave(Private->Hdmi);
+		RHDHdmiCommitAudioWorkaround(Private->Hdmi);
+	    }
+
 	case RHD_OUTPUT_FREE:
-		Private->EncoderID = ENCODER_NONE;
-	    if (rhdPtr->DigEncoderOutput[0] == Output) {
+	    Private->EncoderID = ENCODER_NONE;
+	    if (rhdPtr->DigEncoderOutput[0] == Output)
 		rhdPtr->DigEncoderOutput[0] = NULL;
-		return TRUE;
-	    } else if (rhdPtr->DigEncoderOutput[1] == Output) {
+	    else if (rhdPtr->DigEncoderOutput[1] == Output)
 		rhdPtr->DigEncoderOutput[1] = NULL;
-		return TRUE;
-	    } else
+	    else
 		return FALSE;
+
+	    RHDHdmiRestore(Private->Hdmi);
+	    RHDHdmiDestroy(Private->Hdmi);
+	    Private->Hdmi = NULL;
+	    return TRUE;
 	    break;
 	default:
 	    return FALSE;
@@ -1718,6 +1723,7 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
     Output->Private = Private;
 
     Private->EncoderID = ENCODER_NONE;
+    Private->Hdmi = NULL;
 
     switch (outputType) {
 	case RHD_OUTPUT_UNIPHYA:
@@ -1880,17 +1886,14 @@ RHDDIGInit(RHDPtr rhdPtr,  enum rhdOutputType outputType, CARD8 ConnectorType)
 #endif
 	    }
 
-	    Private->Hdmi = NULL;
 	    break;
 	case RHD_CONNECTOR_DVI:
 	    Private->RunDualLink = FALSE; /* will be set later acc to pxclk */
 	    Private->EncoderMode = TMDS_DVI;
-	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    break;
 	case RHD_CONNECTOR_DVI_SINGLE:
 	    Private->RunDualLink = FALSE;
 	    Private->EncoderMode = TMDS_DVI; /* changed later to HDMI if aplicateable */
-	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    break;
     }
 

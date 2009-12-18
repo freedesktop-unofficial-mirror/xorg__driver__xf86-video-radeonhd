@@ -287,12 +287,12 @@ RHDOutputAttachConnector(struct rhdOutput *Output, struct rhdConnector *Connecto
 int
 RHDOutputTmdsIndex(struct rhdOutput *Output)
 {
-    struct rhdOutput *i = RHDPTRI(Output)->Outputs;
+    RHDPtr rhdPtr = RHDPTRI(Output);
+    struct rhdOutput *i = rhdPtr->Outputs;
     int index;
 
     switch(Output->Id) {
 	case RHD_OUTPUT_TMDSA:
-	case RHD_OUTPUT_UNIPHYA:
 	    index=0;
 	    break;
 
@@ -306,9 +306,19 @@ RHDOutputTmdsIndex(struct rhdOutput *Output)
 	    }
 	    break;
 
+	case RHD_OUTPUT_UNIPHYA:
 	case RHD_OUTPUT_UNIPHYB:
+	case RHD_OUTPUT_UNIPHYC:
+	case RHD_OUTPUT_UNIPHYD:
+	case RHD_OUTPUT_UNIPHYE:
+	case RHD_OUTPUT_UNIPHYF:
 	case RHD_OUTPUT_KLDSKP_LVTMA:
-	    index=1;
+	    for(index=0; index<2; index++)
+		if(rhdPtr->DigEncoderOutput[index] == Output)
+		    return index;
+
+	    xf86DrvMsg(Output->scrnIndex, X_ERROR, "%s: output not assigned to encoder\n", __func__);
+            index=-1;
 	    break;
 
 	default:
