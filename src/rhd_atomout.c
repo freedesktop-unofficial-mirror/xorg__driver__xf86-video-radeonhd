@@ -878,7 +878,6 @@ RHDAtomOutputAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 
 	    Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 	    RHDHdmiSave(Private->Hdmi);
-	    RHDHdmiCommitAudioWorkaround(Private->Hdmi);
 	    return TRUE;
 
 	case RHD_OUTPUT_FREE:

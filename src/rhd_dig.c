@@ -1648,8 +1648,8 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 	    if(Private->EncoderMode == TMDS_DVI || Private->EncoderMode == TMDS_HDMI) {
 		Private->Hdmi = RHDHdmiInit(rhdPtr, Output);
 		RHDHdmiSave(Private->Hdmi);
-		RHDHdmiCommitAudioWorkaround(Private->Hdmi);
 	    }
+	    return TRUE;
 
 	case RHD_OUTPUT_FREE:
 	    Private->EncoderID = ENCODER_NONE;
@@ -1664,7 +1664,7 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
 	    RHDHdmiDestroy(Private->Hdmi);
 	    Private->Hdmi = NULL;
 	    return TRUE;
-	    break;
+
 	default:
 	    return FALSE;
     }
