@@ -214,7 +214,7 @@ rhdAtomPLL1Save(struct rhdPLL *PLL)
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P1PLL_INT_SS_CNTL);
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT1_PPLL_REF_DIV) & 0x1FF;
     PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT1_PPLL_FB_DIV) >> 16) & 0x7FF;
-    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0x7;
+    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT1_PPLL_FB_DIV) & 0xF;
     PLL->StorePostDiv  = RHDRegRead(PLL, EXT1_PPLL_POST_DIV) & 0x3F;
     PllCntl = RHDRegRead(PLL, P1PLL_CNTL);
     RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL1\n",
@@ -239,7 +239,7 @@ rhdAtomPLL2Save(struct rhdPLL *PLL)
     PLL->StoreSpreadSpectrum = RHDRegRead(PLL, P2PLL_INT_SS_CNTL);
     PLL->StoreRefDiv   = RHDRegRead(PLL, EXT2_PPLL_REF_DIV) & 0x1FF;
     PLL->StoreFBDiv    = (RHDRegRead(PLL, EXT2_PPLL_FB_DIV) >> 16) & 0x7FF;
-    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0x7;
+    Private->StoreFBDivFrac = RHDRegRead(PLL, EXT2_PPLL_FB_DIV) & 0xF;
     PLL->StorePostDiv  = RHDRegRead(PLL, EXT2_PPLL_POST_DIV) & 0x3F;
     PllCntl = RHDRegRead(PLL, P2PLL_CNTL);
     RHDDebug(PLL->scrnIndex, "Saving %i kHz clock on PLL2\n",
