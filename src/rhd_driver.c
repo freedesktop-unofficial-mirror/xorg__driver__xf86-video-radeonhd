@@ -1394,7 +1394,8 @@ RHDCloseScreen(int scrnIndex, ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
     RHDPtr rhdPtr = RHDPTR(pScrn);
     Bool Idle = TRUE; /* yes, this is correct! */
-    
+
+    RHDFUNC(rhdPtr);
     /* Make sure our CS and 2D status is clean before destroying it */
     if (pScrn->vtSema)
 	rhdEngineIdle(pScrn);
