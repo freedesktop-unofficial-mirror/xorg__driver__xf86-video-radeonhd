@@ -166,15 +166,18 @@ USE_DRI=no
 if test "x$DRI" = xyes; then
 	USE_DRI="yes"
 	AC_CHECK_DECL(XF86DRI,, [USE_DRI=no], [#include <xorg-server.h>])
+	XORG_CFLAGS="$XORG_CFLAGS $DRI_CFLAGS"
 	PKG_CHECK_MODULES(DRI, [libdrm >= 2.2 xf86driproto glproto],, [USE_DRI=no])
 fi
 
 AC_MSG_CHECKING([whether to enable DRI support])
 AC_MSG_RESULT($USE_DRI)
-test "x$USE_DRI" = xyes && AC_DEFINE(USE_DRI, 1, [Build support for DRI])
 AM_CONDITIONAL(USE_DRI, test "x$USE_DRI" = xyes)
 
-if test "x$USER_DRI" = "xyes"; then
+if test "x$USE_DRI" = "xyes"; then
+	AC_DEFINE(USE_DRI, 1, [Build support for DRI])
+	CFLAGS="$CFLAGS $DRI_CFLAGS"
+	CPPFLAGS="$CPPFLAGS $DRI_CFLAGS"
 	AC_CHECK_HEADER([xf86drmMode.h],
 			[AC_DEFINE([HAVE_XF86DRMMODE_H], [1],
 				[Define to 1 if you have xf86drmMode.h])])

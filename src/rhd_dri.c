@@ -2047,10 +2047,12 @@ RHDKMSEnabled(ScrnInfoPtr pScrn, struct pci_device *pciDev)
     ret = drmCheckModesettingSupported(busId);
     xfree(busId);
 
-    xf86DrvMsg(pScrn->scrnIdex, X_INFO, "[DRM] Kernel mode setting %s\n",
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "[DRM] Kernel mode setting %s\n",
 	       ret ? "enabled" : "disabled");
     return ret;
 #else
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	       "[DRM] No kernel mode setting support available during compile time - assuming it is not active\n");
     return FALSE;
 #endif /* HAVE_XF86DRMMODE_H */
 }
