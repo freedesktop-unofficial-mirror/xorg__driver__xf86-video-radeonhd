@@ -2043,8 +2043,16 @@ RHDKMSEnabled(ScrnInfoPtr pScrn, struct pci_device *pciDev)
 		   "No DRICreatePCIBusID symbol\n");
 	return FALSE;
     }
+
     busId = DRICreatePCIBusID(pciDev);
+
+    if ( (ret = drmOpen(dri_driver_name, busId)) >= 0)
+	drmClose (ret);
+    else
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Could not open DRM - module might not be loaded, KMS detection faulty.\n");
     ret = (drmCheckModesettingSupported(busId) == 0);
+
     xfree(busId);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "[DRM] Kernel mode setting %s\n",
