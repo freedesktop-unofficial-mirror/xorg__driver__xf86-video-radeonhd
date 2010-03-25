@@ -1005,7 +1005,7 @@ RHDAtomOutputInit(RHDPtr rhdPtr, rhdConnectorType ConnectorType,
 		Private->EncoderId = atomEncoderTMDS1;
 	    }
 
-	    if (OutputType == RHD_CONNECTOR_DVI)
+	    if (ConnectorType == RHD_CONNECTOR_DVI)
 		Private->DualLink = TRUE;
 	    else
 		Private->DualLink = FALSE;
