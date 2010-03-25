@@ -2044,7 +2044,7 @@ RHDKMSEnabled(ScrnInfoPtr pScrn, struct pci_device *pciDev)
 	return FALSE;
     }
     busId = DRICreatePCIBusID(pciDev);
-    ret = drmCheckModesettingSupported(busId);
+    ret = (drmCheckModesettingSupported(busId) == 0);
     xfree(busId);
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "[DRM] Kernel mode setting %s\n",
