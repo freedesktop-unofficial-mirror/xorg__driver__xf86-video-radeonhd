@@ -204,28 +204,36 @@ do {                                                                    \
 /* If register falls in a special area, special commands are issued */
 #define PACK0(ib, reg, num)                                             \
 do {                                                                    \
-    if ((reg) >= SET_CONFIG_REG_offset && (reg) < SET_CONFIG_REG_end) {	\
+    if ((int)(reg) >= (int)SET_CONFIG_REG_offset &&			\
+	(int)(reg) < (int)SET_CONFIG_REG_end) {				\
 	PACK3((ib), IT_SET_CONFIG_REG, (num) + 1);			\
         E32(ib, ((reg) - SET_CONFIG_REG_offset) >> 2);                  \
-    } else if ((reg) >= SET_CONTEXT_REG_offset && (reg) < SET_CONTEXT_REG_end) { \
+    } else if ((int)(reg) >= (int)SET_CONTEXT_REG_offset &&		\
+	       (int)(reg) < (int)SET_CONTEXT_REG_end) {			\
         PACK3((ib), IT_SET_CONTEXT_REG, (num) + 1);			\
 	E32(ib, ((reg) - 0x28000) >> 2);				\
-    } else if ((reg) >= SET_ALU_CONST_offset && (reg) < SET_ALU_CONST_end) { \
+    } else if ((int)(reg) >= (int)SET_ALU_CONST_offset &&		\
+	       (int)(reg) < (int)SET_ALU_CONST_end) {			\
 	PACK3((ib), IT_SET_ALU_CONST, (num) + 1);			\
 	E32(ib, ((reg) - SET_ALU_CONST_offset) >> 2);			\
-    } else if ((reg) >= SET_RESOURCE_offset && (reg) < SET_RESOURCE_end) { \
+    } else if ((int)(reg) >= (int)SET_RESOURCE_offset &&		\
+	       (int)(reg) < (int)SET_RESOURCE_end) {			\
 	PACK3((ib), IT_SET_RESOURCE, num + 1);				\
 	E32((ib), ((reg) - SET_RESOURCE_offset) >> 2);			\
-    } else if ((reg) >= SET_SAMPLER_offset && (reg) < SET_SAMPLER_end) { \
+    } else if ((int)(reg) >= (int)SET_SAMPLER_offset &&			\
+	       (int)(reg) < (int)SET_SAMPLER_end) {			\
 	PACK3((ib), IT_SET_SAMPLER, (num) + 1);				\
 	E32((ib), (reg - SET_SAMPLER_offset) >> 2);			\
-    } else if ((reg) >= SET_CTL_CONST_offset && (reg) < SET_CTL_CONST_end) { \
+    } else if ((int)(reg) >= (int)SET_CTL_CONST_offset &&		\
+	       (int)(reg) < (int)SET_CTL_CONST_end) {			\
 	PACK3((ib), IT_SET_CTL_CONST, (num) + 1);			\
-	E32((ib), ((reg) - SET_CTL_CONST_offset) >> 2);		\
-    } else if ((reg) >= SET_LOOP_CONST_offset && (reg) < SET_LOOP_CONST_end) { \
+	E32((ib), ((reg) - SET_CTL_CONST_offset) >> 2);			\
+    } else if ((int)(reg) >= (int)SET_LOOP_CONST_offset &&		\
+	       (int)(reg) < (int)SET_LOOP_CONST_end) {			\
 	PACK3((ib), IT_SET_LOOP_CONST, (num) + 1);			\
 	E32((ib), ((reg) - SET_LOOP_CONST_offset) >> 2);		\
-    } else if ((reg) >= SET_BOOL_CONST_offset && (reg) < SET_BOOL_CONST_end) { \
+    } else if ((int)(reg) >= (int)SET_BOOL_CONST_offset &&		\
+	       (int)(reg) < (int)SET_BOOL_CONST_end) {			\
 	PACK3((ib), IT_SET_BOOL_CONST, (num) + 1);			\
 	E32((ib), ((reg) - SET_BOOL_CONST_offset) >> 2);		\
     } else {								\
