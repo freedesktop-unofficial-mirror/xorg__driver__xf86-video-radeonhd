@@ -262,6 +262,7 @@ enum rv620I2CBits {
     RV62_GENERIC_I2C_SDA_PIN_SEL      = (0x7f << RV62_GENERIC_I2C_SDA_PIN_SEL_SHIFT)
 };
 
+#ifdef ATOM_BIOS
 /*
  *
  */
@@ -339,6 +340,7 @@ getDDCLineFromGPIO(int scrnIndex, CARD32 gpio, int shift)
 	       __func__, (unsigned int) gpio, shift);
     return rhdDdcUnknown;
 }
+#endif
 
 /*
  *

@@ -413,10 +413,10 @@ RHDPmInit (RHDPtr rhdPtr)
 void
 RHDPmSave (RHDPtr rhdPtr)
 {
+#ifdef ATOM_BIOS
     struct rhdPm *Pm = rhdPtr->Pm;
     RHDFUNC(rhdPtr);
 
-#ifdef ATOM_BIOS
     /* ATM unconditionally enable power management features
      * if low power mode requested */
     if (rhdPtr->atomBIOS) {
@@ -431,13 +431,13 @@ RHDPmSave (RHDPtr rhdPtr)
 			     ATOM_PM_CLOCKGATING_SETUP, &data);
 	}
     }
-#endif
 
     if (!Pm) return;
 
     memcpy (&Pm->Stored, &Pm->Default, sizeof (Pm->Default));
     rhdPmGetRawState (rhdPtr, &Pm->Stored);
     rhdPmValidateClearSetting (Pm, &Pm->Stored);
+#endif
 }
 
 /*
@@ -446,11 +446,10 @@ RHDPmSave (RHDPtr rhdPtr)
 void
 RHDPmRestore (RHDPtr rhdPtr)
 {
+#ifdef ATOM_BIOS
     struct rhdPm *Pm = rhdPtr->Pm;
-
     RHDFUNC(rhdPtr);
 
-#ifdef ATOM_BIOS
     /* Don't know how to save state yet - unconditionally disable */
     if (rhdPtr->atomBIOS) {
 	union AtomBiosArg data;
@@ -464,7 +463,6 @@ RHDPmRestore (RHDPtr rhdPtr)
 			     ATOM_PM_CLOCKGATING_SETUP, &data);
 	}
     }
-#endif
 
     if (!Pm)
 	return;
@@ -475,5 +473,6 @@ RHDPmRestore (RHDPtr rhdPtr)
         return;
     }
     rhdPmSetRawState (rhdPtr, &Pm->Stored);
+#endif
 }
 

@@ -742,8 +742,10 @@ LVDSDestroy(struct rhdOutput *Output)
     if (!Private)
 	return;
 
+#ifdef ATOM_BIOS
     if (Private->PropertyPrivate)
 	RhdAtomDestroyBacklightControlProperty(Output, Private->PropertyPrivate);
+#endif
     xfree(Private);
     Output->Private = NULL;
 }
@@ -1339,6 +1341,7 @@ TMDSBDestroy(struct rhdOutput *Output)
     Output->Private = NULL;
 }
 
+#ifdef ATOM_BIOS
 static Bool
 LVDSPropertyWrapper(struct rhdOutput *Output,
 		    enum rhdPropertyAction Action,
@@ -1357,6 +1360,7 @@ LVDSPropertyWrapper(struct rhdOutput *Output,
 
     return ret;
 }
+#endif
 
 /*
  *

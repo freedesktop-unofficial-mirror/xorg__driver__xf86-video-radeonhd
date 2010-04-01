@@ -1571,8 +1571,10 @@ DigDestroy(struct rhdOutput *Output)
 
     Encoder->Destroy(Output);
     Transmitter->Destroy(Output);
+#ifdef ATOM_BIOS
     if (Transmitter->PropertyPrivate)
 	RhdAtomDestroyBacklightControlProperty(Output, Transmitter->PropertyPrivate);
+#endif
     xfree(Private);
     Output->Private = NULL;
 }
@@ -1670,6 +1672,7 @@ DigAllocFree(struct rhdOutput *Output, enum rhdOutputAllocation Alloc)
     }
 }
 
+#ifdef ATOM_BIOS
 /*
  *
  */
@@ -1691,6 +1694,7 @@ digTransmitterPropertyWrapper(struct rhdOutput *Output,
 
     return ret;
 }
+#endif
 
 /*
  *

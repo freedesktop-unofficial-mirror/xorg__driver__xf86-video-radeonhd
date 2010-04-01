@@ -60,6 +60,7 @@ struct DDIAPrivate
     CARD32 DdiaBitDepthControl;
 };
 
+#ifdef ATOM_BIOS
 /*
  *
  */
@@ -321,6 +322,7 @@ DDIADestroy(struct rhdOutput *Output)
     xfree(Private);
     Output->Private = NULL;
 }
+#endif
 
 /*
  *
