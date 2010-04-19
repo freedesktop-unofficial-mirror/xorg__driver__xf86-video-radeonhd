@@ -414,8 +414,8 @@ RHDPciProbe(DriverPtr drv, int entityNum,
 				RES_SHARED_VGA, NULL, NULL, NULL, NULL);
     if (pScrn != NULL) {
 
-	if (dev) {
 #ifdef USE_DRI
+	if (dev) {
 	    Bool kms = RHDKMSEnabled(pScrn, dev);
 	    if (kms) {
 		xf86DrvMsgVerb(pScrn->scrnIndex, X_ERROR, 0,
