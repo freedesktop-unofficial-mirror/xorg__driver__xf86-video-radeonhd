@@ -1225,6 +1225,9 @@ static Bool FUNC_NAME(R300TextureSetup)(PicturePtr pPict, PixmapPtr pPix,
 static Bool R300CheckComposite(int op, PicturePtr pSrcPicture, PicturePtr pMaskPicture,
 			       PicturePtr pDstPicture)
 {
+    if (!!pSrcPicture->pDrawable)
+	return FALSE;
+
     VAR_PREAMBLE(pSrcPicture->pDrawable->pScreen);
     uint32_t tmp1;
     PixmapPtr pSrcPixmap, pDstPixmap;
