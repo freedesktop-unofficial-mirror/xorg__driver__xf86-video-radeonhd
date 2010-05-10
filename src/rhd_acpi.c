@@ -195,7 +195,7 @@ static Bool
 rhdDoBacklight(struct rhdOutput *Output, Bool do_write, int *val)
 {
     if (do_write)
-	&val = -1;
+	*val = -1;
     return FALSE;
 }
 
